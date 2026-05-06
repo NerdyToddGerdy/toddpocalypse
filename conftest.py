@@ -1,5 +1,5 @@
 import sys
 import os
 
-# Make project root importable so "from Character import Character" works in tests
-sys.path.insert(0, os.path.dirname(__file__))
+# Modules now live under docs/ — add that to sys.path for test imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "docs"))

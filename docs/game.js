@@ -57,7 +57,7 @@ async function loadPyodide_() {
     }
 
     for (const [filePath] of PY_FILES) {
-        const url = "../" + filePath;
+        const url = filePath;
         const text = await fetch(url, { cache: "no-store" }).then(r => {
             if (!r.ok) throw new Error(`Failed to fetch ${url}: ${r.status}`);
             return r.text();
