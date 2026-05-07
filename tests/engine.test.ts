@@ -537,6 +537,13 @@ describe("boss fight", () => {
     expect(gs.dungeonLevel).toBe(2);
   });
 
+  it("boss drops gold on death", () => {
+    const gs = atBoss();
+    const reward = gs.enemy.gold_reward;
+    gs.onEnemyDeath();
+    expect(gs.gold).toBe(reward);
+  });
+
   it("second floor also gets a boss after KILLS_PER_LEVEL kills", () => {
     const gs = make();
     for (let i = 0; i < KILLS_PER_LEVEL + 1; i++) gs.onEnemyDeath();
@@ -810,6 +817,33 @@ describe("prestige round-trip", () => {
 
   it("prestige_points_preview is 1 at level 20", () => {
     expect(withHighLevel(20).toDict().prestige_points_preview).toBe(1);
+  });
+
+  it("lifetime_kills includes current run kills", () => {
+    const gs = make(); gs.kills = 7;
+    expect(gs.toDict().lifetime_kills).toBe(7);
+  });
+
+  it("lifetime_kills accumulates stored + current after a prestige", () => {
+    const gs = withHighLevel(20); gs.kills = 10; gs.prestige();
+    gs.kills = 5;
+    expect(gs.toDict().lifetime_kills).toBe(15);
+  });
+
+  it("lifetime_deaths includes current run deaths", () => {
+    const gs = make(); gs.deaths = 3;
+    expect(gs.toDict().lifetime_deaths).toBe(3);
+  });
+
+  it("lifetime_best_level reflects current run even before prestige", () => {
+    const gs = make(); gs.highestLevel = 12;
+    expect(gs.toDict().lifetime_best_level).toBe(12);
+  });
+
+  it("lifetime_best_level is max of stored and current", () => {
+    const gs = withHighLevel(25); gs.prestige();
+    gs.highestLevel = 15;
+    expect(gs.toDict().lifetime_best_level).toBe(25);
   });
 });
 

@@ -1,4 +1,4 @@
-export const VERSION = "v1.3.0";
+export const VERSION = "v1.4.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,14 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.4.0",
+    date: "2026-05-07",
+    changes: [
+      "Mobile layout with tab bar navigation (Combat / Party / Shop / Log)",
+      "Larger touch targets for all action buttons",
+    ],
+  },
   {
     version: "v1.3.0",
     date: "2026-05-07",

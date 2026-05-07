@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Character, switchClass } from "../src/character.js";
+import { Character, switchClass, HP_PER_LEVEL } from "../src/character.js";
 import { GearItem, SLOTS } from "../src/gear.js";
 
 function makeChar(cls = "fighter") {
@@ -136,6 +136,26 @@ describe("xp and leveling", () => {
     const c = makeChar("rogue");
     c.gainXp(100);
     expect(c.clickBonus).toBeCloseTo(0.3 * (c.level - 1));
+  });
+
+  it("level up increases maxHealth by HP_PER_LEVEL", () => {
+    const c = makeChar();
+    const before = c.maxHealth;
+    c.gainXp(10);
+    expect(c.maxHealth).toBe(before + HP_PER_LEVEL);
+  });
+
+  it("level up increases current health by HP_PER_LEVEL", () => {
+    const c = makeChar();
+    const before = c.health;
+    c.gainXp(10);
+    expect(c.health).toBe(before + HP_PER_LEVEL);
+  });
+
+  it("maxHealth grows with each level", () => {
+    const c = makeChar();
+    c.gainXp(100);
+    expect(c.maxHealth).toBe(100 + HP_PER_LEVEL * (c.level - 1));
   });
 });
 

@@ -25,6 +25,8 @@ const LEVEL_UP: Record<string, LevelUpBonuses> = {
   mage: { dpsMult: 1.1, clickBonus: 0.0, xpMultiplier: 0.05 },
 };
 
+export const HP_PER_LEVEL = 10;
+
 export function switchClass(jobNumber: number): string | null {
   return SWITCHER[jobNumber] ?? null;
 }
@@ -96,6 +98,8 @@ export class Character {
     this.dps *= bonuses.dpsMult;
     this.clickBonus += bonuses.clickBonus;
     this.xpMultiplier += bonuses.xpMultiplier;
+    this.maxHealth += HP_PER_LEVEL;
+    this.health += HP_PER_LEVEL;
   }
 
   toDict(): CharacterDict {

@@ -332,9 +332,9 @@ export class GameState {
       ),
       log: [...this.log],
       prestige_points: this.prestigePoints,
-      lifetime_kills: this.lifetimeKills,
-      lifetime_deaths: this.lifetimeDeaths,
-      lifetime_best_level: this.lifetimeBestLevel,
+      lifetime_kills: this.lifetimeKills + this.kills,
+      lifetime_deaths: this.lifetimeDeaths + this.deaths,
+      lifetime_best_level: Math.max(this.lifetimeBestLevel, this.highestLevel),
       total_prestiges: this.totalPrestiges,
       prestige_upgrades: { ...this.prestigeUpgrades },
       prestige_party_classes: { ...this.prestigePartyClasses },
@@ -372,6 +372,7 @@ export class GameState {
     }
 
     if (this.enemy.isBoss) {
+      this.gold += this.enemy.gold_reward;
       if (this.lootPool.length < LOOT_MAX) {
         const drop = getItem(undefined, this.dungeonLevel);
         this.lootPool.push(drop);

@@ -73,7 +73,7 @@ header h1 {
 #stats-bar span { color: var(--text); font-weight: 600; }
 
 #prestige-btn {
-    padding: 4px 12px;
+    padding: 6px 14px;
     font-size: 0.78rem;
     font-weight: 700;
     background: linear-gradient(135deg, var(--accent), #92620e);
@@ -381,7 +381,7 @@ main {
 #loot-header h2 { margin-bottom: 0; }
 
 .equip-all-btn {
-    padding: 3px 9px;
+    padding: 5px 10px;
     font-size: 0.72rem;
     font-weight: 700;
     background: var(--surface);
@@ -443,7 +443,7 @@ main {
 .ind-down { color: var(--danger); }
 
 .equip-btn, .sell-btn {
-    padding: 3px 7px;
+    padding: 6px 10px;
     font-size: 0.72rem;
     font-weight: 700;
     border: none;
@@ -487,7 +487,7 @@ main {
 .upgrade-level { font-size: 0.7rem; color: var(--muted); white-space: nowrap; }
 
 .upgrade-btn {
-    padding: 2px 7px;
+    padding: 5px 10px;
     font-size: 0.7rem;
     font-weight: 700;
     background: var(--surface);
@@ -815,13 +815,78 @@ main {
 #stat-deaths { color: var(--danger) !important; }
 #stat-best   { color: var(--accent) !important; }
 
-@media (max-width: 800px) {
+#mobile-tabs { display: none; }
+
+@media (max-width: 768px) {
     main {
         grid-template-columns: 1fr;
-        grid-template-rows: auto auto auto;
+        grid-template-rows: auto;
+        padding: 12px;
+        padding-bottom: 72px;
+        overflow-y: auto;
     }
+
+    #left-col  { display: contents; }
+    #sidebar   { display: contents; }
     #depth-gauge { display: none; }
-    #sidebar { grid-column: 1; }
+
+    #enemy-panel,
+    #party-panel,
+    #upgrades-panel,
+    #loot-panel,
+    #prestige-panel,
+    #log-panel { display: none; }
+
+    .tab-visible { display: flex !important; flex-direction: column; }
+
+    header { padding: 10px 14px; flex-wrap: wrap; gap: 8px; }
+    header h1 { font-size: 1.1rem; }
+    #stats-bar { flex-wrap: wrap; gap: 10px; font-size: 0.8rem; }
+
+    #creation-box { width: min(340px, 92vw); }
+
+    #party-cards { flex-direction: column; }
+
+    .loot-item { gap: 8px; }
+
+    footer { display: none; }
+
+    #mobile-tabs {
+        display: flex;
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        z-index: 100;
+        height: 60px;
+    }
+
+    .mobile-tab-btn {
+        flex: 1;
+        padding: 8px 4px;
+        background: none;
+        border: none;
+        border-top: 3px solid transparent;
+        color: var(--muted);
+        font-size: 1rem;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        transition: color 0.15s, border-color 0.15s;
+    }
+
+    .mobile-tab-btn span {
+        font-size: 0.65rem;
+        letter-spacing: 0.5px;
+    }
+
+    .mobile-tab-btn.active {
+        color: var(--accent2);
+        border-top-color: var(--accent2);
+    }
 }
 
 /* ── Prestige panel ── */
@@ -862,7 +927,7 @@ main {
 .prestige-item-desc { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
 
 .prestige-buy-btn {
-    padding: 3px 10px;
+    padding: 6px 12px;
     font-size: 0.72rem;
     font-weight: 700;
     background: var(--surface);

@@ -354,6 +354,27 @@ function slotLabel(slot: string): string {
   return slot.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+const TAB_PANELS: Record<string, string[]> = {
+  combat: ["enemy-panel"],
+  party:  ["party-panel"],
+  shop:   ["upgrades-panel", "loot-panel", "prestige-panel"],
+  log:    ["log-panel"],
+};
+
+function initMobileTabs(): void {
+  const allPanelIds = Object.values(TAB_PANELS).flat();
+  const tabs = document.querySelectorAll<HTMLElement>(".mobile-tab-btn");
+
+  function showTab(tab: string): void {
+    allPanelIds.forEach(id => document.getElementById(id)?.classList.remove("tab-visible"));
+    TAB_PANELS[tab]?.forEach(id => document.getElementById(id)?.classList.add("tab-visible"));
+    tabs.forEach(btn => btn.classList.toggle("active", btn.dataset.tab === tab));
+  }
+
+  tabs.forEach(btn => btn.addEventListener("click", () => showTab(btn.dataset.tab!)));
+  showTab("combat");
+}
+
 function updateClassDesc(): void {
   const cls = (document.querySelector(".class-btn.selected") as HTMLElement | null)?.dataset.class ?? "fighter";
   $("class-desc").textContent = CLASS_DESCS[cls] ?? "";
@@ -436,6 +457,8 @@ function continueGame(saved: GameStateDict): void {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  initMobileTabs();
+
   $("stats-btn").addEventListener("click", () => { $("stats-modal").classList.add("open"); });
   $("stats-close").addEventListener("click", () => { $("stats-modal").classList.remove("open"); });
   $("stats-modal").addEventListener("click", (e) => {
