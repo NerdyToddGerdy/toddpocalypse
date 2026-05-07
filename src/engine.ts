@@ -97,19 +97,27 @@ export class GameState {
       if (this.autoSellerTimer >= AUTO_SELLER_INTERVAL) {
         this.autoSellerTimer -= AUTO_SELLER_INTERVAL;
         const qualArr = QUAL as readonly string[];
-        let lowestIdx = 0;
-        let lowestTier = qualArr.indexOf(this.lootPool[0].quality);
-        for (let i = 1; i < this.lootPool.length; i++) {
-          const tier = qualArr.indexOf(this.lootPool[i].quality);
-          if (tier < lowestTier) { lowestTier = tier; lowestIdx = i; }
+        const sellable = this.lootPool
+          .map((_, i) => i)
+          .filter(i => !this.isUpgradeForAnyMember(this.lootPool[i]));
+        if (sellable.length > 0) {
+          let lowestIdx = sellable[0];
+          let lowestTier = qualArr.indexOf(this.lootPool[sellable[0]].quality);
+          for (const i of sellable.slice(1)) {
+            const tier = qualArr.indexOf(this.lootPool[i].quality);
+            if (tier < lowestTier) { lowestTier = tier; lowestIdx = i; }
+          }
+          const sold = this.lootPool.splice(lowestIdx, 1)[0];
+          this.gold += sold.sellValue;
+          this.addLog(`[Auto] Sold ${sold.getName()} for ${sold.sellValue}g.`);
         }
-        const sold = this.lootPool.splice(lowestIdx, 1)[0];
-        this.gold += sold.sellValue;
-        this.addLog(`[Auto] Sold ${sold.getName()} for ${sold.sellValue}g.`);
       }
     }
 
-    const totalDps = this.party.team.reduce((s, c) => s + c.dps, 0);
+    const totalDps = this.party.team.reduce(
+      (s, c) => s + (c.inventory.equippedItems().length > 0 ? c.dps : 0),
+      0,
+    );
     this.enemy.hp -= totalDps * dt;
     if (this.enemy.hp <= 0) {
       this.onEnemyDeath();
@@ -406,6 +414,13 @@ export class GameState {
     this.kills = 0;
     player.health = player.maxHealth;
     this.enemy = generateEnemy(1);
+  }
+
+  private isUpgradeForAnyMember(item: GearItem): boolean {
+    return this.party.team.some(c => {
+      const equipped = c.inventory.slots[item.slot];
+      return !equipped || item.damage > equipped.damage;
+    });
   }
 
   private addLog(message: string): void {

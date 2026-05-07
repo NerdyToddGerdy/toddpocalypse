@@ -1,4 +1,4 @@
-export const VERSION = "v1.4.0";
+export const VERSION = "v1.5.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,14 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.5.0",
+    date: "2026-05-07",
+    changes: [
+      "Auto-DPS is disabled until a character has gear equipped — click to deal damage early",
+      "Auto Seller now protects items that are upgrades for any party member",
+    ],
+  },
   {
     version: "v1.4.0",
     date: "2026-05-07",

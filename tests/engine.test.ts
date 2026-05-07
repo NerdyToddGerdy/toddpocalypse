@@ -70,15 +70,28 @@ describe("tick", () => {
     expect(result).toHaveProperty("enemy");
   });
 
-  it("reduces enemy HP", () => {
+  it("reduces enemy HP when character has gear", () => {
     const gs = make();
+    gs.enemy.hp = gs.enemy.max_hp = 1000;
+    gs.enemy.attack_dps = 0;
+    gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
     const startHp = gs.enemy.hp;
     gs.tick(1.0);
     expect(gs.enemy.hp).toBeLessThan(startHp);
   });
 
-  it("kills enemy when HP depletes", () => {
+  it("does not reduce enemy HP when no gear is equipped", () => {
     const gs = make();
+    gs.enemy.hp = gs.enemy.max_hp = 1000;
+    gs.enemy.attack_dps = 0;
+    const before = gs.enemy.hp;
+    gs.tick(1.0);
+    expect(gs.enemy.hp).toBe(before);
+  });
+
+  it("kills enemy when HP depletes and character has gear", () => {
+    const gs = make();
+    gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
     gs.enemy.hp = 0.1;
     gs.tick(1.0);
     expect(gs.kills).toBe(1);
@@ -125,6 +138,7 @@ describe("tick", () => {
   it("enemy kill heals player to full", () => {
     const gs = make();
     const player = gs.party.team[0];
+    player.equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
     player.health = 1;
     gs.enemy.hp = 0.1;
     gs.tick(1.0);
@@ -215,6 +229,14 @@ describe("click", () => {
     const start = gs.enemy.hp;
     gs.click();
     expect(gs.enemy.hp).toBeLessThan(start);
+  });
+
+  it("deals damage even without gear equipped", () => {
+    const gs = make();
+    gs.enemy.hp = gs.enemy.max_hp = 1000;
+    const before = gs.enemy.hp;
+    gs.click();
+    expect(gs.enemy.hp).toBeLessThan(before);
   });
 
   it("includes party click bonus", () => {
@@ -971,6 +993,9 @@ describe("auto-seller", () => {
     const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
     const broken = new GearItem("helmet" as Slot, "helm", "broken", "valor");
     const legendary = new GearItem("chest" as Slot, "plate", "legendary", "valor");
+    // Equip legendary in both slots so neither loot item is an upgrade
+    gs.party.team[0].equipItem(new GearItem("helmet" as Slot, "helm", "legendary", "valor"));
+    gs.party.team[0].equipItem(new GearItem("chest" as Slot, "plate", "legendary", "valor"));
     gs.lootPool = [legendary, broken];
     gs.tick(AUTO_SELLER_INTERVAL);
     expect(gs.lootPool.length).toBe(1);
@@ -987,13 +1012,23 @@ describe("auto-seller", () => {
 
   it("only sells one item per interval", () => {
     const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
-    gs.lootPool = [getItem(), getItem(), getItem()];
+    // Equip legendary in all three slots so loot items are not upgrades
+    gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
+    gs.party.team[0].equipItem(new GearItem("off_hand" as Slot, "dagger", "legendary", "valor"));
+    gs.party.team[0].equipItem(new GearItem("helmet" as Slot, "helm", "legendary", "valor"));
+    const item1 = new GearItem("main_hand" as Slot, "sword", "broken", "rusty");
+    const item2 = new GearItem("off_hand" as Slot, "dagger", "broken", "rusty");
+    const item3 = new GearItem("helmet" as Slot, "helm", "broken", "rusty");
+    gs.lootPool = [item1, item2, item3];
     gs.tick(AUTO_SELLER_INTERVAL);
     expect(gs.lootPool.length).toBe(2);
   });
 
   it("timer carries overshoot into next interval", () => {
     const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
+    // Equip legendary in both slots so the loot items are not upgrades
+    gs.party.team[0].equipItem(new GearItem("helmet" as Slot, "helm", "legendary", "valor"));
+    gs.party.team[0].equipItem(new GearItem("chest" as Slot, "plate", "legendary", "valor"));
     const item1 = new GearItem("helmet" as Slot, "helm", "broken", "valor");
     const item2 = new GearItem("chest" as Slot, "plate", "worn", "valor");
     gs.lootPool = [item1, item2];
@@ -1007,11 +1042,67 @@ describe("auto-seller", () => {
 
   it("timer resets on fromDict load", () => {
     const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
-    gs.lootPool = [getItem()];
+    // Equip legendary so item is not upgrade-protected; test is about timer only
+    gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
+    gs.lootPool = [new GearItem("main_hand" as Slot, "sword", "broken", "rusty")];
     gs.tick(AUTO_SELLER_INTERVAL - 0.5);
     const restored = GameState.fromDict(gs.toDict());
     frozenEnemy(restored);
     restored.tick(0.1);
     expect(restored.lootPool.length).toBe(1);
+  });
+
+  it("does not sell an item that fills an empty slot", () => {
+    const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
+    const item = new GearItem("main_hand" as Slot, "sword", "broken", "rusty");
+    gs.lootPool = [item]; // slot is empty — any item is an upgrade
+    gs.tick(AUTO_SELLER_INTERVAL);
+    expect(gs.lootPool.length).toBe(1);
+  });
+
+  it("does not sell an item with higher damage than equipped", () => {
+    const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
+    gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "broken", "rusty")); // damage=1
+    const better = new GearItem("main_hand" as Slot, "sword", "legendary", "valor"); // damage=75
+    gs.lootPool = [better];
+    gs.tick(AUTO_SELLER_INTERVAL);
+    expect(gs.lootPool.length).toBe(1);
+    expect(gs.gold).toBe(0);
+  });
+
+  it("sells an item with lower damage than equipped", () => {
+    const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
+    gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor")); // damage=75
+    const weaker = new GearItem("main_hand" as Slot, "sword", "broken", "rusty"); // damage=1
+    gs.lootPool = [weaker];
+    gs.tick(AUTO_SELLER_INTERVAL);
+    expect(gs.lootPool.length).toBe(0);
+    expect(gs.gold).toBe(weaker.sellValue);
+  });
+
+  it("does nothing if all items are upgrades for the party", () => {
+    const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
+    // No gear equipped — every item fills an empty slot
+    gs.lootPool = [
+      new GearItem("main_hand" as Slot, "sword", "broken", "rusty"),
+      new GearItem("helmet" as Slot, "helm", "worn", "valor"),
+    ];
+    gs.tick(AUTO_SELLER_INTERVAL);
+    expect(gs.lootPool.length).toBe(2);
+    expect(gs.gold).toBe(0);
+  });
+
+  it("skips upgrades and sells the worst non-upgrade", () => {
+    const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
+    // Equip legendary main_hand — any main_hand in loot is not an upgrade
+    gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
+    // helmet slot is empty — helmet item is an upgrade, keep it
+    const helmetUpgrade = new GearItem("helmet" as Slot, "helm", "broken", "rusty"); // upgrade (empty slot)
+    const weakSword = new GearItem("main_hand" as Slot, "sword", "broken", "rusty"); // not upgrade
+    gs.lootPool = [helmetUpgrade, weakSword];
+    gs.tick(AUTO_SELLER_INTERVAL);
+    expect(gs.lootPool.length).toBe(1);
+    expect(gs.lootPool[0].slot).toBe("helmet");
+    expect(gs.gold).toBe(weakSword.sellValue);
   });
 });
