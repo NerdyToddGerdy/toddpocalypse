@@ -1,5 +1,6 @@
 import { GameState, type GameStateDict } from "./engine.js";
 import { qualityClass } from "./gear.js";
+import { VERSION, CHANGELOG } from "./changelog.js";
 
 const CLASS_DESCS: Record<string, string> = {
   fighter: "Highest idle DPS. Each level-up multiplies damage by 1.2×.",
@@ -317,6 +318,28 @@ function continueGame(saved: GameStateDict): void {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  $("version-btn").textContent = VERSION;
+
+  $("changelog-body").innerHTML = CHANGELOG.map(entry => `
+    <div class="cl-entry">
+      <div class="cl-version">${entry.version}</div>
+      <div class="cl-date">${entry.date}</div>
+      <ul class="cl-changes">
+        ${entry.changes.map(c => `<li>${c}</li>`).join("")}
+      </ul>
+    </div>
+  `).join("");
+
+  $("version-btn").addEventListener("click", () => {
+    $("changelog-modal").classList.add("open");
+  });
+  $("changelog-close").addEventListener("click", () => {
+    $("changelog-modal").classList.remove("open");
+  });
+  $("changelog-modal").addEventListener("click", (e) => {
+    if (e.target === $("changelog-modal")) $("changelog-modal").classList.remove("open");
+  });
+
   const saved = loadSave();
 
   if (saved) {
