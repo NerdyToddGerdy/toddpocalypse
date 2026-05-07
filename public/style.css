@@ -234,6 +234,12 @@ main {
 
 .gear-row:last-child { border-bottom: none; }
 
+.gear-row.slot-highlight {
+  background: rgba(200, 162, 39, 0.15);
+  box-shadow: inset 0 0 0 1px var(--accent);
+  border-radius: 3px;
+}
+
 .gear-icon { text-align: center; }
 
 .gear-name {

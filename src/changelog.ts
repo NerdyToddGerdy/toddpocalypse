@@ -1,4 +1,4 @@
-export const VERSION = "v1.5.0";
+export const VERSION = "v1.5.1";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,13 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.5.1",
+    date: "2026-05-07",
+    changes: [
+      "Hovering a loot item highlights the matching slot in the hero's equipment panel",
+    ],
+  },
   {
     version: "v1.5.0",
     date: "2026-05-07",

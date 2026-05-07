@@ -34,6 +34,7 @@ let lootKey: string | null = null;
 let upgradeKey: string | null = null;
 let partyKey: string | null = null;
 let prestigeKey: string | null = null;
+let hoveredLootSlot: string | null = null;
 
 function $(id: string): HTMLElement {
   const el = document.getElementById(id);
@@ -147,13 +148,13 @@ function renderParty(state: GameStateDict): void {
         .map(([slot, item]) => {
           if (item) {
             const qc = qualityClass(item.quality);
-            return `<div class="gear-row filled">
+            return `<div class="gear-row filled" data-slot="${slot}">
               <span class="gear-icon">${SLOT_ICONS[slot]}</span>
               <span class="gear-name ${qc}">${item.name}</span>
               <span class="gear-bonus ${qc}">+${item.damage}</span>
             </div>`;
           }
-          return `<div class="gear-row empty">
+          return `<div class="gear-row empty" data-slot="${slot}">
             <span class="gear-icon">${SLOT_ICONS[slot]}</span>
             <span class="gear-slot-label">${slotLabel(slot)}</span>
           </div>`;
@@ -193,6 +194,13 @@ function renderParty(state: GameStateDict): void {
 </div>`;
     })
     .join("");
+  applySlotHighlight();
+}
+
+function applySlotHighlight(): void {
+  document.querySelectorAll<HTMLElement>(".gear-row").forEach(row => {
+    row.classList.toggle("slot-highlight", hoveredLootSlot !== null && row.dataset.slot === hoveredLootSlot);
+  });
 }
 
 function renderLoot(state: GameStateDict): void {
@@ -215,7 +223,7 @@ function renderLoot(state: GameStateDict): void {
       const [tri, triCls] = lootTier(item, state.party);
       const qc = qualityClass(item.quality);
       return `
-<div class="loot-item">
+<div class="loot-item" data-slot="${item.slot}">
   <div class="loot-meta">
     <span class="loot-slot-badge">${item.slot_display}</span>
     <span class="loot-name ${qc}">${item.name}</span>
@@ -458,6 +466,19 @@ function continueGame(saved: GameStateDict): void {
 
 document.addEventListener("DOMContentLoaded", () => {
   initMobileTabs();
+
+  $("loot-items").addEventListener("mouseover", (e) => {
+    const item = (e.target as HTMLElement).closest<HTMLElement>(".loot-item");
+    const slot = item?.dataset.slot ?? null;
+    if (slot === hoveredLootSlot) return;
+    hoveredLootSlot = slot;
+    applySlotHighlight();
+  });
+  $("loot-items").addEventListener("mouseleave", () => {
+    if (hoveredLootSlot === null) return;
+    hoveredLootSlot = null;
+    applySlotHighlight();
+  });
 
   $("stats-btn").addEventListener("click", () => { $("stats-modal").classList.add("open"); });
   $("stats-close").addEventListener("click", () => { $("stats-modal").classList.remove("open"); });
