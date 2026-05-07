@@ -115,6 +115,8 @@ function renderDepthGauge(state: GameStateDict): void {
   currentEl.style.top = toPercent(current) + "px";
   $("depth-current-label").textContent = `${current}`;
 
+  $("depth-fill").style.height = (toPercent(current) + 10) + "px";
+
   const highestEl = $("depth-highest-marker");
   highestEl.style.top = toPercent(highest) + "px";
   $("depth-highest-label").textContent = highest > current ? `${highest}` : "";

@@ -739,6 +739,18 @@ main {
     min-height: 200px;
 }
 
+#depth-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 0;
+    background: rgba(139, 92, 246, 0.25);
+    border-radius: 7px 7px 3px 3px;
+    transition: height 0.4s ease;
+    z-index: 0;
+}
+
 #depth-highest-marker {
     position: absolute;
     left: -1px;
