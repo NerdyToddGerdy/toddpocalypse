@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { GameState, KILLS_PER_LEVEL, LOOT_MAX, UPGRADE_BASES, UPGRADE_EFFECTS } from "../src/engine.js";
+import { GameState, KILLS_PER_LEVEL, LOOT_MAX, UPGRADE_BASES, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT } from "../src/engine.js";
 import { GearItem, getItem, type Slot } from "../src/gear.js";
 
 function make(): GameState {
@@ -47,7 +47,7 @@ describe("init", () => {
     for (const c of gs.party.team) {
       expect(gs.upgrades).toHaveProperty(c.name);
       expect(new Set(Object.keys(gs.upgrades[c.name]))).toEqual(
-        new Set(["dps", "xp", "click"]),
+        new Set(["dps", "xp", "click", "hp"]),
       );
     }
   });
@@ -385,6 +385,40 @@ describe("upgrades", () => {
     const goldBefore = gs.gold;
     gs.buyUpgrade(c.name, "invalid");
     expect(gs.gold).toBe(goldBefore);
+  });
+
+  it("hp upgrade increases maxHealth", () => {
+    const gs = withGold();
+    const c = gs.party.team[0];
+    const before = c.maxHealth;
+    gs.buyUpgrade(c.name, "hp");
+    expect(c.maxHealth).toBe(before + HP_UPGRADE_EFFECT);
+  });
+
+  it("hp upgrade also raises current health by the same amount", () => {
+    const gs = withGold();
+    const c = gs.party.team[0];
+    const before = c.health;
+    gs.buyUpgrade(c.name, "hp");
+    expect(c.health).toBe(before + HP_UPGRADE_EFFECT);
+  });
+
+  it("hp upgrade deducts gold", () => {
+    const gs = withGold();
+    const c = gs.party.team[0];
+    const cost = gs.upgradeCost(c.name, "hp");
+    gs.buyUpgrade(c.name, "hp");
+    expect(gs.gold).toBe(10_000 - cost);
+  });
+
+  it("hp upgrade survives fromDict round-trip", () => {
+    const gs = withGold();
+    const c = gs.party.team[0];
+    gs.buyUpgrade(c.name, "hp");
+    gs.buyUpgrade(c.name, "hp");
+    const restored = GameState.fromDict(gs.toDict());
+    expect(restored.upgrades[c.name].hp).toBe(2);
+    expect(restored.party.team[0].maxHealth).toBe(c.maxHealth);
   });
 });
 

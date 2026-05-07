@@ -13,6 +13,7 @@ export const UPGRADE_BASES: Record<string, number> = {
   dps: 50,
   xp: 75,
   click: 40,
+  hp: 60,
 };
 
 export const UPGRADE_EFFECTS: Record<string, number> = {
@@ -21,7 +22,9 @@ export const UPGRADE_EFFECTS: Record<string, number> = {
   click: 0.5,
 };
 
-type UpgradeType = "dps" | "xp" | "click";
+export const HP_UPGRADE_EFFECT = 25;
+
+type UpgradeType = "dps" | "xp" | "click" | "hp";
 type UpgradeLevels = Record<UpgradeType, number>;
 
 export interface GameStateDict {
@@ -55,7 +58,7 @@ export class GameState {
     this.party.addPlayer(new Character(name, characterClass, 1));
     this.enemy = generateEnemy(this.dungeonLevel);
     for (const c of this.party.team) {
-      this.upgrades[c.name] = { dps: 0, xp: 0, click: 0 };
+      this.upgrades[c.name] = { dps: 0, xp: 0, click: 0, hp: 0 };
     }
   }
 
@@ -138,10 +141,13 @@ export class GameState {
     this.upgrades[charName][ut] += 1;
     const char = this.party.team.find((c) => c.name === charName);
     if (!char) return this.respond();
-    const effect = UPGRADE_EFFECTS[ut];
-    if (ut === "dps") char.dps += effect;
-    else if (ut === "xp") char.xpMultiplier += effect;
-    else if (ut === "click") char.clickBonus += effect;
+    if (ut === "dps") char.dps += UPGRADE_EFFECTS.dps;
+    else if (ut === "xp") char.xpMultiplier += UPGRADE_EFFECTS.xp;
+    else if (ut === "click") char.clickBonus += UPGRADE_EFFECTS.click;
+    else if (ut === "hp") {
+      char.maxHealth += HP_UPGRADE_EFFECT;
+      char.health += HP_UPGRADE_EFFECT;
+    }
     this.addLog(`${charName}: ${ut} upgraded!`);
     return this.respond();
   }
@@ -275,6 +281,7 @@ export class GameState {
         dps: d.upgrades[c.name]?.dps?.level ?? 0,
         xp: d.upgrades[c.name]?.xp?.level ?? 0,
         click: d.upgrades[c.name]?.click?.level ?? 0,
+        hp: d.upgrades[c.name]?.hp?.level ?? 0,
       };
     }
 

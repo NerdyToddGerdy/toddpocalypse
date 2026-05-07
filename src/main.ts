@@ -24,6 +24,7 @@ const UPGRADE_LABELS: Record<string, { icon: string; label: string }> = {
   dps: { icon: "⚔", label: "DPS" },
   xp: { icon: "✨", label: "XP Rate" },
   click: { icon: "👆", label: "Click Dmg" },
+  hp: { icon: "❤", label: "Max HP" },
 };
 
 const SAVE_KEY = "toddpocalypse-save";

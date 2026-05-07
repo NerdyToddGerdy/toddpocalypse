@@ -1,4 +1,4 @@
-export const VERSION = "v1.1.1";
+export const VERSION = "v1.2.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,13 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.2.0",
+    date: "2026-05-07",
+    changes: [
+      "Max HP upgrade available in the upgrades panel — +25 HP per level",
+    ],
+  },
   {
     version: "v1.1.1",
     date: "2026-05-07",
