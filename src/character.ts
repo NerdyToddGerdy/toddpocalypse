@@ -7,6 +7,32 @@ const SWITCHER: Record<number, string> = {
   3: "mage",
 };
 
+export interface AbilityMeta {
+  level: number;
+  id: string;
+  name: string;
+  desc: string;
+  icon: string;
+}
+
+export const CLASS_ABILITIES: Record<string, AbilityMeta[]> = {
+  fighter: [
+    { level: 5,  id: "iron_skin",       name: "Iron Skin",       desc: "20% damage reduction",          icon: "🛡" },
+    { level: 10, id: "bloodlust",        name: "Bloodlust",       desc: "+60% DPS at ≤50% HP",           icon: "🩸" },
+    { level: 20, id: "battle_standard",  name: "Battle Standard", desc: "Party members +10% DPS",        icon: "🚩" },
+  ],
+  rogue: [
+    { level: 5,  id: "lucky_strike",    name: "Lucky Strike",    desc: "25% click crit (3× dmg)",       icon: "🎯" },
+    { level: 10, id: "blade_mastery",   name: "Blade Mastery",   desc: "Passive DPS +50%",               icon: "⚔" },
+    { level: 20, id: "expose_weakness", name: "Expose Weakness", desc: "Enemy takes +25% dmg",           icon: "💀" },
+  ],
+  mage: [
+    { level: 5,  id: "arcane_study",    name: "Arcane Study",    desc: "Party XP +25%",                  icon: "📚" },
+    { level: 10, id: "mana_surge",      name: "Mana Surge",      desc: "Auto-burst 5× DPS every 20s",   icon: "⚡" },
+    { level: 20, id: "empower",         name: "Empower",         desc: "All click damage ×2",            icon: "✨" },
+  ],
+};
+
 const BASE_DPS: Record<string, number> = {
   fighter: 2.0,
   rogue: 1.5,
@@ -43,6 +69,8 @@ export interface CharacterDict {
   health: number;
   max_health: number;
   equipment: InventoryDict;
+  abilities: string[];
+  damage_reduction: number;
 }
 
 export class Character {
@@ -57,6 +85,10 @@ export class Character {
   clickBonus: number;
   maxHealth: number;
   health: number;
+  abilities: string[] = [];
+  damageReduction = 0;
+  surgeTimer = 0;
+  pendingPartyAbilities: string[] = [];
 
   constructor(name: string, characterClass: string, level = 1) {
     this.name = name;
@@ -100,6 +132,22 @@ export class Character {
     this.xpMultiplier += bonuses.xpMultiplier;
     this.maxHealth += HP_PER_LEVEL;
     this.health += HP_PER_LEVEL;
+
+    const unlock = CLASS_ABILITIES[this.characterClass]?.find(a => a.level === this.level);
+    if (unlock) {
+      this.abilities.push(unlock.id);
+      this.applyAbilityEffect(unlock.id);
+    }
+  }
+
+  private applyAbilityEffect(id: string): void {
+    if (id === "iron_skin") {
+      this.damageReduction = 0.2;
+    } else if (id === "blade_mastery") {
+      this.dps *= 1.5;
+    } else if (id === "battle_standard" || id === "arcane_study") {
+      this.pendingPartyAbilities.push(id);
+    }
   }
 
   toDict(): CharacterDict {
@@ -115,6 +163,8 @@ export class Character {
       health: this.health,
       max_health: this.maxHealth,
       equipment: this.inventory.toDict(),
+      abilities: [...this.abilities],
+      damage_reduction: this.damageReduction,
     };
   }
 
@@ -127,6 +177,8 @@ export class Character {
     c.clickBonus = d.click_bonus;
     c.health = d.health;
     c.maxHealth = d.max_health;
+    c.abilities = [...(d.abilities ?? [])];
+    c.damageReduction = d.damage_reduction ?? 0;
     for (const [slot, item] of Object.entries(d.equipment)) {
       if (item) {
         c.inventory.slots[slot as keyof typeof c.inventory.slots] = GearItem.fromDict(item);

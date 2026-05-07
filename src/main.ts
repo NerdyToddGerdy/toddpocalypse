@@ -1,6 +1,7 @@
 import { GameState, type GameStateDict } from "./engine.js";
 import { qualityClass } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
+import { CLASS_ABILITIES } from "./character.js";
 
 const CLASS_DESCS: Record<string, string> = {
   fighter: "Highest idle DPS. Each level-up multiplies damage by 1.2×.",
@@ -131,7 +132,7 @@ function renderDepthGauge(state: GameStateDict): void {
 function renderParty(state: GameStateDict): void {
   const prevPartyKey = partyKey;
   const newKey = JSON.stringify(
-    state.party.map((c) => [c.dps, c.level, c.xp, c.health, JSON.stringify(c.equipment)]),
+    state.party.map((c) => [c.dps, c.level, c.xp, c.health, JSON.stringify(c.equipment), c.abilities.join(",")]),
   );
   if (newKey === partyKey) return;
   const prevLevels = prevPartyKey
@@ -162,6 +163,13 @@ function renderParty(state: GameStateDict): void {
         .join("");
       const hpPct = Math.max(0, Math.round((c.health / c.max_health) * 100));
       const hpLow = hpPct <= 25;
+      const classAbilities = CLASS_ABILITIES[c.character_class] ?? [];
+      const abilitiesHtml = classAbilities.map(a => {
+        const unlocked = c.abilities.includes(a.id);
+        return unlocked
+          ? `<span class="ability-badge unlocked" title="${a.desc}">${a.icon} ${a.name}</span>`
+          : `<span class="ability-badge locked" title="Unlocks at level ${a.level}: ${a.desc}">${a.icon} Lv${a.level}</span>`;
+      }).join("");
       return `
 <div class="char-card${leveledUp ? " levelup-flash" : ""}">
   <div class="char-header">
@@ -181,6 +189,7 @@ function renderParty(state: GameStateDict): void {
     </div>
   </div>
   <div class="char-gear">${gearRows}</div>
+  <div class="char-abilities">${abilitiesHtml}</div>
   <div class="xp-section">
     <div class="xp-header">
       <span class="xp-level-label">Level ${c.level}</span>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Character, switchClass, HP_PER_LEVEL } from "../src/character.js";
+import { Character, switchClass, HP_PER_LEVEL, CLASS_ABILITIES } from "../src/character.js";
 import { GearItem, SLOTS } from "../src/gear.js";
 
 function makeChar(cls = "fighter") {
@@ -156,6 +156,92 @@ describe("xp and leveling", () => {
     const c = makeChar();
     c.gainXp(100);
     expect(c.maxHealth).toBe(100 + HP_PER_LEVEL * (c.level - 1));
+  });
+});
+
+describe("class abilities — unlocks", () => {
+  function levelTo(c: Character, target: number) {
+    while (c.level < target) c.levelUp();
+  }
+
+  // Fighter
+  it("fighter has no iron_skin before level 5", () => {
+    expect(makeChar("fighter").abilities).not.toContain("iron_skin");
+  });
+  it("fighter unlocks iron_skin at level 5", () => {
+    const c = makeChar("fighter"); levelTo(c, 5);
+    expect(c.abilities).toContain("iron_skin");
+  });
+  it("fighter damageReduction is 0.2 after iron_skin", () => {
+    const c = makeChar("fighter"); levelTo(c, 5);
+    expect(c.damageReduction).toBeCloseTo(0.2);
+  });
+  it("fighter unlocks bloodlust at level 10", () => {
+    const c = makeChar("fighter"); levelTo(c, 10);
+    expect(c.abilities).toContain("bloodlust");
+  });
+  it("fighter queues battle_standard as party effect at level 20", () => {
+    const c = makeChar("fighter"); levelTo(c, 20);
+    expect(c.abilities).toContain("battle_standard");
+    expect(c.pendingPartyAbilities).toContain("battle_standard");
+  });
+
+  // Rogue
+  it("rogue unlocks lucky_strike at level 5", () => {
+    const c = makeChar("rogue"); levelTo(c, 5);
+    expect(c.abilities).toContain("lucky_strike");
+  });
+  it("rogue unlocks blade_mastery at level 10", () => {
+    const c = makeChar("rogue"); levelTo(c, 10);
+    expect(c.abilities).toContain("blade_mastery");
+  });
+  it("rogue DPS at level 10 is 1.5× what it would be without blade_mastery", () => {
+    const c = makeChar("rogue"); levelTo(c, 9);
+    const dpsBefore = c.dps;
+    c.levelUp(); // reach 10 — normal 1.15× mult then blade_mastery 1.5×
+    expect(c.dps).toBeCloseTo(dpsBefore * 1.15 * 1.5);
+  });
+  it("rogue unlocks expose_weakness at level 20", () => {
+    const c = makeChar("rogue"); levelTo(c, 20);
+    expect(c.abilities).toContain("expose_weakness");
+  });
+
+  // Mage
+  it("mage unlocks arcane_study at level 5", () => {
+    const c = makeChar("mage"); levelTo(c, 5);
+    expect(c.abilities).toContain("arcane_study");
+  });
+  it("mage queues arcane_study as party effect at level 5", () => {
+    const c = makeChar("mage"); levelTo(c, 5);
+    expect(c.pendingPartyAbilities).toContain("arcane_study");
+  });
+  it("mage unlocks mana_surge at level 10", () => {
+    const c = makeChar("mage"); levelTo(c, 10);
+    expect(c.abilities).toContain("mana_surge");
+  });
+  it("mage unlocks empower at level 20", () => {
+    const c = makeChar("mage"); levelTo(c, 20);
+    expect(c.abilities).toContain("empower");
+  });
+
+  // CLASS_ABILITIES export
+  it("CLASS_ABILITIES has entries for all three classes", () => {
+    expect(CLASS_ABILITIES).toHaveProperty("fighter");
+    expect(CLASS_ABILITIES).toHaveProperty("rogue");
+    expect(CLASS_ABILITIES).toHaveProperty("mage");
+  });
+
+  // Round-trip
+  it("abilities survive toDict/fromDict", () => {
+    const c = makeChar("rogue"); levelTo(c, 10);
+    const restored = Character.fromDict(c.toDict());
+    expect(restored.abilities).toContain("lucky_strike");
+    expect(restored.abilities).toContain("blade_mastery");
+  });
+  it("damageReduction survives toDict/fromDict", () => {
+    const c = makeChar("fighter"); levelTo(c, 5);
+    const restored = Character.fromDict(c.toDict());
+    expect(restored.damageReduction).toBeCloseTo(0.2);
   });
 });
 

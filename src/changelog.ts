@@ -1,4 +1,4 @@
-export const VERSION = "v1.5.1";
+export const VERSION = "v1.6.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,17 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.6.0",
+    date: "2026-05-07",
+    changes: [
+      "Class abilities unlock at levels 5, 10, and 20",
+      "Fighter: Iron Skin (dmg reduction), Bloodlust (+60% DPS at low HP), Battle Standard (party +10% DPS)",
+      "Rogue: Lucky Strike (25% crit), Blade Mastery (+50% DPS), Expose Weakness (enemy +25% dmg taken)",
+      "Mage: Arcane Study (party XP +25%), Mana Surge (auto-burst every 20s), Empower (click dmg ×2)",
+      "Ability badges shown in party cards — locked abilities show their unlock level",
+    ],
+  },
   {
     version: "v1.5.1",
     date: "2026-05-07",

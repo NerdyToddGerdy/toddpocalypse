@@ -24,6 +24,14 @@ export const UPGRADE_EFFECTS: Record<string, number> = {
 
 export const HP_UPGRADE_EFFECT = 25;
 
+export const BLOODLUST_MULTIPLIER = 1.6;
+export const EXPOSE_WEAKNESS_MULT = 1.25;
+export const MANA_SURGE_INTERVAL = 20;
+export const MANA_SURGE_MULTIPLIER = 5;
+export const LUCKY_STRIKE_CHANCE = 0.25;
+export const LUCKY_STRIKE_MULTIPLIER = 3;
+export const EMPOWER_MULTIPLIER = 2;
+
 export const PRESTIGE_UNLOCK_LEVEL = 20;
 export const PRESTIGE_SHOP_COSTS: Record<string, number> = {
   auto_seller: 1,
@@ -114,17 +122,34 @@ export class GameState {
       }
     }
 
-    const totalDps = this.party.team.reduce(
-      (s, c) => s + (c.inventory.equippedItems().length > 0 ? c.dps : 0),
-      0,
-    );
-    this.enemy.hp -= totalDps * dt;
+    // Mana Surge — fires before regular DPS so we can early-return if enemy dies
+    for (const c of this.party.team) {
+      if (c.abilities.includes("mana_surge") && c.inventory.equippedItems().length > 0) {
+        c.surgeTimer += dt;
+        if (c.surgeTimer >= MANA_SURGE_INTERVAL) {
+          c.surgeTimer -= MANA_SURGE_INTERVAL;
+          const surgeDmg = c.dps * MANA_SURGE_MULTIPLIER;
+          this.enemy.hp -= surgeDmg;
+          this.addLog(`${c.name} Mana Surge! (${surgeDmg.toFixed(1)} dmg)`);
+          if (this.enemy.hp <= 0) { this.onEnemyDeath(); return this.respond(); }
+        }
+      }
+    }
+
+    const hasExpose = this.party.team.some(c => c.abilities.includes("expose_weakness"));
+    const totalDps = this.party.team.reduce((s, c) => {
+      if (c.inventory.equippedItems().length === 0) return s;
+      let dps = c.dps;
+      if (c.abilities.includes("bloodlust") && c.health <= c.maxHealth * 0.5) dps *= BLOODLUST_MULTIPLIER;
+      return s + dps;
+    }, 0);
+    this.enemy.hp -= totalDps * (hasExpose ? EXPOSE_WEAKNESS_MULT : 1.0) * dt;
     if (this.enemy.hp <= 0) {
       this.onEnemyDeath();
       return this.respond();
     }
     const player = this.party.team[0];
-    player.health -= this.enemy.attack_dps * dt;
+    player.health -= this.enemy.attack_dps * dt * (1 - player.damageReduction);
     if (player.health <= 0) {
       this.onPlayerDeath();
     }
@@ -134,9 +159,15 @@ export class GameState {
   click(): string {
     const totalDps = this.party.team.reduce((s, c) => s + c.dps, 0);
     const clickBonus = this.party.team.reduce((s, c) => s + c.clickBonus, 0);
-    const damage = Math.max(1.0, totalDps * CLICK_DAMAGE_MULTIPLIER * 0.1 + clickBonus);
+    let damage = Math.max(1.0, totalDps * CLICK_DAMAGE_MULTIPLIER * 0.1 + clickBonus);
+    if (this.party.team.some(c => c.abilities.includes("empower"))) damage *= EMPOWER_MULTIPLIER;
+    if (this.party.team.some(c => c.abilities.includes("lucky_strike")) && Math.random() < LUCKY_STRIKE_CHANCE) {
+      damage *= LUCKY_STRIKE_MULTIPLIER;
+      this.addLog(`Lucky Strike! ${damage.toFixed(1)} dmg!`);
+    } else {
+      this.addLog(`You strike for ${damage.toFixed(1)}!`);
+    }
     this.enemy.hp -= damage;
-    this.addLog(`You strike for ${damage.toFixed(1)}!`);
     if (this.enemy.hp <= 0) this.onEnemyDeath();
     return this.respond();
   }
@@ -377,6 +408,20 @@ export class GameState {
     for (const c of this.party.team) {
       c.gainXp(xp);
       c.health = c.maxHealth;
+      while (c.pendingPartyAbilities.length > 0) {
+        const ability = c.pendingPartyAbilities.shift()!;
+        if (ability === "battle_standard") {
+          for (const other of this.party.team) {
+            if (other !== c) other.dps *= 1.1;
+          }
+          this.addLog(`${c.name} raises Battle Standard! Party DPS +10%.`);
+        } else if (ability === "arcane_study") {
+          for (const other of this.party.team) {
+            other.xpMultiplier *= 1.25;
+          }
+          this.addLog(`${c.name} unlocks Arcane Study! Party XP +25%.`);
+        }
+      }
     }
 
     if (this.enemy.isBoss) {

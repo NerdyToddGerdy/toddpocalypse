@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   GameState, KILLS_PER_LEVEL, LOOT_MAX, UPGRADE_BASES, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT,
   PRESTIGE_UNLOCK_LEVEL, PRESTIGE_SHOP_COSTS, STARTING_GOLD_PER_LEVEL, XP_BONUS_PER_LEVEL, AUTO_SELLER_INTERVAL,
+  BLOODLUST_MULTIPLIER, EXPOSE_WEAKNESS_MULT, MANA_SURGE_INTERVAL, MANA_SURGE_MULTIPLIER,
+  LUCKY_STRIKE_CHANCE, LUCKY_STRIKE_MULTIPLIER, EMPOWER_MULTIPLIER,
 } from "../src/engine.js";
+import { Character } from "../src/character.js";
 import { GearItem, getItem, type Slot } from "../src/gear.js";
 
 function make(): GameState {
@@ -1052,6 +1055,7 @@ describe("auto-seller", () => {
     expect(restored.lootPool.length).toBe(1);
   });
 
+
   it("does not sell an item that fills an empty slot", () => {
     const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
     const item = new GearItem("main_hand" as Slot, "sword", "broken", "rusty");
@@ -1104,5 +1108,225 @@ describe("auto-seller", () => {
     expect(gs.lootPool.length).toBe(1);
     expect(gs.lootPool[0].slot).toBe("helmet");
     expect(gs.gold).toBe(weakSword.sellValue);
+  });
+});
+
+describe("class ability effects", () => {
+  function geared(gs: GameState): GameState {
+    gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
+    return gs;
+  }
+  function frozen(gs: GameState): GameState {
+    gs.enemy.hp = gs.enemy.max_hp = 999_999;
+    gs.enemy.attack_dps = 0;
+    return gs;
+  }
+
+  // ── Iron Skin ──
+  it("iron_skin reduces damage taken by 20%", () => {
+    const gs = frozen(geared(make()));
+    gs.enemy.attack_dps = 10;
+    const player = gs.party.team[0];
+    const startHp = player.health;
+    gs.tick(1.0);
+    const dmgWithout = startHp - player.health;
+
+    player.health = startHp;
+    player.damageReduction = 0.2;
+    gs.enemy.hp = 999_999;
+    gs.tick(1.0);
+    const dmgWith = startHp - player.health;
+
+    expect(dmgWith).toBeCloseTo(dmgWithout * 0.8, 1);
+  });
+
+  // ── Bloodlust ──
+  it("bloodlust boosts DPS when fighter HP is at or below 50%", () => {
+    const gs = frozen(geared(make()));
+    const fighter = gs.party.team[0];
+    fighter.health = Math.floor(fighter.maxHealth * 0.4);
+
+    gs.tick(1.0);
+    const dpsNormal = 999_999 - gs.enemy.hp;
+
+    fighter.abilities = ["bloodlust"];
+    fighter.health = Math.floor(fighter.maxHealth * 0.4);
+    gs.enemy.hp = 999_999;
+    gs.tick(1.0);
+    const dpsBloodlust = 999_999 - gs.enemy.hp;
+
+    expect(dpsBloodlust).toBeCloseTo(dpsNormal * BLOODLUST_MULTIPLIER, 0);
+  });
+
+  it("bloodlust does not apply at full HP", () => {
+    const gs = frozen(geared(make()));
+    const fighter = gs.party.team[0];
+
+    gs.tick(1.0);
+    const dpsNormal = 999_999 - gs.enemy.hp;
+
+    fighter.abilities = ["bloodlust"];
+    fighter.health = fighter.maxHealth;
+    gs.enemy.hp = 999_999;
+    gs.tick(1.0);
+    const dpsFullHp = 999_999 - gs.enemy.hp;
+
+    expect(dpsFullHp).toBeCloseTo(dpsNormal, 0);
+  });
+
+  // ── Battle Standard ──
+  it("battle_standard boosts other party member DPS on fighter level 20", () => {
+    const gs = make();
+    const rogue = new Character("Rogue", "rogue", 1);
+    gs.party.addPlayer(rogue);
+    gs.upgrades["Rogue"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+    rogue.xpToNext = 999_999;
+    const fighter = gs.party.team[0];
+    fighter.level = 19; fighter.xpToNext = 1; fighter.xp = 0;
+
+    const rogueDpsBefore = rogue.dps;
+    gs.enemy.xp_reward = 5;
+    gs.onEnemyDeath();
+
+    expect(rogue.dps).toBeCloseTo(rogueDpsBefore * 1.1);
+  });
+
+  it("battle_standard does not boost the fighter herself", () => {
+    const gs = make();
+    const fighter = gs.party.team[0];
+    fighter.level = 19; fighter.xpToNext = 5; fighter.xp = 0; // exactly one level-up
+    const dpsBefore = fighter.dps;
+    gs.enemy.xp_reward = 5;
+    gs.onEnemyDeath();
+    // fighter DPS increase should only come from normal level-up mult, not from battle_standard
+    expect(fighter.dps).toBeCloseTo(dpsBefore * 1.2); // 1.2 is fighter's dpsMult
+  });
+
+  // ── Lucky Strike ──
+  it("lucky_strike occasionally crits for more than base click damage", () => {
+    const gs = make();
+    const rogue = new Character("Rogue", "rogue", 1);
+    gs.party.addPlayer(rogue);
+    rogue.abilities = ["lucky_strike"];
+
+    gs.enemy.hp = gs.enemy.max_hp = 999_999_999;
+    gs.enemy.attack_dps = 0;
+
+    gs.click();
+    const baseDamage = 999_999_999 - gs.enemy.hp;
+
+    gs.enemy.hp = 999_999_999;
+    for (let i = 0; i < 200; i++) gs.click();
+    const totalDamage = 999_999_999 - gs.enemy.hp;
+
+    // Without any crits: 200 × baseDamage. With 25% crits: ~300 × baseDamage.
+    expect(totalDamage).toBeGreaterThan(200 * baseDamage);
+  });
+
+  // ── Blade Mastery ──
+  it("blade_mastery applies in engine when rogue with ability is present", () => {
+    const gs = frozen(make());
+    const rogue = new Character("Rogue", "rogue", 1);
+    rogue.equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
+    gs.party.addPlayer(rogue);
+
+    gs.tick(1.0);
+    const dpsWithout = 999_999 - gs.enemy.hp;
+
+    rogue.abilities = ["blade_mastery"];
+    rogue.dps *= 1.5; // manually apply as character.ts would
+    gs.enemy.hp = 999_999;
+    gs.tick(1.0);
+    const dpsWith = 999_999 - gs.enemy.hp;
+
+    expect(dpsWith).toBeGreaterThan(dpsWithout);
+  });
+
+  // ── Expose Weakness ──
+  it("expose_weakness increases all damage dealt by 25%", () => {
+    const gs = frozen(geared(make()));
+    gs.tick(1.0);
+    const dpsWithout = 999_999 - gs.enemy.hp;
+
+    const rogue = new Character("Rogue", "rogue", 1);
+    rogue.abilities = ["expose_weakness"];
+    gs.party.addPlayer(rogue);
+    gs.enemy.hp = 999_999;
+    gs.tick(1.0);
+    const dpsWith = 999_999 - gs.enemy.hp;
+
+    expect(dpsWith).toBeCloseTo(dpsWithout * EXPOSE_WEAKNESS_MULT, 0);
+  });
+
+  // ── Arcane Study ──
+  it("arcane_study boosts all party XP on mage level 5", () => {
+    const gs = make();
+    const mage = new Character("Mage", "mage", 1);
+    gs.party.addPlayer(mage);
+    gs.upgrades["Mage"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+    gs.party.team[0].xpToNext = 999_999; // fighter won't level up
+    mage.level = 4; mage.xpToNext = 5; mage.xp = 0; // exactly one level-up (4→5)
+
+    const fighterMultBefore = gs.party.team[0].xpMultiplier;
+    gs.enemy.xp_reward = 5;
+    gs.onEnemyDeath();
+
+    // Fighter only gets the arcane_study ×1.25 boost (no level-up of its own)
+    expect(gs.party.team[0].xpMultiplier).toBeCloseTo(fighterMultBefore * 1.25);
+    // Mage: level-up adds +0.05, then arcane_study ×1.25 is applied to new value
+    expect(mage.xpMultiplier).toBeCloseTo((1.0 + 0.05) * 1.25);
+  });
+
+  // ── Mana Surge ──
+  it("mana_surge deals burst damage at MANA_SURGE_INTERVAL seconds", () => {
+    const gs = make();
+    const mage = new Character("Mage", "mage", 1);
+    mage.equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
+    mage.abilities = ["mana_surge"];
+    gs.party.addPlayer(mage);
+    gs.enemy.hp = gs.enemy.max_hp = 999_999;
+    gs.enemy.attack_dps = 0;
+    // lead fighter has no gear — only mage contributes DPS
+    gs.party.team[0].inventory.slots["main_hand" as Slot] = null;
+
+    const expectedAuto = mage.dps * MANA_SURGE_INTERVAL;
+    const expectedSurge = mage.dps * MANA_SURGE_MULTIPLIER;
+    gs.tick(MANA_SURGE_INTERVAL);
+    const actualDamage = 999_999 - gs.enemy.hp;
+
+    expect(actualDamage).toBeCloseTo(expectedAuto + expectedSurge, 0);
+  });
+
+  it("mana_surge does not fire before the interval", () => {
+    const gs = make();
+    const mage = new Character("Mage", "mage", 1);
+    mage.equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
+    mage.abilities = ["mana_surge"];
+    gs.party.addPlayer(mage);
+    gs.enemy.hp = gs.enemy.max_hp = 999_999;
+    gs.enemy.attack_dps = 0;
+
+    gs.tick(MANA_SURGE_INTERVAL - 0.1);
+    const damage = 999_999 - gs.enemy.hp;
+    const expectedAutoOnly = mage.dps * (MANA_SURGE_INTERVAL - 0.1);
+    expect(damage).toBeCloseTo(expectedAutoOnly, 0);
+  });
+
+  // ── Empower ──
+  it("empower doubles click damage", () => {
+    const gs = make();
+    const mage = new Character("Mage", "mage", 1);
+    gs.party.addPlayer(mage);
+
+    gs.enemy.hp = gs.enemy.max_hp = 999_999_999;
+    gs.click();
+    const dmgWithout = 999_999_999 - gs.enemy.hp;
+
+    mage.abilities = ["empower"];
+    gs.enemy.hp = 999_999_999;
+    gs.click();
+    const dmgWith = 999_999_999 - gs.enemy.hp;
+
+    expect(dmgWith).toBeCloseTo(dmgWithout * EMPOWER_MULTIPLIER);
   });
 });
