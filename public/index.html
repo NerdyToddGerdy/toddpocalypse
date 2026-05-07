@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Toddpocalypse</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div id="creation-overlay">
+  <div id="creation-box">
+    <h2>Toddpocalypse</h2>
+
+    <!-- shown when a save exists -->
+    <div id="save-section">
+      <div id="continue-info"></div>
+      <button id="continue-btn">Continue</button>
+      <button id="new-game-btn" class="secondary-btn">New Game</button>
+    </div>
+
+    <!-- shown when no save or user picks New Game -->
+    <div id="new-game-section">
+      <label for="char-name-input">Name</label>
+      <input id="char-name-input" type="text" maxlength="20" placeholder="Hero" autocomplete="off" />
+      <div id="class-label">Class</div>
+      <div id="class-picker">
+        <button class="class-btn selected" data-class="fighter">⚔ Fighter</button>
+        <button class="class-btn" data-class="rogue">🗡 Rogue</button>
+        <button class="class-btn" data-class="mage">🔮 Mage</button>
+      </div>
+      <div id="class-desc"></div>
+      <button id="start-btn">Begin Adventure</button>
+    </div>
+  </div>
+</div>
+
+<header>
+  <h1>Toddpocalypse</h1>
+  <div id="stats-bar">
+    <div>Gold: <span id="stat-gold">0</span></div>
+    <div>Depth: <span id="stat-level">1</span></div>
+    <div>Best: <span id="stat-best">1</span></div>
+    <div>Kills: <span id="stat-kills">0</span></div>
+    <div>Deaths: <span id="stat-deaths">0</span></div>
+  </div>
+</header>
+
+<main>
+
+  <!-- Left column wrapper so the depth gauge sits beside enemy+party -->
+  <div id="left-col">
+
+    <section id="enemy-panel">
+      <div id="enemy-header">
+        <div id="enemy-name">Loading…</div>
+        <div id="enemy-level"></div>
+      </div>
+      <div class="hp-bar-wrap">
+        <div id="enemy-hp-bar" style="width:100%"></div>
+      </div>
+      <div id="enemy-hp-text"></div>
+      <div id="floor-progress">
+        <span id="monsters-left-text"></span>
+        <div id="floor-pip-row"></div>
+      </div>
+      <button id="attack-btn" data-action="attack">⚔ Attack</button>
+    </section>
+
+    <section id="party-panel">
+      <h2>Your Party</h2>
+      <div id="party-cards"></div>
+    </section>
+
+  </div>
+
+  <!-- Dungeon depth gauge -->
+  <div id="depth-gauge">
+    <div id="depth-label-top">▲ 1</div>
+    <div id="depth-track">
+      <div id="depth-highest-marker"><span id="depth-highest-label"></span></div>
+      <div id="depth-current-marker"><span id="depth-current-label"></span></div>
+    </div>
+    <div id="depth-label-bottom"></div>
+  </div>
+
+  <aside id="sidebar">
+
+    <section id="loot-panel">
+      <div id="loot-header">
+        <h2>Loot <span id="loot-count"></span></h2>
+        <button class="equip-all-btn" data-action="equip-all" disabled>Equip All</button>
+      </div>
+      <div id="loot-items"><div class="loot-empty">No drops yet…</div></div>
+    </section>
+
+    <section id="upgrades-panel">
+      <h2>Upgrades</h2>
+      <div id="upgrade-cards"></div>
+    </section>
+
+    <section id="log-panel">
+      <h2>Combat Log</h2>
+      <div id="combat-log"></div>
+    </section>
+
+  </aside>
+
+</main>
+
+<script type="module" src="game.js"></script>
+</body>
+</html>

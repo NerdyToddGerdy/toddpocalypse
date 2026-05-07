@@ -1,9 +1,14 @@
+node_modules/
+dist/
+
+# Python (legacy, removed in TS port)
 __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
-.idea/
 .venv/
-dist/
 *.egg-info/
+
+.idea/
 .claude/
+.DS_Store

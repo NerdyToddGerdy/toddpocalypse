@@ -5,47 +5,55 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-# Run the game
-python main.py
-
-# Install dependencies
-poetry install
-
-# Run with Poetry's managed environment
-poetry run python main.py
+npm install         # one-time setup
+npm run build       # bundle src/main.ts → dist/game.js + copy public/*
+npm run watch       # esbuild watch mode for local dev
+npm test            # run vitest once
+npm run test:watch  # vitest watch
+npm run typecheck   # tsc --noEmit
 ```
 
-There are no tests or linter configurations set up yet.
+To play locally after `npm run build`, serve `dist/` with any static file server (e.g. `python3 -m http.server` from inside `dist/`).
 
 ## Architecture
 
-**toddpocalypse** is a work-in-progress Python CLI RPG battle game. The entry point is `main.py`, which sets up two parties and is intended to run a turn-based combat loop (not yet implemented — see TODOs in `main.py`).
+**toddpocalypse** is a browser-based idle-clicker RPG written in TypeScript and deployed to GitHub Pages via GitHub Actions.
 
-### Module relationships
+### Module layout (`src/`)
 
 ```
-main.py
-  └── Character  (__init__.py)
-        └── Inventory  (__init__.py)
-              └── Gear  (__init__.py)
-  └── Party  (__init__.py)
-        └── Character
+main.ts        DOM glue: render + event delegation, wires GameState into the page
+engine.ts      GameState — central tick/click loop, loot/upgrades/log
+dungeon.ts     generateEnemy() — random enemy + scaling
+party.ts       Party — list of Characters
+character.ts   Character — class stats, level-up, equip
+inventory.ts   Inventory — slot map, equip/displace
+gear.ts        GearItem + getItem() — slots, qualities, drop weights
 ```
 
-- **`Character/`** — `Character` (name, class, level, health, inventory) and `AttackCharacter` (wraps a `Character` + its d20 roll + team string for battle ordering). `switch()` maps job integers (1/2/3) to `"fighter"/"rogue"/"mage"`.
-- **`Gear/`** — `Weapon` with procedurally generated names assembled from TYPE × QUAL × ADJ string lists. `get_weapon()` is the only factory.
-- **`Inventory/`** — thin wrapper around `List[Weapon]`; belongs to each `Character`.
-- **`Party/`** — holds `List[Character]` and a gold counter; both the player party and enemy party are `Party` instances.
-- **`Character/AmazingTale.py`** — a separate, currently unused `Hero`/`Skill` system built around a die-size hierarchy (d12/d10/d8/d6). Not wired into `main.py`.
+### Public assets (`public/`)
 
-### Intended battle flow (incomplete)
+- `index.html` — page chrome, character creation overlay, panels
+- `style.css` — all styling
 
-`main.py` builds both parties, collects player input for name and class, then needs a `while` loop that:
-1. Rolls d20 for every alive character in both parties (`roll_results` into a combined list).
-2. Sorts the list by roll to determine attack order.
-3. Each `AttackCharacter` calls `attacker.character.attack(target)` against the opposing team.
-4. Loop ends when only one team has living members.
+### Build
+
+`scripts/build.mjs` runs esbuild on `src/main.ts` → `dist/game.js` and copies `public/*` to `dist/`. The `dist/` directory is what GitHub Pages serves.
+
+### Tests (`tests/`)
+
+Vitest (`*.test.ts`). Each module has a paired test file. Run with `npm test`.
+
+### Deployment
+
+`.github/workflows/deploy.yml` runs on push to `main`: installs deps, runs tests, typechecks, builds, and uploads `dist/` as a Pages artifact. Pages must be configured in repo settings to deploy from GitHub Actions (one-time UI step).
+
+### Game flow (engine.ts)
+
+- `tick(dt)` — party DPS chips at enemy HP; enemy attack chips at the lead character. Enemy death rewards XP + gold + maybe loot, advances dungeon every 5 kills. Player death resets to dungeon level 1.
+- `click()` — burst damage = totalDPS × multiplier × dt + click bonus.
+- `equipLoot/sellLoot/equipAll/buyUpgrade` — sidebar actions; each returns the JSON-serialized state which `main.ts` re-renders.
 
 ### OLD_CODE/
 
-Minified JavaScript from a prior browser-based version ("clickpocalypse"). Reference only — not part of the Python build.
+Minified JavaScript from a prior browser-based version ("clickpocalypse"). Reference only — not part of the build.
