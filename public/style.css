@@ -687,6 +687,31 @@ main {
     border-color: var(--danger);
 }
 
+.floor-pip.boss-pip {
+    width: auto;
+    padding: 0 4px;
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+    font-size: 0.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: boss-pulse 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes boss-pulse {
+    from { opacity: 0.7; transform: scale(0.95); }
+    to   { opacity: 1.0; transform: scale(1.05); }
+}
+
+.boss-text {
+    color: var(--accent) !important;
+    font-weight: 700;
+    letter-spacing: 2px;
+    animation: boss-pulse 0.8s ease-in-out infinite alternate;
+}
+
 /* ── Depth gauge ── */
 #depth-gauge {
     grid-column: 2;

@@ -73,12 +73,16 @@ describe("tick", () => {
     expect(gs.kills).toBe(1);
   });
 
-  it("dungeon level increases after enough kills", () => {
+  it("boss spawns after KILLS_PER_LEVEL regular enemies, dungeon level stays", () => {
     const gs = make();
-    for (let i = 0; i < 5; i++) {
-      gs.enemy.hp = 0;
-      gs.onEnemyDeath();
-    }
+    for (let i = 0; i < KILLS_PER_LEVEL; i++) gs.onEnemyDeath();
+    expect(gs.enemy.isBoss).toBe(true);
+    expect(gs.dungeonLevel).toBe(1);
+  });
+
+  it("dungeon level increases only after boss is killed", () => {
+    const gs = make();
+    for (let i = 0; i < KILLS_PER_LEVEL + 1; i++) gs.onEnemyDeath();
     expect(gs.dungeonLevel).toBe(2);
   });
 
@@ -436,6 +440,64 @@ describe("toDict", () => {
     const gs = make();
     gs.kills = KILLS_PER_LEVEL;
     expect(gs.toDict().monsters_left).toBe(KILLS_PER_LEVEL);
+  });
+});
+
+describe("boss fight", () => {
+  function atBoss(): GameState {
+    const gs = make();
+    for (let i = 0; i < KILLS_PER_LEVEL; i++) gs.onEnemyDeath();
+    return gs;
+  }
+
+  it("enemy is a boss after clearing regular enemies", () => {
+    expect(atBoss().enemy.isBoss).toBe(true);
+  });
+
+  it("kill count does not increment when boss dies", () => {
+    const gs = atBoss();
+    const before = gs.kills;
+    gs.onEnemyDeath();
+    expect(gs.kills).toBe(before);
+  });
+
+  it("monsters_left is 0 while boss is active", () => {
+    expect(atBoss().toDict().monsters_left).toBe(0);
+  });
+
+  it("toDict.enemy.is_boss is true during boss fight", () => {
+    expect(atBoss().toDict().enemy.is_boss).toBe(true);
+  });
+
+  it("toDict.enemy.is_boss is false for regular enemies", () => {
+    expect(make().toDict().enemy.is_boss).toBe(false);
+  });
+
+  it("boss fight survives fromDict round-trip", () => {
+    const gs = atBoss();
+    const restored = GameState.fromDict(gs.toDict());
+    expect(restored.enemy.isBoss).toBe(true);
+  });
+
+  it("boss guarantees a loot drop", () => {
+    const gs = atBoss();
+    gs.lootPool = [];
+    gs.onEnemyDeath();
+    expect(gs.lootPool.length).toBeGreaterThan(0);
+  });
+
+  it("boss advances floor on death", () => {
+    const gs = atBoss();
+    gs.onEnemyDeath();
+    expect(gs.dungeonLevel).toBe(2);
+  });
+
+  it("second floor also gets a boss after KILLS_PER_LEVEL kills", () => {
+    const gs = make();
+    for (let i = 0; i < KILLS_PER_LEVEL + 1; i++) gs.onEnemyDeath();
+    for (let i = 0; i < KILLS_PER_LEVEL; i++) gs.onEnemyDeath();
+    expect(gs.enemy.isBoss).toBe(true);
+    expect(gs.dungeonLevel).toBe(2);
   });
 });
 

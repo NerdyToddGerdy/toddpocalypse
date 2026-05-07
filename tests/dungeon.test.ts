@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateEnemy } from "../src/dungeon.js";
+import { generateEnemy, generateBoss } from "../src/dungeon.js";
 
 describe("generateEnemy", () => {
   it("returns required keys", () => {
@@ -53,5 +53,54 @@ describe("generateEnemy", () => {
 
   it("attack_dps scales with level", () => {
     expect(generateEnemy(10).attack_dps).toBeGreaterThan(generateEnemy(1).attack_dps);
+  });
+
+  it("isBoss is false", () => {
+    expect(generateEnemy(1).isBoss).toBe(false);
+  });
+});
+
+describe("generateBoss", () => {
+  it("isBoss is true", () => {
+    expect(generateBoss(1).isBoss).toBe(true);
+  });
+
+  it("level matches dungeon level", () => {
+    for (const lvl of [1, 5, 10]) {
+      expect(generateBoss(lvl).level).toBe(lvl);
+    }
+  });
+
+  it("name is a non-empty string", () => {
+    const b = generateBoss(1);
+    expect(typeof b.name).toBe("string");
+    expect(b.name.length).toBeGreaterThan(0);
+  });
+
+  it("hp == max_hp on spawn", () => {
+    const b = generateBoss(1);
+    expect(b.hp).toBe(b.max_hp);
+  });
+
+  it("has more HP than a regular enemy at the same level", () => {
+    for (let lvl = 1; lvl <= 5; lvl++) {
+      expect(generateBoss(lvl).max_hp).toBeGreaterThan(generateEnemy(lvl).max_hp);
+    }
+  });
+
+  it("has higher xp_reward than a regular enemy at the same level", () => {
+    for (let lvl = 1; lvl <= 5; lvl++) {
+      expect(generateBoss(lvl).xp_reward).toBeGreaterThan(generateEnemy(lvl).xp_reward);
+    }
+  });
+
+  it("has higher attack_dps than a regular enemy at the same level", () => {
+    for (let lvl = 1; lvl <= 5; lvl++) {
+      expect(generateBoss(lvl).attack_dps).toBeGreaterThan(generateEnemy(lvl).attack_dps);
+    }
+  });
+
+  it("scales with dungeon level", () => {
+    expect(generateBoss(10).max_hp).toBeGreaterThan(generateBoss(1).max_hp);
   });
 });

@@ -77,14 +77,24 @@ function render(state: GameStateDict): void {
 }
 
 function renderFloorProgress(state: GameStateDict): void {
+  const isBoss = state.enemy.is_boss;
   const left = state.monsters_left;
   const done = KILLS_PER_LEVEL - left;
-  $("monsters-left-text").textContent =
-    left === 1 ? "1 monster until next floor" : `${left} monsters until next floor`;
+
+  if (isBoss) {
+    $("monsters-left-text").textContent = "★ BOSS FIGHT ★";
+    $("monsters-left-text").className = "boss-text";
+  } else {
+    $("monsters-left-text").textContent =
+      left === 1 ? "1 monster until boss" : `${left} monsters until boss`;
+    $("monsters-left-text").className = "";
+  }
+
   const row = $("floor-pip-row");
   row.innerHTML = Array.from({ length: KILLS_PER_LEVEL }, (_, i) =>
-    `<div class="floor-pip${i < done ? " done" : ""}"></div>`
-  ).join("");
+    `<div class="floor-pip${i < done || isBoss ? " done" : ""}"></div>`
+  ).join("")
+    + (isBoss ? `<div class="floor-pip boss-pip">★</div>` : "");
 }
 
 function renderDepthGauge(state: GameStateDict): void {

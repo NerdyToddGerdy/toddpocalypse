@@ -1,7 +1,7 @@
 import { Character } from "./character.js";
 import { Party } from "./party.js";
 import { GearItem, getItem, type GearItemDict } from "./gear.js";
-import { generateEnemy, type Enemy } from "./dungeon.js";
+import { generateEnemy, generateBoss, type Enemy } from "./dungeon.js";
 
 export const KILLS_PER_LEVEL = 5;
 export const CLICK_DAMAGE_MULTIPLIER = 2.0;
@@ -31,7 +31,7 @@ export interface GameStateDict {
   deaths: number;
   highest_level: number;
   monsters_left: number;
-  enemy: { name: string; level: number; hp: number; max_hp: number; xp_reward: number; gold_reward: number; attack_dps: number };
+  enemy: { name: string; level: number; hp: number; max_hp: number; xp_reward: number; gold_reward: number; attack_dps: number; is_boss: boolean };
   party: ReturnType<Character["toDict"]>[];
   loot_pool: GearItemDict[];
   upgrades: Record<string, Record<UpgradeType, { level: number; cost: number; effect: number }>>;
@@ -157,7 +157,7 @@ export class GameState {
       kills: this.kills,
       deaths: this.deaths,
       highest_level: this.highestLevel,
-      monsters_left: KILLS_PER_LEVEL - (this.kills % KILLS_PER_LEVEL),
+      monsters_left: this.enemy.isBoss ? 0 : KILLS_PER_LEVEL - (this.kills % KILLS_PER_LEVEL),
       enemy: {
         name: this.enemy.name,
         level: this.enemy.level,
@@ -166,6 +166,7 @@ export class GameState {
         xp_reward: this.enemy.xp_reward,
         gold_reward: this.enemy.gold_reward,
         attack_dps: this.enemy.attack_dps,
+        is_boss: this.enemy.isBoss,
       },
       party: this.party.team.map((c) => c.toDict()),
       loot_pool: this.lootPool.map((i) => i.toDict()),
@@ -208,23 +209,36 @@ export class GameState {
   onEnemyDeath(): void {
     const name = this.enemy.name;
     const xp = this.enemy.xp_reward;
-    this.kills += 1;
     this.addLog(`${name} defeated! +${xp}xp`);
     for (const c of this.party.team) {
       c.gainXp(xp);
       c.health = c.maxHealth;
     }
-    if (Math.random() < DROP_CHANCE && this.lootPool.length < LOOT_MAX) {
-      const drop = getItem(undefined, this.dungeonLevel);
-      this.lootPool.push(drop);
-      this.addLog(`Dropped: ${drop.getName()}!`);
-    }
-    if (this.kills % KILLS_PER_LEVEL === 0) {
+
+    if (this.enemy.isBoss) {
+      if (this.lootPool.length < LOOT_MAX) {
+        const drop = getItem(undefined, this.dungeonLevel);
+        this.lootPool.push(drop);
+        this.addLog(`Dropped: ${drop.getName()}!`);
+      }
       this.dungeonLevel += 1;
       if (this.dungeonLevel > this.highestLevel) this.highestLevel = this.dungeonLevel;
       this.addLog(`Descending to level ${this.dungeonLevel}!`);
+      this.enemy = generateEnemy(this.dungeonLevel);
+    } else {
+      if (Math.random() < DROP_CHANCE && this.lootPool.length < LOOT_MAX) {
+        const drop = getItem(undefined, this.dungeonLevel);
+        this.lootPool.push(drop);
+        this.addLog(`Dropped: ${drop.getName()}!`);
+      }
+      this.kills += 1;
+      if (this.kills % KILLS_PER_LEVEL === 0) {
+        this.addLog(`Floor ${this.dungeonLevel} cleared! Boss incoming!`);
+        this.enemy = generateBoss(this.dungeonLevel);
+      } else {
+        this.enemy = generateEnemy(this.dungeonLevel);
+      }
     }
-    this.enemy = generateEnemy(this.dungeonLevel);
   }
 
   onPlayerDeath(): void {
@@ -274,6 +288,7 @@ export class GameState {
       xp_reward: d.enemy.xp_reward,
       gold_reward: d.enemy.gold_reward,
       attack_dps: d.enemy.attack_dps,
+      isBoss: d.enemy.is_boss ?? false,
     };
 
     return gs;

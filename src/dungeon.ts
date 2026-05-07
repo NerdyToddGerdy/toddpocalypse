@@ -1,3 +1,16 @@
+const BOSS_TITLES = [
+  "Abyssal",
+  "Dread",
+  "Eternal",
+  "Forsaken",
+  "Infernal",
+  "Shadow",
+  "Titan",
+  "Undying",
+  "Warlord",
+  "Ancient",
+];
+
 const ENEMY_ADJECTIVES = [
   "Frightening",
   "Hideous",
@@ -42,6 +55,7 @@ export interface Enemy {
   xp_reward: number;
   gold_reward: number;
   attack_dps: number;
+  isBoss: boolean;
 }
 
 function pick<T>(arr: readonly T[]): T {
@@ -66,5 +80,24 @@ export function generateEnemy(dungeonLevel: number): Enemy {
     xp_reward: xpReward,
     gold_reward: goldReward,
     attack_dps: attackDps,
+    isBoss: false,
+  };
+}
+
+export function generateBoss(dungeonLevel: number): Enemy {
+  const name = `The ${pick(BOSS_TITLES)} ${pick(ENEMY_NOUNS)} Lord`;
+  const hp = Math.floor(50 * Math.pow(1.4, dungeonLevel));
+  const xpReward = Math.max(5, dungeonLevel * 9 + 5);
+  const goldReward = Math.max(5, dungeonLevel * 15);
+  const attackDps = Math.round(dungeonLevel * 3.0 * 10) / 10;
+  return {
+    name,
+    level: dungeonLevel,
+    max_hp: hp,
+    hp,
+    xp_reward: xpReward,
+    gold_reward: goldReward,
+    attack_dps: attackDps,
+    isBoss: true,
   };
 }
