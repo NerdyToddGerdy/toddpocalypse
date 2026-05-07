@@ -67,9 +67,26 @@ header h1 {
     gap: 24px;
     font-size: 0.9rem;
     color: var(--muted);
+    align-items: center;
 }
 
 #stats-bar span { color: var(--text); font-weight: 600; }
+
+#prestige-btn {
+    padding: 4px 12px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), #92620e);
+    color: #1a1005;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: opacity 0.15s;
+    white-space: nowrap;
+}
+#prestige-btn:hover:not(:disabled) { opacity: 0.85; }
+#prestige-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
 main {
     flex: 1;
@@ -807,6 +824,161 @@ main {
     #sidebar { grid-column: 1; }
 }
 
+/* ── Prestige panel ── */
+#prestige-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+}
+
+#prestige-panel h2 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    margin-bottom: 10px;
+}
+
+#prestige-points-display {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.prestige-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.prestige-item-meta { flex: 1; min-width: 0; }
+.prestige-item-name { font-size: 0.8rem; font-weight: 700; color: var(--text); }
+.prestige-item-desc { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
+
+.prestige-buy-btn {
+    padding: 3px 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: var(--surface);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.1s, color 0.1s;
+    flex-shrink: 0;
+}
+.prestige-buy-btn:hover:not(:disabled) { background: var(--accent); color: #1a1005; }
+.prestige-buy-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ── Stats modal ── */
+#stats-modal, #party-class-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(14,14,20,0.85);
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+}
+#stats-modal.open, #party-class-modal.open { display: flex; }
+
+#stats-box, #party-class-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: min(380px, 92vw);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#stats-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+#stats-header h2 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--accent);
+}
+
+#stats-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: color 0.1s, background 0.1s;
+}
+#stats-close:hover { color: var(--text); background: var(--surface2); }
+
+#stats-body { padding: 16px 22px; }
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.88rem;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+}
+.stat-row:last-child { border-bottom: none; }
+.stat-label { color: var(--muted); }
+.stat-row span:last-child { color: var(--text); font-weight: 600; }
+
+/* ── Party class modal ── */
+#party-class-box {
+    padding: 24px 28px;
+    gap: 14px;
+    display: flex;
+    flex-direction: column;
+    width: min(340px, 92vw);
+}
+
+#party-class-box h2 {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    text-align: center;
+}
+
+#party-class-desc {
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-align: center;
+    min-height: 2em;
+}
+
+#party-class-confirm, #party-class-cancel {
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border: none;
+    font-weight: 600;
+}
+
+#party-class-confirm {
+    background: var(--accent2);
+    color: var(--text);
+}
+#party-class-confirm:hover { opacity: 0.85; }
+
 /* ── Footer / version badge ── */
 footer {
     text-align: center;
@@ -825,6 +997,18 @@ footer {
 }
 
 #version-btn:hover { color: var(--muted); }
+
+#stats-btn {
+    background: none;
+    border: none;
+    color: var(--border);
+    font-size: 0.7rem;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: color 0.15s;
+    padding: 4px 8px;
+}
+#stats-btn:hover { color: var(--muted); }
 
 /* ── Changelog modal ── */
 #changelog-modal {

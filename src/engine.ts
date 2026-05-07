@@ -1,6 +1,6 @@
 import { Character } from "./character.js";
 import { Party } from "./party.js";
-import { GearItem, getItem, type GearItemDict } from "./gear.js";
+import { GearItem, getItem, QUAL, type GearItemDict } from "./gear.js";
 import { generateEnemy, generateBoss, type Enemy } from "./dungeon.js";
 
 export const KILLS_PER_LEVEL = 5;
@@ -24,6 +24,18 @@ export const UPGRADE_EFFECTS: Record<string, number> = {
 
 export const HP_UPGRADE_EFFECT = 25;
 
+export const PRESTIGE_UNLOCK_LEVEL = 20;
+export const PRESTIGE_SHOP_COSTS: Record<string, number> = {
+  auto_seller: 1,
+  party_slot_2: 2,
+  party_slot_3: 3,
+  starting_gold: 1,
+  xp_bonus: 1,
+};
+export const STARTING_GOLD_PER_LEVEL = 250;
+export const XP_BONUS_PER_LEVEL = 0.10;
+export const AUTO_SELLER_INTERVAL = 10;
+
 type UpgradeType = "dps" | "xp" | "click" | "hp";
 type UpgradeLevels = Record<UpgradeType, number>;
 
@@ -39,6 +51,15 @@ export interface GameStateDict {
   loot_pool: GearItemDict[];
   upgrades: Record<string, Record<UpgradeType, { level: number; cost: number; effect: number }>>;
   log: string[];
+  prestige_points: number;
+  lifetime_kills: number;
+  lifetime_deaths: number;
+  lifetime_best_level: number;
+  total_prestiges: number;
+  prestige_upgrades: Record<string, number>;
+  prestige_party_classes: Record<string, string>;
+  prestige_available: boolean;
+  prestige_points_preview: number;
 }
 
 export class GameState {
@@ -52,6 +73,14 @@ export class GameState {
   lootPool: GearItem[] = [];
   enemy: Enemy;
   upgrades: Record<string, UpgradeLevels> = {};
+  prestigePoints = 0;
+  lifetimeKills = 0;
+  lifetimeDeaths = 0;
+  lifetimeBestLevel = 1;
+  totalPrestiges = 0;
+  prestigeUpgrades: Record<string, number> = {};
+  prestigePartyClasses: Record<string, string> = {};
+  autoSellerTimer = 0;
 
   constructor(name = "Hero", characterClass = "fighter") {
     this.party = new Party();
@@ -63,6 +92,23 @@ export class GameState {
   }
 
   tick(dt: number): string {
+    if ((this.prestigeUpgrades["auto_seller"] ?? 0) > 0 && this.lootPool.length > 0) {
+      this.autoSellerTimer += dt;
+      if (this.autoSellerTimer >= AUTO_SELLER_INTERVAL) {
+        this.autoSellerTimer -= AUTO_SELLER_INTERVAL;
+        const qualArr = QUAL as readonly string[];
+        let lowestIdx = 0;
+        let lowestTier = qualArr.indexOf(this.lootPool[0].quality);
+        for (let i = 1; i < this.lootPool.length; i++) {
+          const tier = qualArr.indexOf(this.lootPool[i].quality);
+          if (tier < lowestTier) { lowestTier = tier; lowestIdx = i; }
+        }
+        const sold = this.lootPool.splice(lowestIdx, 1)[0];
+        this.gold += sold.sellValue;
+        this.addLog(`[Auto] Sold ${sold.getName()} for ${sold.sellValue}g.`);
+      }
+    }
+
     const totalDps = this.party.team.reduce((s, c) => s + c.dps, 0);
     this.enemy.hp -= totalDps * dt;
     if (this.enemy.hp <= 0) {
@@ -152,6 +198,99 @@ export class GameState {
     return this.respond();
   }
 
+  prestigePointsPreview(): number {
+    return 1 + Math.floor(Math.max(0, this.highestLevel - PRESTIGE_UNLOCK_LEVEL) / 5);
+  }
+
+  prestige(): string {
+    if (this.highestLevel < PRESTIGE_UNLOCK_LEVEL) return this.respond();
+    const earned = this.prestigePointsPreview();
+    this.lifetimeKills += this.kills;
+    this.lifetimeDeaths += this.deaths;
+    this.lifetimeBestLevel = Math.max(this.lifetimeBestLevel, this.highestLevel);
+    this.totalPrestiges += 1;
+    this.prestigePoints += earned;
+
+    const leadName = this.party.team[0].name;
+    const leadClass = this.party.team[0].characterClass;
+
+    this.dungeonLevel = 1;
+    this.kills = 0;
+    this.deaths = 0;
+    this.highestLevel = 1;
+    this.lootPool = [];
+    this.log = [];
+    this.enemy = generateEnemy(1);
+
+    this.party.team = [];
+    this.upgrades = {};
+    const lead = new Character(leadName, leadClass, 1);
+    this.party.addPlayer(lead);
+    this.upgrades[leadName] = { dps: 0, xp: 0, click: 0, hp: 0 };
+
+    if ((this.prestigeUpgrades["party_slot_2"] ?? 0) > 0) {
+      const cls2 = this.prestigePartyClasses["slot_2"] ?? "fighter";
+      const comp = new Character("Companion", cls2, 1);
+      this.party.addPlayer(comp);
+      this.upgrades["Companion"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+    }
+    if ((this.prestigeUpgrades["party_slot_3"] ?? 0) > 0) {
+      const cls3 = this.prestigePartyClasses["slot_3"] ?? "fighter";
+      const ally = new Character("Ally", cls3, 1);
+      this.party.addPlayer(ally);
+      this.upgrades["Ally"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+    }
+
+    const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
+    for (const c of this.party.team) {
+      c.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
+    }
+
+    this.gold = (this.prestigeUpgrades["starting_gold"] ?? 0) * STARTING_GOLD_PER_LEVEL;
+
+    this.addLog(`Prestige ${this.totalPrestiges}! Earned ${earned}pt. Total: ${this.prestigePoints}pts.`);
+    return this.respond();
+  }
+
+  buyPrestigeUpgrade(type: string, characterClass?: string): string {
+    if (!(type in PRESTIGE_SHOP_COSTS)) return this.respond();
+    if (type === "party_slot_3" && !(this.prestigeUpgrades["party_slot_2"] > 0)) return this.respond();
+    const oneTime = ["auto_seller", "party_slot_2", "party_slot_3"];
+    if (oneTime.includes(type) && (this.prestigeUpgrades[type] ?? 0) >= 1) return this.respond();
+    const cost = PRESTIGE_SHOP_COSTS[type];
+    if (this.prestigePoints < cost) {
+      this.addLog("Not enough prestige points!");
+      return this.respond();
+    }
+    this.prestigePoints -= cost;
+    this.prestigeUpgrades[type] = (this.prestigeUpgrades[type] ?? 0) + 1;
+
+    if (type === "party_slot_2") {
+      const cls = characterClass ?? "fighter";
+      this.prestigePartyClasses["slot_2"] = cls;
+      const comp = new Character("Companion", cls, 1);
+      this.party.addPlayer(comp);
+      this.upgrades["Companion"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+      const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
+      comp.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
+    } else if (type === "party_slot_3") {
+      const cls = characterClass ?? "fighter";
+      this.prestigePartyClasses["slot_3"] = cls;
+      const ally = new Character("Ally", cls, 1);
+      this.party.addPlayer(ally);
+      this.upgrades["Ally"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+      const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
+      ally.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
+    } else if (type === "xp_bonus") {
+      for (const c of this.party.team) {
+        c.xpMultiplier += XP_BONUS_PER_LEVEL;
+      }
+    }
+
+    this.addLog(`Prestige upgrade: ${type} purchased!`);
+    return this.respond();
+  }
+
   respond(): string {
     return JSON.stringify(this.toDict());
   }
@@ -192,6 +331,17 @@ export class GameState {
         ]),
       ),
       log: [...this.log],
+      prestige_points: this.prestigePoints,
+      lifetime_kills: this.lifetimeKills,
+      lifetime_deaths: this.lifetimeDeaths,
+      lifetime_best_level: this.lifetimeBestLevel,
+      total_prestiges: this.totalPrestiges,
+      prestige_upgrades: { ...this.prestigeUpgrades },
+      prestige_party_classes: { ...this.prestigePartyClasses },
+      prestige_available: this.highestLevel >= PRESTIGE_UNLOCK_LEVEL,
+      prestige_points_preview: this.highestLevel >= PRESTIGE_UNLOCK_LEVEL
+        ? this.prestigePointsPreview()
+        : 0,
     };
   }
 
@@ -286,6 +436,15 @@ export class GameState {
     }
 
     gs.lootPool = d.loot_pool.map((item) => GearItem.fromDict(item));
+
+    gs.prestigePoints = d.prestige_points ?? 0;
+    gs.lifetimeKills = d.lifetime_kills ?? 0;
+    gs.lifetimeDeaths = d.lifetime_deaths ?? 0;
+    gs.lifetimeBestLevel = d.lifetime_best_level ?? d.highest_level ?? 1;
+    gs.totalPrestiges = d.total_prestiges ?? 0;
+    gs.prestigeUpgrades = { ...(d.prestige_upgrades ?? {}) };
+    gs.prestigePartyClasses = { ...(d.prestige_party_classes ?? {}) };
+    gs.autoSellerTimer = 0;
 
     gs.enemy = {
       name: d.enemy.name,

@@ -33,6 +33,7 @@ let game: GameState | null = null;
 let lootKey: string | null = null;
 let upgradeKey: string | null = null;
 let partyKey: string | null = null;
+let prestigeKey: string | null = null;
 
 function $(id: string): HTMLElement {
   const el = document.getElementById(id);
@@ -74,7 +75,10 @@ function render(state: GameStateDict): void {
   renderParty(state);
   renderLoot(state);
   renderUpgrades(state);
+  renderPrestigeShop(state);
   renderLog(state);
+  updatePrestigeButton(state);
+  updateLifetimeStats(state);
 }
 
 function renderFloorProgress(state: GameStateDict): void {
@@ -258,6 +262,63 @@ function renderUpgrades(state: GameStateDict): void {
     .join("");
 }
 
+const PRESTIGE_SHOP_META: Record<string, { icon: string; name: string; desc: string; max: number }> = {
+  auto_seller:   { icon: "🤖", name: "Auto Seller",    desc: "Sells lowest-quality loot every 10s.", max: 1 },
+  party_slot_2:  { icon: "👤", name: "Party Slot II",  desc: "Add a 2nd party member (pick class).", max: 1 },
+  party_slot_3:  { icon: "👥", name: "Party Slot III", desc: "Add a 3rd member. Requires Slot II.", max: 1 },
+  starting_gold: { icon: "💰", name: "Starting Gold",  desc: "+250g at the start of each run.", max: Infinity },
+  xp_bonus:      { icon: "✨", name: "XP Bonus",       desc: "+10% XP gain for all party members.", max: Infinity },
+};
+
+function renderPrestigeShop(state: GameStateDict): void {
+  const newKey = JSON.stringify(state.prestige_upgrades) + "|" + state.prestige_points;
+  if (newKey === prestigeKey) return;
+  prestigeKey = newKey;
+
+  const pts = state.prestige_points;
+  $("prestige-points-display").textContent = pts === 1 ? "(1 pt)" : pts > 0 ? `(${pts} pts)` : "";
+
+  const ups = state.prestige_upgrades as Record<string, number>;
+  $("prestige-shop-items").innerHTML = Object.entries(PRESTIGE_SHOP_META).map(([type, meta]) => {
+    const owned = ups[type] ?? 0;
+    const cost = ({ auto_seller: 1, party_slot_2: 2, party_slot_3: 3, starting_gold: 1, xp_bonus: 1 } as Record<string, number>)[type];
+    const atMax = owned >= meta.max;
+    const prereqMissing = type === "party_slot_3" && !(ups["party_slot_2"] > 0);
+    const canAfford = pts >= cost;
+    const disabled = atMax || prereqMissing || !canAfford;
+    const ownedLabel = atMax ? " ✓" : owned > 0 ? ` (${owned})` : "";
+    return `<div class="prestige-item">
+      <div class="prestige-item-meta">
+        <div class="prestige-item-name">${meta.icon} ${meta.name}${ownedLabel}</div>
+        <div class="prestige-item-desc">${meta.desc}</div>
+      </div>
+      <button class="prestige-buy-btn" data-action="buy-prestige" data-type="${type}" ${disabled ? "disabled" : ""}>${atMax ? "Owned" : cost + "pt"}</button>
+    </div>`;
+  }).join("");
+}
+
+function updatePrestigeButton(state: GameStateDict): void {
+  const btn = $("prestige-btn") as HTMLButtonElement;
+  if (state.prestige_available) {
+    btn.disabled = false;
+    btn.textContent = `★ Prestige (+${state.prestige_points_preview}pt)`;
+  } else {
+    btn.disabled = true;
+    btn.textContent = `★ Prestige (need lv${20})`;
+  }
+}
+
+function updateLifetimeStats(state: GameStateDict): void {
+  const ltKills = document.getElementById("lt-kills");
+  const ltDeaths = document.getElementById("lt-deaths");
+  const ltBest = document.getElementById("lt-best");
+  const ltPrestiges = document.getElementById("lt-prestiges");
+  if (ltKills) ltKills.textContent = String(state.lifetime_kills);
+  if (ltDeaths) ltDeaths.textContent = String(state.lifetime_deaths);
+  if (ltBest) ltBest.textContent = String(state.lifetime_best_level);
+  if (ltPrestiges) ltPrestiges.textContent = String(state.total_prestiges);
+}
+
 function renderLog(state: GameStateDict): void {
   $("combat-log").innerHTML = [...state.log]
     .reverse()
@@ -298,6 +359,50 @@ function updateClassDesc(): void {
   $("class-desc").textContent = CLASS_DESCS[cls] ?? "";
 }
 
+function openPartyClassModal(slotType: string): void {
+  const modal = $("party-class-modal");
+  const picker = $("party-class-picker");
+  const desc = $("party-class-desc");
+
+  picker.querySelectorAll(".class-btn").forEach((b) => b.classList.remove("selected"));
+  (picker.querySelector(".class-btn") as HTMLElement)?.classList.add("selected");
+  const firstClass = (picker.querySelector(".class-btn") as HTMLElement)?.dataset.class ?? "fighter";
+  desc.textContent = CLASS_DESCS[firstClass] ?? "";
+
+  modal.classList.add("open");
+
+  const confirm = $("party-class-confirm");
+  const cancel = $("party-class-cancel");
+
+  const onConfirm = () => {
+    const cls = (picker.querySelector(".class-btn.selected") as HTMLElement | null)?.dataset.class ?? "fighter";
+    call("buyPrestigeUpgrade", slotType, cls);
+    modal.classList.remove("open");
+    cleanup();
+  };
+  const onCancel = () => { modal.classList.remove("open"); cleanup(); };
+  const onBackdrop = (e: Event) => { if (e.target === modal) onCancel(); };
+  const onPickerClick = (e: Event) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>(".class-btn");
+    if (!btn) return;
+    picker.querySelectorAll(".class-btn").forEach((b) => b.classList.remove("selected"));
+    btn.classList.add("selected");
+    desc.textContent = CLASS_DESCS[btn.dataset.class ?? "fighter"] ?? "";
+  };
+
+  function cleanup() {
+    confirm.removeEventListener("click", onConfirm);
+    cancel.removeEventListener("click", onCancel);
+    modal.removeEventListener("click", onBackdrop);
+    picker.removeEventListener("click", onPickerClick);
+  }
+
+  confirm.addEventListener("click", onConfirm);
+  cancel.addEventListener("click", onCancel);
+  modal.addEventListener("click", onBackdrop);
+  picker.addEventListener("click", onPickerClick);
+}
+
 function saveGame(): void {
   if (game) localStorage.setItem(SAVE_KEY, game.respond());
 }
@@ -331,6 +436,12 @@ function continueGame(saved: GameStateDict): void {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  $("stats-btn").addEventListener("click", () => { $("stats-modal").classList.add("open"); });
+  $("stats-close").addEventListener("click", () => { $("stats-modal").classList.remove("open"); });
+  $("stats-modal").addEventListener("click", (e) => {
+    if (e.target === $("stats-modal")) $("stats-modal").classList.remove("open");
+  });
+
   $("version-btn").textContent = VERSION;
 
   $("changelog-body").innerHTML = CHANGELOG.map(entry => `
@@ -407,5 +518,20 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (action === "upgrade") call("buyUpgrade", btn.dataset.char!, btn.dataset.type!);
     else if (action === "attack") call("click");
     else if (action === "equip-all") call("equipAll");
+    else if (action === "prestige") {
+      if (!game) return;
+      const pts = game.prestigePointsPreview();
+      if (confirm(`Prestige? You will earn ${pts} pt. ALL run progress will be wiped.`)) {
+        call("prestige");
+      }
+    }
+    else if (action === "buy-prestige") {
+      const type = btn.dataset.type!;
+      if (type === "party_slot_2" || type === "party_slot_3") {
+        openPartyClassModal(type);
+      } else {
+        call("buyPrestigeUpgrade", type);
+      }
+    }
   });
 });

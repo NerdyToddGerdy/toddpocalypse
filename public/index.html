@@ -43,6 +43,7 @@
     <div>Best: <span id="stat-best">1</span></div>
     <div>Kills: <span id="stat-kills">0</span></div>
     <div>Deaths: <span id="stat-deaths">0</span></div>
+    <button id="prestige-btn" data-action="prestige" disabled>★ Prestige</button>
   </div>
 </header>
 
@@ -100,6 +101,11 @@
       <div id="upgrade-cards"></div>
     </section>
 
+    <section id="prestige-panel">
+      <h2>Prestige Shop <span id="prestige-points-display"></span></h2>
+      <div id="prestige-shop-items"></div>
+    </section>
+
     <section id="log-panel">
       <h2>Combat Log</h2>
       <div id="combat-log"></div>
@@ -110,8 +116,38 @@
 </main>
 
 <footer>
+  <button id="stats-btn">Lifetime Stats</button>
   <button id="version-btn"></button>
 </footer>
+
+<div id="stats-modal" aria-modal="true" role="dialog" aria-labelledby="stats-title">
+  <div id="stats-box">
+    <div id="stats-header">
+      <h2 id="stats-title">Lifetime Stats</h2>
+      <button id="stats-close" aria-label="Close">✕</button>
+    </div>
+    <div id="stats-body">
+      <div class="stat-row"><span class="stat-label">Total Kills</span><span id="lt-kills">0</span></div>
+      <div class="stat-row"><span class="stat-label">Total Deaths</span><span id="lt-deaths">0</span></div>
+      <div class="stat-row"><span class="stat-label">Best Level</span><span id="lt-best">1</span></div>
+      <div class="stat-row"><span class="stat-label">Prestiges</span><span id="lt-prestiges">0</span></div>
+    </div>
+  </div>
+</div>
+
+<div id="party-class-modal" aria-modal="true" role="dialog">
+  <div id="party-class-box">
+    <h2>Choose Class for New Member</h2>
+    <div id="party-class-picker">
+      <button class="class-btn selected" data-class="fighter">⚔ Fighter</button>
+      <button class="class-btn" data-class="rogue">🗡 Rogue</button>
+      <button class="class-btn" data-class="mage">🔮 Mage</button>
+    </div>
+    <div id="party-class-desc"></div>
+    <button id="party-class-confirm">Add Member</button>
+    <button id="party-class-cancel" class="secondary-btn">Cancel</button>
+  </div>
+</div>
 
 <div id="changelog-modal" aria-modal="true" role="dialog" aria-labelledby="changelog-title">
   <div id="changelog-box">

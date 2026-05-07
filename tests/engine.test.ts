@@ -1,9 +1,20 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { GameState, KILLS_PER_LEVEL, LOOT_MAX, UPGRADE_BASES, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT } from "../src/engine.js";
+import {
+  GameState, KILLS_PER_LEVEL, LOOT_MAX, UPGRADE_BASES, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT,
+  PRESTIGE_UNLOCK_LEVEL, PRESTIGE_SHOP_COSTS, STARTING_GOLD_PER_LEVEL, XP_BONUS_PER_LEVEL, AUTO_SELLER_INTERVAL,
+} from "../src/engine.js";
 import { GearItem, getItem, type Slot } from "../src/gear.js";
 
 function make(): GameState {
   return new GameState();
+}
+
+function withHighLevel(level: number): GameState {
+  const gs = make(); gs.highestLevel = level; return gs;
+}
+
+function withPrestige(pts: number): GameState {
+  const gs = make(); gs.prestigePoints = pts; return gs;
 }
 
 function withLoot(): GameState {
@@ -637,5 +648,336 @@ describe("fromDict round-trip", () => {
     const gs = make();
     gs.highestLevel = 12;
     expect(GameState.fromDict(gs.toDict()).highestLevel).toBe(12);
+  });
+});
+
+describe("prestige gate", () => {
+  it("prestige() is a no-op when highestLevel < 20", () => {
+    const gs = withHighLevel(19); gs.kills = 10; gs.prestige();
+    expect(gs.kills).toBe(10);
+  });
+
+  it("prestige() succeeds when highestLevel === 20", () => {
+    const gs = withHighLevel(20); gs.prestige();
+    expect(gs.totalPrestiges).toBe(1);
+  });
+
+  it("prestige() succeeds when highestLevel > 20", () => {
+    const gs = withHighLevel(25); gs.prestige();
+    expect(gs.totalPrestiges).toBe(1);
+  });
+});
+
+describe("prestige points formula", () => {
+  it("level 20 earns 1 point", () => {
+    const gs = withHighLevel(20); gs.prestige();
+    expect(gs.prestigePoints).toBe(1);
+  });
+
+  it("level 25 earns 2 points", () => {
+    const gs = withHighLevel(25); gs.prestige();
+    expect(gs.prestigePoints).toBe(2);
+  });
+
+  it("level 30 earns 3 points", () => {
+    const gs = withHighLevel(30); gs.prestige();
+    expect(gs.prestigePoints).toBe(3);
+  });
+
+  it("prestigePointsPreview returns 1 at level 20", () => {
+    expect(withHighLevel(20).prestigePointsPreview()).toBe(1);
+  });
+
+  it("prestigePointsPreview returns 4 at level 35", () => {
+    expect(withHighLevel(35).prestigePointsPreview()).toBe(4);
+  });
+});
+
+describe("prestige wipe", () => {
+  it("resets dungeonLevel to 1", () => {
+    const gs = withHighLevel(20); gs.dungeonLevel = 15; gs.prestige();
+    expect(gs.dungeonLevel).toBe(1);
+  });
+
+  it("resets kills to 0", () => {
+    const gs = withHighLevel(20); gs.kills = 33; gs.prestige();
+    expect(gs.kills).toBe(0);
+  });
+
+  it("resets deaths to 0", () => {
+    const gs = withHighLevel(20); gs.deaths = 5; gs.prestige();
+    expect(gs.deaths).toBe(0);
+  });
+
+  it("resets highestLevel to 1", () => {
+    const gs = withHighLevel(20); gs.prestige();
+    expect(gs.highestLevel).toBe(1);
+  });
+
+  it("clears loot pool", () => {
+    const gs = withHighLevel(20); gs.lootPool = [getItem()]; gs.prestige();
+    expect(gs.lootPool).toEqual([]);
+  });
+
+  it("resets all upgrades to 0", () => {
+    const gs = withHighLevel(20); gs.gold = 10_000;
+    gs.buyUpgrade(gs.party.team[0].name, "dps");
+    gs.prestige();
+    expect(gs.upgrades[gs.party.team[0].name].dps).toBe(0);
+  });
+
+  it("resets character to level 1", () => {
+    const gs = withHighLevel(20);
+    gs.party.team[0].level = 10; gs.party.team[0].gainXp(999);
+    gs.prestige();
+    expect(gs.party.team[0].level).toBe(1);
+  });
+
+  it("preserves character name", () => {
+    const gs = new GameState("Zara", "rogue"); gs.highestLevel = 20; gs.prestige();
+    expect(gs.party.team[0].name).toBe("Zara");
+  });
+
+  it("preserves character class", () => {
+    const gs = new GameState("Zara", "rogue"); gs.highestLevel = 20; gs.prestige();
+    expect(gs.party.team[0].characterClass).toBe("rogue");
+  });
+
+  it("clears equipped gear", () => {
+    const gs = withHighLevel(20);
+    gs.party.team[0].equipItem(new GearItem("helmet" as Slot, "helm", "legendary", "valor"));
+    gs.prestige();
+    expect(gs.party.team[0].inventory.slots.helmet).toBeNull();
+  });
+});
+
+describe("prestige lifetime stats", () => {
+  it("accumulates lifetimeKills", () => {
+    const gs = withHighLevel(20); gs.kills = 42; gs.prestige();
+    expect(gs.lifetimeKills).toBe(42);
+  });
+
+  it("accumulates lifetimeKills across multiple prestiges", () => {
+    const gs = withHighLevel(20); gs.kills = 10; gs.prestige();
+    gs.highestLevel = 20; gs.kills = 15; gs.prestige();
+    expect(gs.lifetimeKills).toBe(25);
+  });
+
+  it("accumulates lifetimeDeaths", () => {
+    const gs = withHighLevel(20); gs.deaths = 3; gs.prestige();
+    expect(gs.lifetimeDeaths).toBe(3);
+  });
+
+  it("records lifetimeBestLevel", () => {
+    const gs = withHighLevel(27); gs.prestige();
+    expect(gs.lifetimeBestLevel).toBe(27);
+  });
+
+  it("lifetimeBestLevel keeps historical maximum", () => {
+    const gs = withHighLevel(30); gs.prestige();
+    gs.highestLevel = 22; gs.prestige();
+    expect(gs.lifetimeBestLevel).toBe(30);
+  });
+
+  it("totalPrestiges increments on each prestige", () => {
+    const gs = withHighLevel(20); gs.prestige();
+    gs.highestLevel = 20; gs.prestige();
+    expect(gs.totalPrestiges).toBe(2);
+  });
+});
+
+describe("prestige round-trip", () => {
+  it("prestige fields survive toDict/fromDict", () => {
+    const gs = withHighLevel(25); gs.kills = 8; gs.prestige();
+    const restored = GameState.fromDict(gs.toDict());
+    expect(restored.prestigePoints).toBe(2);
+    expect(restored.totalPrestiges).toBe(1);
+    expect(restored.lifetimeKills).toBe(8);
+    expect(restored.lifetimeBestLevel).toBe(25);
+  });
+
+  it("prestige_available is true when highestLevel >= 20", () => {
+    expect(withHighLevel(20).toDict().prestige_available).toBe(true);
+  });
+
+  it("prestige_available is false when highestLevel < 20", () => {
+    expect(make().toDict().prestige_available).toBe(false);
+  });
+
+  it("prestige_points_preview is 0 when below threshold", () => {
+    expect(make().toDict().prestige_points_preview).toBe(0);
+  });
+
+  it("prestige_points_preview is 1 at level 20", () => {
+    expect(withHighLevel(20).toDict().prestige_points_preview).toBe(1);
+  });
+});
+
+describe("prestige shop", () => {
+  it("auto_seller costs 1 point and is recorded", () => {
+    const gs = withPrestige(5); gs.buyPrestigeUpgrade("auto_seller");
+    expect(gs.prestigeUpgrades["auto_seller"]).toBe(1);
+    expect(gs.prestigePoints).toBe(4);
+  });
+
+  it("auto_seller cannot be bought twice", () => {
+    const gs = withPrestige(5);
+    gs.buyPrestigeUpgrade("auto_seller"); gs.buyPrestigeUpgrade("auto_seller");
+    expect(gs.prestigeUpgrades["auto_seller"]).toBe(1);
+    expect(gs.prestigePoints).toBe(4);
+  });
+
+  it("starting_gold is stackable", () => {
+    const gs = withPrestige(5);
+    gs.buyPrestigeUpgrade("starting_gold"); gs.buyPrestigeUpgrade("starting_gold");
+    expect(gs.prestigeUpgrades["starting_gold"]).toBe(2);
+  });
+
+  it("xp_bonus applies immediately to all party members", () => {
+    const gs = withPrestige(5);
+    const before = gs.party.team[0].xpMultiplier;
+    gs.buyPrestigeUpgrade("xp_bonus");
+    expect(gs.party.team[0].xpMultiplier).toBeCloseTo(before + XP_BONUS_PER_LEVEL);
+  });
+
+  it("xp_bonus stacks on second purchase", () => {
+    const gs = withPrestige(5);
+    const before = gs.party.team[0].xpMultiplier;
+    gs.buyPrestigeUpgrade("xp_bonus"); gs.buyPrestigeUpgrade("xp_bonus");
+    expect(gs.party.team[0].xpMultiplier).toBeCloseTo(before + XP_BONUS_PER_LEVEL * 2);
+  });
+
+  it("party_slot_2 costs 2 points and adds a second member", () => {
+    const gs = withPrestige(5); gs.buyPrestigeUpgrade("party_slot_2", "rogue");
+    expect(gs.party.team.length).toBe(2);
+    expect(gs.prestigePoints).toBe(3);
+  });
+
+  it("party_slot_2 member has the chosen class", () => {
+    const gs = withPrestige(5); gs.buyPrestigeUpgrade("party_slot_2", "mage");
+    expect(gs.party.team[1].characterClass).toBe("mage");
+  });
+
+  it("party_slot_3 requires party_slot_2 first", () => {
+    const gs = withPrestige(10); gs.buyPrestigeUpgrade("party_slot_3", "fighter");
+    expect(gs.party.team.length).toBe(1);
+  });
+
+  it("party_slot_3 adds third member after slot 2", () => {
+    const gs = withPrestige(10);
+    gs.buyPrestigeUpgrade("party_slot_2", "rogue");
+    gs.buyPrestigeUpgrade("party_slot_3", "mage");
+    expect(gs.party.team.length).toBe(3);
+    expect(gs.party.team[2].characterClass).toBe("mage");
+  });
+
+  it("invalid upgrade type is a no-op", () => {
+    const gs = withPrestige(5); gs.buyPrestigeUpgrade("invalid_upgrade");
+    expect(gs.prestigePoints).toBe(5);
+  });
+
+  it("fails without enough points", () => {
+    const gs = withPrestige(1); gs.buyPrestigeUpgrade("party_slot_2", "fighter");
+    expect(gs.party.team.length).toBe(1);
+    expect(gs.prestigePoints).toBe(1);
+  });
+
+  it("party_slot_2 survives fromDict round-trip", () => {
+    const gs = withPrestige(10); gs.buyPrestigeUpgrade("party_slot_2", "mage");
+    const restored = GameState.fromDict(gs.toDict());
+    expect(restored.party.team.length).toBe(2);
+    expect(restored.party.team[1].characterClass).toBe("mage");
+    expect(restored.prestigePartyClasses["slot_2"]).toBe("mage");
+  });
+});
+
+describe("prestige — starting_gold on next run", () => {
+  it("1 stack gives 250g after prestige", () => {
+    const gs = withHighLevel(20); gs.prestigeUpgrades["starting_gold"] = 1;
+    gs.prestige();
+    expect(gs.gold).toBe(250);
+  });
+
+  it("2 stacks give 500g after prestige", () => {
+    const gs = withHighLevel(20); gs.prestigeUpgrades["starting_gold"] = 2;
+    gs.prestige();
+    expect(gs.gold).toBe(500);
+  });
+});
+
+describe("prestige — xp_bonus persists through prestige", () => {
+  it("xp_bonus stacks are re-applied to fresh party after prestige", () => {
+    const gs = withPrestige(5); gs.highestLevel = 20;
+    gs.buyPrestigeUpgrade("xp_bonus"); gs.buyPrestigeUpgrade("xp_bonus");
+    gs.prestige();
+    expect(gs.party.team[0].xpMultiplier).toBeCloseTo(1.20);
+  });
+});
+
+describe("auto-seller", () => {
+  function frozenEnemy(gs: GameState): GameState {
+    gs.enemy.hp = gs.enemy.max_hp = 999_999;
+    gs.enemy.attack_dps = 0;
+    return gs;
+  }
+
+  it("does nothing when not purchased", () => {
+    const gs = frozenEnemy(make()); gs.lootPool = [getItem()];
+    gs.tick(AUTO_SELLER_INTERVAL + 1);
+    expect(gs.lootPool.length).toBe(1);
+  });
+
+  it("does nothing when loot pool is empty", () => {
+    const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
+    gs.tick(AUTO_SELLER_INTERVAL + 1);
+    expect(gs.gold).toBe(0);
+  });
+
+  it("sells the lowest quality item after AUTO_SELLER_INTERVAL seconds", () => {
+    const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
+    const broken = new GearItem("helmet" as Slot, "helm", "broken", "valor");
+    const legendary = new GearItem("chest" as Slot, "plate", "legendary", "valor");
+    gs.lootPool = [legendary, broken];
+    gs.tick(AUTO_SELLER_INTERVAL);
+    expect(gs.lootPool.length).toBe(1);
+    expect(gs.lootPool[0].quality).toBe("legendary");
+    expect(gs.gold).toBe(broken.sellValue);
+  });
+
+  it("does not sell before interval elapses", () => {
+    const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
+    gs.lootPool = [getItem(), getItem(), getItem()];
+    gs.tick(AUTO_SELLER_INTERVAL - 0.1);
+    expect(gs.lootPool.length).toBe(3);
+  });
+
+  it("only sells one item per interval", () => {
+    const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
+    gs.lootPool = [getItem(), getItem(), getItem()];
+    gs.tick(AUTO_SELLER_INTERVAL);
+    expect(gs.lootPool.length).toBe(2);
+  });
+
+  it("timer carries overshoot into next interval", () => {
+    const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
+    const item1 = new GearItem("helmet" as Slot, "helm", "broken", "valor");
+    const item2 = new GearItem("chest" as Slot, "plate", "worn", "valor");
+    gs.lootPool = [item1, item2];
+    gs.tick(AUTO_SELLER_INTERVAL);
+    expect(gs.lootPool.length).toBe(1);
+    gs.tick(AUTO_SELLER_INTERVAL - 0.1);
+    expect(gs.lootPool.length).toBe(1);
+    gs.tick(0.2);
+    expect(gs.lootPool.length).toBe(0);
+  });
+
+  it("timer resets on fromDict load", () => {
+    const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
+    gs.lootPool = [getItem()];
+    gs.tick(AUTO_SELLER_INTERVAL - 0.5);
+    const restored = GameState.fromDict(gs.toDict());
+    frozenEnemy(restored);
+    restored.tick(0.1);
+    expect(restored.lootPool.length).toBe(1);
   });
 });

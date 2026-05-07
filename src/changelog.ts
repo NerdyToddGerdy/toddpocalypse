@@ -1,4 +1,4 @@
-export const VERSION = "v1.2.0";
+export const VERSION = "v1.3.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,18 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.3.0",
+    date: "2026-05-07",
+    changes: [
+      "Prestige system — reset your run at dungeon level 20+ to earn prestige points",
+      "Points scale with depth: level 20 = 1pt, +1pt per 5 levels past 20",
+      "Prestige shop: Auto Seller, Party Slots II & III, Starting Gold, XP Bonus",
+      "Auto Seller automatically sells the lowest-quality item every 10 seconds",
+      "Party Slots let you add a 2nd and 3rd member — choose their class on purchase",
+      "Lifetime Stats modal tracks total kills, deaths, best level, and prestige count",
+    ],
+  },
   {
     version: "v1.2.0",
     date: "2026-05-07",
