@@ -1,4 +1,4 @@
-export const VERSION = "v1.0.0";
+export const VERSION = "v1.1.1";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,22 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.1.1",
+    date: "2026-05-07",
+    changes: [
+      "Depth gauge now shows a filled bar that grows downward as you descend",
+    ],
+  },
+  {
+    version: "v1.1.0",
+    date: "2026-05-07",
+    changes: [
+      "Boss fights: each floor ends with a named boss (4× HP, 2× attack, guaranteed loot drop)",
+      "Floor progress text updated to count down to the boss instead of the next floor",
+      "Pulsing gold '★ BOSS FIGHT ★' indicator during the encounter",
+    ],
+  },
   {
     version: "v1.0.0",
     date: "2026-05-07",
