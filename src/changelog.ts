@@ -1,4 +1,4 @@
-export const VERSION = "v1.9.2";
+export const VERSION = "v1.9.3";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,13 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.9.3",
+    date: "2026-05-08",
+    changes: [
+      "Prestige resets Auto Seller quality checkboxes so the new run starts clean",
+    ],
+  },
   {
     version: "v1.9.2",
     date: "2026-05-08",

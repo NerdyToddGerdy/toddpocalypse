@@ -238,6 +238,7 @@ export class GameState {
     this.deaths = 0;
     this.highestLevel = 1;
     this.checkpointLevel = 1;
+    this.autoSellQualities = [];
     this.lootPool = [];
     this.log = [];
     this.enemy = generateEnemy(1);

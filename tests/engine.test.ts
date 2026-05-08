@@ -785,6 +785,13 @@ describe("prestige wipe", () => {
     expect(gs.lootPool).toEqual([]);
   });
 
+  it("resets autoSellQualities to empty", () => {
+    const gs = withHighLevel(20);
+    gs.autoSellQualities = ["broken", "worn"];
+    gs.prestige();
+    expect(gs.autoSellQualities).toEqual([]);
+  });
+
   it("resets all upgrades to 0", () => {
     const gs = withHighLevel(20); gs.gold = 10_000;
     gs.buyUpgrade(gs.party.team[0].name, "dps");
