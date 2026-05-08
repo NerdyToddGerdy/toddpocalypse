@@ -1,4 +1,4 @@
-export const VERSION = "v1.9.5";
+export const VERSION = "v1.9.6";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,13 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.9.6",
+    date: "2026-05-08",
+    changes: [
+      "Checkpoint floor shown as a ⚑ marker on the depth gauge",
+    ],
+  },
   {
     version: "v1.9.5",
     date: "2026-05-08",

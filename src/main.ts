@@ -139,6 +139,13 @@ function renderDepthGauge(state: GameStateDict): void {
   const highestEl = $("depth-highest-marker");
   highestEl.style.top = toPercent(highest) + "px";
   $("depth-highest-label").textContent = highest > current ? `${highest}` : "";
+
+  const checkpoint = state.checkpoint_level;
+  const cpEl = $("depth-checkpoint-marker") as HTMLElement;
+  cpEl.hidden = checkpoint <= 1;
+  if (checkpoint > 1) {
+    cpEl.style.top = toPercent(checkpoint) + "px";
+  }
 }
 
 function renderParty(state: GameStateDict): void {
