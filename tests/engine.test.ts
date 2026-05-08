@@ -4,6 +4,7 @@ import {
   PRESTIGE_UNLOCK_LEVEL, PRESTIGE_SHOP_COSTS, STARTING_GOLD_PER_LEVEL, XP_BONUS_PER_LEVEL,
   BLOODLUST_MULTIPLIER, EXPOSE_WEAKNESS_MULT, MANA_SURGE_INTERVAL, MANA_SURGE_MULTIPLIER,
   LUCKY_STRIKE_CHANCE, LUCKY_STRIKE_MULTIPLIER, EMPOWER_MULTIPLIER,
+  killsForFloor,
 } from "../src/engine.js";
 import { Character } from "../src/character.js";
 import { GearItem, getItem, type Slot } from "../src/gear.js";
@@ -534,16 +535,87 @@ describe("toDict", () => {
     expect(make().toDict().monsters_left).toBe(KILLS_PER_LEVEL);
   });
 
-  it("monsters_left counts down as kills accumulate", () => {
+  it("monsters_left counts down as floor kills accumulate", () => {
     const gs = make();
-    gs.kills = 3;
-    expect(gs.toDict().monsters_left).toBe(KILLS_PER_LEVEL - 3);
+    gs.floorKills = 3;
+    expect(gs.toDict().monsters_left).toBe(killsForFloor(1) - 3);
   });
 
-  it("monsters_left resets to KILLS_PER_LEVEL after leveling", () => {
+  it("monsters_left resets after boss spawns", () => {
     const gs = make();
-    gs.kills = KILLS_PER_LEVEL;
-    expect(gs.toDict().monsters_left).toBe(KILLS_PER_LEVEL);
+    for (let i = 0; i < killsForFloor(1); i++) gs.onEnemyDeath(); // advance to boss
+    gs.onEnemyDeath(); // kill boss → enter floor 2
+    expect(gs.toDict().monsters_left).toBe(killsForFloor(2));
+  });
+});
+
+describe("killsForFloor", () => {
+  it("returns KILLS_PER_LEVEL (5) at floor 1", () => {
+    expect(killsForFloor(1)).toBe(KILLS_PER_LEVEL);
+  });
+
+  it("returns 7 at floor 5", () => {
+    expect(killsForFloor(5)).toBe(7);
+  });
+
+  it("returns 9 at floor 10", () => {
+    expect(killsForFloor(10)).toBe(9);
+  });
+
+  it("strictly increases every 5 floors", () => {
+    for (let lvl = 5; lvl <= 30; lvl += 5) {
+      expect(killsForFloor(lvl)).toBeGreaterThan(killsForFloor(lvl - 1));
+    }
+  });
+
+  it("floorKills starts at 0", () => {
+    expect(make().floorKills).toBe(0);
+  });
+
+  it("floorKills increments with each regular enemy kill", () => {
+    const gs = make();
+    gs.onEnemyDeath();
+    expect(gs.floorKills).toBe(1);
+  });
+
+  it("floorKills resets to 0 after boss advances the floor", () => {
+    const gs = make();
+    for (let i = 0; i < killsForFloor(1); i++) gs.onEnemyDeath();
+    gs.onEnemyDeath(); // kill boss
+    expect(gs.floorKills).toBe(0);
+  });
+
+  it("player death resets floorKills", () => {
+    const gs = make();
+    gs.floorKills = 3;
+    gs.onPlayerDeath();
+    expect(gs.floorKills).toBe(0);
+  });
+
+  it("prestige resets floorKills", () => {
+    const gs = withHighLevel(20);
+    gs.floorKills = 4;
+    gs.prestige();
+    expect(gs.floorKills).toBe(0);
+  });
+
+  it("floor_kills round-trips through toDict/fromDict", () => {
+    const gs = make();
+    gs.floorKills = 3;
+    expect(GameState.fromDict(gs.toDict()).floorKills).toBe(3);
+  });
+
+  it("boss spawns after killsForFloor(floor) kills, not always 5", () => {
+    const gs = make();
+    // advance to floor 5 (needs 5+1+5+1+5+1+5+1 = 24 calls to reach floor 5 boss)
+    for (let floor = 1; floor <= 4; floor++) {
+      for (let k = 0; k < killsForFloor(floor); k++) gs.onEnemyDeath();
+      gs.onEnemyDeath(); // kill boss
+    }
+    expect(gs.dungeonLevel).toBe(5);
+    for (let k = 0; k < killsForFloor(5); k++) gs.onEnemyDeath();
+    expect(gs.enemy.isBoss).toBe(true);
+    expect(gs.enemy.level).toBe(5);
   });
 });
 

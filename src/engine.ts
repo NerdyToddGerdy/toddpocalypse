@@ -4,6 +4,10 @@ import { GearItem, getItem, QUAL, autoSellThreshold, type GearItemDict } from ".
 import { generateEnemy, generateBoss, type Enemy } from "./dungeon.js";
 
 export const KILLS_PER_LEVEL = 5;
+
+export function killsForFloor(dungeonLevel: number): number {
+  return KILLS_PER_LEVEL + Math.floor(dungeonLevel / 5) * 2;
+}
 export const CLICK_DAMAGE_MULTIPLIER = 2.0;
 export const MAX_LOG = 6;
 export const LOOT_MAX = 8;
@@ -69,6 +73,7 @@ export interface GameStateDict {
   prestige_points_preview: number;
   checkpoint_level: number;
   auto_sell_qualities: string[];
+  floor_kills: number;
 }
 
 export class GameState {
@@ -91,6 +96,7 @@ export class GameState {
   prestigePartyClasses: Record<string, string> = {};
   autoSellQualities: string[] = [];
   checkpointLevel = 1;
+  floorKills = 0;
 
   constructor(name = "Hero", characterClass = "fighter") {
     this.party = new Party();
@@ -235,6 +241,7 @@ export class GameState {
 
     this.dungeonLevel = 1;
     this.kills = 0;
+    this.floorKills = 0;
     this.deaths = 0;
     this.highestLevel = 1;
     this.checkpointLevel = 1;
@@ -335,7 +342,7 @@ export class GameState {
       kills: this.kills,
       deaths: this.deaths,
       highest_level: this.highestLevel,
-      monsters_left: this.enemy.isBoss ? 0 : KILLS_PER_LEVEL - (this.kills % KILLS_PER_LEVEL),
+      monsters_left: this.enemy.isBoss ? 0 : killsForFloor(this.dungeonLevel) - this.floorKills,
       enemy: {
         name: this.enemy.name,
         level: this.enemy.level,
@@ -377,6 +384,7 @@ export class GameState {
         : 0,
       checkpoint_level: this.checkpointLevel,
       auto_sell_qualities: [...this.autoSellQualities],
+      floor_kills: this.floorKills,
     };
   }
 
@@ -428,6 +436,7 @@ export class GameState {
         this.addLog(`Dropped: ${drop.getName()}!`);
       }
       this.dungeonLevel += 1;
+      this.floorKills = 0;
       if (this.dungeonLevel > this.highestLevel) this.highestLevel = this.dungeonLevel;
       if (this.dungeonLevel % 10 === 0) {
         this.checkpointLevel = this.dungeonLevel;
@@ -442,7 +451,9 @@ export class GameState {
         this.addLog(`Dropped: ${drop.getName()}!`);
       }
       this.kills += 1;
-      if (this.kills % KILLS_PER_LEVEL === 0) {
+      this.floorKills += 1;
+      if (this.floorKills >= killsForFloor(this.dungeonLevel)) {
+        this.floorKills = 0;
         this.addLog(`Floor ${this.dungeonLevel} cleared! Boss incoming!`);
         this.enemy = generateBoss(this.dungeonLevel);
       } else {
@@ -461,6 +472,7 @@ export class GameState {
     this.addLog(msg);
     this.dungeonLevel = this.checkpointLevel;
     this.kills = 0;
+    this.floorKills = 0;
     player.health = player.maxHealth;
     this.enemy = generateEnemy(this.checkpointLevel);
   }
@@ -531,6 +543,7 @@ export class GameState {
     gs.prestigePartyClasses = { ...(d.prestige_party_classes ?? {}) };
     gs.autoSellQualities = [...(d.auto_sell_qualities ?? [])];
     gs.checkpointLevel = d.checkpoint_level ?? 1;
+    gs.floorKills = d.floor_kills ?? 0;
 
     gs.enemy = {
       name: d.enemy.name,

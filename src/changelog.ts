@@ -1,4 +1,4 @@
-export const VERSION = "v1.9.3";
+export const VERSION = "v1.9.4";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,13 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.9.4",
+    date: "2026-05-08",
+    changes: [
+      "Floor progress bar grows with depth — floor 1 needs 5 kills, floor 5 needs 7, floor 10 needs 9, +2 every 5 floors",
+    ],
+  },
   {
     version: "v1.9.3",
     date: "2026-05-08",

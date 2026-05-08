@@ -56,7 +56,7 @@ function call<K extends keyof GameState>(method: K, ...args: any[]): void {
   }
 }
 
-import { KILLS_PER_LEVEL } from "./engine.js";
+import { KILLS_PER_LEVEL, killsForFloor } from "./engine.js";
 
 function render(state: GameStateDict): void {
   const enemy = state.enemy;
@@ -87,7 +87,8 @@ function render(state: GameStateDict): void {
 function renderFloorProgress(state: GameStateDict): void {
   const isBoss = state.enemy.is_boss;
   const left = state.monsters_left;
-  const done = KILLS_PER_LEVEL - left;
+  const total = killsForFloor(state.dungeon_level);
+  const done = total - left;
 
   if (isBoss) {
     $("monsters-left-text").textContent = "★ BOSS FIGHT ★";
@@ -99,7 +100,7 @@ function renderFloorProgress(state: GameStateDict): void {
   }
 
   const row = $("floor-pip-row");
-  row.innerHTML = Array.from({ length: KILLS_PER_LEVEL }, (_, i) =>
+  row.innerHTML = Array.from({ length: total }, (_, i) =>
     `<div class="floor-pip${i < done || isBoss ? " done" : ""}"></div>`
   ).join("")
     + (isBoss ? `<div class="floor-pip boss-pip">★</div>` : "");
