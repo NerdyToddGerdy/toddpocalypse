@@ -1,4 +1,4 @@
-import { GameState, type GameStateDict } from "./engine.js";
+import { GameState, type GameStateDict, GUILD_HALL_COSTS, GUILD_HALL_MAX } from "./engine.js";
 import { qualityClass, autoSellThreshold, QUAL } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
@@ -35,6 +35,7 @@ let lootKey: string | null = null;
 let upgradeKey: string | null = null;
 let partyKey: string | null = null;
 let prestigeKey: string | null = null;
+let guildKey: string | null = null;
 let hoveredLootSlot: string | null = null;
 
 function $(id: string): HTMLElement {
@@ -78,6 +79,7 @@ function render(state: GameStateDict): void {
   renderLoot(state);
   renderUpgrades(state);
   renderPrestigeShop(state);
+  renderGuildHall(state);
   renderLog(state);
   updatePrestigeButton(state);
   updateLifetimeStats(state);
@@ -349,6 +351,44 @@ function renderPrestigeShop(state: GameStateDict): void {
   }).join("");
 }
 
+const GUILD_HALL_META: Record<string, { icon: string; name: string; desc: string }> = {
+  armory:        { icon: "⚔", name: "Armory",         desc: "Start each run with +1 loot item in the pool." },
+  vault:         { icon: "🏦", name: "Vault",          desc: "Carry 10% of your gold into the next run." },
+  training_yard: { icon: "🏋", name: "Training Yard",  desc: "Party members start each run 1 level higher." },
+  chronicle_room:{ icon: "📜", name: "Chronicle Room", desc: "+1 renown earned on every future prestige." },
+};
+
+function renderGuildHall(state: GameStateDict): void {
+  const newKey = JSON.stringify(state.guild_upgrades) + "|" + state.renown;
+  if (newKey === guildKey) return;
+  guildKey = newKey;
+
+  const renown = state.renown;
+  const preview = state.renown_preview;
+  $("guild-renown-display").textContent =
+    renown === 0 && preview === 0 ? "" :
+    preview > 0 ? `(${renown} ⚜ · +${preview} next)` :
+    `(${renown} ⚜)`;
+
+  const ups = (state.guild_upgrades ?? {}) as Record<string, number>;
+  $("guild-hall-items").innerHTML = Object.entries(GUILD_HALL_META).map(([type, meta]) => {
+    const owned = ups[type] ?? 0;
+    const max = GUILD_HALL_MAX[type];
+    const cost = GUILD_HALL_COSTS[type];
+    const atMax = owned >= max;
+    const canAfford = renown >= cost;
+    const disabled = atMax || !canAfford;
+    const levelLabel = atMax ? ` ✓ (${owned}/${max})` : owned > 0 ? ` (${owned}/${max})` : ` (0/${max})`;
+    return `<div class="guild-item">
+      <div class="guild-item-meta">
+        <div class="guild-item-name">${meta.icon} ${meta.name}${levelLabel}</div>
+        <div class="guild-item-desc">${meta.desc}</div>
+      </div>
+      <button class="guild-buy-btn" data-action="buy-guild" data-type="${type}" ${disabled ? "disabled" : ""}>${atMax ? "Max" : cost + " ⚜"}</button>
+    </div>`;
+  }).join("");
+}
+
 function updatePrestigeButton(state: GameStateDict): void {
   const btn = $("prestige-btn") as HTMLButtonElement;
   if (state.prestige_available) {
@@ -429,7 +469,7 @@ function slotLabel(slot: string): string {
 
 const TAB_PANELS: Record<string, string[]> = {
   combat: ["enemy-panel", "party-panel", "loot-panel"],
-  shop:   ["upgrades-panel", "prestige-panel"],
+  shop:   ["upgrades-panel", "prestige-panel", "guild-hall-panel"],
   log:    ["log-panel"],
 };
 
@@ -640,6 +680,9 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         call("buyPrestigeUpgrade", type);
       }
+    }
+    else if (action === "buy-guild") {
+      call("buyGuildUpgrade", btn.dataset.type!);
     }
     else if (action === "toggle-auto-sell") {
       call("toggleAutoSellQuality", btn.dataset.quality!);

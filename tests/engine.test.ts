@@ -1723,3 +1723,140 @@ describe("checkpoint system", () => {
     expect(restored.checkpointLevel).toBe(10);
   });
 });
+
+describe("renown", () => {
+  it("renown starts at 0", () => {
+    expect(make().renown).toBe(0);
+  });
+
+  it("renownPreview returns floor(highestLevel / 10)", () => {
+    expect(withHighLevel(20).renownPreview()).toBe(2);
+    expect(withHighLevel(30).renownPreview()).toBe(3);
+    expect(withHighLevel(50).renownPreview()).toBe(5);
+  });
+
+  it("renownPreview is 0 below floor 10", () => {
+    expect(make().renownPreview()).toBe(0);
+    expect(withHighLevel(9).renownPreview()).toBe(0);
+  });
+
+  it("chronicle_room stacks add to renownPreview", () => {
+    const gs = withHighLevel(20);
+    gs.guildUpgrades["chronicle_room"] = 2;
+    expect(gs.renownPreview()).toBe(4); // 2 base + 2 chronicle
+  });
+
+  it("prestige() earns renown based on highestLevel", () => {
+    const gs = withHighLevel(20);
+    gs.prestige();
+    expect(gs.renown).toBe(2);
+  });
+
+  it("prestige() does NOT reset renown", () => {
+    const gs = withHighLevel(20);
+    gs.prestige();
+    gs.highestLevel = 20;
+    gs.prestige();
+    expect(gs.renown).toBe(4); // 2 + 2
+  });
+
+  it("renown accumulates across multiple prestiges", () => {
+    const gs = withHighLevel(30);
+    gs.prestige(); // earns 3
+    gs.highestLevel = 20;
+    gs.prestige(); // earns 2
+    expect(gs.renown).toBe(5);
+  });
+
+  it("renown round-trips through toDict/fromDict", () => {
+    const gs = withHighLevel(20);
+    gs.prestige();
+    const restored = GameState.fromDict(gs.toDict());
+    expect(restored.renown).toBe(2);
+  });
+});
+
+describe("guild hall", () => {
+  function withRenown(n: number): GameState {
+    const gs = make();
+    gs.renown = n;
+    return gs;
+  }
+
+  it("buyGuildUpgrade deducts renown and records level", () => {
+    const gs = withRenown(5);
+    gs.buyGuildUpgrade("armory");
+    expect(gs.guildUpgrades["armory"]).toBe(1);
+    expect(gs.renown).toBe(3); // 5 - 2
+  });
+
+  it("buyGuildUpgrade fails when not enough renown", () => {
+    const gs = withRenown(1);
+    gs.buyGuildUpgrade("armory"); // costs 2
+    expect(gs.guildUpgrades["armory"]).toBeUndefined();
+    expect(gs.renown).toBe(1);
+  });
+
+  it("buyGuildUpgrade respects GUILD_HALL_MAX — cannot exceed max", () => {
+    const gs = withRenown(20);
+    gs.buyGuildUpgrade("armory"); // lvl 1
+    gs.buyGuildUpgrade("armory"); // lvl 2
+    gs.buyGuildUpgrade("armory"); // lvl 3 (max)
+    gs.buyGuildUpgrade("armory"); // blocked
+    expect(gs.guildUpgrades["armory"]).toBe(3);
+    expect(gs.renown).toBe(14); // 20 - 2 - 2 - 2
+  });
+
+  it("buyGuildUpgrade ignores unknown upgrade type", () => {
+    const gs = withRenown(10);
+    gs.buyGuildUpgrade("nonexistent");
+    expect(gs.renown).toBe(10);
+  });
+
+  it("vault carries 10% of gold per stack on prestige", () => {
+    const gs = withHighLevel(20);
+    gs.gold = 1000;
+    gs.guildUpgrades["vault"] = 1;
+    gs.prestige();
+    expect(gs.gold).toBe(100); // 10% of 1000 (no starting_gold perk)
+  });
+
+  it("vault 3 stacks carries 30% of gold on prestige", () => {
+    const gs = withHighLevel(20);
+    gs.gold = 1000;
+    gs.guildUpgrades["vault"] = 3;
+    gs.prestige();
+    expect(gs.gold).toBe(300);
+  });
+
+  it("armory adds N loot items to pool on prestige", () => {
+    const gs = withHighLevel(20);
+    gs.guildUpgrades["armory"] = 2;
+    gs.prestige();
+    expect(gs.lootPool.length).toBe(2);
+  });
+
+  it("training_yard levels up all party members on prestige", () => {
+    const gs = withHighLevel(20);
+    gs.guildUpgrades["training_yard"] = 2;
+    gs.prestige();
+    expect(gs.party.team[0].level).toBe(3); // started at 1, +2 from training
+  });
+
+  it("training_yard resets XP to 0 after level-ups", () => {
+    const gs = withHighLevel(20);
+    gs.guildUpgrades["training_yard"] = 1;
+    gs.prestige();
+    expect(gs.party.team[0].xp).toBe(0);
+  });
+
+  it("guild_upgrades round-trips through toDict/fromDict", () => {
+    const gs = withRenown(10);
+    gs.buyGuildUpgrade("armory");
+    gs.buyGuildUpgrade("vault");
+    const restored = GameState.fromDict(gs.toDict());
+    expect(restored.guildUpgrades["armory"]).toBe(1);
+    expect(restored.guildUpgrades["vault"]).toBe(1);
+    expect(restored.renown).toBe(5); // 10 - 2 - 3
+  });
+});

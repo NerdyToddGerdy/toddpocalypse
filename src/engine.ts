@@ -37,6 +37,20 @@ export const LUCKY_STRIKE_MULTIPLIER = 3;
 export const EMPOWER_MULTIPLIER = 2;
 
 export const PRESTIGE_UNLOCK_LEVEL = 20;
+export const RENOWN_UNLOCK_LEVEL = 20;
+export const GUILD_HALL_COSTS: Record<string, number> = {
+  armory: 2,
+  vault: 3,
+  training_yard: 3,
+  chronicle_room: 4,
+};
+export const GUILD_HALL_MAX: Record<string, number> = {
+  armory: 3,
+  vault: 3,
+  training_yard: 3,
+  chronicle_room: 3,
+};
+export const VAULT_CARRY_RATE = 0.10;
 export const PRESTIGE_SHOP_COSTS: Record<string, number> = {
   auto_seller: 1,
   auto_equip: 2,
@@ -76,6 +90,9 @@ export interface GameStateDict {
   checkpoint_level: number;
   auto_sell_qualities: string[];
   floor_kills: number;
+  renown: number;
+  renown_preview: number;
+  guild_upgrades: Record<string, number>;
 }
 
 export class GameState {
@@ -99,6 +116,8 @@ export class GameState {
   autoSellQualities: string[] = [];
   checkpointLevel = 1;
   floorKills = 0;
+  renown = 0;
+  guildUpgrades: Record<string, number> = {};
 
   constructor(name = "Hero", characterClass = "fighter") {
     this.party = new Party();
@@ -236,14 +255,41 @@ export class GameState {
     return 1 + Math.floor(Math.max(0, this.highestLevel - PRESTIGE_UNLOCK_LEVEL) / 5);
   }
 
+  renownPreview(): number {
+    const base = Math.floor(this.highestLevel / 10);
+    const bonus = this.guildUpgrades["chronicle_room"] ?? 0;
+    return base + bonus;
+  }
+
+  buyGuildUpgrade(type: string): string {
+    if (!(type in GUILD_HALL_COSTS)) return this.respond();
+    const max = GUILD_HALL_MAX[type];
+    const owned = this.guildUpgrades[type] ?? 0;
+    if (owned >= max) return this.respond();
+    const cost = GUILD_HALL_COSTS[type];
+    if (this.renown < cost) {
+      this.addLog("Not enough renown!");
+      return this.respond();
+    }
+    this.renown -= cost;
+    this.guildUpgrades[type] = owned + 1;
+    this.addLog(`Guild: ${type} upgraded to level ${owned + 1}!`);
+    return this.respond();
+  }
+
   prestige(): string {
     if (this.highestLevel < PRESTIGE_UNLOCK_LEVEL) return this.respond();
     const earned = this.prestigePointsPreview();
+    const earnedRenown = this.renownPreview();
+    const vaultStacks = this.guildUpgrades["vault"] ?? 0;
+    const carriedGold = Math.floor(this.gold * vaultStacks * VAULT_CARRY_RATE);
+
     this.lifetimeKills += this.kills;
     this.lifetimeDeaths += this.deaths;
     this.lifetimeBestLevel = Math.max(this.lifetimeBestLevel, this.highestLevel);
     this.totalPrestiges += 1;
     this.prestigePoints += earned;
+    this.renown += earnedRenown;
 
     const leadName = this.party.team[0].name;
     const leadClass = this.party.team[0].characterClass;
@@ -283,9 +329,24 @@ export class GameState {
       c.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
     }
 
-    this.gold = (this.prestigeUpgrades["starting_gold"] ?? 0) * STARTING_GOLD_PER_LEVEL;
+    this.gold = (this.prestigeUpgrades["starting_gold"] ?? 0) * STARTING_GOLD_PER_LEVEL + carriedGold;
 
-    this.addLog(`Prestige ${this.totalPrestiges}! Earned ${earned}pt. Total: ${this.prestigePoints}pts.`);
+    // Armory: add starting loot
+    const armoryStacks = this.guildUpgrades["armory"] ?? 0;
+    for (let i = 0; i < armoryStacks; i++) {
+      this.lootPool.push(getItem(undefined, 1));
+    }
+
+    // Training Yard: level up all party members
+    const trainingStacks = this.guildUpgrades["training_yard"] ?? 0;
+    if (trainingStacks > 0) {
+      for (const c of this.party.team) {
+        for (let i = 0; i < trainingStacks; i++) { c.levelUp(); }
+        c.xp = 0;
+      }
+    }
+
+    this.addLog(`Prestige ${this.totalPrestiges}! Earned ${earned}pt, ${earnedRenown} renown.`);
     return this.respond();
   }
 
@@ -396,6 +457,9 @@ export class GameState {
       checkpoint_level: this.checkpointLevel,
       auto_sell_qualities: [...this.autoSellQualities],
       floor_kills: this.floorKills,
+      renown: this.renown,
+      renown_preview: this.renownPreview(),
+      guild_upgrades: { ...this.guildUpgrades },
     };
   }
 
@@ -620,6 +684,8 @@ export class GameState {
     gs.autoSellQualities = [...(d.auto_sell_qualities ?? [])];
     gs.checkpointLevel = d.checkpoint_level ?? 1;
     gs.floorKills = d.floor_kills ?? 0;
+    gs.renown = d.renown ?? 0;
+    gs.guildUpgrades = { ...(d.guild_upgrades ?? {}) };
 
     gs.enemy = {
       name: d.enemy.name,

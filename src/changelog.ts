@@ -1,4 +1,4 @@
-export const VERSION = "v2.1.1";
+export const VERSION = "v2.2.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,18 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.2.0",
+    date: "2026-05-08",
+    changes: [
+      "Guild Hall — a permanent meta-progression layer that never resets",
+      "Earn renown each time you prestige (floor / 10, minimum 2 at floor 20)",
+      "Armory (2 renown): start each run with +1 loot item already in the pool",
+      "Vault (3 renown): carry 10% of your gold per stack into the next run",
+      "Training Yard (3 renown): party members begin each run 1 level higher per stack",
+      "Chronicle Room (4 renown): earn +1 bonus renown per stack on every future prestige",
+    ],
+  },
   {
     version: "v2.1.1",
     date: "2026-05-08",
