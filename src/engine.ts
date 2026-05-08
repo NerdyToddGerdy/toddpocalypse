@@ -112,6 +112,7 @@ export class GameState {
   tick(dt: number): string {
     // Mana Surge — fires before regular DPS so we can early-return if enemy dies
     for (const c of this.party.team) {
+      if (!c.isAlive()) continue;
       if (c.abilities.includes("mana_surge") && c.inventory.equippedItems().length > 0) {
         c.surgeTimer += dt;
         if (c.surgeTimer >= MANA_SURGE_INTERVAL) {
@@ -124,8 +125,9 @@ export class GameState {
       }
     }
 
-    const hasExpose = this.party.team.some(c => c.abilities.includes("expose_weakness"));
+    const hasExpose = this.party.team.some(c => c.isAlive() && c.abilities.includes("expose_weakness"));
     const totalDps = this.party.team.reduce((s, c) => {
+      if (!c.isAlive()) return s;
       if (c.inventory.equippedItems().length === 0) return s;
       let dps = c.dps;
       if (c.abilities.includes("bloodlust") && c.health <= c.maxHealth * 0.5) dps *= BLOODLUST_MULTIPLIER;
@@ -136,20 +138,25 @@ export class GameState {
       this.onEnemyDeath();
       return this.respond();
     }
-    const player = this.party.team[0];
-    player.health -= this.enemy.attack_dps * dt * (1 - player.damageReduction);
-    if (player.health <= 0) {
+
+    const living = this.party.team.filter(c => c.isAlive());
+    if (living.length > 0) {
+      const target = living[Math.floor(Math.random() * living.length)];
+      target.health -= this.enemy.attack_dps * dt * (1 - target.damageReduction);
+      target.health = Math.max(0, target.health);
+    }
+    if (this.party.team.every(c => !c.isAlive())) {
       this.onPlayerDeath();
     }
     return this.respond();
   }
 
   click(): string {
-    const totalDps = this.party.team.reduce((s, c) => s + c.dps, 0);
-    const clickBonus = this.party.team.reduce((s, c) => s + c.clickBonus, 0);
+    const totalDps = this.party.team.reduce((s, c) => c.isAlive() ? s + c.dps : s, 0);
+    const clickBonus = this.party.team.reduce((s, c) => c.isAlive() ? s + c.clickBonus : s, 0);
     let damage = Math.max(1.0, totalDps * CLICK_DAMAGE_MULTIPLIER * 0.1 + clickBonus);
-    if (this.party.team.some(c => c.abilities.includes("empower"))) damage *= EMPOWER_MULTIPLIER;
-    if (this.party.team.some(c => c.abilities.includes("lucky_strike")) && Math.random() < LUCKY_STRIKE_CHANCE) {
+    if (this.party.team.some(c => c.isAlive() && c.abilities.includes("empower"))) damage *= EMPOWER_MULTIPLIER;
+    if (this.party.team.some(c => c.isAlive() && c.abilities.includes("lucky_strike")) && Math.random() < LUCKY_STRIKE_CHANCE) {
       damage *= LUCKY_STRIKE_MULTIPLIER;
       this.addLog(`Lucky Strike! ${damage.toFixed(1)} dmg!`);
     } else {
@@ -479,7 +486,9 @@ export class GameState {
     this.dungeonLevel = this.checkpointLevel;
     this.kills = 0;
     this.floorKills = 0;
-    player.health = player.maxHealth;
+    for (const c of this.party.team) {
+      c.health = c.maxHealth;
+    }
     this.enemy = generateEnemy(this.checkpointLevel);
   }
 

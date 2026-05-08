@@ -1,4 +1,4 @@
-export const VERSION = "v2.0.0";
+export const VERSION = "v2.1.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.1.0",
+    date: "2026-05-08",
+    changes: [
+      "Enemy attacks a random living party member each tick — companions share the damage load",
+      "Party respawns only after every member's HP reaches 0 — companions act as extra lives",
+      "Dead party members deal no DPS until the party respawns",
+    ],
+  },
   {
     version: "v2.0.0",
     date: "2026-05-08",

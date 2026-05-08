@@ -253,6 +253,72 @@ describe("click", () => {
   });
 });
 
+describe("party combat (multi-member HP)", () => {
+  function twoMembers(): GameState {
+    const gs = make();
+    const rogue = new Character("Rogue", "rogue", 1);
+    gs.party.addPlayer(rogue);
+    gs.upgrades["Rogue"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+    gs.enemy.hp = gs.enemy.max_hp = 999_999;
+    gs.enemy.attack_dps = 5;
+    return gs;
+  }
+
+  it("enemy does not attack a dead party member", () => {
+    const gs = twoMembers();
+    gs.party.team[0].health = 0; // fighter dead
+    const rogueBefore = gs.party.team[1].health;
+    gs.tick(1.0);
+    expect(gs.party.team[0].health).toBe(0);   // fighter untouched
+    expect(gs.party.team[1].health).toBeLessThan(rogueBefore); // rogue took damage
+  });
+
+  it("party does not wipe when one member is dead and others live", () => {
+    const gs = twoMembers();
+    gs.party.team[0].health = 0; // fighter dead, rogue alive
+    gs.tick(1.0);
+    expect(gs.deaths).toBe(0);
+  });
+
+  it("party wipes when all members reach 0 HP", () => {
+    const gs = twoMembers();
+    gs.party.team[0].health = 0;
+    gs.party.team[1].health = 0;
+    gs.tick(0.1);
+    expect(gs.deaths).toBe(1);
+  });
+
+  it("respawn restores all party members to full HP", () => {
+    const gs = twoMembers();
+    gs.party.team[0].health = 0;
+    gs.party.team[1].health = 0;
+    gs.tick(0.1);
+    for (const c of gs.party.team) {
+      expect(c.health).toBe(c.maxHealth);
+    }
+  });
+
+  it("dead member contributes no auto-DPS", () => {
+    const gs = make();
+    const rogue = new Character("Rogue", "rogue", 1);
+    rogue.equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
+    gs.party.addPlayer(rogue);
+    gs.upgrades["Rogue"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+    gs.enemy.hp = gs.enemy.max_hp = 999_999;
+    gs.enemy.attack_dps = 0;
+
+    gs.tick(1.0);
+    const dmgRogueAlive = 999_999 - gs.enemy.hp;
+
+    rogue.health = 0; // kill the rogue
+    gs.enemy.hp = 999_999;
+    gs.tick(1.0);
+    const dmgRogueDead = 999_999 - gs.enemy.hp;
+
+    expect(dmgRogueDead).toBeLessThan(dmgRogueAlive);
+  });
+});
+
 describe("loot", () => {
   it("loot pool capped at LOOT_MAX", () => {
     const gs = make();
