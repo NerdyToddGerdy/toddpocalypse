@@ -405,7 +405,12 @@ export class GameState {
   }
 
   bestRecipient(item: GearItem): Character {
-    return this.party.team.reduce((best, c) => {
+    const lead = this.party.team[0];
+    const leadCurrent = this.slotToCompare(lead, item);
+    // Lead has first claim: give item to them if they have an empty slot or it beats their gear
+    if (!leadCurrent || item.damage > leadCurrent.damage) return lead;
+    // Lead doesn't benefit — pick the companion with the most to gain
+    return this.party.team.slice(1).reduce((best, c) => {
       const bestCurrent = this.slotToCompare(best, item);
       const cCurrent = this.slotToCompare(c, item);
       const bestGain = item.damage - (bestCurrent ? bestCurrent.damage : 0);
@@ -413,7 +418,7 @@ export class GameState {
       if (cGain > bestGain) return c;
       if (cGain === bestGain && c.dps > best.dps) return c;
       return best;
-    });
+    }, lead);
   }
 
   onEnemyDeath(): void {

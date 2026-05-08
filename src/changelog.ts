@@ -1,4 +1,4 @@
-export const VERSION = "v2.1.0";
+export const VERSION = "v2.1.1";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,13 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.1.1",
+    date: "2026-05-08",
+    changes: [
+      "Equip priority: lead character always gets first claim on any upgrade — companions only receive items the lead can't use",
+    ],
+  },
   {
     version: "v2.1.0",
     date: "2026-05-08",

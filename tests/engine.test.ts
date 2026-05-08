@@ -447,6 +447,28 @@ describe("loot", () => {
     expect(gs.lootPool).toEqual([]);
   });
 
+  it("equipLoot gives item to lead when both lead and companion have empty slot", () => {
+    const gs = withPrestige(5);
+    gs.buyPrestigeUpgrade("party_slot_2", "fighter");
+    gs.party.team[1].dps = 1000; // companion has much higher DPS (old tiebreaker would pick them)
+    const sword = new GearItem("main_hand" as Slot, "sword", "legendary", "valor");
+    gs.lootPool = [sword];
+    gs.equipLoot(0);
+    expect(gs.party.team[0].inventory.slots["main_hand" as Slot]).toBe(sword);
+  });
+
+  it("equipLoot gives item to companion when lead already has better gear", () => {
+    const gs = withPrestige(5);
+    gs.buyPrestigeUpgrade("party_slot_2", "fighter");
+    const legendary = new GearItem("main_hand" as Slot, "sword", "legendary", "valor");
+    gs.party.team[0].equipItem(legendary);
+    const common = new GearItem("main_hand" as Slot, "sword", "common", "valor");
+    gs.lootPool = [common];
+    gs.equipLoot(0);
+    expect(gs.party.team[0].inventory.slots["main_hand" as Slot]).toBe(legendary);
+    expect(gs.party.team[1].inventory.slots["main_hand" as Slot]).toBe(common);
+  });
+
   it("auto seller protects a ring that beats the weaker equipped ring", () => {
     const gs = withPrestige(5);
     gs.buyPrestigeUpgrade("auto_seller");
