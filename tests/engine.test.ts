@@ -1332,3 +1332,68 @@ describe("class ability effects", () => {
     expect(dmgWith).toBeCloseTo(dmgWithout * EMPOWER_MULTIPLIER);
   });
 });
+
+describe("checkpoint system", () => {
+  function killBossAtLevel(gs: GameState, level: number): void {
+    gs.dungeonLevel = level;
+    gs.kills = 0;
+    gs.enemy = { name: "Boss", level, hp: 0, max_hp: 1, xp_reward: 1, gold_reward: 1, attack_dps: 0, isBoss: true };
+    gs.onEnemyDeath();
+  }
+
+  it("checkpointLevel starts at 1", () => {
+    expect(make().checkpointLevel).toBe(1);
+  });
+
+  it("checkpoint updates to dungeonLevel when a multiple-of-10 floor is entered", () => {
+    const gs = make();
+    killBossAtLevel(gs, 9); // boss on floor 9 → enter floor 10
+    expect(gs.checkpointLevel).toBe(10);
+  });
+
+  it("checkpoint updates at 20 and 30", () => {
+    const gs = make();
+    killBossAtLevel(gs, 19);
+    expect(gs.checkpointLevel).toBe(20);
+    killBossAtLevel(gs, 29);
+    expect(gs.checkpointLevel).toBe(30);
+  });
+
+  it("checkpoint does NOT update on non-multiple floors", () => {
+    const gs = make();
+    killBossAtLevel(gs, 5); // floor 6
+    killBossAtLevel(gs, 13); // floor 14
+    expect(gs.checkpointLevel).toBe(1);
+  });
+
+  it("death respawns at checkpointLevel", () => {
+    const gs = make();
+    killBossAtLevel(gs, 9); // set checkpoint to 10
+    gs.onPlayerDeath();
+    expect(gs.dungeonLevel).toBe(10);
+    expect(gs.enemy.level).toBe(10);
+  });
+
+  it("death at checkpointLevel=1 still respawns at floor 1 (no regression)", () => {
+    const gs = make();
+    expect(gs.checkpointLevel).toBe(1);
+    gs.onPlayerDeath();
+    expect(gs.dungeonLevel).toBe(1);
+  });
+
+  it("prestige resets checkpointLevel to 1", () => {
+    const gs = withHighLevel(20);
+    killBossAtLevel(gs, 9);
+    expect(gs.checkpointLevel).toBe(10);
+    gs.prestige();
+    expect(gs.checkpointLevel).toBe(1);
+  });
+
+  it("checkpoint_level round-trips through toDict/fromDict", () => {
+    const gs = make();
+    killBossAtLevel(gs, 9);
+    expect(gs.checkpointLevel).toBe(10);
+    const restored = GameState.fromDict(gs.toDict());
+    expect(restored.checkpointLevel).toBe(10);
+  });
+});

@@ -1,4 +1,4 @@
-export const VERSION = "v1.7.0";
+export const VERSION = "v1.8.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.8.0",
+    date: "2026-05-08",
+    changes: [
+      "Checkpoints every 10 floors — die at floor 18, respawn at floor 10 instead of floor 1",
+      "Checkpoint message shown in combat log when a new floor-10 boundary is crossed",
+      "Prestige resets checkpoint to floor 1 alongside the full run reset",
+    ],
+  },
   {
     version: "v1.7.0",
     date: "2026-05-08",

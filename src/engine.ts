@@ -68,6 +68,7 @@ export interface GameStateDict {
   prestige_party_classes: Record<string, string>;
   prestige_available: boolean;
   prestige_points_preview: number;
+  checkpoint_level: number;
 }
 
 export class GameState {
@@ -89,6 +90,7 @@ export class GameState {
   prestigeUpgrades: Record<string, number> = {};
   prestigePartyClasses: Record<string, string> = {};
   autoSellerTimer = 0;
+  checkpointLevel = 1;
 
   constructor(name = "Hero", characterClass = "fighter") {
     this.party = new Party();
@@ -257,6 +259,7 @@ export class GameState {
     this.kills = 0;
     this.deaths = 0;
     this.highestLevel = 1;
+    this.checkpointLevel = 1;
     this.lootPool = [];
     this.log = [];
     this.enemy = generateEnemy(1);
@@ -381,6 +384,7 @@ export class GameState {
       prestige_points_preview: this.highestLevel >= PRESTIGE_UNLOCK_LEVEL
         ? this.prestigePointsPreview()
         : 0,
+      checkpoint_level: this.checkpointLevel,
     };
   }
 
@@ -433,6 +437,10 @@ export class GameState {
       }
       this.dungeonLevel += 1;
       if (this.dungeonLevel > this.highestLevel) this.highestLevel = this.dungeonLevel;
+      if (this.dungeonLevel % 10 === 0) {
+        this.checkpointLevel = this.dungeonLevel;
+        this.addLog(`⚑ Checkpoint! Respawn set to floor ${this.checkpointLevel}.`);
+      }
       this.addLog(`Descending to level ${this.dungeonLevel}!`);
       this.enemy = generateEnemy(this.dungeonLevel);
     } else {
@@ -454,11 +462,14 @@ export class GameState {
   onPlayerDeath(): void {
     const player = this.party.team[0];
     this.deaths += 1;
-    this.addLog(`${player.name} was defeated! Returning to level 1...`);
-    this.dungeonLevel = 1;
+    const msg = this.checkpointLevel > 1
+      ? `${player.name} was defeated! Respawning at floor ${this.checkpointLevel}...`
+      : `${player.name} was defeated! Returning to level 1...`;
+    this.addLog(msg);
+    this.dungeonLevel = this.checkpointLevel;
     this.kills = 0;
     player.health = player.maxHealth;
-    this.enemy = generateEnemy(1);
+    this.enemy = generateEnemy(this.checkpointLevel);
   }
 
   private isUpgradeForAnyMember(item: GearItem): boolean {
@@ -506,6 +517,7 @@ export class GameState {
     gs.prestigeUpgrades = { ...(d.prestige_upgrades ?? {}) };
     gs.prestigePartyClasses = { ...(d.prestige_party_classes ?? {}) };
     gs.autoSellerTimer = 0;
+    gs.checkpointLevel = d.checkpoint_level ?? 1;
 
     gs.enemy = {
       name: d.enemy.name,
