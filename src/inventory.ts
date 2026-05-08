@@ -13,13 +13,20 @@ export class Inventory {
   }
 
   equip(item: GearItem): GearItem | null {
-    let targetSlot = item.slot;
-    if (item.slot === "ring1" && this.slots.ring1 !== null && this.slots.ring2 === null) {
-      targetSlot = "ring2";
+    if (item.slot !== "ring1") {
+      const old = this.slots[item.slot];
+      this.slots[item.slot] = item;
+      return old;
     }
-    const old = this.slots[targetSlot];
-    this.slots[targetSlot] = item;
-    return old;
+    // Ring logic: fill empty slot first, then replace the weaker ring
+    if (this.slots.ring1 === null) { this.slots.ring1 = item; return null; }
+    if (this.slots.ring2 === null) { this.slots.ring2 = item; return null; }
+    const replaceRing2 = this.slots.ring2.damage <= this.slots.ring1.damage;
+    if (replaceRing2) {
+      const old = this.slots.ring2; this.slots.ring2 = item; return old;
+    } else {
+      const old = this.slots.ring1; this.slots.ring1 = item; return old;
+    }
   }
 
   equippedItems(): GearItem[] {

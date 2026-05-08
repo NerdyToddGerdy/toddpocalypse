@@ -67,17 +67,30 @@ describe("Inventory", () => {
     expect(displaced).toBeNull();           // nothing displaced
   });
 
-  it("third ring replaces ring1 when both slots occupied", () => {
+  it("third ring replaces the weaker ring (ring1 weaker)", () => {
     const inv = new Inventory();
-    const first  = makeItem("ring1", "broken");
-    const second = makeItem("ring1", "common");
-    const third  = makeItem("ring1", "legendary");
+    const first  = makeItem("ring1", "broken");    // damage 1  → ring1
+    const second = makeItem("ring1", "common");    // damage 11 → ring2
+    const third  = makeItem("ring1", "legendary"); // new
     inv.equip(first);
     inv.equip(second);
     const displaced = inv.equip(third);
-    expect(inv.slots.ring1).toBe(third);   // ring1 replaced
+    expect(inv.slots.ring1).toBe(third);   // ring1 replaced (was weaker)
     expect(inv.slots.ring2).toBe(second);  // ring2 untouched
-    expect(displaced).toBe(first);         // old ring1 returned
+    expect(displaced).toBe(first);
+  });
+
+  it("third ring replaces the weaker ring (ring2 weaker)", () => {
+    const inv = new Inventory();
+    const first  = makeItem("ring1", "legendary"); // damage 75 → ring1
+    const second = makeItem("ring1", "broken");    // damage 1  → ring2
+    const third  = makeItem("ring1", "epic");      // new
+    inv.equip(first);
+    inv.equip(second);
+    const displaced = inv.equip(third);
+    expect(inv.slots.ring2).toBe(third);   // ring2 replaced (was weaker)
+    expect(inv.slots.ring1).toBe(first);   // ring1 untouched
+    expect(displaced).toBe(second);
   });
 
   it("equippedItems is empty when nothing equipped", () => {

@@ -168,7 +168,7 @@ export class GameState {
   equipAll(): string {
     for (const item of this.lootPool) {
       const target = this.bestRecipient(item);
-      const current = target.inventory.slots[item.slot];
+      const current = this.slotToCompare(target, item);
       const netGain = item.damage - (current ? current.damage : 0);
       if (netGain > 0) {
         const old = target.equipItem(item);
@@ -386,8 +386,8 @@ export class GameState {
 
   bestRecipient(item: GearItem): Character {
     return this.party.team.reduce((best, c) => {
-      const bestCurrent = best.inventory.slots[item.slot];
-      const cCurrent = c.inventory.slots[item.slot];
+      const bestCurrent = this.slotToCompare(best, item);
+      const cCurrent = this.slotToCompare(c, item);
       const bestGain = item.damage - (bestCurrent ? bestCurrent.damage : 0);
       const cGain = item.damage - (cCurrent ? cCurrent.damage : 0);
       if (cGain > bestGain) return c;
@@ -464,6 +464,14 @@ export class GameState {
     this.enemy = generateEnemy(this.checkpointLevel);
   }
 
+  private slotToCompare(c: Character, item: GearItem): GearItem | null {
+    if (item.slot !== "ring1") return c.inventory.slots[item.slot];
+    const r1 = c.inventory.slots.ring1;
+    const r2 = c.inventory.slots.ring2;
+    if (!r1 || !r2) return null; // fills empty ring slot
+    return r1.damage <= r2.damage ? r1 : r2; // weaker ring will be displaced
+  }
+
   private runAutoSeller(): void {
     if (!(this.prestigeUpgrades["auto_seller"] > 0) || this.autoSellQualities.length === 0) return;
     const toSell = this.lootPool.filter(
@@ -478,7 +486,7 @@ export class GameState {
 
   private isUpgradeForAnyMember(item: GearItem): boolean {
     return this.party.team.some(c => {
-      const equipped = c.inventory.slots[item.slot];
+      const equipped = this.slotToCompare(c, item);
       return !equipped || item.damage > equipped.damage;
     });
   }

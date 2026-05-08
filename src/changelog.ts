@@ -1,4 +1,4 @@
-export const VERSION = "v1.9.0";
+export const VERSION = "v1.9.1";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,14 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.9.1",
+    date: "2026-05-08",
+    changes: [
+      "Rings now replace the weaker equipped ring when both slots are full",
+      "Equip All and Auto Seller correctly identify ring upgrades against the weaker slot",
+    ],
+  },
   {
     version: "v1.9.0",
     date: "2026-05-08",

@@ -357,6 +357,40 @@ describe("loot", () => {
   it("equipAll returns valid JSON", () => {
     expect(JSON.parse(withLoot().equipAll())).toHaveProperty("loot_pool");
   });
+
+  it("ring equip replaces weaker ring when ring2 is the worse slot", () => {
+    const gs = make();
+    gs.party.team[0].equipItem(new GearItem("ring1", "ring", "legendary", "valor")); // ring1 = legendary
+    gs.party.team[0].equipItem(new GearItem("ring1", "ring", "broken",    "valor")); // ring2 = broken
+    const epic = new GearItem("ring1", "ring", "epic", "valor");
+    gs.lootPool = [epic];
+    gs.equipLoot(0);
+    expect(gs.party.team[0].inventory.slots.ring2).toBe(epic);   // weaker slot replaced
+    expect(gs.party.team[0].inventory.slots.ring1?.quality).toBe("legendary"); // strong ring kept
+  });
+
+  it("equipAll treats a ring as an upgrade when it beats the weaker ring", () => {
+    const gs = make();
+    gs.party.team[0].equipItem(new GearItem("ring1", "ring", "legendary", "valor")); // ring1 = strong
+    gs.party.team[0].equipItem(new GearItem("ring1", "ring", "broken",    "valor")); // ring2 = weak
+    const epic = new GearItem("ring1", "ring", "epic", "valor");
+    gs.lootPool = [epic];
+    gs.equipAll();
+    expect(gs.party.team[0].inventory.slots.ring2).toBe(epic);   // replaces broken
+    expect(gs.lootPool).toEqual([]);
+  });
+
+  it("auto seller protects a ring that beats the weaker equipped ring", () => {
+    const gs = withPrestige(5);
+    gs.buyPrestigeUpgrade("auto_seller");
+    gs.autoSellQualities = ["epic"];
+    gs.party.team[0].equipItem(new GearItem("ring1", "ring", "legendary", "valor")); // ring1 = strong
+    gs.party.team[0].equipItem(new GearItem("ring1", "ring", "broken",    "valor")); // ring2 = weak
+    const epicRing = new GearItem("ring1", "ring", "epic", "valor");
+    gs.lootPool = [epicRing]; // epic beats broken → is an upgrade → must be protected
+    gs.toggleAutoSellQuality("worn"); // trigger sweep
+    expect(gs.lootPool.some(i => i.quality === "epic")).toBe(true);
+  });
 });
 
 describe("upgrades", () => {
