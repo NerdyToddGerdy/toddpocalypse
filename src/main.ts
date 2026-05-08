@@ -1,4 +1,4 @@
-import { GameState, type GameStateDict, GUILD_HALL_COSTS, GUILD_HALL_MAX } from "./engine.js";
+import { GameState, type GameStateDict, GUILD_HALL_THRESHOLDS } from "./engine.js";
 import { qualityClass, autoSellThreshold, QUAL } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
@@ -373,18 +373,18 @@ function renderGuildHall(state: GameStateDict): void {
   const ups = (state.guild_upgrades ?? {}) as Record<string, number>;
   $("guild-hall-items").innerHTML = Object.entries(GUILD_HALL_META).map(([type, meta]) => {
     const owned = ups[type] ?? 0;
-    const max = GUILD_HALL_MAX[type];
-    const cost = GUILD_HALL_COSTS[type];
-    const atMax = owned >= max;
-    const canAfford = renown >= cost;
-    const disabled = atMax || !canAfford;
-    const levelLabel = atMax ? ` ✓ (${owned}/${max})` : owned > 0 ? ` (${owned}/${max})` : ` (0/${max})`;
+    const thresholds = GUILD_HALL_THRESHOLDS[type] ?? [];
+    const max = thresholds.length;
+    const levelLabel = owned >= max ? ` ✓ (${max}/${max})` : owned > 0 ? ` (${owned}/${max})` : ` (0/${max})`;
+    const nextThreshold = thresholds[owned];
+    const badgeText = owned >= max ? "★ Max" : owned > 0 ? `Next: ${nextThreshold} ⚜` : `Need ${nextThreshold} ⚜`;
+    const unlocked = owned > 0;
     return `<div class="guild-item">
       <div class="guild-item-meta">
         <div class="guild-item-name">${meta.icon} ${meta.name}${levelLabel}</div>
         <div class="guild-item-desc">${meta.desc}</div>
       </div>
-      <button class="guild-buy-btn" data-action="buy-guild" data-type="${type}" ${disabled ? "disabled" : ""}>${atMax ? "Max" : cost + " ⚜"}</button>
+      <span class="guild-unlock-badge ${unlocked ? "unlocked" : ""}">${badgeText}</span>
     </div>`;
   }).join("");
 }
@@ -680,9 +680,6 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         call("buyPrestigeUpgrade", type);
       }
-    }
-    else if (action === "buy-guild") {
-      call("buyGuildUpgrade", btn.dataset.type!);
     }
     else if (action === "toggle-auto-sell") {
       call("toggleAutoSellQuality", btn.dataset.quality!);

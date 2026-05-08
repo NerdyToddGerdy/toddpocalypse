@@ -4,6 +4,7 @@ import {
   PRESTIGE_UNLOCK_LEVEL, PRESTIGE_SHOP_COSTS, STARTING_GOLD_PER_LEVEL, XP_BONUS_PER_LEVEL,
   BLOODLUST_MULTIPLIER, EXPOSE_WEAKNESS_MULT, MANA_SURGE_INTERVAL, MANA_SURGE_MULTIPLIER,
   LUCKY_STRIKE_CHANCE, LUCKY_STRIKE_MULTIPLIER, EMPOWER_MULTIPLIER,
+  GUILD_HALL_THRESHOLDS,
   killsForFloor,
 } from "../src/engine.js";
 import { Character } from "../src/character.js";
@@ -1742,8 +1743,8 @@ describe("renown", () => {
 
   it("chronicle_room stacks add to renownPreview", () => {
     const gs = withHighLevel(20);
-    gs.guildUpgrades["chronicle_room"] = 2;
-    expect(gs.renownPreview()).toBe(4); // 2 base + 2 chronicle
+    gs.renown = GUILD_HALL_THRESHOLDS["chronicle_room"][1]; // level 2 threshold
+    expect(gs.renownPreview()).toBe(4); // 2 base + 2 chronicle levels
   });
 
   it("prestige() earns renown based on highestLevel", () => {
@@ -1783,40 +1784,34 @@ describe("guild hall", () => {
     return gs;
   }
 
-  it("buyGuildUpgrade deducts renown and records level", () => {
-    const gs = withRenown(5);
-    gs.buyGuildUpgrade("armory");
-    expect(gs.guildUpgrades["armory"]).toBe(1);
-    expect(gs.renown).toBe(3); // 5 - 2
+  it("guildLevel returns 0 below first threshold", () => {
+    const gs = withRenown(GUILD_HALL_THRESHOLDS["armory"][0] - 1);
+    expect(gs.guildLevel("armory")).toBe(0);
   });
 
-  it("buyGuildUpgrade fails when not enough renown", () => {
-    const gs = withRenown(1);
-    gs.buyGuildUpgrade("armory"); // costs 2
-    expect(gs.guildUpgrades["armory"]).toBeUndefined();
-    expect(gs.renown).toBe(1);
+  it("guildLevel returns 1 at first threshold", () => {
+    const gs = withRenown(GUILD_HALL_THRESHOLDS["armory"][0]);
+    expect(gs.guildLevel("armory")).toBe(1);
   });
 
-  it("buyGuildUpgrade respects GUILD_HALL_MAX — cannot exceed max", () => {
-    const gs = withRenown(20);
-    gs.buyGuildUpgrade("armory"); // lvl 1
-    gs.buyGuildUpgrade("armory"); // lvl 2
-    gs.buyGuildUpgrade("armory"); // lvl 3 (max)
-    gs.buyGuildUpgrade("armory"); // blocked
-    expect(gs.guildUpgrades["armory"]).toBe(3);
-    expect(gs.renown).toBe(14); // 20 - 2 - 2 - 2
+  it("guildLevel returns 2 at second threshold", () => {
+    const gs = withRenown(GUILD_HALL_THRESHOLDS["armory"][1]);
+    expect(gs.guildLevel("armory")).toBe(2);
   });
 
-  it("buyGuildUpgrade ignores unknown upgrade type", () => {
-    const gs = withRenown(10);
-    gs.buyGuildUpgrade("nonexistent");
-    expect(gs.renown).toBe(10);
+  it("guildLevel returns 3 at third threshold (max)", () => {
+    const gs = withRenown(GUILD_HALL_THRESHOLDS["armory"][2]);
+    expect(gs.guildLevel("armory")).toBe(3);
+  });
+
+  it("guildLevel returns 0 for unknown type", () => {
+    expect(withRenown(100).guildLevel("nonexistent")).toBe(0);
   });
 
   it("vault carries 10% of gold per stack on prestige", () => {
     const gs = withHighLevel(20);
     gs.gold = 1000;
-    gs.guildUpgrades["vault"] = 1;
+    gs.renown = GUILD_HALL_THRESHOLDS["vault"][0]; // level 1
     gs.prestige();
     expect(gs.gold).toBe(100); // 10% of 1000 (no starting_gold perk)
   });
@@ -1824,39 +1819,36 @@ describe("guild hall", () => {
   it("vault 3 stacks carries 30% of gold on prestige", () => {
     const gs = withHighLevel(20);
     gs.gold = 1000;
-    gs.guildUpgrades["vault"] = 3;
+    gs.renown = GUILD_HALL_THRESHOLDS["vault"][2]; // level 3
     gs.prestige();
     expect(gs.gold).toBe(300);
   });
 
   it("armory adds N loot items to pool on prestige", () => {
     const gs = withHighLevel(20);
-    gs.guildUpgrades["armory"] = 2;
+    gs.renown = GUILD_HALL_THRESHOLDS["armory"][1]; // level 2
     gs.prestige();
     expect(gs.lootPool.length).toBe(2);
   });
 
   it("training_yard levels up all party members on prestige", () => {
     const gs = withHighLevel(20);
-    gs.guildUpgrades["training_yard"] = 2;
+    gs.renown = GUILD_HALL_THRESHOLDS["training_yard"][1]; // level 2
     gs.prestige();
     expect(gs.party.team[0].level).toBe(3); // started at 1, +2 from training
   });
 
   it("training_yard resets XP to 0 after level-ups", () => {
     const gs = withHighLevel(20);
-    gs.guildUpgrades["training_yard"] = 1;
+    gs.renown = GUILD_HALL_THRESHOLDS["training_yard"][0]; // level 1
     gs.prestige();
     expect(gs.party.team[0].xp).toBe(0);
   });
 
-  it("guild_upgrades round-trips through toDict/fromDict", () => {
-    const gs = withRenown(10);
-    gs.buyGuildUpgrade("armory");
-    gs.buyGuildUpgrade("vault");
-    const restored = GameState.fromDict(gs.toDict());
-    expect(restored.guildUpgrades["armory"]).toBe(1);
-    expect(restored.guildUpgrades["vault"]).toBe(1);
-    expect(restored.renown).toBe(5); // 10 - 2 - 3
+  it("guild_upgrades in toDict reflects computed levels", () => {
+    const gs = withRenown(GUILD_HALL_THRESHOLDS["armory"][0]); // armory level 1
+    const dict = gs.toDict();
+    expect(dict.guild_upgrades["armory"]).toBe(1);
+    expect(dict.guild_upgrades["vault"]).toBe(0); // below vault threshold
   });
 });

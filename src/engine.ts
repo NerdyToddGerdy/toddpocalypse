@@ -37,18 +37,11 @@ export const LUCKY_STRIKE_MULTIPLIER = 3;
 export const EMPOWER_MULTIPLIER = 2;
 
 export const PRESTIGE_UNLOCK_LEVEL = 20;
-export const RENOWN_UNLOCK_LEVEL = 20;
-export const GUILD_HALL_COSTS: Record<string, number> = {
-  armory: 2,
-  vault: 3,
-  training_yard: 3,
-  chronicle_room: 4,
-};
-export const GUILD_HALL_MAX: Record<string, number> = {
-  armory: 3,
-  vault: 3,
-  training_yard: 3,
-  chronicle_room: 3,
+export const GUILD_HALL_THRESHOLDS: Record<string, number[]> = {
+  armory:         [2,  10, 25],
+  vault:          [4,  15, 35],
+  training_yard:  [6,  20, 50],
+  chronicle_room: [10, 28, 70],
 };
 export const VAULT_CARRY_RATE = 0.10;
 export const PRESTIGE_SHOP_COSTS: Record<string, number> = {
@@ -117,7 +110,6 @@ export class GameState {
   checkpointLevel = 1;
   floorKills = 0;
   renown = 0;
-  guildUpgrades: Record<string, number> = {};
 
   constructor(name = "Hero", characterClass = "fighter") {
     this.party = new Party();
@@ -255,34 +247,27 @@ export class GameState {
     return 1 + Math.floor(Math.max(0, this.highestLevel - PRESTIGE_UNLOCK_LEVEL) / 5);
   }
 
-  renownPreview(): number {
-    const base = Math.floor(this.highestLevel / 10);
-    const bonus = this.guildUpgrades["chronicle_room"] ?? 0;
-    return base + bonus;
+  guildLevel(type: string): number {
+    const thresholds = GUILD_HALL_THRESHOLDS[type];
+    if (!thresholds) return 0;
+    return thresholds.filter(t => this.renown >= t).length;
   }
 
-  buyGuildUpgrade(type: string): string {
-    if (!(type in GUILD_HALL_COSTS)) return this.respond();
-    const max = GUILD_HALL_MAX[type];
-    const owned = this.guildUpgrades[type] ?? 0;
-    if (owned >= max) return this.respond();
-    const cost = GUILD_HALL_COSTS[type];
-    if (this.renown < cost) {
-      this.addLog("Not enough renown!");
-      return this.respond();
-    }
-    this.renown -= cost;
-    this.guildUpgrades[type] = owned + 1;
-    this.addLog(`Guild: ${type} upgraded to level ${owned + 1}!`);
-    return this.respond();
+  renownPreview(): number {
+    const base = Math.floor(this.highestLevel / 10);
+    const bonus = this.guildLevel("chronicle_room");
+    return base + bonus;
   }
 
   prestige(): string {
     if (this.highestLevel < PRESTIGE_UNLOCK_LEVEL) return this.respond();
     const earned = this.prestigePointsPreview();
     const earnedRenown = this.renownPreview();
-    const vaultStacks = this.guildUpgrades["vault"] ?? 0;
+    // All guild levels computed from CURRENT renown (before this run's earnings unlock new tiers)
+    const vaultStacks = this.guildLevel("vault");
     const carriedGold = Math.floor(this.gold * vaultStacks * VAULT_CARRY_RATE);
+    const armoryStacks = this.guildLevel("armory");
+    const trainingStacks = this.guildLevel("training_yard");
 
     this.lifetimeKills += this.kills;
     this.lifetimeDeaths += this.deaths;
@@ -332,13 +317,11 @@ export class GameState {
     this.gold = (this.prestigeUpgrades["starting_gold"] ?? 0) * STARTING_GOLD_PER_LEVEL + carriedGold;
 
     // Armory: add starting loot
-    const armoryStacks = this.guildUpgrades["armory"] ?? 0;
     for (let i = 0; i < armoryStacks; i++) {
       this.lootPool.push(getItem(undefined, 1));
     }
 
     // Training Yard: level up all party members
-    const trainingStacks = this.guildUpgrades["training_yard"] ?? 0;
     if (trainingStacks > 0) {
       for (const c of this.party.team) {
         for (let i = 0; i < trainingStacks; i++) { c.levelUp(); }
@@ -459,7 +442,9 @@ export class GameState {
       floor_kills: this.floorKills,
       renown: this.renown,
       renown_preview: this.renownPreview(),
-      guild_upgrades: { ...this.guildUpgrades },
+      guild_upgrades: Object.fromEntries(
+        Object.keys(GUILD_HALL_THRESHOLDS).map(k => [k, this.guildLevel(k)])
+      ),
     };
   }
 
@@ -685,7 +670,6 @@ export class GameState {
     gs.checkpointLevel = d.checkpoint_level ?? 1;
     gs.floorKills = d.floor_kills ?? 0;
     gs.renown = d.renown ?? 0;
-    gs.guildUpgrades = { ...(d.guild_upgrades ?? {}) };
 
     gs.enemy = {
       name: d.enemy.name,

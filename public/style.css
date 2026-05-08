@@ -1045,21 +1045,23 @@ main {
 
 #guild-renown-display { color: var(--accent2, #a78bfa); font-size: 0.8rem; font-weight: 600; }
 
-.guild-buy-btn {
-    padding: 6px 12px;
+.guild-unlock-badge {
+    padding: 6px 10px;
     font-size: 0.72rem;
     font-weight: 700;
     background: var(--surface);
-    color: var(--accent2, #a78bfa);
-    border: 1px solid var(--accent2, #a78bfa);
+    color: var(--muted);
+    border: 1px solid var(--border);
     border-radius: 4px;
-    cursor: pointer;
     white-space: nowrap;
-    transition: background 0.1s, color 0.1s;
     flex-shrink: 0;
+    cursor: default;
+    user-select: none;
 }
-.guild-buy-btn:hover:not(:disabled) { background: var(--accent2, #a78bfa); color: #1a1005; }
-.guild-buy-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.guild-unlock-badge.unlocked {
+    color: var(--accent2, #a78bfa);
+    border-color: var(--accent2, #a78bfa);
+}
 
 /* ── Stats modal ── */
 #stats-modal, #party-class-modal {

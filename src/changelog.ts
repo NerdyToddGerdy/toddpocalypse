@@ -1,4 +1,4 @@
-export const VERSION = "v2.2.0";
+export const VERSION = "v2.2.1";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.2.1",
+    date: "2026-05-08",
+    changes: [
+      "Guild Hall facilities now auto-unlock at renown milestones — no spending required",
+      "Renown accumulates permanently and never resets",
+      "Armory unlocks at 2 / 10 / 25 renown; Vault at 4 / 15 / 35; Training Yard at 6 / 20 / 50; Chronicle Room at 10 / 28 / 70",
+      "Guild Hall panel shows unlock badge with next threshold for locked facilities",
+    ],
+  },
   {
     version: "v2.2.0",
     date: "2026-05-08",
