@@ -103,6 +103,15 @@ function renderFloorProgress(state: GameStateDict): void {
     `<div class="floor-pip${i < done || isBoss ? " done" : ""}"></div>`
   ).join("")
     + (isBoss ? `<div class="floor-pip boss-pip">★</div>` : "");
+
+  const cp = $("checkpoint-display");
+  if (state.checkpoint_level > 1) {
+    cp.textContent = `⚑ Checkpoint: Floor ${state.checkpoint_level}`;
+    cp.className = "checkpoint-active";
+  } else {
+    cp.textContent = "";
+    cp.className = "";
+  }
 }
 
 function renderDepthGauge(state: GameStateDict): void {

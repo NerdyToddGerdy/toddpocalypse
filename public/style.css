@@ -1236,6 +1236,18 @@ footer {
     color: var(--muted);
 }
 
+/* Checkpoint indicator */
+#checkpoint-display {
+    display: block;
+    font-size: 0.8rem;
+    margin-top: 4px;
+}
+
+.checkpoint-active {
+    color: var(--accent);
+    font-weight: 600;
+}
+
 /* Auto Seller config */
 .auto-seller-config {
     margin-top: 8px;
