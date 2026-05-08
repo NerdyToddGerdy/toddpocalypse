@@ -852,9 +852,19 @@ main {
 #mobile-tabs { display: none; }
 
 @media (max-width: 768px) {
+    body {
+        height: 100dvh;
+        min-height: unset;
+        overflow: hidden;
+    }
+
     main {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        align-items: stretch;
+        gap: 12px;
         padding: 12px;
         padding-bottom: 72px;
         overflow-y: auto;
@@ -871,7 +881,7 @@ main {
     #prestige-panel,
     #log-panel { display: none; }
 
-    .tab-visible { display: flex !important; flex-direction: column; }
+    .tab-visible { display: flex !important; flex-direction: column; width: 100%; }
 
     header { padding: 10px 14px; flex-wrap: wrap; gap: 8px; }
     header h1 { font-size: 1.1rem; }
@@ -920,6 +930,25 @@ main {
     .mobile-tab-btn.active {
         color: var(--accent2);
         border-top-color: var(--accent2);
+    }
+
+    .mobile-tab-btn { position: relative; }
+
+    .tab-badge {
+        position: absolute;
+        top: 6px;
+        right: calc(50% - 18px);
+        width: 8px;
+        height: 8px;
+        background: var(--danger);
+        border-radius: 50%;
+        border: 1px solid var(--bg);
+        animation: badge-pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes badge-pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50%       { opacity: 0.7; transform: scale(1.3); }
     }
 }
 

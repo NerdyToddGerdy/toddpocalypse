@@ -81,6 +81,7 @@ function render(state: GameStateDict): void {
   renderLog(state);
   updatePrestigeButton(state);
   updateLifetimeStats(state);
+  updateShopBadge(state);
 }
 
 function renderFloorProgress(state: GameStateDict): void {
@@ -336,6 +337,27 @@ function updateLifetimeStats(state: GameStateDict): void {
   if (ltPrestiges) ltPrestiges.textContent = String(state.total_prestiges);
 }
 
+const PRESTIGE_COSTS: Record<string, number> = {
+  auto_seller: 1, party_slot_2: 2, party_slot_3: 3, starting_gold: 1, xp_bonus: 1,
+};
+
+function updateShopBadge(state: GameStateDict): void {
+  const badge = document.getElementById("shop-tab-badge");
+  if (!badge) return;
+  const canBuyUpgrade = state.party.some(c => {
+    const ups = state.upgrades[c.name];
+    return ups && Object.values(ups).some(u => state.gold >= u.cost);
+  });
+  const ups = state.prestige_upgrades as Record<string, number>;
+  const canBuyPrestige = Object.entries(PRESTIGE_COSTS).some(([type, cost]) => {
+    const owned = ups[type] ?? 0;
+    const atMax = owned >= (PRESTIGE_SHOP_META[type]?.max ?? 1);
+    const prereqMissing = type === "party_slot_3" && !(ups["party_slot_2"] > 0);
+    return !atMax && !prereqMissing && state.prestige_points >= cost;
+  });
+  badge.hidden = !(canBuyUpgrade || canBuyPrestige);
+}
+
 function renderLog(state: GameStateDict): void {
   $("combat-log").innerHTML = [...state.log]
     .reverse()
@@ -372,9 +394,8 @@ function slotLabel(slot: string): string {
 }
 
 const TAB_PANELS: Record<string, string[]> = {
-  combat: ["enemy-panel"],
-  party:  ["party-panel"],
-  shop:   ["upgrades-panel", "loot-panel", "prestige-panel"],
+  combat: ["enemy-panel", "party-panel", "loot-panel"],
+  shop:   ["upgrades-panel", "prestige-panel"],
   log:    ["log-panel"],
 };
 

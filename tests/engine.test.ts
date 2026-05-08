@@ -1207,14 +1207,16 @@ describe("class ability effects", () => {
     const gs = make();
     const rogue = new Character("Rogue", "rogue", 1);
     gs.party.addPlayer(rogue);
-    rogue.abilities = ["lucky_strike"];
 
     gs.enemy.hp = gs.enemy.max_hp = 999_999_999;
     gs.enemy.attack_dps = 0;
 
+    // Measure baseline click damage with NO ability active (avoids crit inflating baseline)
     gs.click();
     const baseDamage = 999_999_999 - gs.enemy.hp;
 
+    // Now enable lucky_strike and make 200 clicks
+    rogue.abilities = ["lucky_strike"];
     gs.enemy.hp = 999_999_999;
     for (let i = 0; i < 200; i++) gs.click();
     const totalDamage = 999_999_999 - gs.enemy.hp;

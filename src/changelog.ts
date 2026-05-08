@@ -1,4 +1,4 @@
-export const VERSION = "v1.6.0";
+export const VERSION = "v1.6.1";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.6.1",
+    date: "2026-05-07",
+    changes: [
+      "Mobile: combat tab now shows enemy, party, and loot together",
+      "Mobile: Shop tab shows a notification dot when an upgrade or prestige item is affordable",
+      "Mobile: panels fill the full screen width on large phones",
+    ],
+  },
   {
     version: "v1.6.0",
     date: "2026-05-07",
