@@ -1,5 +1,5 @@
 import { GameState, type GameStateDict } from "./engine.js";
-import { qualityClass } from "./gear.js";
+import { qualityClass, autoSellThreshold, QUAL } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
 
@@ -281,15 +281,27 @@ function renderUpgrades(state: GameStateDict): void {
 }
 
 const PRESTIGE_SHOP_META: Record<string, { icon: string; name: string; desc: string; max: number }> = {
-  auto_seller:   { icon: "🤖", name: "Auto Seller",    desc: "Sells lowest-quality loot every 10s.", max: 1 },
+  auto_seller:   { icon: "🤖", name: "Auto Seller",    desc: "Auto-sells checked quality tiers after each kill.", max: 1 },
   party_slot_2:  { icon: "👤", name: "Party Slot II",  desc: "Add a 2nd party member (pick class).", max: 1 },
   party_slot_3:  { icon: "👥", name: "Party Slot III", desc: "Add a 3rd member. Requires Slot II.", max: 1 },
   starting_gold: { icon: "💰", name: "Starting Gold",  desc: "+250g at the start of each run.", max: Infinity },
   xp_bonus:      { icon: "✨", name: "XP Bonus",       desc: "+10% XP gain for all party members.", max: Infinity },
 };
 
+function renderAutoSellerConfig(state: GameStateDict): string {
+  const threshold = autoSellThreshold(state.highest_level);
+  const checked = new Set(state.auto_sell_qualities ?? []);
+  const rows = (QUAL as readonly string[]).slice(0, threshold + 1).map(q =>
+    `<label class="auto-sell-row">
+      <input type="checkbox" data-action="toggle-auto-sell" data-quality="${q}" ${checked.has(q) ? "checked" : ""} />
+      <span class="auto-sell-name ${qualityClass(q)}">${q}</span>
+    </label>`
+  ).join("");
+  return `<div class="auto-seller-config">${rows}</div>`;
+}
+
 function renderPrestigeShop(state: GameStateDict): void {
-  const newKey = JSON.stringify(state.prestige_upgrades) + "|" + state.prestige_points;
+  const newKey = JSON.stringify(state.prestige_upgrades) + "|" + state.prestige_points + "|" + state.highest_level + "|" + JSON.stringify(state.auto_sell_qualities);
   if (newKey === prestigeKey) return;
   prestigeKey = newKey;
 
@@ -305,10 +317,12 @@ function renderPrestigeShop(state: GameStateDict): void {
     const canAfford = pts >= cost;
     const disabled = atMax || prereqMissing || !canAfford;
     const ownedLabel = atMax ? " ✓" : owned > 0 ? ` (${owned})` : "";
+    const configHtml = (type === "auto_seller" && owned > 0) ? renderAutoSellerConfig(state) : "";
     return `<div class="prestige-item">
       <div class="prestige-item-meta">
         <div class="prestige-item-name">${meta.icon} ${meta.name}${ownedLabel}</div>
         <div class="prestige-item-desc">${meta.desc}</div>
+        ${configHtml}
       </div>
       <button class="prestige-buy-btn" data-action="buy-prestige" data-type="${type}" ${disabled ? "disabled" : ""}>${atMax ? "Owned" : cost + "pt"}</button>
     </div>`;
@@ -606,6 +620,9 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         call("buyPrestigeUpgrade", type);
       }
+    }
+    else if (action === "toggle-auto-sell") {
+      call("toggleAutoSellQuality", btn.dataset.quality!);
     }
   });
 });

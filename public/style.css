@@ -1235,3 +1235,36 @@ footer {
     left: 0;
     color: var(--muted);
 }
+
+/* Auto Seller config */
+.auto-seller-config {
+    margin-top: 8px;
+    padding: 6px 8px;
+    background: rgba(0,0,0,0.25);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+}
+
+.auto-sell-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    padding: 2px 0;
+}
+
+.auto-sell-row input[type="checkbox"] {
+    accent-color: var(--accent);
+    cursor: pointer;
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+}
+
+.auto-sell-name {
+    font-weight: 500;
+}

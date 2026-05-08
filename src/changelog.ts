@@ -1,4 +1,4 @@
-export const VERSION = "v1.8.0";
+export const VERSION = "v1.9.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,17 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.9.0",
+    date: "2026-05-08",
+    changes: [
+      "Auto Seller now sweeps after every kill instead of every 10 seconds",
+      "Player controls which quality tiers are auto-sold via checkboxes",
+      "Available tiers unlock progressively — broken at any level, worn at 5, crude at 10, etc.",
+      "Upgrade items (fills empty slot or beats equipped damage) are always protected",
+      "Legendary items are never offered for auto-sell",
+    ],
+  },
   {
     version: "v1.8.0",
     date: "2026-05-08",

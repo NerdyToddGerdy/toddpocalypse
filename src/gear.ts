@@ -117,6 +117,10 @@ export function gearLevelScale(level: number): number {
   return 1 + Math.floor(level / 5) * 0.25;
 }
 
+export function autoSellThreshold(highestLevel: number): number {
+  return Math.min(Math.floor(highestLevel / 5), QUAL.length - 2);
+}
+
 export interface GearItemDict {
   slot: Slot;
   slot_display: string;

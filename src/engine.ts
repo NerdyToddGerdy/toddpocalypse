@@ -1,6 +1,6 @@
 import { Character } from "./character.js";
 import { Party } from "./party.js";
-import { GearItem, getItem, QUAL, type GearItemDict } from "./gear.js";
+import { GearItem, getItem, QUAL, autoSellThreshold, type GearItemDict } from "./gear.js";
 import { generateEnemy, generateBoss, type Enemy } from "./dungeon.js";
 
 export const KILLS_PER_LEVEL = 5;
@@ -42,7 +42,6 @@ export const PRESTIGE_SHOP_COSTS: Record<string, number> = {
 };
 export const STARTING_GOLD_PER_LEVEL = 250;
 export const XP_BONUS_PER_LEVEL = 0.10;
-export const AUTO_SELLER_INTERVAL = 10;
 
 type UpgradeType = "dps" | "xp" | "click" | "hp";
 type UpgradeLevels = Record<UpgradeType, number>;
@@ -69,6 +68,7 @@ export interface GameStateDict {
   prestige_available: boolean;
   prestige_points_preview: number;
   checkpoint_level: number;
+  auto_sell_qualities: string[];
 }
 
 export class GameState {
@@ -89,7 +89,7 @@ export class GameState {
   totalPrestiges = 0;
   prestigeUpgrades: Record<string, number> = {};
   prestigePartyClasses: Record<string, string> = {};
-  autoSellerTimer = 0;
+  autoSellQualities: string[] = [];
   checkpointLevel = 1;
 
   constructor(name = "Hero", characterClass = "fighter") {
@@ -102,28 +102,6 @@ export class GameState {
   }
 
   tick(dt: number): string {
-    if ((this.prestigeUpgrades["auto_seller"] ?? 0) > 0 && this.lootPool.length > 0) {
-      this.autoSellerTimer += dt;
-      if (this.autoSellerTimer >= AUTO_SELLER_INTERVAL) {
-        this.autoSellerTimer -= AUTO_SELLER_INTERVAL;
-        const qualArr = QUAL as readonly string[];
-        const sellable = this.lootPool
-          .map((_, i) => i)
-          .filter(i => !this.isUpgradeForAnyMember(this.lootPool[i]));
-        if (sellable.length > 0) {
-          let lowestIdx = sellable[0];
-          let lowestTier = qualArr.indexOf(this.lootPool[sellable[0]].quality);
-          for (const i of sellable.slice(1)) {
-            const tier = qualArr.indexOf(this.lootPool[i].quality);
-            if (tier < lowestTier) { lowestTier = tier; lowestIdx = i; }
-          }
-          const sold = this.lootPool.splice(lowestIdx, 1)[0];
-          this.gold += sold.sellValue;
-          this.addLog(`[Auto] Sold ${sold.getName()} for ${sold.sellValue}g.`);
-        }
-      }
-    }
-
     // Mana Surge — fires before regular DPS so we can early-return if enemy dies
     for (const c of this.party.team) {
       if (c.abilities.includes("mana_surge") && c.inventory.equippedItems().length > 0) {
@@ -330,6 +308,18 @@ export class GameState {
     }
 
     this.addLog(`Prestige upgrade: ${type} purchased!`);
+    if (type === "auto_seller") this.runAutoSeller();
+    return this.respond();
+  }
+
+  toggleAutoSellQuality(quality: string): string {
+    const idx = this.autoSellQualities.indexOf(quality);
+    if (idx === -1) {
+      this.autoSellQualities.push(quality);
+    } else {
+      this.autoSellQualities.splice(idx, 1);
+    }
+    this.runAutoSeller();
     return this.respond();
   }
 
@@ -385,6 +375,7 @@ export class GameState {
         ? this.prestigePointsPreview()
         : 0,
       checkpoint_level: this.checkpointLevel,
+      auto_sell_qualities: [...this.autoSellQualities],
     };
   }
 
@@ -457,6 +448,7 @@ export class GameState {
         this.enemy = generateEnemy(this.dungeonLevel);
       }
     }
+    this.runAutoSeller();
   }
 
   onPlayerDeath(): void {
@@ -470,6 +462,18 @@ export class GameState {
     this.kills = 0;
     player.health = player.maxHealth;
     this.enemy = generateEnemy(this.checkpointLevel);
+  }
+
+  private runAutoSeller(): void {
+    if (!(this.prestigeUpgrades["auto_seller"] > 0) || this.autoSellQualities.length === 0) return;
+    const toSell = this.lootPool.filter(
+      item => this.autoSellQualities.includes(item.quality) && !this.isUpgradeForAnyMember(item)
+    );
+    if (toSell.length === 0) return;
+    const gold = toSell.reduce((sum, item) => sum + item.sellValue, 0);
+    this.gold += gold;
+    this.lootPool = this.lootPool.filter(item => !toSell.includes(item));
+    this.addLog(`Auto Seller: sold ${toSell.length} item(s) for ${gold}g`);
   }
 
   private isUpgradeForAnyMember(item: GearItem): boolean {
@@ -516,7 +520,7 @@ export class GameState {
     gs.totalPrestiges = d.total_prestiges ?? 0;
     gs.prestigeUpgrades = { ...(d.prestige_upgrades ?? {}) };
     gs.prestigePartyClasses = { ...(d.prestige_party_classes ?? {}) };
-    gs.autoSellerTimer = 0;
+    gs.autoSellQualities = [...(d.auto_sell_qualities ?? [])];
     gs.checkpointLevel = d.checkpoint_level ?? 1;
 
     gs.enemy = {

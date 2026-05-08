@@ -10,7 +10,36 @@ import {
   qualityWeights,
   qualityClass,
   gearLevelScale,
+  autoSellThreshold,
 } from "../src/gear.js";
+
+describe("autoSellThreshold", () => {
+  it("returns 0 at level 1 (broken only)", () => {
+    expect(autoSellThreshold(1)).toBe(0);
+    expect(QUAL[0]).toBe("broken");
+  });
+
+  it("returns 0 at level 4", () => {
+    expect(autoSellThreshold(4)).toBe(0);
+  });
+
+  it("returns 1 at level 5 (worn unlocked)", () => {
+    expect(autoSellThreshold(5)).toBe(1);
+  });
+
+  it("returns 2 at level 10", () => {
+    expect(autoSellThreshold(10)).toBe(2);
+  });
+
+  it("caps at QUAL.length - 2 — legendary (index QUAL.length-1) is never included", () => {
+    expect(autoSellThreshold(1000)).toBe(QUAL.length - 2);
+    expect(autoSellThreshold(1000)).not.toBe(QUAL.length - 1);
+  });
+
+  it("threshold quality at cap is never legendary", () => {
+    expect(QUAL[autoSellThreshold(1000)]).not.toBe("legendary");
+  });
+});
 
 describe("gearLevelScale", () => {
   it("returns 1.0 at floors 1–4 (no bonus in early game)", () => {

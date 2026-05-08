@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   GameState, KILLS_PER_LEVEL, LOOT_MAX, UPGRADE_BASES, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT,
-  PRESTIGE_UNLOCK_LEVEL, PRESTIGE_SHOP_COSTS, STARTING_GOLD_PER_LEVEL, XP_BONUS_PER_LEVEL, AUTO_SELLER_INTERVAL,
+  PRESTIGE_UNLOCK_LEVEL, PRESTIGE_SHOP_COSTS, STARTING_GOLD_PER_LEVEL, XP_BONUS_PER_LEVEL,
   BLOODLUST_MULTIPLIER, EXPOSE_WEAKNESS_MULT, MANA_SURGE_INTERVAL, MANA_SURGE_MULTIPLIER,
   LUCKY_STRIKE_CHANCE, LUCKY_STRIKE_MULTIPLIER, EMPOWER_MULTIPLIER,
 } from "../src/engine.js";
@@ -974,140 +974,124 @@ describe("prestige — xp_bonus persists through prestige", () => {
 });
 
 describe("auto-seller", () => {
-  function frozenEnemy(gs: GameState): GameState {
-    gs.enemy.hp = gs.enemy.max_hp = 999_999;
-    gs.enemy.attack_dps = 0;
+  function withAutoSeller(): GameState {
+    const gs = withPrestige(5);
+    gs.buyPrestigeUpgrade("auto_seller");
     return gs;
   }
 
-  it("does nothing when not purchased", () => {
-    const gs = frozenEnemy(make()); gs.lootPool = [getItem()];
-    gs.tick(AUTO_SELLER_INTERVAL + 1);
-    expect(gs.lootPool.length).toBe(1);
+  it("autoSellQualities starts empty", () => {
+    expect(make().autoSellQualities).toEqual([]);
   });
 
-  it("does nothing when loot pool is empty", () => {
-    const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
-    gs.tick(AUTO_SELLER_INTERVAL + 1);
-    expect(gs.gold).toBe(0);
+  it("toggleAutoSellQuality adds a quality to the list", () => {
+    const gs = withAutoSeller();
+    gs.toggleAutoSellQuality("broken");
+    expect(gs.autoSellQualities).toContain("broken");
   });
 
-  it("sells the lowest quality item after AUTO_SELLER_INTERVAL seconds", () => {
-    const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
-    const broken = new GearItem("helmet" as Slot, "helm", "broken", "valor");
-    const legendary = new GearItem("chest" as Slot, "plate", "legendary", "valor");
-    // Equip legendary in both slots so neither loot item is an upgrade
-    gs.party.team[0].equipItem(new GearItem("helmet" as Slot, "helm", "legendary", "valor"));
-    gs.party.team[0].equipItem(new GearItem("chest" as Slot, "plate", "legendary", "valor"));
-    gs.lootPool = [legendary, broken];
-    gs.tick(AUTO_SELLER_INTERVAL);
-    expect(gs.lootPool.length).toBe(1);
-    expect(gs.lootPool[0].quality).toBe("legendary");
-    expect(gs.gold).toBe(broken.sellValue);
+  it("toggleAutoSellQuality removes a quality already in the list", () => {
+    const gs = withAutoSeller();
+    gs.toggleAutoSellQuality("broken");
+    gs.toggleAutoSellQuality("broken");
+    expect(gs.autoSellQualities).not.toContain("broken");
   });
 
-  it("does not sell before interval elapses", () => {
-    const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
-    gs.lootPool = [getItem(), getItem(), getItem()];
-    gs.tick(AUTO_SELLER_INTERVAL - 0.1);
-    expect(gs.lootPool.length).toBe(3);
-  });
-
-  it("only sells one item per interval", () => {
-    const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
-    // Equip legendary in all three slots so loot items are not upgrades
-    gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
-    gs.party.team[0].equipItem(new GearItem("off_hand" as Slot, "dagger", "legendary", "valor"));
-    gs.party.team[0].equipItem(new GearItem("helmet" as Slot, "helm", "legendary", "valor"));
-    const item1 = new GearItem("main_hand" as Slot, "sword", "broken", "rusty");
-    const item2 = new GearItem("off_hand" as Slot, "dagger", "broken", "rusty");
-    const item3 = new GearItem("helmet" as Slot, "helm", "broken", "rusty");
-    gs.lootPool = [item1, item2, item3];
-    gs.tick(AUTO_SELLER_INTERVAL);
-    expect(gs.lootPool.length).toBe(2);
-  });
-
-  it("timer carries overshoot into next interval", () => {
-    const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
-    // Equip legendary in both slots so the loot items are not upgrades
-    gs.party.team[0].equipItem(new GearItem("helmet" as Slot, "helm", "legendary", "valor"));
-    gs.party.team[0].equipItem(new GearItem("chest" as Slot, "plate", "legendary", "valor"));
-    const item1 = new GearItem("helmet" as Slot, "helm", "broken", "valor");
-    const item2 = new GearItem("chest" as Slot, "plate", "worn", "valor");
-    gs.lootPool = [item1, item2];
-    gs.tick(AUTO_SELLER_INTERVAL);
-    expect(gs.lootPool.length).toBe(1);
-    gs.tick(AUTO_SELLER_INTERVAL - 0.1);
-    expect(gs.lootPool.length).toBe(1);
-    gs.tick(0.2);
-    expect(gs.lootPool.length).toBe(0);
-  });
-
-  it("timer resets on fromDict load", () => {
-    const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
-    // Equip legendary so item is not upgrade-protected; test is about timer only
+  it("auto seller not purchased — sweep does not run on toggle", () => {
+    const gs = make();
     gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
     gs.lootPool = [new GearItem("main_hand" as Slot, "sword", "broken", "rusty")];
-    gs.tick(AUTO_SELLER_INTERVAL - 0.5);
-    const restored = GameState.fromDict(gs.toDict());
-    frozenEnemy(restored);
-    restored.tick(0.1);
-    expect(restored.lootPool.length).toBe(1);
-  });
-
-
-  it("does not sell an item that fills an empty slot", () => {
-    const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
-    const item = new GearItem("main_hand" as Slot, "sword", "broken", "rusty");
-    gs.lootPool = [item]; // slot is empty — any item is an upgrade
-    gs.tick(AUTO_SELLER_INTERVAL);
-    expect(gs.lootPool.length).toBe(1);
-  });
-
-  it("does not sell an item with higher damage than equipped", () => {
-    const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
-    gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "broken", "rusty")); // damage=1
-    const better = new GearItem("main_hand" as Slot, "sword", "legendary", "valor"); // damage=75
-    gs.lootPool = [better];
-    gs.tick(AUTO_SELLER_INTERVAL);
+    gs.toggleAutoSellQuality("broken");
     expect(gs.lootPool.length).toBe(1);
     expect(gs.gold).toBe(0);
   });
 
-  it("sells an item with lower damage than equipped", () => {
-    const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
-    gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor")); // damage=75
-    const weaker = new GearItem("main_hand" as Slot, "sword", "broken", "rusty"); // damage=1
-    gs.lootPool = [weaker];
-    gs.tick(AUTO_SELLER_INTERVAL);
-    expect(gs.lootPool.length).toBe(0);
-    expect(gs.gold).toBe(weaker.sellValue);
+  it("auto seller owned, no qualities set — loot stays after kill", () => {
+    const gs = withAutoSeller();
+    gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
+    gs.lootPool = [];
+    for (let i = 0; i < LOOT_MAX; i++) {
+      gs.lootPool.push(new GearItem("main_hand" as Slot, "sword", "broken", "rusty"));
+    }
+    const before = gs.lootPool.length;
+    gs.onEnemyDeath();
+    expect(gs.lootPool.length).toBe(before);
   });
 
-  it("does nothing if all items are upgrades for the party", () => {
-    const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
-    // No gear equipped — every item fills an empty slot
+  it("toggle 'broken' on — broken items swept immediately", () => {
+    const gs = withAutoSeller();
+    gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
     gs.lootPool = [
       new GearItem("main_hand" as Slot, "sword", "broken", "rusty"),
-      new GearItem("helmet" as Slot, "helm", "worn", "valor"),
+      new GearItem("main_hand" as Slot, "sword", "common", "valor"),
     ];
-    gs.tick(AUTO_SELLER_INTERVAL);
-    expect(gs.lootPool.length).toBe(2);
+    gs.toggleAutoSellQuality("broken");
+    expect(gs.lootPool.length).toBe(1);
+    expect(gs.lootPool[0].quality).toBe("common");
+    expect(gs.gold).toBeGreaterThan(0);
+  });
+
+  it("items above checked quality are kept", () => {
+    const gs = withAutoSeller();
+    gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
+    gs.lootPool = [
+      new GearItem("main_hand" as Slot, "sword", "broken", "rusty"),
+      new GearItem("main_hand" as Slot, "sword", "rare", "valor"),
+    ];
+    gs.toggleAutoSellQuality("broken");
+    expect(gs.lootPool.some(i => i.quality === "rare")).toBe(true);
+    expect(gs.lootPool.some(i => i.quality === "broken")).toBe(false);
+  });
+
+  it("upgrade items not sold even if quality matches checked tier", () => {
+    const gs = withAutoSeller();
+    // No gear equipped — broken item fills empty slot (is an upgrade)
+    gs.lootPool = [new GearItem("main_hand" as Slot, "sword", "broken", "rusty")];
+    gs.toggleAutoSellQuality("broken");
+    expect(gs.lootPool.length).toBe(1);
     expect(gs.gold).toBe(0);
   });
 
-  it("skips upgrades and sells the worst non-upgrade", () => {
-    const gs = frozenEnemy(withPrestige(5)); gs.buyPrestigeUpgrade("auto_seller");
-    // Equip legendary main_hand — any main_hand in loot is not an upgrade
+  it("multiple checked qualities sold in one sweep", () => {
+    const gs = withAutoSeller();
     gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
-    // helmet slot is empty — helmet item is an upgrade, keep it
-    const helmetUpgrade = new GearItem("helmet" as Slot, "helm", "broken", "rusty"); // upgrade (empty slot)
-    const weakSword = new GearItem("main_hand" as Slot, "sword", "broken", "rusty"); // not upgrade
-    gs.lootPool = [helmetUpgrade, weakSword];
-    gs.tick(AUTO_SELLER_INTERVAL);
-    expect(gs.lootPool.length).toBe(1);
-    expect(gs.lootPool[0].slot).toBe("helmet");
-    expect(gs.gold).toBe(weakSword.sellValue);
+    gs.party.team[0].equipItem(new GearItem("chest" as Slot, "plate", "legendary", "valor"));
+    const b = new GearItem("main_hand" as Slot, "sword", "broken", "rusty");
+    const w = new GearItem("chest" as Slot, "plate", "worn", "rusty");
+    gs.lootPool = [b, w];
+    gs.autoSellQualities = ["worn"]; // pre-set worn
+    gs.toggleAutoSellQuality("broken"); // add broken, trigger sweep of both
+    expect(gs.lootPool.length).toBe(0);
+    expect(gs.gold).toBe(b.sellValue + w.sellValue);
+  });
+
+  it("sweep after kill sells matching items", () => {
+    const gs = withAutoSeller();
+    gs.autoSellQualities = ["broken"];
+    gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
+    gs.lootPool = [];
+    for (let i = 0; i < LOOT_MAX; i++) {
+      gs.lootPool.push(new GearItem("main_hand" as Slot, "sword", "broken", "rusty"));
+    }
+    gs.onEnemyDeath();
+    expect(gs.lootPool.some(i => i.quality === "broken")).toBe(false);
+  });
+
+  it("buying Auto Seller sweeps existing loot immediately", () => {
+    const gs = withPrestige(5);
+    gs.autoSellQualities = ["broken"]; // pre-configure before purchase
+    gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
+    gs.lootPool = [new GearItem("main_hand" as Slot, "sword", "broken", "rusty")];
+    gs.buyPrestigeUpgrade("auto_seller");
+    expect(gs.lootPool.length).toBe(0);
+    expect(gs.gold).toBeGreaterThan(0);
+  });
+
+  it("auto_sell_qualities round-trips through toDict/fromDict", () => {
+    const gs = withAutoSeller();
+    gs.autoSellQualities = ["broken", "worn"];
+    const restored = GameState.fromDict(gs.toDict());
+    expect(restored.autoSellQualities).toEqual(["broken", "worn"]);
   });
 });
 
