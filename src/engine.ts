@@ -183,11 +183,8 @@ export class GameState {
     const item = this.lootPool.splice(idx, 1)[0];
     const target = this.bestRecipient(item);
     const old = target.equipItem(item);
-    if (old) {
-      this.gold += old.sellValue;
-      this.addLog(`Sold ${old.getName()} for ${old.sellValue}g.`);
-    }
     this.addLog(`${target.name} equips ${item.getName()}!`);
+    if (old) this.disposeItem(old);
     return this.respond();
   }
 
@@ -198,11 +195,8 @@ export class GameState {
       const netGain = item.damage - (current ? current.damage : 0);
       if (netGain > 0) {
         const old = target.equipItem(item);
-        if (old) {
-          this.gold += old.sellValue;
-          this.addLog(`Sold ${old.getName()} for ${old.sellValue}g.`);
-        }
         this.addLog(`${target.name} equips ${item.getName()}!`);
+        if (old) this.disposeItem(old);
       } else {
         this.gold += item.sellValue;
         this.addLog(`Sold ${item.getName()} for ${item.sellValue}g.`);
@@ -546,6 +540,21 @@ export class GameState {
     this.enemy = generateEnemy(this.checkpointLevel);
   }
 
+  private disposeItem(old: GearItem): void {
+    if (this.isUpgradeForAnyMember(old)) {
+      const recipient = this.bestRecipient(old);
+      const further = recipient.equipItem(old);
+      this.addLog(`${recipient.name} equips ${old.getName()}!`);
+      if (further) {
+        this.gold += further.sellValue;
+        this.addLog(`Sold ${further.getName()} for ${further.sellValue}g.`);
+      }
+    } else {
+      this.gold += old.sellValue;
+      this.addLog(`Sold ${old.getName()} for ${old.sellValue}g.`);
+    }
+  }
+
   private slotToCompare(c: Character, item: GearItem): GearItem | null {
     if (item.slot !== "ring1") return c.inventory.slots[item.slot];
     const r1 = c.inventory.slots.ring1;
@@ -577,12 +586,8 @@ export class GameState {
           this.lootPool.splice(i, 1);
           const target = this.bestRecipient(item);
           const old = target.equipItem(item);
-          if (old) {
-            this.gold += old.sellValue;
-            this.addLog(`Auto Equip: ${target.name} equips ${item.getName()}, sold ${old.getName()} for ${old.sellValue}g`);
-          } else {
-            this.addLog(`Auto Equip: ${target.name} equips ${item.getName()}!`);
-          }
+          this.addLog(`Auto Equip: ${target.name} equips ${item.getName()}!`);
+          if (old) this.disposeItem(old);
           found = true;
           break;
         }

@@ -380,7 +380,7 @@ describe("loot", () => {
     expect(JSON.parse(withLoot().sellLoot(0))).toHaveProperty("gold");
   });
 
-  it("equipLoot sells displaced item", () => {
+  it("equipLoot sells displaced item when no companion benefits", () => {
     const gs = make();
     const weak = new GearItem("main_hand", "sword", "broken", "rusty");
     const strong = new GearItem("main_hand", "sword", "legendary", "legendary");
@@ -391,6 +391,23 @@ describe("loot", () => {
     gs.lootPool = [strong];
     gs.equipLoot(0);
     expect(gs.gold).toBe(weak.sellValue);
+  });
+
+  it("equipLoot passes displaced item to companion if it's an upgrade for them", () => {
+    const gs = withPrestige(5);
+    gs.buyPrestigeUpgrade("party_slot_2", "fighter");
+    const lead = gs.party.team[0];
+    const comp = gs.party.team[1];
+    const weak = new GearItem("main_hand" as Slot, "sword", "broken", "rusty");
+    const strong = new GearItem("main_hand" as Slot, "sword", "legendary", "valor");
+    lead.inventory.slots["main_hand" as Slot] = weak;
+    lead.dps += weak.damage;
+    // companion has no weapon
+    gs.lootPool = [strong];
+    gs.equipLoot(0);
+    expect(lead.inventory.slots["main_hand" as Slot]).toBe(strong);  // lead got the upgrade
+    expect(comp.inventory.slots["main_hand" as Slot]).toBe(weak);    // displaced item went to companion
+    expect(gs.gold).toBe(0);  // nothing was sold
   });
 
   it("equipAll clears the pool", () => {
@@ -420,6 +437,22 @@ describe("loot", () => {
     gs.equipAll();
     expect(gs.gold).toBe(weak.sellValue);
     expect(gs.lootPool).toEqual([]);
+  });
+
+  it("equipAll passes displaced item to companion if it's an upgrade for them", () => {
+    const gs = withPrestige(5);
+    gs.buyPrestigeUpgrade("party_slot_2", "fighter");
+    const lead = gs.party.team[0];
+    const comp = gs.party.team[1];
+    const weak = new GearItem("main_hand" as Slot, "sword", "broken", "rusty");
+    const strong = new GearItem("main_hand" as Slot, "sword", "legendary", "valor");
+    lead.inventory.slots["main_hand" as Slot] = weak;
+    lead.dps += weak.damage;
+    gs.lootPool = [strong];
+    gs.equipAll();
+    expect(lead.inventory.slots["main_hand" as Slot]).toBe(strong);
+    expect(comp.inventory.slots["main_hand" as Slot]).toBe(weak);
+    expect(gs.gold).toBe(0);
   });
 
   it("equipAll returns valid JSON", () => {
@@ -1558,7 +1591,7 @@ describe("auto-equip prestige upgrade", () => {
     expect(gs.lootPool.includes(strong)).toBe(false);
   });
 
-  it("auto_equip — displaced item sold for gold", () => {
+  it("auto_equip — displaced item sold for gold when no companion benefits", () => {
     const gs = withAutoEquip();
     const weak = new GearItem("main_hand" as Slot, "sword", "broken", "rusty");
     gs.party.team[0].inventory.slots["main_hand" as Slot] = weak;
@@ -1568,6 +1601,22 @@ describe("auto-equip prestige upgrade", () => {
     gs.onEnemyDeath();
     expect(gs.gold).toBeGreaterThanOrEqual(weak.sellValue);
     expect(gs.party.team[0].inventory.slots["main_hand" as Slot]).toBe(strong);
+  });
+
+  it("auto_equip — displaced item goes to companion if it's an upgrade for them", () => {
+    const gs = withAutoEquip();
+    gs.buyPrestigeUpgrade("party_slot_2", "fighter");
+    const lead = gs.party.team[0];
+    const comp = gs.party.team[1];
+    const weak = new GearItem("main_hand" as Slot, "sword", "broken", "rusty");
+    const strong = new GearItem("main_hand" as Slot, "sword", "legendary", "valor");
+    lead.inventory.slots["main_hand" as Slot] = weak;
+    lead.dps += weak.damage;
+    gs.lootPool = [strong];
+    gs.onEnemyDeath();
+    expect(lead.inventory.slots["main_hand" as Slot]).toBe(strong);
+    expect(comp.inventory.slots["main_hand" as Slot]).toBe(weak);
+    expect(gs.gold).toBe(0);
   });
 
   it("auto_equip — non-upgrade items stay in pool", () => {

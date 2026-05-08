@@ -1,4 +1,4 @@
-export const VERSION = "v2.2.1";
+export const VERSION = "v2.2.2";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,13 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.2.2",
+    date: "2026-05-08",
+    changes: [
+      "Displaced gear is passed to a companion before being sold — if a replaced item is an upgrade for another party member, they equip it instead",
+    ],
+  },
   {
     version: "v2.2.1",
     date: "2026-05-08",
