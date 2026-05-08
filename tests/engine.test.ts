@@ -1430,6 +1430,147 @@ describe("class ability effects", () => {
   });
 });
 
+describe("auto-equip prestige upgrade", () => {
+  function withAutoEquip(): GameState {
+    const gs = withPrestige(5);
+    gs.buyPrestigeUpgrade("auto_equip");
+    return gs;
+  }
+
+  it("auto_equip costs 2 points and is recorded", () => {
+    const gs = withPrestige(5);
+    gs.buyPrestigeUpgrade("auto_equip");
+    expect(gs.prestigeUpgrades["auto_equip"]).toBe(1);
+    expect(gs.prestigePoints).toBe(3);
+  });
+
+  it("auto_equip cannot be bought twice", () => {
+    const gs = withPrestige(5);
+    gs.buyPrestigeUpgrade("auto_equip");
+    gs.buyPrestigeUpgrade("auto_equip");
+    expect(gs.prestigeUpgrades["auto_equip"]).toBe(1);
+    expect(gs.prestigePoints).toBe(3);
+  });
+
+  it("auto_equip not purchased — upgrade loot stays unequipped after kill", () => {
+    const gs = make();
+    const strong = new GearItem("main_hand" as Slot, "sword", "legendary", "valor");
+    gs.lootPool = [strong];
+    gs.onEnemyDeath();
+    expect(gs.party.team[0].inventory.slots["main_hand" as Slot]).toBeNull();
+  });
+
+  it("auto_equip owned — upgrade item is equipped after kill", () => {
+    const gs = withAutoEquip();
+    const strong = new GearItem("main_hand" as Slot, "sword", "legendary", "valor");
+    gs.lootPool = [strong];
+    gs.onEnemyDeath();
+    expect(gs.party.team[0].inventory.slots["main_hand" as Slot]).toBe(strong);
+    expect(gs.lootPool.includes(strong)).toBe(false);
+  });
+
+  it("auto_equip — displaced item sold for gold", () => {
+    const gs = withAutoEquip();
+    const weak = new GearItem("main_hand" as Slot, "sword", "broken", "rusty");
+    gs.party.team[0].inventory.slots["main_hand" as Slot] = weak;
+    gs.party.team[0].dps += weak.damage;
+    const strong = new GearItem("main_hand" as Slot, "sword", "legendary", "valor");
+    gs.lootPool = [strong];
+    gs.onEnemyDeath();
+    expect(gs.gold).toBeGreaterThanOrEqual(weak.sellValue);
+    expect(gs.party.team[0].inventory.slots["main_hand" as Slot]).toBe(strong);
+  });
+
+  it("auto_equip — non-upgrade items stay in pool", () => {
+    const gs = withAutoEquip();
+    const strong = new GearItem("main_hand" as Slot, "sword", "legendary", "valor");
+    gs.party.team[0].inventory.slots["main_hand" as Slot] = strong;
+    gs.party.team[0].dps += strong.damage;
+    const weak = new GearItem("main_hand" as Slot, "sword", "broken", "rusty");
+    gs.lootPool = [weak];
+    gs.onEnemyDeath();
+    expect(gs.lootPool.some(i => i === weak)).toBe(true);
+  });
+
+  it("auto_equip sweeps existing loot on purchase", () => {
+    const gs = withPrestige(5);
+    const strong = new GearItem("main_hand" as Slot, "sword", "legendary", "valor");
+    gs.lootPool = [strong];
+    gs.buyPrestigeUpgrade("auto_equip");
+    expect(gs.party.team[0].inventory.slots["main_hand" as Slot]).toBe(strong);
+    expect(gs.lootPool.includes(strong)).toBe(false);
+  });
+});
+
+describe("auto-upgrade prestige upgrade", () => {
+  function withAutoUpgrade(): GameState {
+    const gs = withPrestige(5);
+    gs.buyPrestigeUpgrade("auto_upgrade");
+    return gs;
+  }
+
+  it("auto_upgrade costs 2 points and is recorded", () => {
+    const gs = withPrestige(5);
+    gs.buyPrestigeUpgrade("auto_upgrade");
+    expect(gs.prestigeUpgrades["auto_upgrade"]).toBe(1);
+    expect(gs.prestigePoints).toBe(3);
+  });
+
+  it("auto_upgrade cannot be bought twice", () => {
+    const gs = withPrestige(5);
+    gs.buyPrestigeUpgrade("auto_upgrade");
+    gs.buyPrestigeUpgrade("auto_upgrade");
+    expect(gs.prestigeUpgrades["auto_upgrade"]).toBe(1);
+    expect(gs.prestigePoints).toBe(3);
+  });
+
+  it("auto_upgrade not purchased — no upgrades bought after kill", () => {
+    const gs = make();
+    gs.gold = 10_000;
+    const c = gs.party.team[0];
+    gs.onEnemyDeath();
+    const totalLevels = Object.values(gs.upgrades[c.name]).reduce((s, v) => s + v, 0);
+    expect(totalLevels).toBe(0);
+  });
+
+  it("auto_upgrade — buys cheapest affordable upgrade after kill", () => {
+    const gs = withAutoUpgrade();
+    gs.gold = 50; // enough for click (40g), cheapest tier-0 upgrade
+    const c = gs.party.team[0];
+    gs.onEnemyDeath();
+    const totalLevels = Object.values(gs.upgrades[c.name]).reduce((s, v) => s + v, 0);
+    expect(totalLevels).toBeGreaterThan(0);
+    expect(gs.gold).toBeLessThan(50);
+  });
+
+  it("auto_upgrade — does not buy when gold insufficient", () => {
+    const gs = withAutoUpgrade();
+    gs.gold = 0;
+    const c = gs.party.team[0];
+    gs.onEnemyDeath();
+    const totalLevels = Object.values(gs.upgrades[c.name]).reduce((s, v) => s + v, 0);
+    expect(totalLevels).toBe(0);
+  });
+
+  it("auto_upgrade — buys multiple upgrades in one sweep", () => {
+    const gs = withAutoUpgrade();
+    gs.gold = 10_000;
+    const c = gs.party.team[0];
+    gs.onEnemyDeath();
+    const totalLevels = Object.values(gs.upgrades[c.name]).reduce((s, v) => s + v, 0);
+    expect(totalLevels).toBeGreaterThan(1);
+  });
+
+  it("auto_upgrade runs on purchase immediately if gold available", () => {
+    const gs = withPrestige(5);
+    gs.gold = 10_000;
+    const c = gs.party.team[0];
+    gs.buyPrestigeUpgrade("auto_upgrade");
+    const totalLevels = Object.values(gs.upgrades[c.name]).reduce((s, v) => s + v, 0);
+    expect(totalLevels).toBeGreaterThan(0);
+  });
+});
+
 describe("checkpoint system", () => {
   function killBossAtLevel(gs: GameState, level: number): void {
     gs.dungeonLevel = level;

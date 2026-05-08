@@ -300,6 +300,8 @@ function renderUpgrades(state: GameStateDict): void {
 
 const PRESTIGE_SHOP_META: Record<string, { icon: string; name: string; desc: string; max: number }> = {
   auto_seller:   { icon: "🤖", name: "Auto Seller",    desc: "Auto-sells checked quality tiers after each kill.", max: 1 },
+  auto_equip:    { icon: "⚔", name: "Auto Equip",     desc: "Automatically equips loot upgrades after each kill.", max: 1 },
+  auto_upgrade:  { icon: "📈", name: "Auto Upgrade",   desc: "Automatically buys the cheapest affordable stat upgrade after each kill.", max: 1 },
   party_slot_2:  { icon: "👤", name: "Party Slot II",  desc: "Add a 2nd party member (pick class).", max: 1 },
   party_slot_3:  { icon: "👥", name: "Party Slot III", desc: "Add a 3rd member. Requires Slot II.", max: 1 },
   starting_gold: { icon: "💰", name: "Starting Gold",  desc: "+250g at the start of each run.", max: Infinity },
@@ -329,7 +331,7 @@ function renderPrestigeShop(state: GameStateDict): void {
   const ups = state.prestige_upgrades as Record<string, number>;
   $("prestige-shop-items").innerHTML = Object.entries(PRESTIGE_SHOP_META).map(([type, meta]) => {
     const owned = ups[type] ?? 0;
-    const cost = ({ auto_seller: 1, party_slot_2: 2, party_slot_3: 3, starting_gold: 1, xp_bonus: 1 } as Record<string, number>)[type];
+    const cost = ({ auto_seller: 1, auto_equip: 2, auto_upgrade: 2, party_slot_2: 2, party_slot_3: 3, starting_gold: 1, xp_bonus: 1 } as Record<string, number>)[type];
     const atMax = owned >= meta.max;
     const prereqMissing = type === "party_slot_3" && !(ups["party_slot_2"] > 0);
     const canAfford = pts >= cost;
@@ -370,7 +372,7 @@ function updateLifetimeStats(state: GameStateDict): void {
 }
 
 const PRESTIGE_COSTS: Record<string, number> = {
-  auto_seller: 1, party_slot_2: 2, party_slot_3: 3, starting_gold: 1, xp_bonus: 1,
+  auto_seller: 1, auto_equip: 2, auto_upgrade: 2, party_slot_2: 2, party_slot_3: 3, starting_gold: 1, xp_bonus: 1,
 };
 
 function updateShopBadge(state: GameStateDict): void {

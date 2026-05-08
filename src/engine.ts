@@ -39,6 +39,8 @@ export const EMPOWER_MULTIPLIER = 2;
 export const PRESTIGE_UNLOCK_LEVEL = 20;
 export const PRESTIGE_SHOP_COSTS: Record<string, number> = {
   auto_seller: 1,
+  auto_equip: 2,
+  auto_upgrade: 2,
   party_slot_2: 2,
   party_slot_3: 3,
   starting_gold: 1,
@@ -283,7 +285,7 @@ export class GameState {
   buyPrestigeUpgrade(type: string, characterClass?: string): string {
     if (!(type in PRESTIGE_SHOP_COSTS)) return this.respond();
     if (type === "party_slot_3" && !(this.prestigeUpgrades["party_slot_2"] > 0)) return this.respond();
-    const oneTime = ["auto_seller", "party_slot_2", "party_slot_3"];
+    const oneTime = ["auto_seller", "auto_equip", "auto_upgrade", "party_slot_2", "party_slot_3"];
     if (oneTime.includes(type) && (this.prestigeUpgrades[type] ?? 0) >= 1) return this.respond();
     const cost = PRESTIGE_SHOP_COSTS[type];
     if (this.prestigePoints < cost) {
@@ -317,6 +319,8 @@ export class GameState {
 
     this.addLog(`Prestige upgrade: ${type} purchased!`);
     if (type === "auto_seller") this.runAutoSeller();
+    if (type === "auto_equip") this.runAutoEquip();
+    if (type === "auto_upgrade") this.runAutoUpgrade();
     return this.respond();
   }
 
@@ -460,7 +464,9 @@ export class GameState {
         this.enemy = generateEnemy(this.dungeonLevel);
       }
     }
+    this.runAutoEquip();
     this.runAutoSeller();
+    this.runAutoUpgrade();
   }
 
   onPlayerDeath(): void {
@@ -495,6 +501,62 @@ export class GameState {
     this.gold += gold;
     this.lootPool = this.lootPool.filter(item => !toSell.includes(item));
     this.addLog(`Auto Seller: sold ${toSell.length} item(s) for ${gold}g`);
+  }
+
+  private runAutoEquip(): void {
+    if (!(this.prestigeUpgrades["auto_equip"] > 0)) return;
+    let found = true;
+    while (found) {
+      found = false;
+      for (let i = 0; i < this.lootPool.length; i++) {
+        const item = this.lootPool[i];
+        if (this.isUpgradeForAnyMember(item)) {
+          this.lootPool.splice(i, 1);
+          const target = this.bestRecipient(item);
+          const old = target.equipItem(item);
+          if (old) {
+            this.gold += old.sellValue;
+            this.addLog(`Auto Equip: ${target.name} equips ${item.getName()}, sold ${old.getName()} for ${old.sellValue}g`);
+          } else {
+            this.addLog(`Auto Equip: ${target.name} equips ${item.getName()}!`);
+          }
+          found = true;
+          break;
+        }
+      }
+    }
+  }
+
+  private runAutoUpgrade(): void {
+    if (!(this.prestigeUpgrades["auto_upgrade"] > 0)) return;
+    const upgradeTypes: UpgradeType[] = ["dps", "xp", "click", "hp"];
+    let bought = true;
+    while (bought) {
+      bought = false;
+      let cheapest: { char: Character; type: UpgradeType; cost: number } | null = null;
+      for (const c of this.party.team) {
+        for (const type of upgradeTypes) {
+          const cost = this.upgradeCost(c.name, type);
+          if (this.gold >= cost && (!cheapest || cost < cheapest.cost)) {
+            cheapest = { char: c, type, cost };
+          }
+        }
+      }
+      if (cheapest) {
+        const { char, type } = cheapest;
+        this.gold -= cheapest.cost;
+        this.upgrades[char.name][type] += 1;
+        if (type === "dps") char.dps += UPGRADE_EFFECTS.dps;
+        else if (type === "xp") char.xpMultiplier += UPGRADE_EFFECTS.xp;
+        else if (type === "click") char.clickBonus += UPGRADE_EFFECTS.click;
+        else if (type === "hp") {
+          char.maxHealth += HP_UPGRADE_EFFECT;
+          char.health += HP_UPGRADE_EFFECT;
+        }
+        this.addLog(`Auto Upgrade: ${char.name} ${type} → Lv${this.upgrades[char.name][type]}`);
+        bought = true;
+      }
+    }
   }
 
   private isUpgradeForAnyMember(item: GearItem): boolean {

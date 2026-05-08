@@ -1,4 +1,4 @@
-export const VERSION = "v1.9.6";
+export const VERSION = "v2.0.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,14 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.0.0",
+    date: "2026-05-08",
+    changes: [
+      "Auto Equip prestige upgrade (2pts) — automatically equips loot upgrades after each kill",
+      "Auto Upgrade prestige upgrade (2pts) — automatically buys the cheapest affordable stat upgrade after each kill",
+    ],
+  },
   {
     version: "v1.9.6",
     date: "2026-05-08",
