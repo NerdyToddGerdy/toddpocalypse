@@ -13,8 +13,12 @@ export class Inventory {
   }
 
   equip(item: GearItem): GearItem | null {
-    const old = this.slots[item.slot];
-    this.slots[item.slot] = item;
+    let targetSlot = item.slot;
+    if (item.slot === "ring1" && this.slots.ring1 !== null && this.slots.ring2 === null) {
+      targetSlot = "ring2";
+    }
+    const old = this.slots[targetSlot];
+    this.slots[targetSlot] = item;
     return old;
   }
 

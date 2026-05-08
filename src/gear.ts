@@ -20,8 +20,8 @@ export const SLOT_DISPLAY: Record<Slot, string> = {
   gloves: "Gloves",
   legs: "Legs",
   shoes: "Shoes",
-  ring1: "Ring 1",
-  ring2: "Ring 2",
+  ring1: "Ring",
+  ring2: "Ring",
 };
 
 export const SLOT_ITEM_TYPES: Record<Slot, string[]> = {
@@ -113,6 +113,10 @@ export function qualityClass(quality: string): string {
   return QUALITY_CLASSES[quality] ?? "q-common";
 }
 
+export function gearLevelScale(level: number): number {
+  return 1 + Math.floor(level / 5) * 0.25;
+}
+
 export interface GearItemDict {
   slot: Slot;
   slot_display: string;
@@ -123,6 +127,7 @@ export interface GearItemDict {
   damage: number;
   cost: number;
   sell_value: number;
+  dungeon_level: number;
 }
 
 export class GearItem {
@@ -133,14 +138,17 @@ export class GearItem {
   readonly damage: number;
   readonly cost: number;
   readonly sellValue: number;
+  readonly dungeonLevel: number;
 
-  constructor(slot: Slot, itemType: string, quality: string, adjective: string) {
+  constructor(slot: Slot, itemType: string, quality: string, adjective: string, dungeonLevel = 1) {
+    const scale = gearLevelScale(dungeonLevel);
     this.slot = slot;
     this.itemType = itemType;
     this.quality = quality;
     this.adjective = adjective;
-    this.damage = DAMAGE_BY_QUALITY[quality];
-    this.cost = COST_BY_QUALITY[quality];
+    this.dungeonLevel = dungeonLevel;
+    this.damage = Math.ceil(DAMAGE_BY_QUALITY[quality] * scale);
+    this.cost = Math.ceil(COST_BY_QUALITY[quality] * scale);
     this.sellValue = Math.max(1, Math.floor(this.cost / 3));
   }
 
@@ -159,11 +167,12 @@ export class GearItem {
       damage: this.damage,
       cost: this.cost,
       sell_value: this.sellValue,
+      dungeon_level: this.dungeonLevel,
     };
   }
 
   static fromDict(d: GearItemDict): GearItem {
-    return new GearItem(d.slot, d.item_type, d.quality, d.adjective);
+    return new GearItem(d.slot, d.item_type, d.quality, d.adjective, d.dungeon_level ?? 1);
   }
 }
 
@@ -181,12 +190,15 @@ function weightedPick<T>(arr: readonly T[], weights: number[]): T {
   return arr[arr.length - 1];
 }
 
+const DROP_SLOTS = SLOTS.filter(s => s !== "ring2");
+
 export function getItem(slot?: Slot, dungeonLevel = 1): GearItem {
-  const chosenSlot: Slot = slot ?? pick(SLOTS);
-  const itemType = pick(SLOT_ITEM_TYPES[chosenSlot]);
+  // ring2 is never an explicit drop; inventory spill logic handles the second ring slot
+  const effectiveSlot: Slot = slot === "ring2" ? "ring1" : (slot ?? pick(DROP_SLOTS));
+  const itemType = pick(SLOT_ITEM_TYPES[effectiveSlot]);
   const quality = weightedPick(QUAL, qualityWeights(dungeonLevel));
   const adjective = pick(ADJ);
-  return new GearItem(chosenSlot, itemType, quality, adjective);
+  return new GearItem(effectiveSlot, itemType, quality, adjective, dungeonLevel);
 }
 
 export function getWeapon(): GearItem {

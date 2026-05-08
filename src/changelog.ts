@@ -1,4 +1,4 @@
-export const VERSION = "v1.6.1";
+export const VERSION = "v1.7.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,18 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.7.0",
+    date: "2026-05-08",
+    changes: [
+      "Gear damage now scales with dungeon depth — +25% per 5 floors (×1.75 at floor 15)",
+      "Enemy HP formula softened from 1.4× to 1.3× exponential growth",
+      "Boss HP rebalanced: higher base (100×) but softer curve — long tense fights instead of walls",
+      "Regular enemy attack DPS reduced (1.0× level); boss attack reduced (1.5× level)",
+      "Bosses require active clicking to beat — auto-DPS alone is insufficient at floor 18+",
+      "Rings no longer labeled Ring 1 / Ring 2 — any ring fills whichever slot is available",
+    ],
+  },
   {
     version: "v1.6.1",
     date: "2026-05-07",

@@ -9,7 +9,39 @@ import {
   getWeapon,
   qualityWeights,
   qualityClass,
+  gearLevelScale,
 } from "../src/gear.js";
+
+describe("gearLevelScale", () => {
+  it("returns 1.0 at floors 1–4 (no bonus in early game)", () => {
+    expect(gearLevelScale(1)).toBe(1.0);
+    expect(gearLevelScale(4)).toBe(1.0);
+  });
+
+  it("returns 1.25 at floors 5–9", () => {
+    expect(gearLevelScale(5)).toBe(1.25);
+    expect(gearLevelScale(9)).toBe(1.25);
+  });
+
+  it("returns 1.5 at floors 10–14", () => {
+    expect(gearLevelScale(10)).toBe(1.5);
+  });
+
+  it("returns 1.75 at floors 15–19", () => {
+    expect(gearLevelScale(15)).toBe(1.75);
+    expect(gearLevelScale(18)).toBe(1.75);
+  });
+
+  it("returns 2.0 at floors 20–24", () => {
+    expect(gearLevelScale(20)).toBe(2.0);
+  });
+
+  it("strictly increases every 5 floors", () => {
+    for (let lvl = 5; lvl <= 30; lvl += 5) {
+      expect(gearLevelScale(lvl)).toBeGreaterThan(gearLevelScale(lvl - 1));
+    }
+  });
+});
 
 describe("quality tiers", () => {
   it("has at least ten quality tiers", () => {
@@ -72,18 +104,31 @@ describe("qualityWeights", () => {
 });
 
 describe("GearItem", () => {
-  it("damage matches quality table", () => {
+  it("damage matches quality table at level 1 (no scaling)", () => {
     for (const [quality, expected] of Object.entries(DAMAGE_BY_QUALITY)) {
-      const item = new GearItem("main_hand", "sword", quality, "valor");
+      const item = new GearItem("main_hand", "sword", quality, "valor", 1);
       expect(item.damage).toBe(expected);
     }
   });
 
-  it("cost matches quality table", () => {
+  it("cost matches quality table at level 1 (no scaling)", () => {
     for (const [quality, expected] of Object.entries(COST_BY_QUALITY)) {
-      const item = new GearItem("main_hand", "sword", quality, "valor");
+      const item = new GearItem("main_hand", "sword", quality, "valor", 1);
       expect(item.cost).toBe(expected);
     }
+  });
+
+  it("damage is scaled at dungeonLevel 10", () => {
+    const base = DAMAGE_BY_QUALITY["common"];
+    const scaled = new GearItem("main_hand", "sword", "common", "valor", 10);
+    expect(scaled.damage).toBe(Math.ceil(base * gearLevelScale(10)));
+    expect(scaled.damage).toBeGreaterThan(base);
+  });
+
+  it("damage at level 18 is 1.75× base", () => {
+    const base = DAMAGE_BY_QUALITY["rare"];
+    const item = new GearItem("main_hand", "sword", "rare", "valor", 18);
+    expect(item.damage).toBe(Math.ceil(base * 1.75));
   });
 
   it("sell value is a third of cost (min 1)", () => {
@@ -101,19 +146,28 @@ describe("GearItem", () => {
     expect(item.getName()).toBe("legendary helm of hilarity");
   });
 
-  it("toDict has the expected keys", () => {
+  it("toDict has the expected keys including dungeon_level", () => {
     const item = new GearItem("legs", "greaves", "fine", "gentleness");
     expect(new Set(Object.keys(item.toDict()))).toEqual(
-      new Set(["slot", "slot_display", "name", "quality", "item_type", "adjective", "damage", "cost", "sell_value"]),
+      new Set(["slot", "slot_display", "name", "quality", "item_type", "adjective", "damage", "cost", "sell_value", "dungeon_level"]),
     );
   });
 
   it("toDict values match the item", () => {
-    const item = new GearItem("shoes", "boots", "common", "valor");
+    const item = new GearItem("shoes", "boots", "common", "valor", 15);
     const d = item.toDict();
     expect(d.slot).toBe("shoes");
     expect(d.damage).toBe(item.damage);
     expect(d.sell_value).toBe(item.sellValue);
+    expect(d.dungeon_level).toBe(15);
+  });
+
+  it("fromDict round-trips preserving scaled damage", () => {
+    const original = new GearItem("main_hand", "sword", "epic", "valor", 18);
+    const restored = GearItem.fromDict(original.toDict());
+    expect(restored.damage).toBe(original.damage);
+    expect(restored.cost).toBe(original.cost);
+    expect(restored.slot).toBe(original.slot);
   });
 });
 
@@ -128,9 +182,10 @@ describe("getItem", () => {
     }
   });
 
-  it("respects an explicit slot", () => {
+  it("respects an explicit slot (ring2 redirects to ring1)", () => {
     for (const slot of SLOTS) {
-      expect(getItem(slot).slot).toBe(slot);
+      const expected = slot === "ring2" ? "ring1" : slot;
+      expect(getItem(slot).slot).toBe(expected);
     }
   });
 
@@ -140,10 +195,22 @@ describe("getItem", () => {
     }
   });
 
+  it("random drops never produce ring2 items — rings always drop as ring1", () => {
+    for (let i = 0; i < 100; i++) {
+      expect(getItem().slot).not.toBe("ring2");
+    }
+  });
+
   it("accepts a dungeon_level argument", () => {
     const item = getItem(undefined, 10);
     expect(item).toBeInstanceOf(GearItem);
     expect(QUAL).toContain(item.quality);
+  });
+
+  it("items dropped at higher levels have higher damage than level-1 items of same quality", () => {
+    const base = new GearItem("main_hand", "sword", "common", "valor", 1);
+    const scaled = new GearItem("main_hand", "sword", "common", "valor", 10);
+    expect(scaled.damage).toBeGreaterThan(base.damage);
   });
 });
 

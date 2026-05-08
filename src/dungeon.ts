@@ -68,10 +68,10 @@ function randInt(min: number, max: number): number {
 
 export function generateEnemy(dungeonLevel: number): Enemy {
   const name = `${pick(ENEMY_ADJECTIVES)} ${pick(ENEMY_NOUNS)}`;
-  const hp = Math.floor(10 * Math.pow(1.4, dungeonLevel) + randInt(0, dungeonLevel * 2));
+  const hp = Math.floor(10 * Math.pow(1.3, dungeonLevel) + randInt(0, dungeonLevel * 2));
   const xpReward = Math.max(1, dungeonLevel * 3 + randInt(1, 4));
   const goldReward = Math.max(1, dungeonLevel * 5 + randInt(0, dungeonLevel * 3));
-  const attackDps = Math.round(dungeonLevel * 1.5 * 10) / 10;
+  const attackDps = Math.round(dungeonLevel * 1.0 * 10) / 10;
   return {
     name,
     level: dungeonLevel,
@@ -86,10 +86,10 @@ export function generateEnemy(dungeonLevel: number): Enemy {
 
 export function generateBoss(dungeonLevel: number): Enemy {
   const name = `The ${pick(BOSS_TITLES)} ${pick(ENEMY_NOUNS)} Lord`;
-  const hp = Math.floor(50 * Math.pow(1.4, dungeonLevel));
+  const hp = Math.floor(100 * Math.pow(1.3, dungeonLevel));
   const xpReward = Math.max(5, dungeonLevel * 9 + 5);
   const goldReward = Math.max(5, dungeonLevel * 15);
-  const attackDps = Math.round(dungeonLevel * 3.0 * 10) / 10;
+  const attackDps = Math.round(dungeonLevel * 1.5 * 10) / 10;
   return {
     name,
     level: dungeonLevel,

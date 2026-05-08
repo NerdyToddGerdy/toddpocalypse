@@ -44,8 +44,40 @@ describe("Inventory", () => {
   it("equippedItems excludes empty slots", () => {
     const inv = new Inventory();
     inv.equip(makeItem("ring1"));
-    inv.equip(makeItem("ring2"));
+    inv.equip(makeItem("ring1")); // second ring spills to ring2
     expect(inv.equippedItems()).toHaveLength(2);
+  });
+
+  it("first ring equips to ring1", () => {
+    const inv = new Inventory();
+    const ring = makeItem("ring1");
+    inv.equip(ring);
+    expect(inv.slots.ring1).toBe(ring);
+    expect(inv.slots.ring2).toBeNull();
+  });
+
+  it("second ring spills to ring2 when ring1 is occupied", () => {
+    const inv = new Inventory();
+    const first = makeItem("ring1", "broken");
+    const second = makeItem("ring1", "common");
+    inv.equip(first);
+    const displaced = inv.equip(second);
+    expect(inv.slots.ring1).toBe(first);   // ring1 untouched
+    expect(inv.slots.ring2).toBe(second);  // second ring landed in ring2
+    expect(displaced).toBeNull();           // nothing displaced
+  });
+
+  it("third ring replaces ring1 when both slots occupied", () => {
+    const inv = new Inventory();
+    const first  = makeItem("ring1", "broken");
+    const second = makeItem("ring1", "common");
+    const third  = makeItem("ring1", "legendary");
+    inv.equip(first);
+    inv.equip(second);
+    const displaced = inv.equip(third);
+    expect(inv.slots.ring1).toBe(third);   // ring1 replaced
+    expect(inv.slots.ring2).toBe(second);  // ring2 untouched
+    expect(displaced).toBe(first);         // old ring1 returned
   });
 
   it("equippedItems is empty when nothing equipped", () => {
