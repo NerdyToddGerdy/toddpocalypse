@@ -124,7 +124,8 @@ function renderDepthGauge(state: GameStateDict): void {
   $("depth-label-bottom").textContent = `▼ ${maxDisplay}`;
 
   const track = $("depth-track");
-  const trackH = track.clientHeight || 200;
+  const trackH = Math.max(160, highest * 10);
+  track.style.height = trackH + "px";
 
   const toPercent = (level: number) =>
     ((level - 1) / (maxDisplay - 1)) * (trackH - 12);

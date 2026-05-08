@@ -1,4 +1,4 @@
-export const VERSION = "v1.9.4";
+export const VERSION = "v1.9.5";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,13 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v1.9.5",
+    date: "2026-05-08",
+    changes: [
+      "Depth gauge grows taller as you descend — 10px per level, minimum 160px, smooth animated transition",
+    ],
+  },
   {
     version: "v1.9.4",
     date: "2026-05-08",

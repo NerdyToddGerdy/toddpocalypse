@@ -781,13 +781,13 @@ main {
 }
 
 #depth-track {
-    flex: 1;
     width: 14px;
     background: var(--surface2);
     border: 1px solid var(--border);
     border-radius: 7px;
     position: relative;
-    min-height: 200px;
+    min-height: 160px;
+    transition: height 0.6s ease;
 }
 
 #depth-fill {
