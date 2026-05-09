@@ -1871,11 +1871,23 @@ describe("venture", () => {
     expect(restored.idleGoldRate).toBeCloseTo(gs.idleGoldRate);
   });
 
-  it("prestige in dungeon 2 does not restore companions (party stays solo)", () => {
+  it("venture resets party slot upgrades so new companions can be recruited", () => {
+    const gs = withVentureReady();
+    expect(gs.prestigeUpgrades["party_slot_2"]).toBeGreaterThan(0);
+    gs.venture();
+    expect(gs.prestigeUpgrades["party_slot_2"]).toBe(0);
+    expect(gs.prestigeUpgrades["party_slot_3"] ?? 0).toBe(0);
+  });
+
+  it("prestige in dungeon 2 restores companions when party slots re-purchased", () => {
     const gs = withVentureReady();
     gs.venture();
+    // Re-buy party slot 2 in dungeon 2
+    gs.prestigePoints = 5;
+    gs.buyPrestigeUpgrade("party_slot_2", "rogue");
     gs.highestLevel = PRESTIGE_UNLOCK_LEVEL;
     gs.prestige();
-    expect(gs.party.team.length).toBe(1);
+    expect(gs.party.team.length).toBe(2);
+    expect(gs.party.team[1].characterClass).toBe("rogue");
   });
 });

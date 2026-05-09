@@ -247,6 +247,9 @@ export class GameState {
 
     this.dungeonIndex = 1;
     this.prestigePoints = 0;
+    // Reset party slots so fresh companions can be recruited in the new dungeon
+    this.prestigeUpgrades["party_slot_2"] = 0;
+    this.prestigeUpgrades["party_slot_3"] = 0;
 
     const leadName = this.party.team[0].name;
     const leadClass = this.party.team[0].characterClass;
@@ -299,19 +302,17 @@ export class GameState {
     this.party.addPlayer(lead);
     this.upgrades[leadName] = { dps: 0, xp: 0, click: 0, hp: 0 };
 
-    if (this.dungeonIndex === 0) {
-      if ((this.prestigeUpgrades["party_slot_2"] ?? 0) > 0) {
-        const cls2 = this.prestigePartyClasses["slot_2"] ?? "fighter";
-        const comp = new Character("Companion", cls2, 1);
-        this.party.addPlayer(comp);
-        this.upgrades["Companion"] = { dps: 0, xp: 0, click: 0, hp: 0 };
-      }
-      if ((this.prestigeUpgrades["party_slot_3"] ?? 0) > 0) {
-        const cls3 = this.prestigePartyClasses["slot_3"] ?? "fighter";
-        const ally = new Character("Ally", cls3, 1);
-        this.party.addPlayer(ally);
-        this.upgrades["Ally"] = { dps: 0, xp: 0, click: 0, hp: 0 };
-      }
+    if ((this.prestigeUpgrades["party_slot_2"] ?? 0) > 0) {
+      const cls2 = this.prestigePartyClasses["slot_2"] ?? "fighter";
+      const comp = new Character("Companion", cls2, 1);
+      this.party.addPlayer(comp);
+      this.upgrades["Companion"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+    }
+    if ((this.prestigeUpgrades["party_slot_3"] ?? 0) > 0) {
+      const cls3 = this.prestigePartyClasses["slot_3"] ?? "fighter";
+      const ally = new Character("Ally", cls3, 1);
+      this.party.addPlayer(ally);
+      this.upgrades["Ally"] = { dps: 0, xp: 0, click: 0, hp: 0 };
     }
 
     const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;

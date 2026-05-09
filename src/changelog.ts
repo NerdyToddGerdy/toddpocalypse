@@ -1,4 +1,4 @@
-export const VERSION = "v2.3.0";
+export const VERSION = "v2.3.1";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.3.1",
+    date: "2026-05-08",
+    changes: [
+      "Dungeon 2 plays identically to Dungeon 1 — recruit new companions via the Prestige Shop",
+      "Venturing resets Party Slot II and III so fresh companions can be recruited in the new dungeon",
+      "Original companions remain idle in Dungeon 1, still earning gold for you",
+    ],
+  },
   {
     version: "v2.3.0",
     date: "2026-05-08",
