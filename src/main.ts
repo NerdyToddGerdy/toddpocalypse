@@ -1,4 +1,4 @@
-import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL } from "./engine.js";
+import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, GUILD_HALL_COSTS, SKILL_DEFS } from "./engine.js";
 import { qualityClass, autoSellThreshold, QUAL } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
@@ -7,6 +7,18 @@ const CLASS_DESCS: Record<string, string> = {
   fighter: "Highest idle DPS. Each level-up multiplies damage by 1.2×.",
   rogue: "Gains +0.3 click damage every level. Rewards active play.",
   mage: "Gains +5% XP rate every level. Slow start, fast late-game.",
+  paladin: "Tank/healer. 25% damage reduction at Lv5, heals party on kill at Lv10.",
+  ranger: "Gains +0.2 click damage every level. 30% crit chance at Lv5, +60% DPS at Lv10.",
+};
+
+const GUILD_HALL_META: Record<string, { icon: string; name: string; desc: string }> = {
+  companion_hall:      { icon: "🏰", name: "Companion Hall",   desc: "Unlock Party Slot IV (stack 1) and Slot V (stack 2) in the Prestige Shop." },
+  expanded_armory:     { icon: "🗄", name: "Expanded Armory",  desc: "+2 loot chest capacity per stack (max 14)." },
+  class_paladin:       { icon: "🛡", name: "Recruit: Paladin", desc: "Unlock Paladin as a recruitable class for companions." },
+  class_ranger:        { icon: "🏹", name: "Recruit: Ranger",  desc: "Unlock Ranger as a recruitable class for companions." },
+  skill_battle_cry:    { icon: "📯", name: "Battle Cry",       desc: "Fighter: ×2 party DPS for 15s. 2-min cooldown." },
+  skill_shadow_strike: { icon: "🌑", name: "Shadow Strike",    desc: "Rogue: ×5 click damage for 8s. 45s cooldown." },
+  skill_arcane_surge:  { icon: "⚡", name: "Arcane Surge",     desc: "Mage: ×3 DPS for 15s. 90s cooldown." },
 };
 
 const SLOT_ICONS: Record<string, string> = {
@@ -36,6 +48,8 @@ let upgradeKey: string | null = null;
 let partyKey: string | null = null;
 let prestigeKey: string | null = null;
 let ventureKey: string | null = null;
+let guildKey: string | null = null;
+let skillKey: string | null = null;
 let hoveredLootSlot: string | null = null;
 
 function $(id: string): HTMLElement {
@@ -88,6 +102,8 @@ function render(state: GameStateDict): void {
   renderLoot(state);
   renderUpgrades(state);
   renderPrestigeShop(state);
+  renderGuildHall(state);
+  renderSkillButton(state);
   renderLog(state);
   updatePrestigeButton(state);
   updateVentureButton(state);
@@ -309,12 +325,14 @@ function renderUpgrades(state: GameStateDict): void {
     .join("");
 }
 
-const PRESTIGE_SHOP_META: Record<string, { icon: string; name: string; desc: string; max: number }> = {
+const PRESTIGE_SHOP_META: Record<string, { icon: string; name: string; desc: string; max: number; guildReq?: number }> = {
   auto_seller:   { icon: "🤖", name: "Auto Seller",    desc: "Auto-sells checked quality tiers after each kill.", max: 1 },
   auto_equip:    { icon: "⚔", name: "Auto Equip",     desc: "Automatically equips loot upgrades after each kill.", max: 1 },
   auto_upgrade:  { icon: "📈", name: "Auto Upgrade",   desc: "Automatically buys the cheapest affordable stat upgrade after each kill.", max: 1 },
   party_slot_2:  { icon: "👤", name: "Party Slot II",  desc: "Add a 2nd party member (pick class).", max: 1 },
   party_slot_3:  { icon: "👥", name: "Party Slot III", desc: "Add a 3rd member. Requires Slot II.", max: 1 },
+  party_slot_4:  { icon: "👥", name: "Party Slot IV",  desc: "Add a 4th member. Requires Slot III + Companion Hall.", max: 1, guildReq: 1 },
+  party_slot_5:  { icon: "👥", name: "Party Slot V",   desc: "Add a 5th member. Requires Slot IV + Companion Hall II.", max: 1, guildReq: 2 },
   starting_gold: { icon: "💰", name: "Starting Gold",  desc: "+250g at the start of each run.", max: Infinity },
   xp_bonus:      { icon: "✨", name: "XP Bonus",       desc: "+10% XP gain for all party members.", max: Infinity },
 };
@@ -340,11 +358,18 @@ function renderPrestigeShop(state: GameStateDict): void {
   $("prestige-points-display").textContent = pts === 1 ? "(1 pt)" : pts > 0 ? `(${pts} pts)` : "";
 
   const ups = state.prestige_upgrades as Record<string, number>;
+  const guildUpgrades = state.guild_upgrades as Record<string, number>;
+  const companionHall = guildUpgrades["companion_hall"] ?? 0;
+  const PRESTIGE_COSTS_MAP: Record<string, number> = { auto_seller: 1, auto_equip: 2, auto_upgrade: 2, party_slot_2: 2, party_slot_3: 3, party_slot_4: 4, party_slot_5: 5, starting_gold: 1, xp_bonus: 1 };
   $("prestige-shop-items").innerHTML = Object.entries(PRESTIGE_SHOP_META).map(([type, meta]) => {
+    const guildReq = meta.guildReq ?? 0;
+    if (guildReq > 0 && companionHall < guildReq) return ""; // hidden until guild unlock
     const owned = ups[type] ?? 0;
-    const cost = ({ auto_seller: 1, auto_equip: 2, auto_upgrade: 2, party_slot_2: 2, party_slot_3: 3, starting_gold: 1, xp_bonus: 1 } as Record<string, number>)[type];
+    const cost = PRESTIGE_COSTS_MAP[type] ?? 1;
     const atMax = owned >= meta.max;
-    const prereqMissing = type === "party_slot_3" && !(ups["party_slot_2"] > 0);
+    const prereqMissing = (type === "party_slot_3" && !(ups["party_slot_2"] > 0))
+      || (type === "party_slot_4" && !(ups["party_slot_3"] > 0))
+      || (type === "party_slot_5" && !(ups["party_slot_4"] > 0));
     const canAfford = pts >= cost;
     const disabled = atMax || prereqMissing || !canAfford;
     const ownedLabel = atMax ? " ✓" : owned > 0 ? ` (${owned})` : "";
@@ -372,6 +397,79 @@ function updateVentureButton(state: GameStateDict): void {
   } else {
     btn.disabled = true;
     btn.textContent = `⚔ Venture (need lv${VENTURE_UNLOCK_LEVEL})`;
+  }
+}
+
+function renderGuildHall(state: GameStateDict): void {
+  const newKey = JSON.stringify(state.guild_upgrades) + "|" + Math.floor(state.gold);
+  if (newKey === guildKey) return;
+  guildKey = newKey;
+
+  const owned = state.guild_upgrades as Record<string, number>;
+  $("guild-hall-items").innerHTML = Object.entries(GUILD_HALL_META).map(([type, meta]) => {
+    const stacks = owned[type] ?? 0;
+    const costs = GUILD_HALL_COSTS[type];
+    const atMax = stacks >= costs.length;
+    const nextCost = atMax ? 0 : costs[stacks];
+    const canAfford = !atMax && state.gold >= nextCost;
+    const disabled = atMax || !canAfford;
+    const stackLabel = costs.length > 1 ? (atMax ? ` (${stacks}/${costs.length})` : stacks > 0 ? ` (${stacks}/${costs.length})` : "") : atMax ? " ✓" : "";
+    return `<div class="prestige-item">
+      <div class="prestige-item-meta">
+        <div class="prestige-item-name">${meta.icon} ${meta.name}${stackLabel}</div>
+        <div class="prestige-item-desc">${meta.desc}</div>
+      </div>
+      <button class="guild-buy-btn" data-action="buy-guild" data-type="${type}" ${disabled ? "disabled" : ""}>${atMax ? "Owned" : nextCost.toLocaleString() + "g"}</button>
+    </div>`;
+  }).join("");
+}
+
+const SKILL_NAMES: Record<string, string> = {
+  skill_battle_cry: "📯 Battle Cry",
+  skill_shadow_strike: "🌑 Shadow Strike",
+  skill_arcane_surge: "⚡ Arcane Surge",
+};
+const SKILL_COOLDOWNS: Record<string, number> = {
+  skill_battle_cry: 120_000,
+  skill_shadow_strike: 45_000,
+  skill_arcane_surge: 90_000,
+};
+
+function renderSkillButton(state: GameStateDict): void {
+  const skillId = state.skill_available;
+  const newKey = skillId + "|" + (skillId ? (state.skill_cooldowns[skillId] ?? 0) : 0) + "|" + (skillId ? (state.active_effects[skillId] ?? 0) : 0);
+  if (newKey === skillKey) return;
+  skillKey = newKey;
+
+  const btn = $("skill-btn") as HTMLButtonElement;
+  const bar = $("skill-cooldown-bar");
+  const fill = $("skill-cooldown-fill");
+
+  if (!skillId) {
+    btn.hidden = true;
+    bar.hidden = true;
+    return;
+  }
+
+  btn.hidden = false;
+  const now = Date.now();
+  const lastUsed = state.skill_cooldowns[skillId] ?? 0;
+  const expiry = state.active_effects[skillId] ?? 0;
+  const cooldownMs = SKILL_COOLDOWNS[skillId] ?? 60_000;
+  const isActive = expiry > now;
+  const elapsed = now - lastUsed;
+  const onCooldown = lastUsed > 0 && elapsed < cooldownMs && !isActive;
+
+  btn.textContent = SKILL_NAMES[skillId] ?? skillId;
+  btn.disabled = onCooldown;
+  btn.className = isActive ? "active" : "";
+
+  if (onCooldown) {
+    const pct = Math.min(100, (elapsed / cooldownMs) * 100);
+    fill.style.width = pct + "%";
+    bar.hidden = false;
+  } else {
+    bar.hidden = true;
   }
 }
 
@@ -415,7 +513,12 @@ function updateShopBadge(state: GameStateDict): void {
     const prereqMissing = type === "party_slot_3" && !(ups["party_slot_2"] > 0);
     return !atMax && !prereqMissing && state.prestige_points >= cost;
   });
-  badge.hidden = !(canBuyUpgrade || canBuyPrestige);
+  const guildUpgrades = state.guild_upgrades as Record<string, number>;
+  const canBuyGuild = Object.entries(GUILD_HALL_COSTS).some(([type, costs]) => {
+    const owned = guildUpgrades[type] ?? 0;
+    return owned < costs.length && state.gold >= costs[owned];
+  });
+  badge.hidden = !(canBuyUpgrade || canBuyPrestige || canBuyGuild);
 }
 
 function renderLog(state: GameStateDict): void {
@@ -455,7 +558,7 @@ function slotLabel(slot: string): string {
 
 const TAB_PANELS: Record<string, string[]> = {
   combat: ["enemy-panel", "party-panel", "loot-panel"],
-  shop:   ["upgrades-panel", "prestige-panel"],
+  shop:   ["upgrades-panel", "prestige-panel", "guild-hall-panel"],
   log:    ["log-panel"],
 };
 
@@ -483,9 +586,16 @@ function openPartyClassModal(slotType: string): void {
   const picker = $("party-class-picker");
   const desc = $("party-class-desc");
 
+  // Show/hide guild-unlocked classes
+  const guildUpgrades = game ? (JSON.parse(game.respond()) as GameStateDict).guild_upgrades : {};
+  const paladinBtn = document.getElementById("party-class-paladin");
+  const rangerBtn = document.getElementById("party-class-ranger");
+  if (paladinBtn) paladinBtn.hidden = !((guildUpgrades["class_paladin"] ?? 0) > 0);
+  if (rangerBtn) rangerBtn.hidden = !((guildUpgrades["class_ranger"] ?? 0) > 0);
+
   picker.querySelectorAll(".class-btn").forEach((b) => b.classList.remove("selected"));
-  (picker.querySelector(".class-btn") as HTMLElement)?.classList.add("selected");
-  const firstClass = (picker.querySelector(".class-btn") as HTMLElement)?.dataset.class ?? "fighter";
+  (picker.querySelector(".class-btn:not([hidden])") as HTMLElement)?.classList.add("selected");
+  const firstClass = (picker.querySelector(".class-btn:not([hidden])") as HTMLElement)?.dataset.class ?? "fighter";
   desc.textContent = CLASS_DESCS[firstClass] ?? "";
 
   modal.classList.add("open");
@@ -661,11 +771,19 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     else if (action === "buy-prestige") {
       const type = btn.dataset.type!;
-      if (type === "party_slot_2" || type === "party_slot_3") {
+      if (type === "party_slot_2" || type === "party_slot_3" || type === "party_slot_4" || type === "party_slot_5") {
         openPartyClassModal(type);
       } else {
         call("buyPrestigeUpgrade", type);
       }
+    }
+    else if (action === "buy-guild") {
+      call("buyGuildUpgrade", btn.dataset.type!);
+    }
+    else if (action === "activate-skill") {
+      if (!game) return;
+      const state = JSON.parse(game.respond()) as GameStateDict;
+      if (state.skill_available) call("activateSkill", state.skill_available);
     }
     else if (action === "venture") {
       if (confirm("Venture to a new dungeon? Your companions will stay behind and earn gold. You start fresh with just your class.")) {

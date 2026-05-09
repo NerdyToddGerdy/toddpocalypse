@@ -5,6 +5,7 @@ import {
   BLOODLUST_MULTIPLIER, EXPOSE_WEAKNESS_MULT, MANA_SURGE_INTERVAL, MANA_SURGE_MULTIPLIER,
   LUCKY_STRIKE_CHANCE, LUCKY_STRIKE_MULTIPLIER, EMPOWER_MULTIPLIER,
   VENTURE_UNLOCK_LEVEL, IDLE_GOLD_RATE,
+  GUILD_HALL_COSTS, SKILL_DEFS,
   killsForFloor,
 } from "../src/engine.js";
 import { Character } from "../src/character.js";
@@ -1912,5 +1913,230 @@ describe("venture", () => {
     const d = gs.toDict();
     expect(d.venture_available).toBe(true);
     expect(d.dungeon_index).toBe(1);
+  });
+});
+
+describe("guild hall", () => {
+  function withGuildGold(gold = 100_000): GameState {
+    const gs = make();
+    gs.gold = gold;
+    return gs;
+  }
+
+  // ── buyGuildUpgrade ──────────────────────────────────────────────
+  it("buyGuildUpgrade deducts gold", () => {
+    const gs = withGuildGold();
+    const cost = GUILD_HALL_COSTS["expanded_armory"][0];
+    gs.buyGuildUpgrade("expanded_armory");
+    expect(gs.gold).toBeCloseTo(100_000 - cost);
+  });
+
+  it("buyGuildUpgrade fails when insufficient gold", () => {
+    const gs = make(); // starts with 0 gold
+    gs.buyGuildUpgrade("expanded_armory");
+    expect(gs.guildUpgrades["expanded_armory"] ?? 0).toBe(0);
+  });
+
+  it("buyGuildUpgrade respects max stacks", () => {
+    const gs = withGuildGold();
+    const maxStacks = GUILD_HALL_COSTS["expanded_armory"].length;
+    for (let i = 0; i <= maxStacks; i++) gs.buyGuildUpgrade("expanded_armory");
+    expect(gs.guildUpgrades["expanded_armory"]).toBe(maxStacks);
+  });
+
+  // ── companion_hall / party slot expansion ────────────────────────
+  it("companion_hall stack 1 allows party_slot_4 purchase", () => {
+    const gs = withGuildGold();
+    gs.buyGuildUpgrade("companion_hall");
+    const d = gs.toDict();
+    expect(d.guild_upgrades["companion_hall"]).toBe(1);
+    // party_slot_4 should now be purchasable (requires companion_hall >= 1)
+    gs.prestigePoints = 20;
+    gs.prestigeUpgrades["party_slot_2"] = 1;
+    gs.party.team.push(new Character("Companion", "fighter", 1));
+    gs.prestigeUpgrades["party_slot_3"] = 1;
+    gs.party.team.push(new Character("Ally", "fighter", 1));
+    gs.buyPrestigeUpgrade("party_slot_4", "fighter");
+    expect(gs.party.team.length).toBe(4);
+  });
+
+  it("party_slot_4 blocked when companion_hall < 1", () => {
+    const gs = make();
+    gs.prestigePoints = 20;
+    gs.prestigeUpgrades["party_slot_2"] = 1;
+    gs.party.team.push(new Character("Companion", "fighter", 1));
+    gs.prestigeUpgrades["party_slot_3"] = 1;
+    gs.party.team.push(new Character("Ally", "fighter", 1));
+    gs.buyPrestigeUpgrade("party_slot_4", "fighter");
+    expect(gs.party.team.length).toBe(3); // not added
+  });
+
+  // ── expanded_armory / lootMax ────────────────────────────────────
+  it("expanded_armory increases lootMax by 2 per stack", () => {
+    const gs = withGuildGold();
+    expect(gs.lootMax).toBe(8);
+    gs.buyGuildUpgrade("expanded_armory");
+    expect(gs.lootMax).toBe(10);
+    gs.buyGuildUpgrade("expanded_armory");
+    expect(gs.lootMax).toBe(12);
+  });
+
+  it("lootMax caps at 14 with 3 stacks", () => {
+    const gs = withGuildGold();
+    for (let i = 0; i < 3; i++) gs.buyGuildUpgrade("expanded_armory");
+    expect(gs.lootMax).toBe(14);
+  });
+
+  // ── persistence ──────────────────────────────────────────────────
+  it("guildUpgrades survive prestige", () => {
+    const gs = withGuildGold();
+    gs.buyGuildUpgrade("expanded_armory");
+    gs.highestLevel = PRESTIGE_UNLOCK_LEVEL;
+    gs.prestige();
+    expect(gs.guildUpgrades["expanded_armory"]).toBe(1);
+  });
+
+  it("guildUpgrades survive venture", () => {
+    const gs = withGuildGold();
+    gs.buyGuildUpgrade("expanded_armory");
+    gs.highestLevel = VENTURE_UNLOCK_LEVEL;
+    gs.venture();
+    expect(gs.guildUpgrades["expanded_armory"]).toBe(1);
+  });
+
+  // ── activateSkill ────────────────────────────────────────────────
+  it("activateSkill sets cooldown and active effect", () => {
+    const gs = withGuildGold();
+    gs.guildUpgrades["skill_battle_cry"] = 1;
+    gs.party.team[0] = new Character("Hero", "fighter", 1);
+    const before = Date.now();
+    gs.activateSkill("skill_battle_cry");
+    const def = SKILL_DEFS["skill_battle_cry"];
+    expect(gs.skillCooldowns["skill_battle_cry"]).toBeGreaterThanOrEqual(before);
+    expect(gs.activeEffects["skill_battle_cry"]).toBeGreaterThan(before + def.durationMs - 100);
+  });
+
+  it("activateSkill fails when skill not purchased", () => {
+    const gs = make();
+    gs.party.team[0] = new Character("Hero", "fighter", 1);
+    gs.activateSkill("skill_battle_cry");
+    expect(gs.skillCooldowns["skill_battle_cry"]).toBeUndefined();
+  });
+
+  it("activateSkill fails when lead is wrong class", () => {
+    const gs = make();
+    gs.guildUpgrades["skill_battle_cry"] = 1;
+    gs.party.team[0] = new Character("Hero", "rogue", 1);
+    gs.activateSkill("skill_battle_cry");
+    expect(gs.skillCooldowns["skill_battle_cry"]).toBeUndefined();
+  });
+
+  it("activateSkill fails when on cooldown", () => {
+    const gs = withGuildGold();
+    gs.guildUpgrades["skill_battle_cry"] = 1;
+    gs.party.team[0] = new Character("Hero", "fighter", 1);
+    gs.activateSkill("skill_battle_cry");
+    const firstActivation = gs.skillCooldowns["skill_battle_cry"];
+    gs.activateSkill("skill_battle_cry");
+    expect(gs.skillCooldowns["skill_battle_cry"]).toBe(firstActivation); // unchanged
+  });
+
+  it("skill_battle_cry doubles party DPS during active window", () => {
+    const sword = new GearItem("main_hand" as Slot, "sword", "common", "valor");
+
+    const gs = make();
+    gs.guildUpgrades["skill_battle_cry"] = 1;
+    gs.party.team[0].equipItem(sword);
+    gs.activeEffects["skill_battle_cry"] = Date.now() + 15_000;
+
+    const gs2 = make();
+    gs2.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "common", "valor"));
+
+    gs.enemy.hp = 99_999;
+    gs2.enemy.hp = 99_999;
+    const dmgWith = 99_999 - JSON.parse(gs.tick(1)).enemy.hp;
+    const dmgWithout = 99_999 - JSON.parse(gs2.tick(1)).enemy.hp;
+    expect(dmgWith).toBeGreaterThan(dmgWithout * 1.5); // battle cry is 2×
+  });
+
+  it("skill_shadow_strike multiplies click damage", () => {
+    const gs = make();
+    gs.guildUpgrades["skill_shadow_strike"] = 1;
+    gs.party.team[0] = new Character("Hero", "rogue", 1);
+    gs.activeEffects["skill_shadow_strike"] = Date.now() + 8_000;
+    gs.enemy.hp = 99_999;
+    const stateBefore = JSON.parse(gs.click());
+    const dmgDealt = 99_999 - stateBefore.enemy.hp;
+    expect(dmgDealt).toBeGreaterThan(0);
+  });
+
+  it("holy_light heals party on kill", () => {
+    const gs = make();
+    // Add a paladin companion with holy_light
+    const paladin = new Character("Pal", "paladin", 10);
+    while (paladin.level < 10) paladin.levelUp();
+    gs.party.team.push(paladin);
+    gs.upgrades["Pal"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+    // Damage lead so healing is observable
+    gs.party.team[0].health = 50;
+    gs.party.team[0].maxHealth = 100;
+    const hpBefore = gs.party.team[0].health;
+    // Trigger a kill
+    gs.enemy.hp = 0;
+    gs.tick(0.1);
+    expect(gs.party.team[0].health).toBeGreaterThan(hpBefore);
+  });
+
+  it("hunters_mark increases damage taken by enemy", () => {
+    // Both setups get identical gear; only gs has a ranger with hunters_mark
+    const gs = make();
+    gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "common", "valor"));
+    const ranger = new Character("Ran", "ranger", 1); // start at 1, level up to unlock abilities
+    while (ranger.level < 20) ranger.levelUp();
+    gs.party.team.push(ranger);
+    gs.upgrades["Ran"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+    gs.enemy.hp = 99_999;
+    const dmgWith = 99_999 - JSON.parse(gs.tick(1)).enemy.hp;
+
+    const gs2 = make();
+    gs2.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "common", "valor"));
+    gs2.enemy.hp = 99_999;
+    const dmgWithout = 99_999 - JSON.parse(gs2.tick(1)).enemy.hp;
+    expect(dmgWith).toBeGreaterThan(dmgWithout);
+  });
+
+  it("guild_upgrades round-trips through toDict/fromDict", () => {
+    const gs = withGuildGold();
+    gs.buyGuildUpgrade("expanded_armory");
+    gs.buyGuildUpgrade("class_paladin");
+    const restored = GameState.fromDict(gs.toDict());
+    expect(restored.guildUpgrades["expanded_armory"]).toBe(1);
+    expect(restored.guildUpgrades["class_paladin"]).toBe(1);
+  });
+
+  it("class_paladin shows in toDict guild_upgrades", () => {
+    const gs = withGuildGold();
+    gs.buyGuildUpgrade("class_paladin");
+    expect(gs.toDict().guild_upgrades["class_paladin"]).toBe(1);
+  });
+
+  it("skillCooldowns reset on prestige", () => {
+    const gs = withGuildGold();
+    gs.guildUpgrades["skill_battle_cry"] = 1;
+    gs.party.team[0] = new Character("Hero", "fighter", 1);
+    gs.activateSkill("skill_battle_cry");
+    gs.highestLevel = PRESTIGE_UNLOCK_LEVEL;
+    gs.prestige();
+    expect(Object.keys(gs.skillCooldowns)).toHaveLength(0);
+  });
+
+  it("skillCooldowns reset on venture", () => {
+    const gs = withGuildGold();
+    gs.guildUpgrades["skill_battle_cry"] = 1;
+    gs.party.team[0] = new Character("Hero", "fighter", 1);
+    gs.activateSkill("skill_battle_cry");
+    gs.highestLevel = VENTURE_UNLOCK_LEVEL;
+    gs.venture();
+    expect(Object.keys(gs.skillCooldowns)).toHaveLength(0);
   });
 });

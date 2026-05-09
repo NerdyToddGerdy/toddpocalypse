@@ -245,6 +245,103 @@ describe("class abilities — unlocks", () => {
   });
 });
 
+describe("paladin", () => {
+  function levelTo(c: Character, target: number) {
+    while (c.level < target) c.levelUp();
+  }
+
+  it("base DPS is 1.7", () => {
+    expect(new Character("P", "paladin", 1).dps).toBeCloseTo(1.7);
+  });
+
+  it("level-up multiplies DPS by 1.16", () => {
+    const c = new Character("P", "paladin", 1);
+    const before = c.dps;
+    c.levelUp();
+    expect(c.dps).toBeCloseTo(before * 1.16);
+  });
+
+  it("unlocks sacred_shield at level 5", () => {
+    const c = new Character("P", "paladin", 1); levelTo(c, 5);
+    expect(c.abilities).toContain("sacred_shield");
+  });
+
+  it("sacred_shield sets damageReduction to 0.25", () => {
+    const c = new Character("P", "paladin", 1); levelTo(c, 5);
+    expect(c.damageReduction).toBeCloseTo(0.25);
+  });
+
+  it("unlocks holy_light at level 10", () => {
+    const c = new Character("P", "paladin", 1); levelTo(c, 10);
+    expect(c.abilities).toContain("holy_light");
+  });
+
+  it("holy_light queues as party ability", () => {
+    const c = new Character("P", "paladin", 1); levelTo(c, 10);
+    expect(c.pendingPartyAbilities).toContain("holy_light");
+  });
+
+  it("unlocks divine_wrath at level 20", () => {
+    const c = new Character("P", "paladin", 1); levelTo(c, 20);
+    expect(c.abilities).toContain("divine_wrath");
+  });
+
+  it("CLASS_ABILITIES has paladin entry", () => {
+    expect(CLASS_ABILITIES).toHaveProperty("paladin");
+    expect(CLASS_ABILITIES["paladin"]).toHaveLength(3);
+  });
+});
+
+describe("ranger", () => {
+  function levelTo(c: Character, target: number) {
+    while (c.level < target) c.levelUp();
+  }
+
+  it("base DPS is 1.5", () => {
+    expect(new Character("R", "ranger", 1).dps).toBeCloseTo(1.5);
+  });
+
+  it("level-up multiplies DPS by 1.18", () => {
+    const c = new Character("R", "ranger", 1);
+    const before = c.dps;
+    c.levelUp();
+    expect(c.dps).toBeCloseTo(before * 1.18);
+  });
+
+  it("level-up adds 0.2 clickBonus", () => {
+    const c = new Character("R", "ranger", 1);
+    c.levelUp();
+    expect(c.clickBonus).toBeCloseTo(0.2);
+  });
+
+  it("unlocks eagle_eye at level 5", () => {
+    const c = new Character("R", "ranger", 1); levelTo(c, 5);
+    expect(c.abilities).toContain("eagle_eye");
+  });
+
+  it("unlocks swift_quiver at level 10", () => {
+    const c = new Character("R", "ranger", 1); levelTo(c, 10);
+    expect(c.abilities).toContain("swift_quiver");
+  });
+
+  it("swift_quiver multiplies DPS by 1.6", () => {
+    const c = new Character("R", "ranger", 1); levelTo(c, 9);
+    const before = c.dps;
+    c.levelUp(); // → level 10, applies swift_quiver
+    expect(c.dps).toBeCloseTo(before * 1.18 * 1.6);
+  });
+
+  it("unlocks hunters_mark at level 20", () => {
+    const c = new Character("R", "ranger", 1); levelTo(c, 20);
+    expect(c.abilities).toContain("hunters_mark");
+  });
+
+  it("CLASS_ABILITIES has ranger entry", () => {
+    expect(CLASS_ABILITIES).toHaveProperty("ranger");
+    expect(CLASS_ABILITIES["ranger"]).toHaveLength(3);
+  });
+});
+
 describe("toDict", () => {
   it("contains required keys", () => {
     const d = makeChar().toDict();

@@ -31,12 +31,24 @@ export const CLASS_ABILITIES: Record<string, AbilityMeta[]> = {
     { level: 10, id: "mana_surge",      name: "Mana Surge",      desc: "Auto-burst 5× DPS every 20s",   icon: "⚡" },
     { level: 20, id: "empower",         name: "Empower",         desc: "All click damage ×2",            icon: "✨" },
   ],
+  paladin: [
+    { level: 5,  id: "sacred_shield",   name: "Sacred Shield",   desc: "25% damage reduction",          icon: "🛡" },
+    { level: 10, id: "holy_light",      name: "Holy Light",      desc: "Party heals 5 HP on kill",       icon: "✝" },
+    { level: 20, id: "divine_wrath",    name: "Divine Wrath",    desc: "+15% party DPS when ally falls", icon: "⚜" },
+  ],
+  ranger: [
+    { level: 5,  id: "eagle_eye",       name: "Eagle Eye",       desc: "30% click crit (2× dmg)",       icon: "🦅" },
+    { level: 10, id: "swift_quiver",    name: "Swift Quiver",    desc: "Passive DPS +60%",               icon: "🏹" },
+    { level: 20, id: "hunters_mark",    name: "Hunter's Mark",   desc: "Enemy takes +20% dmg",           icon: "🎯" },
+  ],
 };
 
 const BASE_DPS: Record<string, number> = {
   fighter: 2.0,
   rogue: 1.5,
   mage: 1.0,
+  paladin: 1.7,
+  ranger: 1.5,
 };
 
 interface LevelUpBonuses {
@@ -46,9 +58,11 @@ interface LevelUpBonuses {
 }
 
 const LEVEL_UP: Record<string, LevelUpBonuses> = {
-  fighter: { dpsMult: 1.2, clickBonus: 0.0, xpMultiplier: 0.0 },
-  rogue: { dpsMult: 1.15, clickBonus: 0.3, xpMultiplier: 0.0 },
-  mage: { dpsMult: 1.1, clickBonus: 0.0, xpMultiplier: 0.05 },
+  fighter: { dpsMult: 1.2,  clickBonus: 0.0, xpMultiplier: 0.0 },
+  rogue:   { dpsMult: 1.15, clickBonus: 0.3, xpMultiplier: 0.0 },
+  mage:    { dpsMult: 1.1,  clickBonus: 0.0, xpMultiplier: 0.05 },
+  paladin: { dpsMult: 1.16, clickBonus: 0.0, xpMultiplier: 0.0 },
+  ranger:  { dpsMult: 1.18, clickBonus: 0.2, xpMultiplier: 0.0 },
 };
 
 export const HP_PER_LEVEL = 10;
@@ -143,9 +157,13 @@ export class Character {
   private applyAbilityEffect(id: string): void {
     if (id === "iron_skin") {
       this.damageReduction = 0.2;
+    } else if (id === "sacred_shield") {
+      this.damageReduction = 0.25;
     } else if (id === "blade_mastery") {
       this.dps *= 1.5;
-    } else if (id === "battle_standard" || id === "arcane_study") {
+    } else if (id === "swift_quiver") {
+      this.dps *= 1.6;
+    } else if (id === "battle_standard" || id === "arcane_study" || id === "holy_light") {
       this.pendingPartyAbilities.push(id);
     }
   }

@@ -45,8 +45,24 @@ export const PRESTIGE_SHOP_COSTS: Record<string, number> = {
   auto_upgrade: 2,
   party_slot_2: 2,
   party_slot_3: 3,
+  party_slot_4: 4,
+  party_slot_5: 5,
   starting_gold: 1,
   xp_bonus: 1,
+};
+export const GUILD_HALL_COSTS: Record<string, number[]> = {
+  companion_hall:      [5_000, 15_000],
+  expanded_armory:     [1_000, 2_000, 3_000],
+  class_paladin:       [6_000],
+  class_ranger:        [6_000],
+  skill_battle_cry:    [2_500],
+  skill_shadow_strike: [2_500],
+  skill_arcane_surge:  [2_500],
+};
+export const SKILL_DEFS: Record<string, { cooldownMs: number; durationMs: number; class: string }> = {
+  skill_battle_cry:    { cooldownMs: 120_000, durationMs: 15_000, class: "fighter" },
+  skill_shadow_strike: { cooldownMs: 45_000,  durationMs: 8_000,  class: "rogue" },
+  skill_arcane_surge:  { cooldownMs: 90_000,  durationMs: 15_000, class: "mage" },
 };
 export const STARTING_GOLD_PER_LEVEL = 250;
 export const XP_BONUS_PER_LEVEL = 0.10;
@@ -81,6 +97,11 @@ export interface GameStateDict {
   dungeon_index: number;
   idle_gold_rate: number;
   venture_available: boolean;
+  guild_upgrades: Record<string, number>;
+  skill_available: string | null;
+  skill_cooldowns: Record<string, number>;
+  active_effects: Record<string, number>;
+  loot_max: number;
 }
 
 export class GameState {
@@ -106,6 +127,11 @@ export class GameState {
   floorKills = 0;
   dungeonIndex = 0;
   idleGoldRate = 0;
+  guildUpgrades: Record<string, number> = {};
+  skillCooldowns: Record<string, number> = {};
+  activeEffects: Record<string, number> = {};
+
+  get lootMax(): number { return 8 + 2 * (this.guildUpgrades["expanded_armory"] ?? 0); }
 
   constructor(name = "Hero", characterClass = "fighter") {
     this.party = new Party();
@@ -118,6 +144,11 @@ export class GameState {
 
   tick(dt: number): string {
     if (this.idleGoldRate > 0) this.gold += this.idleGoldRate * dt;
+    // Prune expired active effects
+    const now = Date.now();
+    for (const key of Object.keys(this.activeEffects)) {
+      if (this.activeEffects[key] <= now) delete this.activeEffects[key];
+    }
     // Mana Surge — fires before regular DPS so we can early-return if enemy dies
     for (const c of this.party.team) {
       if (!c.isAlive()) continue;
@@ -134,6 +165,12 @@ export class GameState {
     }
 
     const hasExpose = this.party.team.some(c => c.isAlive() && c.abilities.includes("expose_weakness"));
+    const hasMark = this.party.team.some(c => c.isAlive() && c.abilities.includes("hunters_mark"));
+    const hasDead = this.party.team.some(c => !c.isAlive());
+    const divineWrathActive = hasDead && this.party.team.some(c => c.isAlive() && c.abilities.includes("divine_wrath"));
+    const battleCryMult = (this.activeEffects["skill_battle_cry"] ?? 0) > now ? 2.0 : 1.0;
+    const arcaneSurgeMult = (this.activeEffects["skill_arcane_surge"] ?? 0) > now ? 3.0 : 1.0;
+
     const totalDps = this.party.team.reduce((s, c) => {
       if (!c.isAlive()) return s;
       if (c.inventory.equippedItems().length === 0) return s;
@@ -141,7 +178,8 @@ export class GameState {
       if (c.abilities.includes("bloodlust") && c.health <= c.maxHealth * 0.5) dps *= BLOODLUST_MULTIPLIER;
       return s + dps;
     }, 0);
-    this.enemy.hp -= totalDps * (hasExpose ? EXPOSE_WEAKNESS_MULT : 1.0) * dt;
+    const dmgMult = (hasExpose ? EXPOSE_WEAKNESS_MULT : 1.0) * (hasMark ? 1.20 : 1.0) * battleCryMult * arcaneSurgeMult * (divineWrathActive ? 1.15 : 1.0);
+    this.enemy.hp -= totalDps * dmgMult * dt;
     if (this.enemy.hp <= 0) {
       this.onEnemyDeath();
       return this.respond();
@@ -164,9 +202,16 @@ export class GameState {
     const clickBonus = this.party.team.reduce((s, c) => c.isAlive() ? s + c.clickBonus : s, 0);
     let damage = Math.max(1.0, totalDps * CLICK_DAMAGE_MULTIPLIER * 0.1 + clickBonus);
     if (this.party.team.some(c => c.isAlive() && c.abilities.includes("empower"))) damage *= EMPOWER_MULTIPLIER;
-    if (this.party.team.some(c => c.isAlive() && c.abilities.includes("lucky_strike")) && Math.random() < LUCKY_STRIKE_CHANCE) {
+    const shadowStrikeActive = (this.activeEffects["skill_shadow_strike"] ?? 0) > Date.now();
+    if (shadowStrikeActive) damage *= 5;
+    const hasLuckyStrike = this.party.team.some(c => c.isAlive() && c.abilities.includes("lucky_strike"));
+    const hasEagleEye = this.party.team.some(c => c.isAlive() && c.abilities.includes("eagle_eye"));
+    if (hasLuckyStrike && Math.random() < LUCKY_STRIKE_CHANCE) {
       damage *= LUCKY_STRIKE_MULTIPLIER;
       this.addLog(`Lucky Strike! ${damage.toFixed(1)} dmg!`);
+    } else if (hasEagleEye && Math.random() < 0.30) {
+      damage *= 2;
+      this.addLog(`Eagle Eye! ${damage.toFixed(1)} dmg!`);
     } else {
       this.addLog(`You strike for ${damage.toFixed(1)}!`);
     }
@@ -249,6 +294,10 @@ export class GameState {
     // Reset party slots so fresh companions can be recruited in the new dungeon
     this.prestigeUpgrades["party_slot_2"] = 0;
     this.prestigeUpgrades["party_slot_3"] = 0;
+    this.prestigeUpgrades["party_slot_4"] = 0;
+    this.prestigeUpgrades["party_slot_5"] = 0;
+    this.skillCooldowns = {};
+    this.activeEffects = {};
 
     const leadName = this.party.team[0].name;
     const leadClass = this.party.team[0].characterClass;
@@ -294,6 +343,8 @@ export class GameState {
     this.lootPool = [];
     this.log = [];
     this.enemy = generateEnemy(1);
+    this.skillCooldowns = {};
+    this.activeEffects = {};
 
     this.party.team = [];
     this.upgrades = {};
@@ -313,6 +364,18 @@ export class GameState {
       this.party.addPlayer(ally);
       this.upgrades["Ally"] = { dps: 0, xp: 0, click: 0, hp: 0 };
     }
+    if ((this.prestigeUpgrades["party_slot_4"] ?? 0) > 0) {
+      const cls4 = this.prestigePartyClasses["slot_4"] ?? "fighter";
+      const vet = new Character("Veteran", cls4, 1);
+      this.party.addPlayer(vet);
+      this.upgrades["Veteran"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+    }
+    if ((this.prestigeUpgrades["party_slot_5"] ?? 0) > 0) {
+      const cls5 = this.prestigePartyClasses["slot_5"] ?? "fighter";
+      const champ = new Character("Champion", cls5, 1);
+      this.party.addPlayer(champ);
+      this.upgrades["Champion"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+    }
 
     const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
     for (const c of this.party.team) {
@@ -328,7 +391,15 @@ export class GameState {
   buyPrestigeUpgrade(type: string, characterClass?: string): string {
     if (!(type in PRESTIGE_SHOP_COSTS)) return this.respond();
     if (type === "party_slot_3" && !(this.prestigeUpgrades["party_slot_2"] > 0)) return this.respond();
-    const oneTime = ["auto_seller", "auto_equip", "auto_upgrade", "party_slot_2", "party_slot_3"];
+    if (type === "party_slot_4") {
+      if (!(this.prestigeUpgrades["party_slot_3"] > 0)) return this.respond();
+      if (!((this.guildUpgrades["companion_hall"] ?? 0) >= 1)) return this.respond();
+    }
+    if (type === "party_slot_5") {
+      if (!(this.prestigeUpgrades["party_slot_4"] > 0)) return this.respond();
+      if (!((this.guildUpgrades["companion_hall"] ?? 0) >= 2)) return this.respond();
+    }
+    const oneTime = ["auto_seller", "auto_equip", "auto_upgrade", "party_slot_2", "party_slot_3", "party_slot_4", "party_slot_5"];
     if (oneTime.includes(type) && (this.prestigeUpgrades[type] ?? 0) >= 1) return this.respond();
     const cost = PRESTIGE_SHOP_COSTS[type];
     if (this.prestigePoints < cost) {
@@ -354,6 +425,22 @@ export class GameState {
       this.upgrades["Ally"] = { dps: 0, xp: 0, click: 0, hp: 0 };
       const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
       ally.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
+    } else if (type === "party_slot_4") {
+      const cls = characterClass ?? "fighter";
+      this.prestigePartyClasses["slot_4"] = cls;
+      const vet = new Character("Veteran", cls, 1);
+      this.party.addPlayer(vet);
+      this.upgrades["Veteran"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+      const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
+      vet.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
+    } else if (type === "party_slot_5") {
+      const cls = characterClass ?? "fighter";
+      this.prestigePartyClasses["slot_5"] = cls;
+      const champ = new Character("Champion", cls, 1);
+      this.party.addPlayer(champ);
+      this.upgrades["Champion"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+      const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
+      champ.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
     } else if (type === "xp_bonus") {
       for (const c of this.party.team) {
         c.xpMultiplier += XP_BONUS_PER_LEVEL;
@@ -376,6 +463,44 @@ export class GameState {
     }
     this.runAutoSeller();
     return this.respond();
+  }
+
+  buyGuildUpgrade(type: string): string {
+    if (!(type in GUILD_HALL_COSTS)) return this.respond();
+    const costs = GUILD_HALL_COSTS[type];
+    const owned = this.guildUpgrades[type] ?? 0;
+    if (owned >= costs.length) return this.respond();
+    const cost = costs[owned];
+    if (this.gold < cost) {
+      this.addLog("Not enough gold for Guild Hall upgrade!");
+      return this.respond();
+    }
+    this.gold -= cost;
+    this.guildUpgrades[type] = owned + 1;
+    this.addLog(`Guild Hall: ${type.replace(/_/g, " ")} upgraded!`);
+    return this.respond();
+  }
+
+  activateSkill(skillId: string): string {
+    if (!((this.guildUpgrades[skillId] ?? 0) > 0)) return this.respond();
+    const def = SKILL_DEFS[skillId];
+    if (!def) return this.respond();
+    if (this.party.team[0].characterClass !== def.class) return this.respond();
+    const now = Date.now();
+    const lastUsed = this.skillCooldowns[skillId] ?? 0;
+    if (now - lastUsed < def.cooldownMs) return this.respond();
+    this.skillCooldowns[skillId] = now;
+    this.activeEffects[skillId] = now + def.durationMs;
+    this.addLog(`${this.party.team[0].name} uses ${skillId.replace("skill_", "").replace(/_/g, " ")}!`);
+    return this.respond();
+  }
+
+  private computeSkillAvailable(): string | null {
+    const leadClass = this.party.team[0].characterClass;
+    for (const [skillId, def] of Object.entries(SKILL_DEFS)) {
+      if ((this.guildUpgrades[skillId] ?? 0) > 0 && def.class === leadClass) return skillId;
+    }
+    return null;
   }
 
   respond(): string {
@@ -435,6 +560,11 @@ export class GameState {
       dungeon_index: this.dungeonIndex,
       idle_gold_rate: this.idleGoldRate,
       venture_available: this.highestLevel >= VENTURE_UNLOCK_LEVEL,
+      guild_upgrades: { ...this.guildUpgrades },
+      skill_available: this.computeSkillAvailable(),
+      skill_cooldowns: { ...this.skillCooldowns },
+      active_effects: { ...this.activeEffects },
+      loot_max: this.lootMax,
     };
   }
 
@@ -479,13 +609,18 @@ export class GameState {
             other.xpMultiplier *= 1.25;
           }
           this.addLog(`${c.name} unlocks Arcane Study! Party XP +25%.`);
+        } else if (ability === "holy_light") {
+          for (const other of this.party.team) {
+            other.health = Math.min(other.maxHealth, other.health + 5);
+          }
+          this.addLog(`${c.name} Holy Light! Party healed 5 HP.`);
         }
       }
     }
 
     if (this.enemy.isBoss) {
       this.gold += this.enemy.gold_reward;
-      if (this.lootPool.length < LOOT_MAX) {
+      if (this.lootPool.length < this.lootMax) {
         const drop = getItem(undefined, this.dungeonLevel);
         this.lootPool.push(drop);
         this.addLog(`Dropped: ${drop.getName()}!`);
@@ -500,7 +635,7 @@ export class GameState {
       this.addLog(`Descending to level ${this.dungeonLevel}!`);
       this.enemy = generateEnemy(this.dungeonLevel);
     } else {
-      if (Math.random() < DROP_CHANCE && this.lootPool.length < LOOT_MAX) {
+      if (Math.random() < DROP_CHANCE && this.lootPool.length < this.lootMax) {
         const drop = getItem(undefined, this.dungeonLevel);
         this.lootPool.push(drop);
         this.addLog(`Dropped: ${drop.getName()}!`);
@@ -672,6 +807,9 @@ export class GameState {
     gs.floorKills = d.floor_kills ?? 0;
     gs.dungeonIndex = d.dungeon_index ?? 0;
     gs.idleGoldRate = d.idle_gold_rate ?? 0;
+    gs.guildUpgrades = { ...(d.guild_upgrades ?? {}) };
+    gs.skillCooldowns = { ...(d.skill_cooldowns ?? {}) };
+    gs.activeEffects = { ...(d.active_effects ?? {}) };
 
     gs.enemy = {
       name: d.enemy.name,

@@ -1,4 +1,4 @@
-export const VERSION = "v2.3.2";
+export const VERSION = "v2.4.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,23 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.4.0",
+    date: "2026-05-08",
+    changes: [
+      "Guild Hall — a permanent gold-funded meta layer that never resets (survives prestige and venture)",
+      "Companion Hall upgrade (×2 stackable) — unlocks Party Slot IV and V in the Prestige Shop",
+      "Expanded Armory upgrade (×3 stackable) — increases loot chest capacity from 8 up to 14",
+      "Recruit: Paladin and Recruit: Ranger guild upgrades — unlock new classes for companion recruitment",
+      "Paladin: 25% damage reduction at Lv5, heals party 5 HP on kill at Lv10, +15% party DPS when an ally falls at Lv20",
+      "Ranger: 30% click crit (×2) at Lv5, ×1.6 passive DPS at Lv10, enemy takes +20% damage at Lv20",
+      "Active combat skills purchasable from Guild Hall — class-specific buttons appear in the combat panel",
+      "Battle Cry (Fighter): ×2 party DPS for 15s, 2-min cooldown",
+      "Shadow Strike (Rogue): ×5 click damage for 8s, 45s cooldown",
+      "Arcane Surge (Mage): ×3 DPS for 15s, 90s cooldown",
+      "Skill button shows cooldown drain bar; glows while effect is active",
+    ],
+  },
   {
     version: "v2.3.2",
     date: "2026-05-08",

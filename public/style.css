@@ -900,6 +900,7 @@ main {
     #upgrades-panel,
     #loot-panel,
     #prestige-panel,
+    #guild-hall-panel,
     #log-panel { display: none; }
 
     .tab-visible { display: flex !important; flex-direction: column; width: 100%; }
@@ -1043,6 +1044,81 @@ main {
 #venture-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
 #stat-idle-gold { color: var(--accent2, #a78bfa); font-weight: 600; }
+
+/* ── Guild Hall panel ── */
+#guild-hall-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+}
+
+#guild-hall-panel h2 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    margin-bottom: 10px;
+}
+
+/* Guild hall reuses .prestige-item / .prestige-item-meta / .prestige-item-name / .prestige-item-desc */
+.guild-buy-btn {
+    padding: 6px 12px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: var(--surface);
+    color: var(--accent2, #a78bfa);
+    border: 1px solid var(--accent2, #a78bfa);
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.1s, color 0.1s;
+    flex-shrink: 0;
+}
+.guild-buy-btn:hover:not(:disabled) { background: var(--accent2, #a78bfa); color: #1a1005; }
+.guild-buy-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ── Active skill button ── */
+#skill-btn {
+    width: 100%;
+    margin-top: 6px;
+    padding: 8px 14px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: var(--surface);
+    color: var(--accent2, #a78bfa);
+    border: 1px solid var(--accent2, #a78bfa);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+#skill-btn:hover:not(:disabled) { background: var(--accent2, #a78bfa); color: #1a1005; }
+#skill-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+#skill-btn.active {
+    background: var(--accent2, #a78bfa);
+    color: #1a1005;
+    box-shadow: 0 0 8px var(--accent2, #a78bfa);
+    animation: skill-pulse 1s ease-in-out infinite alternate;
+}
+@keyframes skill-pulse {
+    from { box-shadow: 0 0 4px var(--accent2, #a78bfa); }
+    to   { box-shadow: 0 0 14px var(--accent2, #a78bfa); }
+}
+
+#skill-cooldown-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    margin-top: 3px;
+    overflow: hidden;
+}
+#skill-cooldown-fill {
+    height: 100%;
+    background: var(--accent2, #a78bfa);
+    border-radius: 2px;
+    transition: width 0.5s linear;
+}
 
 /* ── Stats modal ── */
 #stats-modal, #party-class-modal {

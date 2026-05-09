@@ -70,6 +70,8 @@
         <span id="checkpoint-display"></span>
       </div>
       <button id="attack-btn" data-action="attack">⚔ Attack</button>
+      <button id="skill-btn" data-action="activate-skill" hidden></button>
+      <div id="skill-cooldown-bar" hidden><div id="skill-cooldown-fill"></div></div>
     </section>
 
     <section id="party-panel">
@@ -111,6 +113,11 @@
       <div id="prestige-shop-items"></div>
     </section>
 
+    <section id="guild-hall-panel">
+      <h2>Guild Hall</h2>
+      <div id="guild-hall-items"></div>
+    </section>
+
     <section id="log-panel">
       <h2>Combat Log</h2>
       <div id="combat-log"></div>
@@ -147,6 +154,8 @@
       <button class="class-btn selected" data-class="fighter">⚔ Fighter</button>
       <button class="class-btn" data-class="rogue">🗡 Rogue</button>
       <button class="class-btn" data-class="mage">🔮 Mage</button>
+      <button class="class-btn" data-class="paladin" id="party-class-paladin" hidden>🛡 Paladin</button>
+      <button class="class-btn" data-class="ranger" id="party-class-ranger" hidden>🏹 Ranger</button>
     </div>
     <div id="party-class-desc"></div>
     <button id="party-class-confirm">Add Member</button>
