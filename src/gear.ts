@@ -47,6 +47,11 @@ export const QUAL = [
   "rare",
   "epic",
   "legendary",
+  "mythic",
+  "ancient",
+  "celestial",
+  "void",
+  "divine",
 ] as const;
 
 export const ADJ = [
@@ -59,7 +64,7 @@ export const ADJ = [
   "cunning",
 ];
 
-export const DROP_WEIGHTS = [30, 22, 16, 12, 8, 5, 4, 2, 1, 0.5];
+export const DROP_WEIGHTS = [30, 22, 16, 12, 8, 5, 4, 2, 1, 0.5, 0.3, 0.15, 0.08, 0.04, 0.02];
 
 export const DAMAGE_BY_QUALITY: Record<string, number> = {
   broken: 1,
@@ -72,6 +77,11 @@ export const DAMAGE_BY_QUALITY: Record<string, number> = {
   rare: 36,
   epic: 52,
   legendary: 75,
+  mythic: 110,
+  ancient: 160,
+  celestial: 230,
+  void: 335,
+  divine: 480,
 };
 
 export const COST_BY_QUALITY: Record<string, number> = {
@@ -85,14 +95,18 @@ export const COST_BY_QUALITY: Record<string, number> = {
   rare: 260,
   epic: 420,
   legendary: 680,
+  mythic: 1_100,
+  ancient: 1_750,
+  celestial: 2_800,
+  void: 4_500,
+  divine: 7_200,
 };
 
 export function qualityWeights(dungeonLevel: number): number[] {
-  const minTier = Math.min(Math.floor((dungeonLevel - 1) / 5), QUAL.length - 1);
-  const maxTier = Math.min(3 + Math.floor(dungeonLevel / 5), QUAL.length - 1);
+  const maxTier = Math.min(3 + Math.floor(dungeonLevel / 4), QUAL.length - 1);
   return QUAL.map((_, i) => {
-    if (i < minTier || i > maxTier) return 0;
-    return DROP_WEIGHTS[i - minTier];
+    if (i > maxTier) return 0;
+    return DROP_WEIGHTS[maxTier - i];
   });
 }
 
@@ -107,6 +121,11 @@ export const QUALITY_CLASSES: Record<string, string> = {
   rare:      "q-rare",
   epic:      "q-epic",
   legendary: "q-legendary",
+  mythic:    "q-mythic",
+  ancient:   "q-ancient",
+  celestial: "q-celestial",
+  void:      "q-void",
+  divine:    "q-divine",
 };
 
 export function qualityClass(quality: string): string {
@@ -118,7 +137,7 @@ export function gearLevelScale(level: number): number {
 }
 
 export function autoSellThreshold(highestLevel: number): number {
-  return Math.min(Math.floor(highestLevel / 5), QUAL.length - 2);
+  return Math.min(Math.floor((highestLevel - 1) / 4), QUAL.length - 2);
 }
 
 export interface GearItemDict {

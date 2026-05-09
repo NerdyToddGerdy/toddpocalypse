@@ -2140,3 +2140,69 @@ describe("guild hall", () => {
     expect(Object.keys(gs.skillCooldowns)).toHaveLength(0);
   });
 });
+
+describe("lifetime enemy kill tracking", () => {
+  it("lifetimeEnemyKills starts empty", () => {
+    const gs = make();
+    expect(gs.lifetimeEnemyKills).toEqual({});
+  });
+
+  it("killing an enemy increments its adjective count", () => {
+    const gs = make();
+    gs.party.team[0].health = gs.party.team[0].maxHealth;
+    // drive enemy to 0 hp
+    gs.enemy.hp = 0;
+    gs.tick(0.1);
+    const total = Object.values(gs.lifetimeEnemyKills).reduce((s, v) => s + v, 0);
+    expect(total).toBeGreaterThan(0);
+  });
+
+  it("lifetimeEnemyKills key is the enemy name", () => {
+    const gs = make();
+    const name = gs.enemy.name;
+    gs.enemy.hp = 0;
+    gs.tick(0.1);
+    expect(gs.lifetimeEnemyKills[name]).toBeGreaterThanOrEqual(1);
+  });
+
+  it("counts accumulate across multiple kills of same name", () => {
+    const gs = make();
+    const enemyName = "Monstrous Dragon";
+    gs.lifetimeEnemyKills[enemyName] = 5;
+    gs.enemy.hp = 0;
+    gs.enemy.name = enemyName;
+    gs.tick(0.1);
+    expect(gs.lifetimeEnemyKills[enemyName]).toBe(6);
+  });
+
+  it("lifetimeEnemyKills persists through prestige", () => {
+    const gs = make();
+    gs.lifetimeEnemyKills["Ancient Goblin"] = 10;
+    gs.highestLevel = PRESTIGE_UNLOCK_LEVEL;
+    gs.prestige();
+    expect(gs.lifetimeEnemyKills["Ancient Goblin"]).toBe(10);
+  });
+
+  it("lifetimeEnemyKills persists through venture", () => {
+    const gs = make();
+    gs.lifetimeEnemyKills["Rotting Zombie"] = 7;
+    gs.highestLevel = VENTURE_UNLOCK_LEVEL;
+    gs.venture();
+    expect(gs.lifetimeEnemyKills["Rotting Zombie"]).toBe(7);
+  });
+
+  it("lifetime_enemy_kills round-trips through toDict/fromDict", () => {
+    const gs = make();
+    gs.lifetimeEnemyKills["Vile Troll"] = 3;
+    gs.lifetimeEnemyKills["Savage Bandit"] = 8;
+    const restored = GameState.fromDict(gs.toDict());
+    expect(restored.lifetimeEnemyKills["Vile Troll"]).toBe(3);
+    expect(restored.lifetimeEnemyKills["Savage Bandit"]).toBe(8);
+  });
+
+  it("lifetime_enemy_kills in toDict reflects current enemy kills", () => {
+    const gs = make();
+    gs.lifetimeEnemyKills["Cursed Spider"] = 4;
+    expect(gs.toDict().lifetime_enemy_kills["Cursed Spider"]).toBe(4);
+  });
+});

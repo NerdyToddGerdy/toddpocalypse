@@ -104,3 +104,4 @@ describe("generateBoss", () => {
     expect(generateBoss(10).max_hp).toBeGreaterThan(generateBoss(1).max_hp);
   });
 });
+

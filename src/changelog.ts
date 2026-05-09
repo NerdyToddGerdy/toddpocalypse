@@ -1,4 +1,4 @@
-export const VERSION = "v2.4.0";
+export const VERSION = "v2.4.7";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,70 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.4.7",
+    date: "2026-05-08",
+    changes: [
+      "Gear slots flash gold for 2 seconds when an item is replaced — blinks 3 times so the swap is easy to spot",
+      "Mythic, Ancient, Celestial, Void, and Divine quality names now glow with a tier-colored text-shadow",
+    ],
+  },
+  {
+    version: "v2.4.6",
+    date: "2026-05-08",
+    changes: [
+      "Guild Hall split into its own sidebar tab — sidebar now has Upgrades / Loot / Prestige / Guild / Log",
+      "Shop tab renamed to Prestige",
+      "Prestige and Guild tabs each have their own notification badge",
+    ],
+  },
+  {
+    version: "v2.4.5",
+    date: "2026-05-08",
+    changes: [
+      "Auto Seller tier checkboxes moved from the Shop tab to the Loot tab — appears below the loot chest once Auto Seller is purchased",
+    ],
+  },
+  {
+    version: "v2.4.4",
+    date: "2026-05-08",
+    changes: [
+      "Desktop sidebar replaced with a 4-tab card: Upgrades / Loot / Shop / Log",
+      "Shop tab covers Prestige Shop + Guild Hall; badge appears when either has an affordable item",
+      "Mobile layout unchanged — existing bottom tab bar still handles navigation",
+    ],
+  },
+  {
+    version: "v2.4.3",
+    date: "2026-05-08",
+    changes: [
+      "Drop rates: weaker tiers never fully disappear — broken has ~15% chance at floor 1, decaying to <0.1% by floor 40",
+      "Drop rates now use the highest accessible tier as the focal point; every tier below it decays via the same weight curve",
+      "Auto Seller tier thresholds rescaled to match the 15-tier system (divisor 4) — reaches void by floor 45",
+      "Drop rate chart shows all 15 quality tiers; unattainable tiers shown greyed-out as 'locked'",
+      "Chart entries ordered divine → broken (best to worst) for easier reading",
+    ],
+  },
+  {
+    version: "v2.4.2",
+    date: "2026-05-08",
+    changes: [
+      "Lifetime Stats now tracks kills by enemy adjective (Frightening, Vile, Ancient, Dread, etc.) — sorted by kill count",
+      "Enemy kill breakdown is scrollable and hidden until you have at least one kill",
+      "Boss kills are tracked by their title adjective (Abyssal, Dread, Infernal, etc.) alongside regular enemies",
+    ],
+  },
+  {
+    version: "v2.4.1",
+    date: "2026-05-08",
+    changes: [
+      "Five new gear quality tiers above legendary: Mythic (110 dmg) → Ancient (160) → Celestial (230) → Void (335) → Divine (480)",
+      "Gear tier curve compressed — all 15 tiers fit within floors 1–44 (divisor 4 instead of 5)",
+      "Legendary now unlocks at floor 24 instead of floor 30",
+      "Divine (the new peak) unlocks at floor 44",
+      "📊 drop rate chart button in the loot section — shows current-floor probability for every available quality tier",
+    ],
+  },
   {
     version: "v2.4.0",
     date: "2026-05-08",

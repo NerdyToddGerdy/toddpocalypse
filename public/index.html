@@ -95,6 +95,14 @@
 
   <aside id="sidebar">
 
+    <nav id="sidebar-tabs">
+      <button class="stab-btn active" data-stab="upgrades">Upgrades</button>
+      <button class="stab-btn" data-stab="loot">Loot</button>
+      <button class="stab-btn" data-stab="prestige">Prestige<span id="stab-prestige-badge" class="stab-badge" hidden></span></button>
+      <button class="stab-btn" data-stab="guild">Guild<span id="stab-guild-badge" class="stab-badge" hidden></span></button>
+      <button class="stab-btn" data-stab="log">Log</button>
+    </nav>
+
     <section id="upgrades-panel">
       <h2>Upgrades</h2>
       <div id="upgrade-cards"></div>
@@ -103,9 +111,14 @@
     <section id="loot-panel">
       <div id="loot-header">
         <h2>Loot <span id="loot-count"></span></h2>
+        <button id="drop-chart-btn" title="Drop rate chart">📊</button>
         <button class="equip-all-btn" data-action="equip-all" disabled>Equip All</button>
       </div>
       <div id="loot-items"><div class="loot-empty">No drops yet…</div></div>
+      <div id="auto-seller-section" hidden>
+        <div id="auto-seller-label">Auto-sell tiers</div>
+        <div id="auto-seller-config"></div>
+      </div>
     </section>
 
     <section id="prestige-panel">
@@ -143,6 +156,10 @@
       <div class="stat-row"><span class="stat-label">Total Deaths</span><span id="lt-deaths">0</span></div>
       <div class="stat-row"><span class="stat-label">Best Level</span><span id="lt-best">1</span></div>
       <div class="stat-row"><span class="stat-label">Prestiges</span><span id="lt-prestiges">0</span></div>
+      <div id="lt-enemy-section">
+        <div id="lt-enemy-title">Kills by Enemy Type</div>
+        <div id="lt-enemy-kills"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -160,6 +177,16 @@
     <div id="party-class-desc"></div>
     <button id="party-class-confirm">Add Member</button>
     <button id="party-class-cancel" class="secondary-btn">Cancel</button>
+  </div>
+</div>
+
+<div id="drop-chart-modal" aria-modal="true" role="dialog" aria-labelledby="drop-chart-title">
+  <div id="drop-chart-box">
+    <div id="drop-chart-header">
+      <h2 id="drop-chart-title">Drop Rates — Floor <span id="drop-chart-floor"></span></h2>
+      <button id="drop-chart-close" aria-label="Close">✕</button>
+    </div>
+    <div id="drop-chart-body"></div>
   </div>
 </div>
 

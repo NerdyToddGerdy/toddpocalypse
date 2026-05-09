@@ -86,6 +86,7 @@ export interface GameStateDict {
   lifetime_kills: number;
   lifetime_deaths: number;
   lifetime_best_level: number;
+  lifetime_enemy_kills: Record<string, number>;
   total_prestiges: number;
   prestige_upgrades: Record<string, number>;
   prestige_party_classes: Record<string, string>;
@@ -119,6 +120,7 @@ export class GameState {
   lifetimeKills = 0;
   lifetimeDeaths = 0;
   lifetimeBestLevel = 1;
+  lifetimeEnemyKills: Record<string, number> = {};
   totalPrestiges = 0;
   prestigeUpgrades: Record<string, number> = {};
   prestigePartyClasses: Record<string, string> = {};
@@ -547,6 +549,7 @@ export class GameState {
       lifetime_kills: this.lifetimeKills + this.kills,
       lifetime_deaths: this.lifetimeDeaths + this.deaths,
       lifetime_best_level: Math.max(this.lifetimeBestLevel, this.highestLevel),
+      lifetime_enemy_kills: { ...this.lifetimeEnemyKills },
       total_prestiges: this.totalPrestiges,
       prestige_upgrades: { ...this.prestigeUpgrades },
       prestige_party_classes: { ...this.prestigePartyClasses },
@@ -592,6 +595,7 @@ export class GameState {
 
   onEnemyDeath(): void {
     const name = this.enemy.name;
+    this.lifetimeEnemyKills[name] = (this.lifetimeEnemyKills[name] ?? 0) + 1;
     const xp = this.enemy.xp_reward;
     this.addLog(`${name} defeated! +${xp}xp`);
     for (const c of this.party.team) {
@@ -799,6 +803,7 @@ export class GameState {
     gs.lifetimeKills = d.lifetime_kills ?? 0;
     gs.lifetimeDeaths = d.lifetime_deaths ?? 0;
     gs.lifetimeBestLevel = d.lifetime_best_level ?? d.highest_level ?? 1;
+    gs.lifetimeEnemyKills = { ...(d.lifetime_enemy_kills ?? {}) };
     gs.totalPrestiges = d.total_prestiges ?? 0;
     gs.prestigeUpgrades = { ...(d.prestige_upgrades ?? {}) };
     gs.prestigePartyClasses = { ...(d.prestige_party_classes ?? {}) };

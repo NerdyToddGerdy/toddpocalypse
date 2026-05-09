@@ -22,6 +22,11 @@
     --q-rare:     #a855f7;
     --q-epic:     #f97316;
     --q-legendary:#f59e0b;
+    --q-mythic:   #e879f9;
+    --q-ancient:  #34d399;
+    --q-celestial:#67e8f9;
+    --q-void:     #c084fc;
+    --q-divine:   #fff;
 }
 
 .q-broken    { color: var(--q-broken);    }
@@ -34,6 +39,27 @@
 .q-rare      { color: var(--q-rare);      }
 .q-epic      { color: var(--q-epic);      }
 .q-legendary { color: var(--q-legendary); }
+.q-mythic    {
+  color: var(--q-mythic);
+  text-shadow: 0 0 5px rgba(232,121,249,0.7), 0 0 10px rgba(232,121,249,0.3);
+}
+.q-ancient   {
+  color: var(--q-ancient);
+  text-shadow: 0 0 5px rgba(52,211,153,0.7), 0 0 10px rgba(52,211,153,0.3);
+}
+.q-celestial {
+  color: var(--q-celestial);
+  text-shadow: 0 0 5px rgba(103,232,249,0.7), 0 0 10px rgba(103,232,249,0.3);
+}
+.q-void      {
+  color: var(--q-void);
+  text-shadow: 0 0 5px rgba(192,132,252,0.8), 0 0 12px rgba(192,132,252,0.4);
+}
+.q-divine    {
+  color: var(--q-divine);
+  text-shadow: 0 0 6px #a78bfa, 0 0 14px #818cf8, 0 0 22px rgba(129,140,248,0.4);
+  font-weight: 600;
+}
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -240,6 +266,19 @@ main {
   border-radius: 3px;
 }
 
+@keyframes slot-replaced {
+  0%,  15% { background: rgba(200, 162, 39, 0.45); box-shadow: inset 0 0 0 1px var(--accent); border-radius: 3px; }
+  25%, 40% { background: transparent; box-shadow: none; }
+  50%, 62% { background: rgba(200, 162, 39, 0.35); box-shadow: inset 0 0 0 1px var(--accent); border-radius: 3px; }
+  72%, 82% { background: transparent; box-shadow: none; }
+  88%, 96% { background: rgba(200, 162, 39, 0.20); box-shadow: inset 0 0 0 1px var(--accent); border-radius: 3px; }
+  100%     { background: transparent; box-shadow: none; }
+}
+
+.gear-row.slot-flash {
+  animation: slot-replaced 2s ease-out forwards;
+}
+
 .char-abilities {
   display: flex;
   flex-wrap: wrap;
@@ -394,7 +433,51 @@ main {
     grid-column: 3;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+/* ── Sidebar tab strip ── */
+#sidebar-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.stab-btn {
+    flex: 1;
+    padding: 9px 2px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    position: relative;
+    margin-bottom: -1px;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.stab-btn:hover { color: var(--text); }
+
+.stab-btn.active {
+    color: var(--accent2);
+    border-bottom-color: var(--accent2);
+}
+
+.stab-badge {
+    position: absolute;
+    top: 7px;
+    right: 6px;
+    width: 6px;
+    height: 6px;
+    background: var(--danger);
+    border-radius: 50%;
 }
 
 /* ── Sidebar panels shared ── */
@@ -403,6 +486,20 @@ main {
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 16px;
+}
+
+/* Desktop: panels live inside the sidebar card — no individual borders */
+@media (min-width: 769px) {
+    #upgrades-panel, #loot-panel, #prestige-panel, #guild-hall-panel, #log-panel {
+        display: none;
+        background: none;
+        border: none;
+        border-radius: 0;
+    }
+    .stab-visible {
+        display: flex !important;
+        flex-direction: column;
+    }
 }
 
 #loot-header {
@@ -892,7 +989,8 @@ main {
     }
 
     #left-col  { display: contents; }
-    #sidebar   { display: contents; }
+    #sidebar   { display: contents; background: none; border: none; border-radius: 0; }
+    #sidebar-tabs { display: none; }
     #depth-gauge { display: none; }
 
     #enemy-panel,
@@ -980,6 +1078,7 @@ main {
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 16px;
+    overflow-y: auto;
 }
 
 #prestige-panel h2 {
@@ -1051,6 +1150,7 @@ main {
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 16px;
+    overflow-y: auto;
 }
 
 #guild-hall-panel h2 {
@@ -1137,9 +1237,15 @@ main {
     border: 1px solid var(--border);
     border-radius: 12px;
     width: min(380px, 92vw);
+    max-height: 80vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+}
+
+#stats-body {
+    overflow-y: auto;
+    padding: 16px 22px;
 }
 
 #stats-header {
@@ -1170,7 +1276,6 @@ main {
 }
 #stats-close:hover { color: var(--text); background: var(--surface2); }
 
-#stats-body { padding: 16px 22px; }
 
 .stat-row {
     display: flex;
@@ -1182,6 +1287,30 @@ main {
 .stat-row:last-child { border-bottom: none; }
 .stat-label { color: var(--muted); }
 .stat-row span:last-child { color: var(--text); font-weight: 600; }
+
+#lt-enemy-section {
+    margin-top: 12px;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+}
+
+#lt-enemy-title {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    margin-bottom: 4px;
+}
+
+#lt-enemy-kills {
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+#lt-enemy-kills .stat-row {
+    font-size: 0.82rem;
+    padding: 5px 0;
+}
 
 /* ── Party class modal ── */
 #party-class-box {
@@ -1351,6 +1480,116 @@ footer {
     color: var(--muted);
 }
 
+/* Drop rate chart modal */
+#drop-chart-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(14,14,20,0.85);
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+}
+
+#drop-chart-modal.open { display: flex; }
+
+#drop-chart-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: min(440px, 92vw);
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#drop-chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+#drop-chart-header h2 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--accent);
+}
+
+#drop-chart-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: color 0.1s, background 0.1s;
+}
+
+#drop-chart-close:hover { color: var(--text); background: var(--surface2); }
+
+#drop-chart-body {
+    overflow-y: auto;
+    padding: 14px 22px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.drop-chart-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 50px;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.8rem;
+}
+
+.drop-chart-label {
+    text-align: right;
+    text-transform: capitalize;
+    font-weight: 600;
+}
+
+.drop-chart-bar-wrap {
+    background: var(--surface2);
+    border-radius: 4px;
+    height: 10px;
+    overflow: hidden;
+}
+
+.drop-chart-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.drop-chart-pct {
+    color: var(--muted);
+    font-size: 0.75rem;
+    text-align: right;
+}
+
+.drop-chart-locked .drop-chart-label { opacity: 0.35; }
+.drop-chart-locked .drop-chart-pct   { opacity: 0.35; font-style: italic; }
+
+#drop-chart-btn {
+    background: none;
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 2px 5px;
+    border-radius: 4px;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+}
+
+#drop-chart-btn:hover { opacity: 1; }
+
 /* Checkpoint indicator */
 #checkpoint-display {
     display: block;
@@ -1364,8 +1603,21 @@ footer {
 }
 
 /* Auto Seller config */
+#auto-seller-section {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+}
+
+#auto-seller-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    margin-bottom: 6px;
+}
+
 .auto-seller-config {
-    margin-top: 8px;
     padding: 6px 8px;
     background: rgba(0,0,0,0.25);
     border-radius: 6px;

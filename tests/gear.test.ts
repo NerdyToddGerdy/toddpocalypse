@@ -31,13 +31,13 @@ describe("autoSellThreshold", () => {
     expect(autoSellThreshold(10)).toBe(2);
   });
 
-  it("caps at QUAL.length - 2 — legendary (index QUAL.length-1) is never included", () => {
+  it("caps at QUAL.length - 2 — divine (index QUAL.length-1) is never included", () => {
     expect(autoSellThreshold(1000)).toBe(QUAL.length - 2);
     expect(autoSellThreshold(1000)).not.toBe(QUAL.length - 1);
   });
 
-  it("threshold quality at cap is never legendary", () => {
-    expect(QUAL[autoSellThreshold(1000)]).not.toBe("legendary");
+  it("threshold quality at cap is never divine", () => {
+    expect(QUAL[autoSellThreshold(1000)]).not.toBe("divine");
   });
 });
 
@@ -81,8 +81,20 @@ describe("quality tiers", () => {
     expect(QUAL[0]).toBe("broken");
   });
 
-  it("highest quality is 'legendary'", () => {
-    expect(QUAL[QUAL.length - 1]).toBe("legendary");
+  it("has at least fifteen quality tiers", () => {
+    expect(QUAL.length).toBeGreaterThanOrEqual(15);
+  });
+
+  it("highest quality is 'divine'", () => {
+    expect(QUAL[QUAL.length - 1]).toBe("divine");
+  });
+
+  it("divine is at index 14", () => {
+    expect(QUAL[14]).toBe("divine");
+  });
+
+  it("legendary is still present at index 9", () => {
+    expect(QUAL[9]).toBe("legendary");
   });
 
   it("damage and cost defined for every quality", () => {
@@ -111,24 +123,51 @@ describe("qualityWeights", () => {
     expect(qualityWeights(1)[9]).toBe(0);
   });
 
-  it("level 6 locks out broken", () => {
-    const w = qualityWeights(6);
-    expect(w[0]).toBe(0);
-    expect(w[1]).toBeGreaterThan(0);
+  it("broken always has non-zero weight at every accessible floor", () => {
+    for (const floor of [1, 5, 9, 15, 20, 30, 40, 44]) {
+      expect(qualityWeights(floor)[0]).toBeGreaterThan(0);
+    }
   });
 
-  it("level 11 locks out worn", () => {
-    const w = qualityWeights(11);
-    expect(w[1]).toBe(0);
-    expect(w[2]).toBeGreaterThan(0);
+  it("broken weight strictly decreases as floor increases", () => {
+    const w1 = qualityWeights(1)[0];
+    const w10 = qualityWeights(10)[0];
+    const w30 = qualityWeights(30)[0];
+    expect(w10).toBeLessThan(w1);
+    expect(w30).toBeLessThan(w10);
   });
 
-  it("legendary locked before level 30", () => {
-    expect(qualityWeights(29)[9]).toBe(0);
+  it("worn always has non-zero weight above floor 1", () => {
+    for (const floor of [5, 10, 20, 40]) {
+      expect(qualityWeights(floor)[1]).toBeGreaterThan(0);
+    }
   });
 
-  it("legendary unlocks at level 30", () => {
-    expect(qualityWeights(30)[9]).toBeGreaterThan(0);
+  it("all tiers at or below maxTier have positive weight", () => {
+    for (const floor of [1, 10, 24, 44]) {
+      const w = qualityWeights(floor);
+      const firstZero = w.indexOf(0);
+      const positiveCount = firstZero === -1 ? w.length : firstZero;
+      for (let i = 0; i < positiveCount; i++) {
+        expect(w[i]).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("legendary locked before level 24", () => {
+    expect(qualityWeights(23)[9]).toBe(0);
+  });
+
+  it("legendary unlocks at level 24", () => {
+    expect(qualityWeights(24)[9]).toBeGreaterThan(0);
+  });
+
+  it("divine locked before level 44", () => {
+    expect(qualityWeights(43)[14]).toBe(0);
+  });
+
+  it("divine unlocks at level 44", () => {
+    expect(qualityWeights(44)[14]).toBeGreaterThan(0);
   });
 });
 
@@ -250,13 +289,17 @@ describe("qualityClass", () => {
     }
   });
 
-  it("each quality maps to a distinct CSS class", () => {
-    const classes = QUAL.map(qualityClass);
-    expect(new Set(classes).size).toBe(QUAL.length);
+  it("legendary gets its class", () => {
+    expect(qualityClass("legendary")).toBe("q-legendary");
   });
 
-  it("legendary gets the highest-tier class", () => {
-    expect(qualityClass("legendary")).toBe("q-legendary");
+  it("divine gets the highest-tier class", () => {
+    expect(qualityClass("divine")).toBe("q-divine");
+  });
+
+  it("each quality including new tiers maps to a distinct CSS class", () => {
+    const classes = QUAL.map(qualityClass);
+    expect(new Set(classes).size).toBe(QUAL.length);
   });
 
   it("common gets the common class", () => {

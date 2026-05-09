@@ -1,5 +1,5 @@
 import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, GUILD_HALL_COSTS, SKILL_DEFS } from "./engine.js";
-import { qualityClass, autoSellThreshold, QUAL } from "./gear.js";
+import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
 
@@ -44,6 +44,7 @@ const SAVE_KEY = "toddpocalypse-save";
 
 let game: GameState | null = null;
 let lootKey: string | null = null;
+let autoSellKey: string | null = null;
 let upgradeKey: string | null = null;
 let partyKey: string | null = null;
 let prestigeKey: string | null = null;
@@ -51,6 +52,7 @@ let ventureKey: string | null = null;
 let guildKey: string | null = null;
 let skillKey: string | null = null;
 let hoveredLootSlot: string | null = null;
+const flashStartTimes = new Map<string, number>(); // "ci:slot" → ms timestamp when flash began
 
 function $(id: string): HTMLElement {
   const el = document.getElementById(id);
@@ -181,9 +183,27 @@ function renderParty(state: GameStateDict): void {
     state.party.map((c) => [c.dps, c.level, c.xp, c.health, JSON.stringify(c.equipment), c.abilities.join(",")]),
   );
   if (newKey === partyKey) return;
-  const prevLevels = prevPartyKey
-    ? (JSON.parse(prevPartyKey) as [number, number][]).map(([, lvl]) => lvl)
+  const prevParsed = prevPartyKey
+    ? (JSON.parse(prevPartyKey) as [number, number, number, number, string, string][])
+    : null;
+  const prevLevels = prevParsed
+    ? prevParsed.map(([, lvl]) => lvl)
     : state.party.map(() => 0);
+
+  // Determine which gear slots changed so we can flash them after re-render
+  const changedSlots: [number, string][] = [];
+  if (prevParsed) {
+    state.party.forEach((c, ci) => {
+      const prevEquip: Record<string, { name: string } | null> =
+        JSON.parse(prevParsed[ci]?.[4] ?? "{}") ?? {};
+      Object.entries(c.equipment).forEach(([slot, item]) => {
+        const prevName = prevEquip[slot]?.name ?? null;
+        const newName = (item as { name: string } | null)?.name ?? null;
+        if (newName !== null && newName !== prevName) changedSlots.push([ci, slot]);
+      });
+    });
+  }
+
   partyKey = newKey;
 
   const partyEl = $("party-cards");
@@ -250,6 +270,28 @@ function renderParty(state: GameStateDict): void {
     })
     .join("");
   applySlotHighlight();
+
+  // Register new flashes and prune expired ones
+  const flashDuration = 2000;
+  const now = Date.now();
+  changedSlots.forEach(([ci, slot]) => flashStartTimes.set(`${ci}:${slot}`, now));
+  for (const [key, start] of flashStartTimes) {
+    if (now - start >= flashDuration) flashStartTimes.delete(key);
+  }
+
+  // Re-apply flashes to the freshly rendered DOM.
+  // Negative animation-delay resumes the animation mid-timeline instead of restarting it,
+  // which is necessary because the DOM is replaced every tick (HP updates partyKey constantly).
+  const cards = partyEl.querySelectorAll<HTMLElement>(".char-card");
+  for (const [key, start] of flashStartTimes) {
+    const [ciStr, slot] = key.split(":");
+    const row = cards[+ciStr]?.querySelector<HTMLElement>(`[data-slot="${slot}"]`);
+    if (row) {
+      const elapsed = (now - start) / 1000;
+      row.style.animationDelay = `-${elapsed}s`;
+      row.classList.add("slot-flash");
+    }
+  }
 }
 
 function applySlotHighlight(): void {
@@ -260,24 +302,22 @@ function applySlotHighlight(): void {
 
 function renderLoot(state: GameStateDict): void {
   const loot = state.loot_pool;
-  const newKey = loot.map((i) => i.slot + i.name).join("|");
-  if (newKey === lootKey) return;
-  lootKey = newKey;
+  const autoSellOwned = ((state.prestige_upgrades as Record<string, number>)["auto_seller"] ?? 0) > 0;
+  const newKey = loot.map((i) => i.slot + i.name).join("|") + "|" + JSON.stringify(state.auto_sell_qualities) + "|" + state.highest_level;
+  if (newKey !== lootKey) {
+    lootKey = newKey;
 
-  const lootEl = $("loot-items");
-  $("loot-count").textContent = loot.length ? `(${loot.length}/8)` : "";
-  const equipAllBtn = document.querySelector<HTMLButtonElement>(".equip-all-btn");
-  if (equipAllBtn) equipAllBtn.disabled = loot.length === 0;
+    const lootEl = $("loot-items");
+    $("loot-count").textContent = loot.length ? `(${loot.length}/${state.loot_max})` : "";
+    const equipAllBtn = document.querySelector<HTMLButtonElement>(".equip-all-btn");
+    if (equipAllBtn) equipAllBtn.disabled = loot.length === 0;
 
-  if (loot.length === 0) {
-    lootEl.innerHTML = `<div class="loot-empty">No drops yet…</div>`;
-    return;
-  }
-  lootEl.innerHTML = loot
-    .map((item, i) => {
-      const [tri, triCls] = lootTier(item, state.party);
-      const qc = qualityClass(item.quality);
-      return `
+    lootEl.innerHTML = loot.length === 0
+      ? `<div class="loot-empty">No drops yet…</div>`
+      : loot.map((item, i) => {
+          const [tri, triCls] = lootTier(item, state.party);
+          const qc = qualityClass(item.quality);
+          return `
 <div class="loot-item" data-slot="${item.slot}">
   <div class="loot-meta">
     <span class="loot-slot-badge">${item.slot_display}</span>
@@ -289,8 +329,18 @@ function renderLoot(state: GameStateDict): void {
     <button class="sell-btn"  data-action="sell"  data-idx="${i}">${item.sell_value}g</button>
   </div>
 </div>`;
-    })
-    .join("");
+        }).join("");
+  }
+
+  const section = document.getElementById("auto-seller-section")!;
+  section.hidden = !autoSellOwned;
+  if (autoSellOwned) {
+    const newAutoSellKey = JSON.stringify(state.auto_sell_qualities) + "|" + state.highest_level;
+    if (newAutoSellKey !== autoSellKey) {
+      autoSellKey = newAutoSellKey;
+      $("auto-seller-config").innerHTML = renderAutoSellerConfig(state);
+    }
+  }
 }
 
 function renderUpgrades(state: GameStateDict): void {
@@ -373,12 +423,10 @@ function renderPrestigeShop(state: GameStateDict): void {
     const canAfford = pts >= cost;
     const disabled = atMax || prereqMissing || !canAfford;
     const ownedLabel = atMax ? " ✓" : owned > 0 ? ` (${owned})` : "";
-    const configHtml = (type === "auto_seller" && owned > 0) ? renderAutoSellerConfig(state) : "";
     return `<div class="prestige-item">
       <div class="prestige-item-meta">
         <div class="prestige-item-name">${meta.icon} ${meta.name}${ownedLabel}</div>
         <div class="prestige-item-desc">${meta.desc}</div>
-        ${configHtml}
       </div>
       <button class="prestige-buy-btn" data-action="buy-prestige" data-type="${type}" ${disabled ? "disabled" : ""}>${atMax ? "Owned" : cost + "pt"}</button>
     </div>`;
@@ -493,6 +541,20 @@ function updateLifetimeStats(state: GameStateDict): void {
   if (ltDeaths) ltDeaths.textContent = String(state.lifetime_deaths);
   if (ltBest) ltBest.textContent = String(state.lifetime_best_level);
   if (ltPrestiges) ltPrestiges.textContent = String(state.total_prestiges);
+
+  const enemyKillsEl = document.getElementById("lt-enemy-kills");
+  const enemySection = document.getElementById("lt-enemy-section");
+  if (!enemyKillsEl || !enemySection) return;
+  const ekMap = state.lifetime_enemy_kills as Record<string, number>;
+  const entries = Object.entries(ekMap).sort((a, b) => b[1] - a[1]);
+  if (entries.length === 0) {
+    enemySection.hidden = true;
+    return;
+  }
+  enemySection.hidden = false;
+  enemyKillsEl.innerHTML = entries
+    .map(([adj, count]) => `<div class="stat-row"><span class="stat-label">${adj}</span><span>${count}</span></div>`)
+    .join("");
 }
 
 const PRESTIGE_COSTS: Record<string, number> = {
@@ -519,6 +581,32 @@ function updateShopBadge(state: GameStateDict): void {
     return owned < costs.length && state.gold >= costs[owned];
   });
   badge.hidden = !(canBuyUpgrade || canBuyPrestige || canBuyGuild);
+  const stabPrestigeBadge = document.getElementById("stab-prestige-badge");
+  if (stabPrestigeBadge) stabPrestigeBadge.hidden = !canBuyPrestige;
+  const stabGuildBadge = document.getElementById("stab-guild-badge");
+  if (stabGuildBadge) stabGuildBadge.hidden = !canBuyGuild;
+}
+
+function renderDropChart(dungeonLevel: number): void {
+  $("drop-chart-floor").textContent = String(dungeonLevel);
+  const weights = qualityWeights(dungeonLevel);
+  const total = weights.reduce((s, w) => s + w, 0);
+  const rows = [...QUAL].reverse().map((q, ri) => {
+    const i = QUAL.length - 1 - ri;
+    const w = weights[i];
+    const locked = w === 0;
+    const pct = locked ? 0 : (w / total) * 100;
+    const cssVar = `var(--q-${q})`;
+    return `
+      <div class="drop-chart-row${locked ? " drop-chart-locked" : ""}">
+        <span class="drop-chart-label ${QUALITY_CLASSES[q]}">${q}</span>
+        <div class="drop-chart-bar-wrap">
+          ${locked ? "" : `<div class="drop-chart-bar" style="width:${pct.toFixed(2)}%;background:${cssVar}"></div>`}
+        </div>
+        <span class="drop-chart-pct">${locked ? "locked" : pct < 0.05 ? "<0.1%" : pct.toFixed(1) + "%"}</span>
+      </div>`;
+  }).join("");
+  $("drop-chart-body").innerHTML = rows;
 }
 
 function renderLog(state: GameStateDict): void {
@@ -562,6 +650,14 @@ const TAB_PANELS: Record<string, string[]> = {
   log:    ["log-panel"],
 };
 
+const SIDEBAR_TAB_PANELS: Record<string, string[]> = {
+  upgrades: ["upgrades-panel"],
+  loot:     ["loot-panel"],
+  prestige: ["prestige-panel"],
+  guild:    ["guild-hall-panel"],
+  log:      ["log-panel"],
+};
+
 function initMobileTabs(): void {
   const allPanelIds = Object.values(TAB_PANELS).flat();
   const tabs = document.querySelectorAll<HTMLElement>(".mobile-tab-btn");
@@ -574,6 +670,20 @@ function initMobileTabs(): void {
 
   tabs.forEach(btn => btn.addEventListener("click", () => showTab(btn.dataset.tab!)));
   showTab("combat");
+}
+
+function initSidebarTabs(): void {
+  const allPanelIds = Object.values(SIDEBAR_TAB_PANELS).flat();
+  const tabs = document.querySelectorAll<HTMLElement>(".stab-btn");
+
+  function showSidebarTab(tab: string): void {
+    allPanelIds.forEach(id => document.getElementById(id)?.classList.remove("stab-visible"));
+    SIDEBAR_TAB_PANELS[tab]?.forEach(id => document.getElementById(id)?.classList.add("stab-visible"));
+    tabs.forEach(btn => btn.classList.toggle("active", btn.dataset.stab === tab));
+  }
+
+  tabs.forEach(btn => btn.addEventListener("click", () => showSidebarTab(btn.dataset.stab!)));
+  showSidebarTab("upgrades");
 }
 
 function updateClassDesc(): void {
@@ -666,6 +776,7 @@ function continueGame(saved: GameStateDict): void {
 
 document.addEventListener("DOMContentLoaded", () => {
   initMobileTabs();
+  initSidebarTabs();
 
   $("loot-items").addEventListener("mouseover", (e) => {
     const item = (e.target as HTMLElement).closest<HTMLElement>(".loot-item");
@@ -706,6 +817,18 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   $("changelog-modal").addEventListener("click", (e) => {
     if (e.target === $("changelog-modal")) $("changelog-modal").classList.remove("open");
+  });
+
+  $("drop-chart-btn").addEventListener("click", () => {
+    const level = game ? game.dungeonLevel : 1;
+    renderDropChart(level);
+    $("drop-chart-modal").classList.add("open");
+  });
+  $("drop-chart-close").addEventListener("click", () => {
+    $("drop-chart-modal").classList.remove("open");
+  });
+  $("drop-chart-modal").addEventListener("click", (e) => {
+    if (e.target === $("drop-chart-modal")) $("drop-chart-modal").classList.remove("open");
   });
 
   const saved = loadSave();
