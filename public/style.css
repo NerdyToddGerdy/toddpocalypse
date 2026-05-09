@@ -41,24 +41,28 @@
 .q-legendary { color: var(--q-legendary); }
 .q-mythic    {
   color: var(--q-mythic);
-  text-shadow: 0 0 5px rgba(232,121,249,0.7), 0 0 10px rgba(232,121,249,0.3);
+  text-shadow: 0 0 4px rgba(232,121,249,0.6), 0 0 8px rgba(232,121,249,0.25);
 }
 .q-ancient   {
   color: var(--q-ancient);
-  text-shadow: 0 0 5px rgba(52,211,153,0.7), 0 0 10px rgba(52,211,153,0.3);
+  text-shadow: 0 0 5px rgba(52,211,153,0.75), 0 0 12px rgba(52,211,153,0.4), 0 0 20px rgba(52,211,153,0.15);
 }
 .q-celestial {
   color: var(--q-celestial);
-  text-shadow: 0 0 5px rgba(103,232,249,0.7), 0 0 10px rgba(103,232,249,0.3);
+  text-shadow: 0 0 6px rgba(103,232,249,0.85), 0 0 14px rgba(103,232,249,0.5), 0 0 24px rgba(103,232,249,0.2);
 }
 .q-void      {
   color: var(--q-void);
-  text-shadow: 0 0 5px rgba(192,132,252,0.8), 0 0 12px rgba(192,132,252,0.4);
+  text-shadow: 0 0 6px rgba(192,132,252,0.9), 0 0 14px rgba(192,132,252,0.6), 0 0 28px rgba(192,132,252,0.3), 0 0 42px rgba(192,132,252,0.1);
+}
+@keyframes divine-pulse {
+  0%, 100% { text-shadow: 0 0 6px #fff, 0 0 14px #a78bfa, 0 0 26px #818cf8, 0 0 40px rgba(129,140,248,0.4); }
+  50%       { text-shadow: 0 0 10px #fff, 0 0 22px #a78bfa, 0 0 40px #818cf8, 0 0 60px rgba(129,140,248,0.6); }
 }
 .q-divine    {
   color: var(--q-divine);
-  text-shadow: 0 0 6px #a78bfa, 0 0 14px #818cf8, 0 0 22px rgba(129,140,248,0.4);
   font-weight: 600;
+  animation: divine-pulse 2s ease-in-out infinite;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }

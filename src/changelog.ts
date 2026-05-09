@@ -1,4 +1,4 @@
-export const VERSION = "v2.4.7";
+export const VERSION = "v2.4.8";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,14 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.4.8",
+    date: "2026-05-08",
+    changes: [
+      "Mythic+ glow intensity now escalates by tier — Mythic is subtle, Ancient/Celestial/Void each add more layers and wider spread",
+      "Divine pulses between bright and blinding on a 2s cycle",
+    ],
+  },
   {
     version: "v2.4.7",
     date: "2026-05-08",
