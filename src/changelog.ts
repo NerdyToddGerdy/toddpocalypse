@@ -1,4 +1,4 @@
-export const VERSION = "v2.4.8";
+export const VERSION = "v2.4.9";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,13 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.4.9",
+    date: "2026-05-08",
+    changes: [
+      "Guild Hall tab is hidden on a new game — unlocks after your first prestige",
+    ],
+  },
   {
     version: "v2.4.8",
     date: "2026-05-08",

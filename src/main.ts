@@ -111,6 +111,21 @@ function render(state: GameStateDict): void {
   updateVentureButton(state);
   updateLifetimeStats(state);
   updateShopBadge(state);
+  updateGuildTabVisibility(state);
+}
+
+function updateGuildTabVisibility(state: GameStateDict): void {
+  const guildUnlocked =
+    state.total_prestiges > 0 ||
+    Object.keys(state.guild_upgrades ?? {}).length > 0;
+  const guildTab = document.querySelector<HTMLElement>('[data-stab="guild"]');
+  if (!guildTab) return;
+  const wasHidden = guildTab.hidden;
+  guildTab.hidden = !guildUnlocked;
+  // If we just hid the guild tab while it was active, fall back to upgrades
+  if (!wasHidden && !guildUnlocked && guildTab.classList.contains("active")) {
+    (document.querySelector<HTMLElement>('[data-stab="upgrades"]') as HTMLElement).click();
+  }
 }
 
 function renderFloorProgress(state: GameStateDict): void {
