@@ -37,13 +37,8 @@ export const LUCKY_STRIKE_MULTIPLIER = 3;
 export const EMPOWER_MULTIPLIER = 2;
 
 export const PRESTIGE_UNLOCK_LEVEL = 20;
-export const GUILD_HALL_THRESHOLDS: Record<string, number[]> = {
-  armory:         [2,  10, 25],
-  vault:          [4,  15, 35],
-  training_yard:  [6,  20, 50],
-  chronicle_room: [10, 28, 70],
-};
-export const VAULT_CARRY_RATE = 0.10;
+export const VENTURE_UNLOCK_LEVEL = 40;
+export const IDLE_GOLD_RATE = 0.5; // gold per DPS-point per second from idle companions
 export const PRESTIGE_SHOP_COSTS: Record<string, number> = {
   auto_seller: 1,
   auto_equip: 2,
@@ -83,9 +78,9 @@ export interface GameStateDict {
   checkpoint_level: number;
   auto_sell_qualities: string[];
   floor_kills: number;
-  renown: number;
-  renown_preview: number;
-  guild_upgrades: Record<string, number>;
+  dungeon_index: number;
+  idle_gold_rate: number;
+  venture_available: boolean;
 }
 
 export class GameState {
@@ -109,7 +104,8 @@ export class GameState {
   autoSellQualities: string[] = [];
   checkpointLevel = 1;
   floorKills = 0;
-  renown = 0;
+  dungeonIndex = 0;
+  idleGoldRate = 0;
 
   constructor(name = "Hero", characterClass = "fighter") {
     this.party = new Party();
@@ -121,6 +117,7 @@ export class GameState {
   }
 
   tick(dt: number): string {
+    if (this.idleGoldRate > 0) this.gold += this.idleGoldRate * dt;
     // Mana Surge — fires before regular DPS so we can early-return if enemy dies
     for (const c of this.party.team) {
       if (!c.isAlive()) continue;
@@ -241,34 +238,46 @@ export class GameState {
     return 1 + Math.floor(Math.max(0, this.highestLevel - PRESTIGE_UNLOCK_LEVEL) / 5);
   }
 
-  guildLevel(type: string): number {
-    const thresholds = GUILD_HALL_THRESHOLDS[type];
-    if (!thresholds) return 0;
-    return thresholds.filter(t => this.renown >= t).length;
-  }
+  venture(): string {
+    if (this.highestLevel < VENTURE_UNLOCK_LEVEL) return this.respond();
+    if (this.dungeonIndex > 0) return this.respond();
 
-  renownPreview(): number {
-    const base = Math.floor(this.highestLevel / 10);
-    const bonus = this.guildLevel("chronicle_room");
-    return base + bonus;
+    const companions = this.party.team.slice(1);
+    this.idleGoldRate = companions.reduce((sum, c) => sum + c.dps, 0) * IDLE_GOLD_RATE;
+
+    this.dungeonIndex = 1;
+    this.prestigePoints = 0;
+
+    const leadName = this.party.team[0].name;
+    const leadClass = this.party.team[0].characterClass;
+    const newLead = new Character(leadName, leadClass, 1);
+
+    this.party.team = [newLead];
+    this.upgrades = { [leadName]: { dps: 0, xp: 0, click: 0, hp: 0 } };
+    this.gold = 0;
+    this.dungeonLevel = 1;
+    this.kills = 0;
+    this.floorKills = 0;
+    this.deaths = 0;
+    this.highestLevel = 1;
+    this.checkpointLevel = 1;
+    this.lootPool = [];
+    this.log = [];
+    this.enemy = generateEnemy(1);
+
+    this.addLog(`Ventured to dungeon 2! Companions earn ${this.idleGoldRate.toFixed(1)} gold/sec.`);
+    return this.respond();
   }
 
   prestige(): string {
     if (this.highestLevel < PRESTIGE_UNLOCK_LEVEL) return this.respond();
     const earned = this.prestigePointsPreview();
-    const earnedRenown = this.renownPreview();
-    // All guild levels computed from CURRENT renown (before this run's earnings unlock new tiers)
-    const vaultStacks = this.guildLevel("vault");
-    const carriedGold = Math.floor(this.gold * vaultStacks * VAULT_CARRY_RATE);
-    const armoryStacks = this.guildLevel("armory");
-    const trainingStacks = this.guildLevel("training_yard");
 
     this.lifetimeKills += this.kills;
     this.lifetimeDeaths += this.deaths;
     this.lifetimeBestLevel = Math.max(this.lifetimeBestLevel, this.highestLevel);
     this.totalPrestiges += 1;
     this.prestigePoints += earned;
-    this.renown += earnedRenown;
 
     const leadName = this.party.team[0].name;
     const leadClass = this.party.team[0].characterClass;
@@ -290,17 +299,19 @@ export class GameState {
     this.party.addPlayer(lead);
     this.upgrades[leadName] = { dps: 0, xp: 0, click: 0, hp: 0 };
 
-    if ((this.prestigeUpgrades["party_slot_2"] ?? 0) > 0) {
-      const cls2 = this.prestigePartyClasses["slot_2"] ?? "fighter";
-      const comp = new Character("Companion", cls2, 1);
-      this.party.addPlayer(comp);
-      this.upgrades["Companion"] = { dps: 0, xp: 0, click: 0, hp: 0 };
-    }
-    if ((this.prestigeUpgrades["party_slot_3"] ?? 0) > 0) {
-      const cls3 = this.prestigePartyClasses["slot_3"] ?? "fighter";
-      const ally = new Character("Ally", cls3, 1);
-      this.party.addPlayer(ally);
-      this.upgrades["Ally"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+    if (this.dungeonIndex === 0) {
+      if ((this.prestigeUpgrades["party_slot_2"] ?? 0) > 0) {
+        const cls2 = this.prestigePartyClasses["slot_2"] ?? "fighter";
+        const comp = new Character("Companion", cls2, 1);
+        this.party.addPlayer(comp);
+        this.upgrades["Companion"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+      }
+      if ((this.prestigeUpgrades["party_slot_3"] ?? 0) > 0) {
+        const cls3 = this.prestigePartyClasses["slot_3"] ?? "fighter";
+        const ally = new Character("Ally", cls3, 1);
+        this.party.addPlayer(ally);
+        this.upgrades["Ally"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+      }
     }
 
     const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
@@ -308,22 +319,9 @@ export class GameState {
       c.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
     }
 
-    this.gold = (this.prestigeUpgrades["starting_gold"] ?? 0) * STARTING_GOLD_PER_LEVEL + carriedGold;
+    this.gold = (this.prestigeUpgrades["starting_gold"] ?? 0) * STARTING_GOLD_PER_LEVEL;
 
-    // Armory: add starting loot
-    for (let i = 0; i < armoryStacks; i++) {
-      this.lootPool.push(getItem(undefined, 1));
-    }
-
-    // Training Yard: level up all party members
-    if (trainingStacks > 0) {
-      for (const c of this.party.team) {
-        for (let i = 0; i < trainingStacks; i++) { c.levelUp(); }
-        c.xp = 0;
-      }
-    }
-
-    this.addLog(`Prestige ${this.totalPrestiges}! Earned ${earned}pt, ${earnedRenown} renown.`);
+    this.addLog(`Prestige ${this.totalPrestiges}! Earned ${earned}pt.`);
     return this.respond();
   }
 
@@ -434,11 +432,9 @@ export class GameState {
       checkpoint_level: this.checkpointLevel,
       auto_sell_qualities: [...this.autoSellQualities],
       floor_kills: this.floorKills,
-      renown: this.renown,
-      renown_preview: this.renownPreview(),
-      guild_upgrades: Object.fromEntries(
-        Object.keys(GUILD_HALL_THRESHOLDS).map(k => [k, this.guildLevel(k)])
-      ),
+      dungeon_index: this.dungeonIndex,
+      idle_gold_rate: this.idleGoldRate,
+      venture_available: this.highestLevel >= VENTURE_UNLOCK_LEVEL && this.dungeonIndex === 0,
     };
   }
 
@@ -674,7 +670,8 @@ export class GameState {
     gs.autoSellQualities = [...(d.auto_sell_qualities ?? [])];
     gs.checkpointLevel = d.checkpoint_level ?? 1;
     gs.floorKills = d.floor_kills ?? 0;
-    gs.renown = d.renown ?? 0;
+    gs.dungeonIndex = d.dungeon_index ?? 0;
+    gs.idleGoldRate = d.idle_gold_rate ?? 0;
 
     gs.enemy = {
       name: d.enemy.name,

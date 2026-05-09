@@ -1,6 +1,6 @@
 # Toddpocalypse
 
-A browser-based idle clicker RPG — descend into the dungeon, collect loot, build your party, and prestige your way to the Guild Hall.
+A browser-based idle clicker RPG — descend into the dungeon, collect loot, build your party, and eventually venture into deeper, unknown dungeons.
 
 **[Play it live](https://nerdytoddgerdy.github.io/toddpocalypse/)**
 
@@ -36,14 +36,7 @@ Each class unlocks three abilities at levels 5, 10, and 20.
 
 **Prestige** — at dungeon level 20+, reset the run to earn prestige points. Spend them in the Prestige Shop on permanent automation (Auto Seller, Auto Equip, Auto Upgrade) and party expansion (up to 3 members).
 
-**Guild Hall** — renown accumulates across all prestiges and never resets. As your total renown grows, Guild Hall facilities unlock automatically:
-
-| Facility | Unlocks at | Effect |
-|---|---|---|
-| Armory | 2 / 10 / 25 renown | Start each run with extra loot already in the pool |
-| Vault | 4 / 15 / 35 renown | Carry a portion of your gold into the next run |
-| Training Yard | 6 / 20 / 50 renown | Party members begin each run at a higher level |
-| Chronicle Room | 10 / 28 / 70 renown | Earn bonus renown from every future prestige |
+**Venture** — at dungeon level 40, leave your companions behind and venture to a new dungeon. Your lead character starts completely fresh — same class, but level 1 with no gear and no gold. Companions idle in the original dungeon and earn gold based on their DPS, which flows to you automatically. Prestige still works within the new dungeon, but only resets the lead — your companions keep idling back home.
 
 ### Party
 
@@ -81,7 +74,7 @@ Then open `http://localhost:8000`.
 ```
 src/
   main.ts        DOM glue — render loop, event delegation
-  engine.ts      GameState — tick/click, loot, upgrades, prestige, guild hall
+  engine.ts      GameState — tick/click, loot, upgrades, prestige, venture
   dungeon.ts     generateEnemy() — enemy names and scaling
   party.ts       Party — list of Characters
   character.ts   Character — class stats, level-up, abilities

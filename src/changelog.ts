@@ -1,4 +1,4 @@
-export const VERSION = "v2.2.2";
+export const VERSION = "v2.3.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,17 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.3.0",
+    date: "2026-05-08",
+    changes: [
+      "Venture system — at floor 40, venture to a new dungeon with just your class (fresh character, no gear, no gold)",
+      "Companions stay behind in Dungeon 1 and idle-earn gold based on their DPS, flowing to you automatically",
+      "Prestige still works within each dungeon; venturing resets your prestige point balance to 0",
+      "Prestige in Dungeon 2 resets only the lead — companions remain idle in Dungeon 1",
+      "Removed Guild Hall / Renown system",
+    ],
+  },
   {
     version: "v2.2.2",
     date: "2026-05-08",

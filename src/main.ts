@@ -1,4 +1,4 @@
-import { GameState, type GameStateDict, GUILD_HALL_THRESHOLDS } from "./engine.js";
+import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL } from "./engine.js";
 import { qualityClass, autoSellThreshold, QUAL } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
@@ -35,7 +35,7 @@ let lootKey: string | null = null;
 let upgradeKey: string | null = null;
 let partyKey: string | null = null;
 let prestigeKey: string | null = null;
-let guildKey: string | null = null;
+let ventureKey: string | null = null;
 let hoveredLootSlot: string | null = null;
 
 function $(id: string): HTMLElement {
@@ -67,11 +67,20 @@ function render(state: GameStateDict): void {
   ($("enemy-hp-bar") as HTMLElement).style.width = pct + "%";
   $("enemy-hp-text").textContent = `${Math.ceil(enemy.hp)} / ${enemy.max_hp}`;
 
-  $("stat-gold").textContent = String(state.gold);
+  $("stat-gold").textContent = String(Math.floor(state.gold));
+  $("stat-dungeon-num").textContent = String(state.dungeon_index + 1);
   $("stat-level").textContent = String(state.dungeon_level);
   $("stat-best").textContent = String(state.highest_level);
   $("stat-kills").textContent = String(state.kills);
   $("stat-deaths").textContent = String(state.deaths);
+
+  const idleEl = $("stat-idle-gold");
+  if (state.idle_gold_rate > 0) {
+    $("stat-idle-rate").textContent = state.idle_gold_rate.toFixed(1);
+    idleEl.hidden = false;
+  } else {
+    idleEl.hidden = true;
+  }
 
   renderFloorProgress(state);
   renderDepthGauge(state);
@@ -79,9 +88,9 @@ function render(state: GameStateDict): void {
   renderLoot(state);
   renderUpgrades(state);
   renderPrestigeShop(state);
-  renderGuildHall(state);
   renderLog(state);
   updatePrestigeButton(state);
+  updateVentureButton(state);
   updateLifetimeStats(state);
   updateShopBadge(state);
 }
@@ -351,42 +360,23 @@ function renderPrestigeShop(state: GameStateDict): void {
   }).join("");
 }
 
-const GUILD_HALL_META: Record<string, { icon: string; name: string; desc: string }> = {
-  armory:        { icon: "⚔", name: "Armory",         desc: "Start each run with +1 loot item in the pool." },
-  vault:         { icon: "🏦", name: "Vault",          desc: "Carry 10% of your gold into the next run." },
-  training_yard: { icon: "🏋", name: "Training Yard",  desc: "Party members start each run 1 level higher." },
-  chronicle_room:{ icon: "📜", name: "Chronicle Room", desc: "+1 renown earned on every future prestige." },
-};
-
-function renderGuildHall(state: GameStateDict): void {
-  const newKey = JSON.stringify(state.guild_upgrades) + "|" + state.renown;
-  if (newKey === guildKey) return;
-  guildKey = newKey;
-
-  const renown = state.renown;
-  const preview = state.renown_preview;
-  $("guild-renown-display").textContent =
-    renown === 0 && preview === 0 ? "" :
-    preview > 0 ? `(${renown} ⚜ · +${preview} next)` :
-    `(${renown} ⚜)`;
-
-  const ups = (state.guild_upgrades ?? {}) as Record<string, number>;
-  $("guild-hall-items").innerHTML = Object.entries(GUILD_HALL_META).map(([type, meta]) => {
-    const owned = ups[type] ?? 0;
-    const thresholds = GUILD_HALL_THRESHOLDS[type] ?? [];
-    const max = thresholds.length;
-    const levelLabel = owned >= max ? ` ✓ (${max}/${max})` : owned > 0 ? ` (${owned}/${max})` : ` (0/${max})`;
-    const nextThreshold = thresholds[owned];
-    const badgeText = owned >= max ? "★ Max" : owned > 0 ? `Next: ${nextThreshold} ⚜` : `Need ${nextThreshold} ⚜`;
-    const unlocked = owned > 0;
-    return `<div class="guild-item">
-      <div class="guild-item-meta">
-        <div class="guild-item-name">${meta.icon} ${meta.name}${levelLabel}</div>
-        <div class="guild-item-desc">${meta.desc}</div>
-      </div>
-      <span class="guild-unlock-badge ${unlocked ? "unlocked" : ""}">${badgeText}</span>
-    </div>`;
-  }).join("");
+function updateVentureButton(state: GameStateDict): void {
+  const newKey = String(state.venture_available) + "|" + state.dungeon_index;
+  if (newKey === ventureKey) return;
+  ventureKey = newKey;
+  const btn = $("venture-btn") as HTMLButtonElement;
+  if (state.dungeon_index > 0) {
+    btn.hidden = true;
+    return;
+  }
+  btn.hidden = false;
+  if (state.venture_available) {
+    btn.disabled = false;
+    btn.textContent = "⚔ Venture Forth";
+  } else {
+    btn.disabled = true;
+    btn.textContent = `⚔ Venture (need lv${VENTURE_UNLOCK_LEVEL})`;
+  }
 }
 
 function updatePrestigeButton(state: GameStateDict): void {
@@ -469,7 +459,7 @@ function slotLabel(slot: string): string {
 
 const TAB_PANELS: Record<string, string[]> = {
   combat: ["enemy-panel", "party-panel", "loot-panel"],
-  shop:   ["upgrades-panel", "prestige-panel", "guild-hall-panel"],
+  shop:   ["upgrades-panel", "prestige-panel"],
   log:    ["log-panel"],
 };
 
@@ -679,6 +669,11 @@ document.addEventListener("DOMContentLoaded", () => {
         openPartyClassModal(type);
       } else {
         call("buyPrestigeUpgrade", type);
+      }
+    }
+    else if (action === "venture") {
+      if (confirm("Venture to a new dungeon? Your companions will stay behind and earn gold. You start fresh with just your class.")) {
+        call("venture");
       }
     }
     else if (action === "toggle-auto-sell") {

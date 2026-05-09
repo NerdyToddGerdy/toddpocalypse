@@ -4,7 +4,7 @@ import {
   PRESTIGE_UNLOCK_LEVEL, PRESTIGE_SHOP_COSTS, STARTING_GOLD_PER_LEVEL, XP_BONUS_PER_LEVEL,
   BLOODLUST_MULTIPLIER, EXPOSE_WEAKNESS_MULT, MANA_SURGE_INTERVAL, MANA_SURGE_MULTIPLIER,
   LUCKY_STRIKE_CHANCE, LUCKY_STRIKE_MULTIPLIER, EMPOWER_MULTIPLIER,
-  GUILD_HALL_THRESHOLDS,
+  VENTURE_UNLOCK_LEVEL, IDLE_GOLD_RATE,
   killsForFloor,
 } from "../src/engine.js";
 import { Character } from "../src/character.js";
@@ -1774,130 +1774,108 @@ describe("checkpoint system", () => {
   });
 });
 
-describe("renown", () => {
-  it("renown starts at 0", () => {
-    expect(make().renown).toBe(0);
-  });
-
-  it("renownPreview returns floor(highestLevel / 10)", () => {
-    expect(withHighLevel(20).renownPreview()).toBe(2);
-    expect(withHighLevel(30).renownPreview()).toBe(3);
-    expect(withHighLevel(50).renownPreview()).toBe(5);
-  });
-
-  it("renownPreview is 0 below floor 10", () => {
-    expect(make().renownPreview()).toBe(0);
-    expect(withHighLevel(9).renownPreview()).toBe(0);
-  });
-
-  it("chronicle_room stacks add to renownPreview", () => {
-    const gs = withHighLevel(20);
-    gs.renown = GUILD_HALL_THRESHOLDS["chronicle_room"][1]; // level 2 threshold
-    expect(gs.renownPreview()).toBe(4); // 2 base + 2 chronicle levels
-  });
-
-  it("prestige() earns renown based on highestLevel", () => {
-    const gs = withHighLevel(20);
-    gs.prestige();
-    expect(gs.renown).toBe(2);
-  });
-
-  it("prestige() does NOT reset renown", () => {
-    const gs = withHighLevel(20);
-    gs.prestige();
-    gs.highestLevel = 20;
-    gs.prestige();
-    expect(gs.renown).toBe(4); // 2 + 2
-  });
-
-  it("renown accumulates across multiple prestiges", () => {
-    const gs = withHighLevel(30);
-    gs.prestige(); // earns 3
-    gs.highestLevel = 20;
-    gs.prestige(); // earns 2
-    expect(gs.renown).toBe(5);
-  });
-
-  it("renown round-trips through toDict/fromDict", () => {
-    const gs = withHighLevel(20);
-    gs.prestige();
-    const restored = GameState.fromDict(gs.toDict());
-    expect(restored.renown).toBe(2);
-  });
-});
-
-describe("guild hall", () => {
-  function withRenown(n: number): GameState {
-    const gs = make();
-    gs.renown = n;
+describe("venture", () => {
+  function withVentureReady(): GameState {
+    const gs = withPrestige(5);
+    gs.buyPrestigeUpgrade("party_slot_2", "fighter");
+    gs.highestLevel = VENTURE_UNLOCK_LEVEL;
     return gs;
   }
 
-  it("guildLevel returns 0 below first threshold", () => {
-    const gs = withRenown(GUILD_HALL_THRESHOLDS["armory"][0] - 1);
-    expect(gs.guildLevel("armory")).toBe(0);
+  it("venture requires highestLevel >= 40", () => {
+    const gs = make();
+    gs.highestLevel = VENTURE_UNLOCK_LEVEL - 1;
+    gs.venture();
+    expect(gs.dungeonIndex).toBe(0);
   });
 
-  it("guildLevel returns 1 at first threshold", () => {
-    const gs = withRenown(GUILD_HALL_THRESHOLDS["armory"][0]);
-    expect(gs.guildLevel("armory")).toBe(1);
+  it("venture only works from dungeon 0 (not repeatable)", () => {
+    const gs = withVentureReady();
+    gs.venture();
+    expect(gs.dungeonIndex).toBe(1);
+    gs.highestLevel = VENTURE_UNLOCK_LEVEL;
+    gs.venture();
+    expect(gs.dungeonIndex).toBe(1); // still 1, not 2
   });
 
-  it("guildLevel returns 2 at second threshold", () => {
-    const gs = withRenown(GUILD_HALL_THRESHOLDS["armory"][1]);
-    expect(gs.guildLevel("armory")).toBe(2);
+  it("venture creates fresh lead — same name and class, level 1", () => {
+    const gs = withVentureReady();
+    const origName = gs.party.team[0].name;
+    const origClass = gs.party.team[0].characterClass;
+    gs.party.team[0].levelUp(); // bump lead to level 2
+    gs.venture();
+    expect(gs.party.team[0].name).toBe(origName);
+    expect(gs.party.team[0].characterClass).toBe(origClass);
+    expect(gs.party.team[0].level).toBe(1);
   });
 
-  it("guildLevel returns 3 at third threshold (max)", () => {
-    const gs = withRenown(GUILD_HALL_THRESHOLDS["armory"][2]);
-    expect(gs.guildLevel("armory")).toBe(3);
+  it("venture clears lead gear (empty inventory slots)", () => {
+    const gs = withVentureReady();
+    gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
+    gs.venture();
+    expect(gs.party.team[0].inventory.slots["main_hand" as Slot]).toBeNull();
   });
 
-  it("guildLevel returns 0 for unknown type", () => {
-    expect(withRenown(100).guildLevel("nonexistent")).toBe(0);
+  it("venture resets gold to 0", () => {
+    const gs = withVentureReady();
+    gs.gold = 9999;
+    gs.venture();
+    expect(gs.gold).toBe(0);
   });
 
-  it("vault carries 10% of gold per stack on prestige", () => {
-    const gs = withHighLevel(20);
-    gs.gold = 1000;
-    gs.renown = GUILD_HALL_THRESHOLDS["vault"][0]; // level 1
+  it("venture sets idleGoldRate from companion DPS × IDLE_GOLD_RATE", () => {
+    const gs = withVentureReady();
+    const compDps = gs.party.team[1].dps;
+    gs.venture();
+    expect(gs.idleGoldRate).toBeCloseTo(compDps * IDLE_GOLD_RATE);
+  });
+
+  it("venture with no companions sets idleGoldRate to 0", () => {
+    const gs = withHighLevel(VENTURE_UNLOCK_LEVEL);
+    gs.venture();
+    expect(gs.idleGoldRate).toBe(0);
+  });
+
+  it("venture increments dungeonIndex to 1", () => {
+    const gs = withVentureReady();
+    gs.venture();
+    expect(gs.dungeonIndex).toBe(1);
+  });
+
+  it("venture resets prestige points to 0", () => {
+    const gs = withVentureReady();
+    gs.prestigePoints = 3;
+    gs.venture();
+    expect(gs.prestigePoints).toBe(0);
+  });
+
+  it("venture removes companions from active party (solo lead)", () => {
+    const gs = withVentureReady();
+    expect(gs.party.team.length).toBeGreaterThan(1);
+    gs.venture();
+    expect(gs.party.team.length).toBe(1);
+  });
+
+  it("tick() accumulates idle gold when idleGoldRate > 0", () => {
+    const gs = make();
+    gs.idleGoldRate = 10;
+    gs.tick(1);
+    expect(gs.gold).toBeGreaterThanOrEqual(10);
+  });
+
+  it("dungeon_index and idle_gold_rate round-trip through toDict/fromDict", () => {
+    const gs = withVentureReady();
+    gs.venture();
+    const restored = GameState.fromDict(gs.toDict());
+    expect(restored.dungeonIndex).toBe(1);
+    expect(restored.idleGoldRate).toBeCloseTo(gs.idleGoldRate);
+  });
+
+  it("prestige in dungeon 2 does not restore companions (party stays solo)", () => {
+    const gs = withVentureReady();
+    gs.venture();
+    gs.highestLevel = PRESTIGE_UNLOCK_LEVEL;
     gs.prestige();
-    expect(gs.gold).toBe(100); // 10% of 1000 (no starting_gold perk)
-  });
-
-  it("vault 3 stacks carries 30% of gold on prestige", () => {
-    const gs = withHighLevel(20);
-    gs.gold = 1000;
-    gs.renown = GUILD_HALL_THRESHOLDS["vault"][2]; // level 3
-    gs.prestige();
-    expect(gs.gold).toBe(300);
-  });
-
-  it("armory adds N loot items to pool on prestige", () => {
-    const gs = withHighLevel(20);
-    gs.renown = GUILD_HALL_THRESHOLDS["armory"][1]; // level 2
-    gs.prestige();
-    expect(gs.lootPool.length).toBe(2);
-  });
-
-  it("training_yard levels up all party members on prestige", () => {
-    const gs = withHighLevel(20);
-    gs.renown = GUILD_HALL_THRESHOLDS["training_yard"][1]; // level 2
-    gs.prestige();
-    expect(gs.party.team[0].level).toBe(3); // started at 1, +2 from training
-  });
-
-  it("training_yard resets XP to 0 after level-ups", () => {
-    const gs = withHighLevel(20);
-    gs.renown = GUILD_HALL_THRESHOLDS["training_yard"][0]; // level 1
-    gs.prestige();
-    expect(gs.party.team[0].xp).toBe(0);
-  });
-
-  it("guild_upgrades in toDict reflects computed levels", () => {
-    const gs = withRenown(GUILD_HALL_THRESHOLDS["armory"][0]); // armory level 1
-    const dict = gs.toDict();
-    expect(dict.guild_upgrades["armory"]).toBe(1);
-    expect(dict.guild_upgrades["vault"]).toBe(0); // below vault threshold
+    expect(gs.party.team.length).toBe(1);
   });
 });

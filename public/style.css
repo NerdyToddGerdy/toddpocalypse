@@ -1026,42 +1026,23 @@ main {
 .prestige-buy-btn:hover:not(:disabled) { background: var(--accent); color: #1a1005; }
 .prestige-buy-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-/* ── Guild Hall ── */
-.guild-item {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    padding: 8px 10px;
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-}
-
-.guild-item-meta { flex: 1; min-width: 0; }
-.guild-item-name { font-size: 0.8rem; font-weight: 700; color: var(--text); }
-.guild-item-desc { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
-
-#guild-renown-display { color: var(--accent2, #a78bfa); font-size: 0.8rem; font-weight: 600; }
-
-.guild-unlock-badge {
-    padding: 6px 10px;
+/* ── Venture button ── */
+#venture-btn {
+    padding: 5px 10px;
     font-size: 0.72rem;
     font-weight: 700;
     background: var(--surface);
-    color: var(--muted);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    white-space: nowrap;
-    flex-shrink: 0;
-    cursor: default;
-    user-select: none;
-}
-.guild-unlock-badge.unlocked {
     color: var(--accent2, #a78bfa);
-    border-color: var(--accent2, #a78bfa);
+    border: 1px solid var(--accent2, #a78bfa);
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.1s, color 0.1s;
 }
+#venture-btn:hover:not(:disabled) { background: var(--accent2, #a78bfa); color: #1a1005; }
+#venture-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+#stat-idle-gold { color: var(--accent2, #a78bfa); font-weight: 600; }
 
 /* ── Stats modal ── */
 #stats-modal, #party-class-modal {
