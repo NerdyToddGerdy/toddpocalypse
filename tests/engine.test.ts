@@ -1789,15 +1789,6 @@ describe("venture", () => {
     expect(gs.dungeonIndex).toBe(0);
   });
 
-  it("venture only works from dungeon 0 (not repeatable)", () => {
-    const gs = withVentureReady();
-    gs.venture();
-    expect(gs.dungeonIndex).toBe(1);
-    gs.highestLevel = VENTURE_UNLOCK_LEVEL;
-    gs.venture();
-    expect(gs.dungeonIndex).toBe(1); // still 1, not 2
-  });
-
   it("venture creates fresh lead — same name and class, level 1", () => {
     const gs = withVentureReady();
     const origName = gs.party.team[0].name;
@@ -1889,5 +1880,37 @@ describe("venture", () => {
     gs.prestige();
     expect(gs.party.team.length).toBe(2);
     expect(gs.party.team[1].characterClass).toBe("rogue");
+  });
+
+  it("venture increments dungeonIndex on each call (infinite progression)", () => {
+    const gs = withVentureReady();
+    gs.venture();
+    expect(gs.dungeonIndex).toBe(1);
+    gs.highestLevel = VENTURE_UNLOCK_LEVEL;
+    gs.venture();
+    expect(gs.dungeonIndex).toBe(2);
+  });
+
+  it("venture accumulates idle gold rate across dungeons", () => {
+    const gs = withVentureReady();
+    const firstCompDps = gs.party.team[1].dps;
+    gs.venture();
+    const rateAfterFirst = gs.idleGoldRate;
+    // Re-buy party slot and get a companion for dungeon 2
+    gs.prestigePoints = 5;
+    gs.buyPrestigeUpgrade("party_slot_2", "rogue");
+    gs.highestLevel = VENTURE_UNLOCK_LEVEL;
+    const secondCompDps = gs.party.team[1].dps;
+    gs.venture();
+    expect(gs.idleGoldRate).toBeCloseTo(rateAfterFirst + secondCompDps * IDLE_GOLD_RATE);
+  });
+
+  it("venture_available is true again at floor 40 in dungeon 2", () => {
+    const gs = withVentureReady();
+    gs.venture();
+    gs.highestLevel = VENTURE_UNLOCK_LEVEL;
+    const d = gs.toDict();
+    expect(d.venture_available).toBe(true);
+    expect(d.dungeon_index).toBe(1);
   });
 });

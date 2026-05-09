@@ -365,10 +365,6 @@ function updateVentureButton(state: GameStateDict): void {
   if (newKey === ventureKey) return;
   ventureKey = newKey;
   const btn = $("venture-btn") as HTMLButtonElement;
-  if (state.dungeon_index > 0) {
-    btn.hidden = true;
-    return;
-  }
   btn.hidden = false;
   if (state.venture_available) {
     btn.disabled = false;

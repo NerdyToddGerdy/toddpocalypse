@@ -240,12 +240,11 @@ export class GameState {
 
   venture(): string {
     if (this.highestLevel < VENTURE_UNLOCK_LEVEL) return this.respond();
-    if (this.dungeonIndex > 0) return this.respond();
 
     const companions = this.party.team.slice(1);
-    this.idleGoldRate = companions.reduce((sum, c) => sum + c.dps, 0) * IDLE_GOLD_RATE;
+    this.idleGoldRate += companions.reduce((sum, c) => sum + c.dps, 0) * IDLE_GOLD_RATE;
 
-    this.dungeonIndex = 1;
+    this.dungeonIndex += 1;
     this.prestigePoints = 0;
     // Reset party slots so fresh companions can be recruited in the new dungeon
     this.prestigeUpgrades["party_slot_2"] = 0;
@@ -268,7 +267,7 @@ export class GameState {
     this.log = [];
     this.enemy = generateEnemy(1);
 
-    this.addLog(`Ventured to dungeon 2! Companions earn ${this.idleGoldRate.toFixed(1)} gold/sec.`);
+    this.addLog(`Ventured to dungeon ${this.dungeonIndex + 1}! Total idle: ${this.idleGoldRate.toFixed(1)} gold/sec.`);
     return this.respond();
   }
 
@@ -435,7 +434,7 @@ export class GameState {
       floor_kills: this.floorKills,
       dungeon_index: this.dungeonIndex,
       idle_gold_rate: this.idleGoldRate,
-      venture_available: this.highestLevel >= VENTURE_UNLOCK_LEVEL && this.dungeonIndex === 0,
+      venture_available: this.highestLevel >= VENTURE_UNLOCK_LEVEL,
     };
   }
 

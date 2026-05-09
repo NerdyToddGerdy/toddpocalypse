@@ -1,4 +1,4 @@
-export const VERSION = "v2.3.1";
+export const VERSION = "v2.3.2";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,15 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.3.2",
+    date: "2026-05-08",
+    changes: [
+      "Venture is repeatable — push any dungeon to floor 40 and venture to the next one",
+      "Idle gold accumulates across all previous dungeons — every companion you leave behind keeps earning",
+      "Dungeon counter increments each venture; no cap",
+    ],
+  },
   {
     version: "v2.3.1",
     date: "2026-05-08",
