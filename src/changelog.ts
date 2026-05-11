@@ -1,4 +1,4 @@
-export const VERSION = "v2.5.0";
+export const VERSION = "v2.5.2";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,26 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.5.2",
+    date: "2026-05-11",
+    changes: [
+      "Save auto-loads on page refresh — no more 'Continue' button required; upgrades and loot now persist across reloads",
+      "Settings panel no longer bleeds into other sidebar tabs on desktop",
+    ],
+  },
+  {
+    version: "v2.5.1",
+    date: "2026-05-11",
+    changes: [
+      "Three fantasy themes selectable in Settings: Grimdark, Arcane, Tavern",
+      "Grimdark: smoldering charcoal + blood-red + UnifrakturMaguntia font",
+      "Arcane: deep indigo + hammered gold + Cinzel Decorative font",
+      "Tavern: dark walnut + lantern amber + Philosopher font",
+      "All themes add: ornate inner panel borders, decorative flanking lines on section headers, subtle noise texture, gold title glow",
+      "Theme persists across page reloads",
+    ],
+  },
   {
     version: "v2.5.0",
     date: "2026-05-11",

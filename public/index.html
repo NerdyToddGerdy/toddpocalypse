@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Toddpocalypse</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Pirata+One&family=Philosopher:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -140,6 +143,15 @@
     <section id="settings-panel">
       <h2>Settings</h2>
       <div id="settings-content">
+        <div class="settings-row">
+          <div class="settings-label">Visual Theme</div>
+          <div class="settings-desc">Choose your fantasy aesthetic.</div>
+          <div id="theme-picker">
+            <button class="theme-btn" data-theme="grimdark">⚔ Grimdark</button>
+            <button class="theme-btn" data-theme="arcane">🔮 Arcane</button>
+            <button class="theme-btn" data-theme="tavern">🍺 Tavern</button>
+          </div>
+        </div>
         <div class="settings-row">
           <div class="settings-label">Hard Reset</div>
           <div class="settings-desc">Permanently deletes all save data and restarts the game.</div>

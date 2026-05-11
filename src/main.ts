@@ -41,6 +41,22 @@ const UPGRADE_LABELS: Record<string, { icon: string; label: string }> = {
 };
 
 const SAVE_KEY = "toddpocalypse-save";
+const THEME_KEY = "toddpocalypse-theme";
+const THEMES = ["grimdark", "arcane", "tavern"] as const;
+type Theme = typeof THEMES[number];
+
+function applyTheme(theme: Theme): void {
+  document.documentElement.dataset.theme = theme;
+  localStorage.setItem(THEME_KEY, theme);
+  document.querySelectorAll<HTMLElement>(".theme-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.theme === theme);
+  });
+}
+
+function initTheme(): void {
+  const saved = localStorage.getItem(THEME_KEY);
+  applyTheme((THEMES.includes(saved as Theme) ? saved : "arcane") as Theme);
+}
 
 let game: GameState | null = null;
 let lootKey: string | null = null;
@@ -805,8 +821,15 @@ function continueGame(saved: GameStateDict): void {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  initTheme();
   initMobileTabs();
   initSidebarTabs();
+
+  document.querySelectorAll<HTMLElement>(".theme-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (btn.dataset.theme) applyTheme(btn.dataset.theme as Theme);
+    });
+  });
 
   $("loot-items").addEventListener("mouseover", (e) => {
     const item = (e.target as HTMLElement).closest<HTMLElement>(".loot-item");
@@ -877,27 +900,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const saved = loadSave();
 
   if (saved) {
-    const hero = saved.party[0];
-    $("continue-info").textContent =
-      `${hero.name} the ${hero.character_class} · Lvl ${hero.level} · Dungeon ${saved.dungeon_level}`;
-    $("save-section").style.display = "flex";
-    $("new-game-section").style.display = "none";
+    continueGame(saved);
   } else {
     $("save-section").style.display = "none";
     $("new-game-section").style.display = "flex";
+    $("creation-overlay").style.display = "flex";
+    updateClassDesc();
   }
-
-  $("creation-overlay").style.display = "flex";
-  updateClassDesc();
-
-  $("continue-btn")?.addEventListener("click", () => {
-    if (saved) continueGame(saved);
-  });
-
-  $("new-game-btn")?.addEventListener("click", () => {
-    $("save-section").style.display = "none";
-    $("new-game-section").style.display = "flex";
-  });
 
   $("class-picker").addEventListener("click", (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLButtonElement>(".class-btn");

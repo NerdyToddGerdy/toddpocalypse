@@ -614,6 +614,24 @@ describe("upgrades", () => {
     expect(restored.upgrades[c.name].hp).toBe(2);
     expect(restored.party.team[0].maxHealth).toBe(c.maxHealth);
   });
+
+  it("all upgrade types survive fromDict round-trip", () => {
+    const gs = withGold();
+    const c = gs.party.team[0];
+    gs.buyUpgrade(c.name, "dps");
+    gs.buyUpgrade(c.name, "dps");
+    gs.buyUpgrade(c.name, "xp");
+    gs.buyUpgrade(c.name, "click");
+    gs.buyUpgrade(c.name, "click");
+    gs.buyUpgrade(c.name, "click");
+    const restored = GameState.fromDict(gs.toDict());
+    expect(restored.upgrades[c.name].dps).toBe(2);
+    expect(restored.upgrades[c.name].xp).toBe(1);
+    expect(restored.upgrades[c.name].click).toBe(3);
+    expect(restored.party.team[0].dps).toBeCloseTo(c.dps);
+    expect(restored.party.team[0].xpMultiplier).toBeCloseTo(c.xpMultiplier);
+    expect(restored.party.team[0].clickBonus).toBeCloseTo(c.clickBonus);
+  });
 });
 
 describe("toDict", () => {

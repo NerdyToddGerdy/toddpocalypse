@@ -10,6 +10,8 @@
     --hp-green: #3ecf6a;
     --xp-blue: #3b82f6;
     --border: #2e2e48;
+    --font-display: 'Segoe UI', system-ui, sans-serif;
+    --font-body: 'Segoe UI', system-ui, sans-serif;
 
     /* quality tier colors */
     --q-broken:   #555566;
@@ -67,10 +69,17 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Fantasy display font applied to all headers and key UI labels */
+h1, h2, .stab-btn, .mobile-tab-btn span, #attack-btn, #skill-btn,
+.class-btn, .prestige-buy-btn, .guild-buy-btn, button[data-action="prestige"],
+button[data-action="venture"], #hard-reset-btn, #hard-reset-yes {
+    font-family: var(--font-display);
+}
+
 body {
     background: var(--bg);
     color: var(--text);
-    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-family: var(--font-body);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -494,7 +503,7 @@ main {
 
 /* Desktop: panels live inside the sidebar card — no individual borders */
 @media (min-width: 769px) {
-    #upgrades-panel, #loot-panel, #prestige-panel, #guild-hall-panel, #log-panel {
+    #upgrades-panel, #loot-panel, #prestige-panel, #guild-hall-panel, #log-panel, #settings-panel {
         display: none;
         background: none;
         border: none;
@@ -749,7 +758,7 @@ main {
 }
 .danger-btn:hover { background: var(--danger); color: #fff; }
 
-#settings-panel { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+#settings-panel { padding: 16px; flex-direction: column; gap: 12px; }
 #settings-panel h2 {
     font-size: 0.75rem;
     text-transform: uppercase;
@@ -1735,4 +1744,147 @@ footer {
 
 .auto-sell-name {
     font-weight: 500;
+}
+
+/* ═══════════════════════════════════════
+   FANTASY THEMES
+   ═══════════════════════════════════════ */
+
+/* ── Grimdark ── */
+[data-theme="grimdark"] {
+    --bg: #090605;
+    --surface: #120c0a;
+    --surface2: #1c1210;
+    --border: #4a2018;
+    --accent: #c0392b;
+    --accent2: #a0522d;
+    --danger: #ff3030;
+    --text: #d4c5b5;
+    --muted: #7a5a4a;
+    --hp-green: #5a9e3a;
+    --xp-blue: #4a7abf;
+    --font-display: 'Pirata One', serif;
+    --font-body: 'Crimson Pro', Georgia, serif;
+}
+
+[data-theme="grimdark"] h1 {
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.18em;
+}
+
+/* ── Arcane ── */
+[data-theme="arcane"] {
+    --bg: #07070f;
+    --surface: #0e0e1c;
+    --surface2: #151528;
+    --border: #28285a;
+    --accent: #c8a227;
+    --accent2: #8b5cf6;
+    --danger: #e05252;
+    --text: #e8e0f8;
+    --muted: #6a6a99;
+    --hp-green: #3ecf6a;
+    --xp-blue: #3b82f6;
+    --font-display: 'Cinzel Decorative', 'Cinzel', serif;
+    --font-body: 'Cinzel', Georgia, serif;
+}
+
+/* ── Tavern ── */
+[data-theme="tavern"] {
+    --bg: #090704;
+    --surface: #130f08;
+    --surface2: #1e1610;
+    --border: #4a3518;
+    --accent: #d4821a;
+    --accent2: #2d7a3a;
+    --danger: #cc3333;
+    --text: #e8d8b0;
+    --muted: #8a7a52;
+    --hp-green: #3a8a3a;
+    --xp-blue: #4a6abf;
+    --font-display: 'Philosopher', Georgia, serif;
+    --font-body: 'Crimson Pro', Georgia, serif;
+}
+
+/* ── Shared fantasy decorations (active on any theme) ── */
+[data-theme] body {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+}
+
+[data-theme] header h1 {
+    text-shadow: 0 0 20px var(--accent), 0 0 40px rgba(200,162,39,0.3);
+    letter-spacing: 0.12em;
+}
+
+[data-theme] section h2,
+[data-theme] #prestige-panel h2,
+[data-theme] #guild-hall-panel h2,
+[data-theme] #settings-panel h2,
+[data-theme] #log-panel h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+[data-theme] section h2::before,
+[data-theme] #prestige-panel h2::before,
+[data-theme] #guild-hall-panel h2::before,
+[data-theme] #settings-panel h2::before,
+[data-theme] #log-panel h2::before {
+    content: '';
+    flex: 1 1 auto;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--border));
+}
+[data-theme] section h2::after,
+[data-theme] #prestige-panel h2::after,
+[data-theme] #guild-hall-panel h2::after,
+[data-theme] #settings-panel h2::after,
+[data-theme] #log-panel h2::after {
+    content: '';
+    flex: 1 1 auto;
+    height: 1px;
+    background: linear-gradient(to left, transparent, var(--border));
+}
+
+[data-theme] #enemy-panel,
+[data-theme] #party-panel,
+[data-theme] #upgrades-panel,
+[data-theme] #loot-panel,
+[data-theme] #prestige-panel,
+[data-theme] #guild-hall-panel,
+[data-theme] #log-panel,
+[data-theme] #settings-panel {
+    outline: 1px solid var(--border);
+    outline-offset: -4px;
+}
+
+[data-theme] #enemy-name {
+    letter-spacing: 0.06em;
+}
+
+/* ── Theme picker ── */
+#theme-picker {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.theme-btn {
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface2);
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-family: var(--font-display);
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.theme-btn:hover { color: var(--text); border-color: var(--accent); }
+.theme-btn.active {
+    background: var(--accent);
+    color: #0a0807;
+    border-color: var(--accent);
+    font-weight: 700;
 }
