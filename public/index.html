@@ -101,6 +101,7 @@
       <button class="stab-btn" data-stab="prestige">Prestige<span id="stab-prestige-badge" class="stab-badge" hidden></span></button>
       <button class="stab-btn" data-stab="guild">Guild<span id="stab-guild-badge" class="stab-badge" hidden></span></button>
       <button class="stab-btn" data-stab="log">Log</button>
+      <button class="stab-btn" data-stab="settings">⚙</button>
     </nav>
 
     <section id="upgrades-panel">
@@ -134,6 +135,22 @@
     <section id="log-panel">
       <h2>Combat Log</h2>
       <div id="combat-log"></div>
+    </section>
+
+    <section id="settings-panel">
+      <h2>Settings</h2>
+      <div id="settings-content">
+        <div class="settings-row">
+          <div class="settings-label">Hard Reset</div>
+          <div class="settings-desc">Permanently deletes all save data and restarts the game.</div>
+          <button id="hard-reset-btn" class="danger-btn">Reset Game</button>
+          <div id="hard-reset-confirm" hidden>
+            <span class="settings-warn">This cannot be undone.</span>
+            <button id="hard-reset-yes" class="danger-btn">Yes, reset everything</button>
+            <button id="hard-reset-no" class="secondary-btn">Cancel</button>
+          </div>
+        </div>
+      </div>
     </section>
 
   </aside>
@@ -204,6 +221,7 @@
   <button class="mobile-tab-btn active" data-tab="combat">⚔<span>Combat</span></button>
   <button class="mobile-tab-btn" data-tab="shop">🛒<span>Shop</span><span id="shop-tab-badge" class="tab-badge" hidden></span></button>
   <button class="mobile-tab-btn" data-tab="log">📜<span>Log</span></button>
+  <button class="mobile-tab-btn" data-tab="settings">⚙<span>Settings</span></button>
 </nav>
 
 <script type="module" src="game.js"></script>

@@ -1,4 +1,4 @@
-export const VERSION = "v2.4.9";
+export const VERSION = "v2.5.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,18 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.5.0",
+    date: "2026-05-11",
+    changes: [
+      "Settings tab added to desktop sidebar and mobile nav",
+      "Hard Reset option in Settings — two-step confirmation before wiping save data",
+      "Mobile: enemy panel fixed to bottom of screen so the attack button is always in thumb reach",
+      "Mobile: loot section appears above party section on the combat tab",
+      "Mobile: Prestige Shop hidden until floor 20; Guild Hall hidden until floor 40",
+      "Guild Hall tab unlock condition corrected to floor 40 (venture floor)",
+    ],
+  },
   {
     version: "v2.4.9",
     date: "2026-05-08",

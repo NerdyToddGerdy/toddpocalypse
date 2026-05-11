@@ -736,6 +736,62 @@ main {
 
 .secondary-btn:hover { color: var(--text); border-color: var(--muted); }
 
+.danger-btn {
+    padding: 8px 14px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+.danger-btn:hover { background: var(--danger); color: #fff; }
+
+#settings-panel { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+#settings-panel h2 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    margin-bottom: 4px;
+}
+
+.settings-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.settings-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.settings-desc {
+    font-size: 0.75rem;
+    color: var(--muted);
+}
+
+.settings-warn {
+    font-size: 0.75rem;
+    color: var(--danger);
+    font-weight: 600;
+}
+
+#hard-reset-confirm {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+}
+
 #creation-box label, #class-label {
     font-size: 0.75rem;
     text-transform: uppercase;
@@ -988,7 +1044,7 @@ main {
         align-items: stretch;
         gap: 12px;
         padding: 12px;
-        padding-bottom: 72px;
+        padding-bottom: 260px; /* room for fixed enemy panel + tab bar */
         overflow-y: auto;
     }
 
@@ -997,13 +1053,28 @@ main {
     #sidebar-tabs { display: none; }
     #depth-gauge { display: none; }
 
-    #enemy-panel,
+    #enemy-panel {
+        display: flex !important;
+        position: fixed;
+        bottom: 60px; /* sit above the tab bar */
+        left: 0; right: 0;
+        z-index: 50;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        border-bottom: none;
+        border-top: 1px solid var(--border);
+        padding: 10px 12px;
+        gap: 6px;
+    }
+
     #party-panel,
     #upgrades-panel,
     #loot-panel,
     #prestige-panel,
     #guild-hall-panel,
-    #log-panel { display: none; }
+    #log-panel,
+    #settings-panel { display: none; }
 
     .tab-visible { display: flex !important; flex-direction: column; width: 100%; }
 
@@ -1018,6 +1089,20 @@ main {
     .loot-item { gap: 8px; }
 
     footer { display: none; }
+
+    #enemy-name  { font-size: 1.1rem; }
+    #enemy-level { font-size: 0.78rem; }
+    .hp-bar-wrap { height: 12px; }
+    #enemy-hp-text { font-size: 0.72rem; }
+    #floor-progress { gap: 4px; }
+    .floor-pip { width: 10px; height: 6px; }
+    #attack-btn { padding: 10px; font-size: 0.95rem; margin-top: 2px; }
+
+    #loot-panel  { order: 1; }
+    #party-panel { order: 2; }
+
+    #guild-hall-panel.guild-locked   { display: none !important; }
+    #prestige-panel.prestige-locked  { display: none !important; }
 
     #mobile-tabs {
         display: flex;

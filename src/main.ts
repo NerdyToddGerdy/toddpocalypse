@@ -112,20 +112,33 @@ function render(state: GameStateDict): void {
   updateLifetimeStats(state);
   updateShopBadge(state);
   updateGuildTabVisibility(state);
+  updatePrestigePanelVisibility(state);
+}
+
+function updatePrestigePanelVisibility(state: GameStateDict): void {
+  const prestigeUnlocked = state.highest_level >= 20 || state.total_prestiges > 0;
+  const panel = document.getElementById("prestige-panel");
+  if (panel) panel.classList.toggle("prestige-locked", !prestigeUnlocked);
 }
 
 function updateGuildTabVisibility(state: GameStateDict): void {
   const guildUnlocked =
-    state.total_prestiges > 0 ||
+    state.highest_level >= 40 ||
     Object.keys(state.guild_upgrades ?? {}).length > 0;
+
+  // Desktop: hide/show the sidebar tab button
   const guildTab = document.querySelector<HTMLElement>('[data-stab="guild"]');
-  if (!guildTab) return;
-  const wasHidden = guildTab.hidden;
-  guildTab.hidden = !guildUnlocked;
-  // If we just hid the guild tab while it was active, fall back to upgrades
-  if (!wasHidden && !guildUnlocked && guildTab.classList.contains("active")) {
-    (document.querySelector<HTMLElement>('[data-stab="upgrades"]') as HTMLElement).click();
+  if (guildTab) {
+    const wasHidden = guildTab.hidden;
+    guildTab.hidden = !guildUnlocked;
+    if (!wasHidden && !guildUnlocked && guildTab.classList.contains("active")) {
+      (document.querySelector<HTMLElement>('[data-stab="upgrades"]') as HTMLElement).click();
+    }
   }
+
+  // Mobile: hide/show the panel itself (tab-visible uses !important so we need guild-locked to beat it)
+  const guildPanel = document.getElementById("guild-hall-panel");
+  if (guildPanel) guildPanel.classList.toggle("guild-locked", !guildUnlocked);
 }
 
 function renderFloorProgress(state: GameStateDict): void {
@@ -660,9 +673,10 @@ function slotLabel(slot: string): string {
 }
 
 const TAB_PANELS: Record<string, string[]> = {
-  combat: ["enemy-panel", "party-panel", "loot-panel"],
-  shop:   ["upgrades-panel", "prestige-panel", "guild-hall-panel"],
-  log:    ["log-panel"],
+  combat:   ["enemy-panel", "party-panel", "loot-panel"],
+  shop:     ["upgrades-panel", "prestige-panel", "guild-hall-panel"],
+  log:      ["log-panel"],
+  settings: ["settings-panel"],
 };
 
 const SIDEBAR_TAB_PANELS: Record<string, string[]> = {
@@ -671,6 +685,7 @@ const SIDEBAR_TAB_PANELS: Record<string, string[]> = {
   prestige: ["prestige-panel"],
   guild:    ["guild-hall-panel"],
   log:      ["log-panel"],
+  settings: ["settings-panel"],
 };
 
 function initMobileTabs(): void {
@@ -832,6 +847,19 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   $("changelog-modal").addEventListener("click", (e) => {
     if (e.target === $("changelog-modal")) $("changelog-modal").classList.remove("open");
+  });
+
+  $("hard-reset-btn").addEventListener("click", () => {
+    $("hard-reset-confirm").hidden = false;
+    $("hard-reset-btn").hidden = true;
+  });
+  $("hard-reset-no").addEventListener("click", () => {
+    $("hard-reset-confirm").hidden = true;
+    $("hard-reset-btn").hidden = false;
+  });
+  $("hard-reset-yes").addEventListener("click", () => {
+    deleteSave();
+    window.location.reload();
   });
 
   $("drop-chart-btn").addEventListener("click", () => {
