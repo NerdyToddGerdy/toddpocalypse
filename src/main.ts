@@ -298,9 +298,10 @@ function renderParty(state: GameStateDict): void {
       const classAbilities = CLASS_ABILITIES[c.character_class] ?? [];
       const abilitiesHtml = classAbilities.map(a => {
         const unlocked = c.abilities.includes(a.id);
+        const skillJson = encodeURIComponent(JSON.stringify({ icon: a.icon, name: a.name, desc: a.desc, level: a.level, unlocked }));
         return unlocked
-          ? `<span class="ability-badge unlocked" tabindex="0" data-tip="${a.desc}">${a.icon} ${a.name}</span>`
-          : `<span class="ability-badge locked" tabindex="0" data-tip="Lv${a.level}: ${a.desc}">${a.icon} Lv${a.level}</span>`;
+          ? `<span class="ability-badge unlocked" tabindex="0" data-tip="${a.desc}" data-skill="${skillJson}">${a.icon} ${a.name}</span>`
+          : `<span class="ability-badge locked" tabindex="0" data-tip="Lv${a.level}: ${a.desc}" data-skill="${skillJson}">${a.icon} Lv${a.level}</span>`;
       }).join("");
       const charJson = encodeURIComponent(JSON.stringify(c));
       return `
@@ -871,6 +872,18 @@ function initSidebarTabs(): void {
   showSidebarTab("upgrades");
 }
 
+interface AbilityCardData { icon: string; name: string; desc: string; level: number; unlocked: boolean; }
+
+function buildSkillTooltipHTML(a: AbilityCardData): string {
+  const statusClass = a.unlocked ? "rarity-rare" : "rarity-common";
+  const statusText  = a.unlocked ? "Unlocked" : `Requires Level ${a.level}`;
+  return `
+    <div class="tt-name">${a.icon} ${a.name}</div>
+    <div class="tt-rarity ${statusClass}">${statusText}</div>
+    <div class="tt-divider"></div>
+    <div class="tt-stat-row"><span class="tt-stat-label">${a.desc}</span></div>`;
+}
+
 const TOOLTIP_SELECTORS = ".gear-row.filled[data-item], .loot-item[data-item], .char-name[data-char], #party-panel h2[data-party]";
 
 function getTooltipContent(el: HTMLElement): string | null {
@@ -878,6 +891,7 @@ function getTooltipContent(el: HTMLElement): string | null {
     if (el.dataset.item)  return buildTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.item)) as GearItemDict);
     if (el.dataset.char)  return buildCharTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.char)) as CharDict);
     if (el.dataset.party) return buildPartyTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.party)) as CharDict[]);
+    if (el.dataset.skill) return buildSkillTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.skill)) as AbilityCardData);
   } catch { /* ignore */ }
   return null;
 }
@@ -940,7 +954,7 @@ function initMobileItemCard(): void {
   const closeBtn = overlay.querySelector<HTMLElement>(".mic-close")!;
   const backdrop = overlay.querySelector<HTMLElement>(".mic-backdrop")!;
 
-  const MOBILE_SELECTORS = ".gear-row.filled[data-item], .loot-item[data-item], .char-name[data-char]";
+  const MOBILE_SELECTORS = ".gear-row.filled[data-item], .loot-item[data-item], .char-name[data-char], .ability-badge[data-skill]";
 
   function openCard(html: string): void {
     content.innerHTML = html;

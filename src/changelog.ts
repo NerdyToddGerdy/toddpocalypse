@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.9";
+export const VERSION = "v2.6.10";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.10",
+    date: "2026-05-12",
+    changes: [
+      "Mobile: tap any ability badge in a hero's card to open a bottom sheet showing the skill name, unlock status, and description",
+    ],
+  },
   {
     version: "v2.6.9",
     date: "2026-05-12",
