@@ -143,7 +143,7 @@ exports.handler = async (event) => {
     const body = event.body;
     if (!body) return { statusCode: 400, body: "Missing body" };
     const sessionId = event.headers?.["x-session-id"] ?? "unknown";
-    const forceSession = event.headers?.["x-force-session"] === "true";
+    const forceSession = event.queryStringParameters?.force === "true";
     const now = Date.now();
     try {
         const putParams = {

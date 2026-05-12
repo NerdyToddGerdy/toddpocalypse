@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.12";
+export const VERSION = "v2.6.13";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.13",
+    date: "2026-05-12",
+    changes: [
+      "Fix: Set Active Device works again — force-claim now uses a query parameter instead of X-Force-Session header, which was blocked by API Gateway CORS",
+    ],
+  },
   {
     version: "v2.6.12",
     date: "2026-05-12",

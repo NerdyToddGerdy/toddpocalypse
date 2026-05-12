@@ -83,20 +83,19 @@ export function resetSessionId(): string {
 /**
  * Attempts to claim this device as the active save device.
  * The caller should call resetSessionId() first so a fresh session is sent.
- * Pass force=true to bypass the 409 session lock (used by the "Set Active Device" button).
+ * Pass force=true to bypass the 409 session lock via ?force=true query param (no CORS header needed).
  * Returns "ok", "conflict" (other device's session still live), or "error".
  */
 export async function cloudClaimSession(token: string, data: string, force = false): Promise<"ok" | "conflict" | "error"> {
     try {
-        const headers: Record<string, string> = {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-            "X-Session-Id": getOrCreateSessionId(),
-        };
-        if (force) headers["X-Force-Session"] = "true";
-        const res = await fetch(`${API_URL}/save`, {
+        const url = `${API_URL}/save${force ? "?force=true" : ""}`;
+        const res = await fetch(url, {
             method: "PUT",
-            headers,
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+                "X-Session-Id": getOrCreateSessionId(),
+            },
             body: data,
         });
         if (res.status === 409) return "conflict";

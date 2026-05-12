@@ -104,18 +104,18 @@ describe("cloudClaimSession", () => {
     expect((init as RequestInit & { headers: Record<string, string> }).headers["X-Session-Id"]).toBeDefined();
   });
 
-  it("does not send X-Force-Session header by default", async () => {
+  it("does not append ?force=true to URL by default", async () => {
     fetchSpy.mockResolvedValue({ ok: true, status: 200 });
     await cloudClaimSession("tok", "data");
-    const [, init] = fetchSpy.mock.calls[0];
-    expect((init as RequestInit & { headers: Record<string, string> }).headers["X-Force-Session"]).toBeUndefined();
+    const [url] = fetchSpy.mock.calls[0];
+    expect(url).not.toContain("force=true");
   });
 
-  it("sends X-Force-Session: true when force=true", async () => {
+  it("appends ?force=true to URL when force=true", async () => {
     fetchSpy.mockResolvedValue({ ok: true, status: 200 });
     await cloudClaimSession("tok", "data", true);
-    const [, init] = fetchSpy.mock.calls[0];
-    expect((init as RequestInit & { headers: Record<string, string> }).headers["X-Force-Session"]).toBe("true");
+    const [url] = fetchSpy.mock.calls[0];
+    expect(url).toContain("force=true");
   });
 
   it("force=true still returns ok on success", async () => {
