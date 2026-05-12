@@ -1089,13 +1089,12 @@ async function setActiveDevice(): Promise<void> {
   if (bannerBtn) bannerBtn.disabled = true;
   try {
     resetSessionId();
-    lastCloudSaveAt = 0; // force next periodic save to run immediately
+    lastCloudSaveAt = Date.now(); // block periodic saves from racing the claim
     const data = game.respond();
     localStorage.setItem(SAVE_KEY, data);
     const result = await cloudClaimSession(token, data, true);
     if (result === "ok") {
       hideSessionConflictBanner();
-      lastCloudSaveAt = Date.now();
       showCloudStatus("✓ This device is now the active save device.");
     } else if (result === "conflict") {
       showCloudStatus("⚠ Other device is still active. Close it and try again — the lock expires in up to 90 seconds.", true);

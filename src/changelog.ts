@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.13";
+export const VERSION = "v2.6.14";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.14",
+    date: "2026-05-12",
+    changes: [
+      "Fix: session-conflict banner now dismisses immediately when Set Active Device succeeds — was lingering due to a racing periodic save re-showing it",
+    ],
+  },
   {
     version: "v2.6.13",
     date: "2026-05-12",
