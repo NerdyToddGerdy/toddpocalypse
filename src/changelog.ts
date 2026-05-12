@@ -1,12 +1,26 @@
-export const VERSION = "v2.6.0";
+/** Current game version string, displayed in the footer version button. */
+export const VERSION = "v2.6.1";
 
+/** A single version's release notes. */
 export interface ChangelogEntry {
+  /** Semantic version tag (e.g. "v2.6.0"). */
   version: string;
+  /** ISO 8601 release date (YYYY-MM-DD). */
   date: string;
+  /** Bullet-point list of changes in this release. */
   changes: string[];
 }
 
+/** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.1",
+    date: "2026-05-11",
+    changes: [
+      "Single-session enforcement — only one device can cloud-save at a time",
+      "A warning banner appears if your game is already open elsewhere; it clears automatically when the other session expires (90 seconds of inactivity)",
+    ],
+  },
   {
     version: "v2.6.0",
     date: "2026-05-11",

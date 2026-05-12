@@ -85,6 +85,15 @@ body {
     flex-direction: column;
 }
 
+#session-conflict-banner {
+    background: color-mix(in srgb, var(--danger) 15%, var(--surface));
+    border-bottom: 1px solid var(--danger);
+    color: var(--danger);
+    font-size: 0.8rem;
+    padding: 6px 16px;
+    text-align: center;
+}
+
 header {
     background: var(--surface);
     border-bottom: 1px solid var(--border);

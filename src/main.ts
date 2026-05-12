@@ -2,7 +2,7 @@ import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, GUILD_HALL_COSTS, 
 import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
-import { parseAuthHash, getStoredToken, storeToken, clearToken, getLoginUrl, cloudLoad, cloudSave } from "./cloud.js";
+import { parseAuthHash, getStoredToken, storeToken, clearToken, getLoginUrl, cloudLoad, cloudSave, getOrCreateSessionId } from "./cloud.js";
 
 const CLASS_DESCS: Record<string, string> = {
   fighter: "Highest idle DPS. Each level-up multiplies damage by 1.2×.",
@@ -815,8 +815,18 @@ function openPartyClassModal(slotType: string): void {
 const CLOUD_SAVE_INTERVAL_MS = 30_000;
 let lastCloudSaveAt = 0;
 
+/** Shows the session-conflict warning banner. */
+function showSessionConflictBanner(): void {
+  $("session-conflict-banner").hidden = false;
+}
+
+/** Hides the session-conflict warning banner. */
+function hideSessionConflictBanner(): void {
+  $("session-conflict-banner").hidden = true;
+}
+
 /** Serializes game state to localStorage every tick; writes to DynamoDB at most once per 30 seconds. */
-function saveGame(): void {
+async function saveGame(): Promise<void> {
   if (!game) return;
   const data = game.respond();
   localStorage.setItem(SAVE_KEY, data);
@@ -824,7 +834,9 @@ function saveGame(): void {
   const now = Date.now();
   if (token && now - lastCloudSaveAt >= CLOUD_SAVE_INTERVAL_MS) {
     lastCloudSaveAt = now;
-    cloudSave(token, data);
+    const result = await cloudSave(token, data);
+    if (result === "conflict") showSessionConflictBanner();
+    else if (result === "ok") hideSessionConflictBanner();
   }
 }
 
@@ -855,6 +867,7 @@ function updateAuthUI(): void {
 
 /** Handles the Cognito redirect hash, updates auth UI, and attempts to load save data from the cloud. */
 async function initAuth(): Promise<GameStateDict | null> {
+  getOrCreateSessionId(); // ensure session ID exists before first save
   // Coming back from Google sign-in — hash contains the token
   const parsed = parseAuthHash(window.location.hash);
   if (parsed) {

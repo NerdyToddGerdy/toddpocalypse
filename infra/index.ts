@@ -135,19 +135,30 @@ const putSaveFn = new aws.lambda.Function("toddpocalypse-putSave", {
         "index.js": new pulumi.asset.StringAsset(`
 const { DynamoDBClient, PutItemCommand } = require("@aws-sdk/client-dynamodb");
 const client = new DynamoDBClient({});
+const SESSION_TTL_MS = 90_000;
 
 exports.handler = async (event) => {
     const userId = event.requestContext?.authorizer?.jwt?.claims?.sub;
     if (!userId) return { statusCode: 401, body: "Unauthorized" };
     const body = event.body;
     if (!body) return { statusCode: 400, body: "Missing body" };
+    const sessionId = event.headers?.["x-session-id"] ?? "unknown";
+    const now = Date.now();
     try {
         await client.send(new PutItemCommand({
             TableName: process.env.TABLE_NAME,
             Item: {
-                userId: { S: userId },
-                data: { S: body },
-                updatedAt: { S: new Date().toISOString() },
+                userId:        { S: userId },
+                data:          { S: body },
+                updatedAt:     { S: new Date().toISOString() },
+                sessionId:     { S: sessionId },
+                sessionExpiry: { N: String(now + SESSION_TTL_MS) },
+            },
+            ConditionExpression:
+                "attribute_not_exists(sessionId) OR sessionId = :sid OR sessionExpiry < :now",
+            ExpressionAttributeValues: {
+                ":sid": { S: sessionId },
+                ":now": { N: String(now) },
             },
         }));
         return {
@@ -156,6 +167,9 @@ exports.handler = async (event) => {
             body: "OK",
         };
     } catch (e) {
+        if (e.name === "ConditionalCheckFailedException") {
+            return { statusCode: 409, headers: { "Access-Control-Allow-Origin": "*" }, body: "Session conflict" };
+        }
         console.error(e);
         return { statusCode: 500, body: "Internal error" };
     }
@@ -173,7 +187,7 @@ const api = new aws.apigatewayv2.Api("toddpocalypse-api", {
     corsConfiguration: {
         allowOrigins: ["*"],
         allowMethods: ["GET", "PUT", "OPTIONS"],
-        allowHeaders: ["Authorization", "Content-Type"],
+        allowHeaders: ["Authorization", "Content-Type", "X-Session-Id"],
     },
 });
 
