@@ -97,17 +97,23 @@ describe("cloudClaimSession", () => {
     vi.stubGlobal("crypto", { randomUUID: () => "new-uuid-1234" });
   });
 
-  it("sends PUT with X-Force-Session header", async () => {
+  it("sends PUT with X-Session-Id header", async () => {
     fetchSpy.mockResolvedValue({ ok: true, status: 200 });
     await cloudClaimSession("tok", "data");
     const [, init] = fetchSpy.mock.calls[0];
-    expect((init as RequestInit & { headers: Record<string, string> }).headers["X-Force-Session"]).toBe("true");
+    expect((init as RequestInit & { headers: Record<string, string> }).headers["X-Session-Id"]).toBeDefined();
   });
 
   it("returns ok on success", async () => {
     fetchSpy.mockResolvedValue({ ok: true, status: 200 });
     const result = await cloudClaimSession("tok", "data");
     expect(result).toBe("ok");
+  });
+
+  it("returns conflict on 409", async () => {
+    fetchSpy.mockResolvedValue({ ok: false, status: 409 });
+    const result = await cloudClaimSession("tok", "data");
+    expect(result).toBe("conflict");
   });
 
   it("returns error on HTTP failure", async () => {

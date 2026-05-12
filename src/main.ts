@@ -1097,8 +1097,10 @@ async function setActiveDevice(): Promise<void> {
       hideSessionConflictBanner();
       lastCloudSaveAt = Date.now();
       showCloudStatus("✓ This device is now the active save device.");
+    } else if (result === "conflict") {
+      showCloudStatus("⚠ Other device is still active. Close it and try again — the lock expires in up to 90 seconds.", true);
     } else {
-      showCloudStatus("✗ Could not claim device — check your connection.", true);
+      showCloudStatus("✗ Could not reach the server — check your connection.", true);
     }
   } finally {
     if (btn) btn.disabled = false;

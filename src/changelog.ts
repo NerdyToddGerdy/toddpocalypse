@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.10";
+export const VERSION = "v2.6.11";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.11",
+    date: "2026-05-12",
+    changes: [
+      "Fix: Set Active Device no longer fails with a connection error — removes the undeployed X-Force-Session header that blocked the browser CORS preflight",
+      "Set Active Device now shows distinct messages: success, 'other device still active (try in 90s)', or actual connection failure",
+    ],
+  },
   {
     version: "v2.6.10",
     date: "2026-05-12",

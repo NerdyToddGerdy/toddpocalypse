@@ -81,11 +81,11 @@ export function resetSessionId(): string {
 }
 
 /**
- * Force-claims this device as the active save device, bypassing any existing session lock.
- * Sends X-Force-Session: true so the Lambda skips the conditional check.
- * Returns "ok" or "error".
+ * Attempts to claim this device as the active save device.
+ * The caller should call resetSessionId() first so a fresh session is sent.
+ * Returns "ok", "conflict" (other device's session still live), or "error".
  */
-export async function cloudClaimSession(token: string, data: string): Promise<"ok" | "error"> {
+export async function cloudClaimSession(token: string, data: string): Promise<"ok" | "conflict" | "error"> {
     try {
         const res = await fetch(`${API_URL}/save`, {
             method: "PUT",
@@ -93,10 +93,10 @@ export async function cloudClaimSession(token: string, data: string): Promise<"o
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
                 "X-Session-Id": getOrCreateSessionId(),
-                "X-Force-Session": "true",
             },
             body: data,
         });
+        if (res.status === 409) return "conflict";
         if (!res.ok) return "error";
         return "ok";
     } catch {
