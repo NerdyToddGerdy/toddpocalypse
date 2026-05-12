@@ -196,15 +196,24 @@ main {
     align-items: start;
 }
 
-/* left column: enemy panel stacked on party panel */
+/* left column */
 #left-col {
     display: flex;
     flex-direction: column;
     gap: 16px;
 }
 
+#left-col-panels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: stretch;
+}
+
 /* ── Enemy panel ── */
 #enemy-panel {
+    flex: 1;
+    min-width: 0;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 10px;
@@ -213,6 +222,71 @@ main {
     flex-direction: column;
     gap: 12px;
 }
+
+#party-panel {
+    width: 100%;
+}
+
+/* ── Boss portrait panel ──────────────────────────────────────────────── */
+#monster-portrait-wrap {
+    flex-shrink: 0;
+    width: 0;
+    height: 200px;
+    align-self: center;
+    overflow: hidden;
+    transition: width 0.55s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+#monster-portrait-wrap.boss-visible {
+    width: 130px;
+}
+
+/* Fixed-size inner so absolutely-positioned images have a real containing block */
+#portrait-inner {
+    position: relative;
+    width: 130px;
+    height: 200px;
+    transform-origin: center center;
+}
+
+#monster-portrait {
+    position: absolute;
+    inset: 10%;
+    object-fit: cover;
+    object-position: center 20%;
+    image-rendering: pixelated;
+    border-radius: 4px;
+}
+
+#monster-border {
+    position: absolute;
+    inset: 0;
+    object-fit: fill;
+    image-rendering: pixelated;
+    pointer-events: none;
+}
+
+/* Slide in from the left (depth gauge side) */
+@keyframes bossPortraitIn {
+    0%   { transform: translateX(-20px) scale(0.88); opacity: 0; }
+    55%  { opacity: 1; }
+    75%  { transform: translateX(3px) scale(1.02); }
+    100% { transform: translateX(0) scale(1); opacity: 1; }
+}
+
+/* Collapse to a centre point */
+@keyframes bossPortraitOut {
+    0%   { transform: scale(1);    opacity: 1; }
+    25%  { transform: scale(1.04); opacity: 1; }
+    100% { transform: scale(0);    opacity: 0; }
+}
+
+#monster-portrait-wrap.boss-entering #portrait-inner {
+    animation: bossPortraitIn 0.55s 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+#monster-portrait-wrap.boss-exiting #portrait-inner {
+    animation: bossPortraitOut 0.38s ease-in forwards;
+}
+
 
 #enemy-header {
     display: flex;
@@ -1217,7 +1291,10 @@ main {
         overflow-y: auto;
     }
 
-    #left-col  { display: contents; }
+    #left-col        { display: contents; }
+    #left-col-panels { display: contents; }
+    #party-panel     { width: auto; }
+    #monster-portrait-wrap { display: none; }
     #sidebar   { display: contents; background: none; border: none; border-radius: 0; }
     #sidebar-tabs { display: none; }
 

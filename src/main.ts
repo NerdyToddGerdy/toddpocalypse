@@ -80,6 +80,7 @@ let guildKey: string | null = null;
 let skillKey: string | null = null;
 let hoveredLootSlot: string | null = null;
 const flashStartTimes = new Map<string, number>(); // "ci:slot" → ms timestamp when flash began
+let bossPortraitShowing = false;
 
 /** Typed getElementById helper — throws if the element is missing rather than returning null. */
 function $(id: string): HTMLElement {
@@ -109,6 +110,25 @@ function render(state: GameStateDict): void {
   const enemy = state.enemy;
   $("enemy-name").textContent = enemy.name;
   $("enemy-level").textContent = `Level ${enemy.level}`;
+  const portraitWrap = document.getElementById("monster-portrait-wrap")!;
+  if (enemy.is_boss && !bossPortraitShowing) {
+    bossPortraitShowing = true;
+    const eWords = enemy.name.split(" ");
+    ($("monster-portrait") as HTMLImageElement).src = `monster_${eWords[2].toLowerCase()}.png`;
+    ($("monster-border") as HTMLImageElement).src   = `border_${eWords[1].toLowerCase()}.png`;
+    portraitWrap.classList.remove("boss-exiting");
+    void portraitWrap.offsetWidth; // flush pending transitions
+    portraitWrap.classList.add("boss-visible", "boss-entering");
+    setTimeout(() => portraitWrap.classList.remove("boss-entering"), 750);
+  } else if (!enemy.is_boss && bossPortraitShowing) {
+    bossPortraitShowing = false;
+    portraitWrap.classList.add("boss-exiting");
+    // wait for collapse animation, then shrink the width
+    setTimeout(() => {
+      portraitWrap.classList.remove("boss-visible");
+      setTimeout(() => portraitWrap.classList.remove("boss-exiting"), 600);
+    }, 380);
+  }
   const pct = Math.max(0, (enemy.hp / enemy.max_hp) * 100);
   ($("enemy-hp-bar") as HTMLElement).style.width = pct + "%";
   $("enemy-hp-text").textContent = `${Math.ceil(enemy.hp)} / ${enemy.max_hp}`;

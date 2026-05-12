@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.29";
+export const VERSION = "v2.6.30";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.30",
+    date: "2026-05-12",
+    changes: [
+      "Boss fights now show a unique monster portrait + adjective/title border frame",
+      "Portrait animates in from the depth gauge on boss spawn and collapses on defeat",
+      "Pixel-art portraits for all 15 enemy types; decorative borders for all adjectives and boss titles",
+    ],
+  },
   {
     version: "v2.6.29",
     date: "2026-05-12",
