@@ -882,6 +882,15 @@ main {
     color: var(--muted);
 }
 
+.about-row { border-color: var(--accent); border-style: dashed; }
+
+.about-text {
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.6;
+    margin: 0;
+}
+
 .settings-warn {
     font-size: 0.75rem;
     color: var(--danger);
