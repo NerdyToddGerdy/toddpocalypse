@@ -1,4 +1,4 @@
-import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, GUILD_HALL_COSTS, SKILL_DEFS } from "./engine.js";
+import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, GUILD_HALL_COSTS, SKILL_DEFS, prestigeUpgradeCost } from "./engine.js";
 import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, type GearStats, type GearItemDict } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
@@ -478,12 +478,11 @@ function renderPrestigeShop(state: GameStateDict): void {
   const ups = state.prestige_upgrades as Record<string, number>;
   const guildUpgrades = state.guild_upgrades as Record<string, number>;
   const companionHall = guildUpgrades["companion_hall"] ?? 0;
-  const PRESTIGE_COSTS_MAP: Record<string, number> = { auto_seller: 1, auto_equip: 2, auto_upgrade: 2, party_slot_2: 2, party_slot_3: 3, party_slot_4: 4, party_slot_5: 5, starting_gold: 1, xp_bonus: 1 };
   $("prestige-shop-items").innerHTML = Object.entries(PRESTIGE_SHOP_META).map(([type, meta]) => {
     const guildReq = meta.guildReq ?? 0;
     if (guildReq > 0 && companionHall < guildReq) return ""; // hidden until guild unlock
     const owned = ups[type] ?? 0;
-    const cost = PRESTIGE_COSTS_MAP[type] ?? 1;
+    const cost = prestigeUpgradeCost(type, owned);
     const atMax = owned >= meta.max;
     const prereqMissing = (type === "party_slot_3" && !(ups["party_slot_2"] > 0))
       || (type === "party_slot_4" && !(ups["party_slot_3"] > 0))
@@ -630,10 +629,6 @@ function updateLifetimeStats(state: GameStateDict): void {
     .join("");
 }
 
-const PRESTIGE_COSTS: Record<string, number> = {
-  auto_seller: 1, auto_equip: 2, auto_upgrade: 2, party_slot_2: 2, party_slot_3: 3, starting_gold: 1, xp_bonus: 1,
-};
-
 /** Shows notification badges on sidebar/mobile tabs when a Prestige or Guild item is affordable. */
 function updateShopBadge(state: GameStateDict): void {
   const badge = document.getElementById("shop-tab-badge");
@@ -643,10 +638,11 @@ function updateShopBadge(state: GameStateDict): void {
     return ups && Object.values(ups).some(u => state.gold >= u.cost);
   });
   const ups = state.prestige_upgrades as Record<string, number>;
-  const canBuyPrestige = Object.entries(PRESTIGE_COSTS).some(([type, cost]) => {
+  const canBuyPrestige = Object.keys(PRESTIGE_SHOP_META).some(type => {
     const owned = ups[type] ?? 0;
     const atMax = owned >= (PRESTIGE_SHOP_META[type]?.max ?? 1);
     const prereqMissing = type === "party_slot_3" && !(ups["party_slot_2"] > 0);
+    const cost = prestigeUpgradeCost(type, owned);
     return !atMax && !prereqMissing && state.prestige_points >= cost;
   });
   const guildUpgrades = state.guild_upgrades as Record<string, number>;

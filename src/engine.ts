@@ -71,7 +71,7 @@ export const VENTURE_UNLOCK_LEVEL = 40;
 /** Gold earned per idle companion DPS-point per real second after venturing. */
 export const IDLE_GOLD_RATE = 0.5;
 
-/** Prestige point cost for each prestige shop item. */
+/** Prestige point cost for each prestige shop item (one-time purchases use a flat cost). */
 export const PRESTIGE_SHOP_COSTS: Record<string, number> = {
   auto_seller: 1,
   auto_equip: 2,
@@ -83,6 +83,17 @@ export const PRESTIGE_SHOP_COSTS: Record<string, number> = {
   starting_gold: 1,
   xp_bonus: 1,
 };
+
+/** Stackable upgrades whose cost increases by 1 pt per stack already owned. */
+const SCALING_PRESTIGE_UPGRADES = new Set(["starting_gold", "xp_bonus"]);
+
+/** Returns the prestige point cost for the next purchase of a given upgrade type. */
+export function prestigeUpgradeCost(type: string, currentStacks: number): number {
+  if (SCALING_PRESTIGE_UPGRADES.has(type)) {
+    return PRESTIGE_SHOP_COSTS[type] + currentStacks;
+  }
+  return PRESTIGE_SHOP_COSTS[type];
+}
 
 /** Gold cost for each stack of every Guild Hall upgrade. */
 export const GUILD_HALL_COSTS: Record<string, number[]> = {
@@ -504,7 +515,8 @@ export class GameState {
     }
     const oneTime = ["auto_seller", "auto_equip", "auto_upgrade", "party_slot_2", "party_slot_3", "party_slot_4", "party_slot_5"];
     if (oneTime.includes(type) && (this.prestigeUpgrades[type] ?? 0) >= 1) return this.respond();
-    const cost = PRESTIGE_SHOP_COSTS[type];
+    const currentStacks = this.prestigeUpgrades[type] ?? 0;
+    const cost = prestigeUpgradeCost(type, currentStacks);
     if (this.prestigePoints < cost) {
       this.addLog("Not enough prestige points!");
       return this.respond();

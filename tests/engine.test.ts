@@ -6,7 +6,7 @@ import {
   LUCKY_STRIKE_CHANCE, LUCKY_STRIKE_MULTIPLIER, EMPOWER_MULTIPLIER,
   VENTURE_UNLOCK_LEVEL, IDLE_GOLD_RATE,
   GUILD_HALL_COSTS, SKILL_DEFS,
-  killsForFloor,
+  killsForFloor, prestigeUpgradeCost,
 } from "../src/engine.js";
 import { Character } from "../src/character.js";
 import { GearItem, getItem, type Slot } from "../src/gear.js";
@@ -1144,6 +1144,48 @@ describe("prestige shop", () => {
     const gs = withPrestige(5);
     gs.buyPrestigeUpgrade("starting_gold"); gs.buyPrestigeUpgrade("starting_gold");
     expect(gs.prestigeUpgrades["starting_gold"]).toBe(2);
+  });
+
+  it("starting_gold first purchase costs 1 pt", () => {
+    expect(prestigeUpgradeCost("starting_gold", 0)).toBe(1);
+  });
+
+  it("starting_gold second purchase costs 2 pts", () => {
+    expect(prestigeUpgradeCost("starting_gold", 1)).toBe(2);
+  });
+
+  it("starting_gold Nth purchase costs base + (N-1) pts", () => {
+    for (let n = 0; n < 5; n++) {
+      expect(prestigeUpgradeCost("starting_gold", n)).toBe(1 + n);
+    }
+  });
+
+  it("xp_bonus cost scales the same way", () => {
+    for (let n = 0; n < 5; n++) {
+      expect(prestigeUpgradeCost("xp_bonus", n)).toBe(1 + n);
+    }
+  });
+
+  it("starting_gold scaling cost is deducted correctly", () => {
+    const gs = withPrestige(10);
+    gs.buyPrestigeUpgrade("starting_gold"); // costs 1 → 9 pts left
+    gs.buyPrestigeUpgrade("starting_gold"); // costs 2 → 7 pts left
+    gs.buyPrestigeUpgrade("starting_gold"); // costs 3 → 4 pts left
+    expect(gs.prestigePoints).toBe(4);
+    expect(gs.prestigeUpgrades["starting_gold"]).toBe(3);
+  });
+
+  it("starting_gold second purchase fails with only 1 pt left", () => {
+    const gs = withPrestige(2);
+    gs.buyPrestigeUpgrade("starting_gold"); // costs 1 → 1 pt left
+    gs.buyPrestigeUpgrade("starting_gold"); // costs 2 → not enough
+    expect(gs.prestigeUpgrades["starting_gold"]).toBe(1);
+    expect(gs.prestigePoints).toBe(1);
+  });
+
+  it("one-time upgrades (auto_seller) do not scale", () => {
+    expect(prestigeUpgradeCost("auto_seller", 0)).toBe(1);
+    expect(prestigeUpgradeCost("auto_seller", 1)).toBe(1); // ignored — it's one-time
   });
 
   it("xp_bonus applies immediately to all party members", () => {
