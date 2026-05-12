@@ -874,6 +874,40 @@ function initItemTooltip(): void {
   document.addEventListener("click", () => hide());
 }
 
+function initMobileItemCard(): void {
+  const overlay = document.getElementById("mobile-item-card")!;
+  const content = overlay.querySelector<HTMLElement>(".mic-content")!;
+  const closeBtn = overlay.querySelector<HTMLElement>(".mic-close")!;
+  const backdrop = overlay.querySelector<HTMLElement>(".mic-backdrop")!;
+
+  function openCard(item: GearItemDict): void {
+    content.innerHTML = buildTooltipHTML(item);
+    overlay.setAttribute("aria-hidden", "false");
+    overlay.classList.add("open");
+  }
+
+  function closeCard(): void {
+    overlay.classList.remove("open");
+    overlay.setAttribute("aria-hidden", "true");
+  }
+
+  closeBtn.addEventListener("click", closeCard);
+  backdrop.addEventListener("click", closeCard);
+
+  document.addEventListener("click", (e) => {
+    if (!window.matchMedia("(max-width: 768px)").matches) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("button")) return;
+
+    const el = target.closest<HTMLElement>(".gear-row.filled, .loot-item");
+    if (!el?.dataset.item) return;
+    try {
+      const item = JSON.parse(decodeURIComponent(el.dataset.item)) as GearItemDict;
+      openCard(item);
+    } catch { /* ignore */ }
+  });
+}
+
 function updateClassDesc(): void {
   const cls = (document.querySelector(".class-btn.selected") as HTMLElement | null)?.dataset.class ?? "fighter";
   $("class-desc").textContent = CLASS_DESCS[cls] ?? "";
@@ -1033,6 +1067,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initMobileTabs();
   initSidebarTabs();
   initItemTooltip();
+  initMobileItemCard();
 
   document.querySelectorAll<HTMLElement>(".theme-btn").forEach(btn => {
     btn.addEventListener("click", () => {

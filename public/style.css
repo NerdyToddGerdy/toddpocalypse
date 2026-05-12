@@ -2077,3 +2077,94 @@ footer {
 @media (max-width: 768px) {
     .item-tooltip { display: none; }
 }
+
+/* ── Mobile Item Card (bottom sheet) ── */
+.mic-overlay {
+    display: none;
+}
+@media (max-width: 768px) {
+    .mic-overlay {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 9998;
+        pointer-events: none;
+        visibility: hidden;
+    }
+    .mic-overlay.open {
+        pointer-events: all;
+        visibility: visible;
+    }
+    .mic-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0);
+        transition: background 0.25s ease;
+    }
+    .mic-overlay.open .mic-backdrop {
+        background: rgba(0, 0, 0, 0.65);
+    }
+    .mic-sheet {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(160deg, #0e0c1e 0%, #0a0814 100%);
+        border-top: 1px solid var(--accent);
+        border-radius: 18px 18px 0 0;
+        padding: 12px 20px 36px;
+        transform: translateY(100%);
+        transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+        box-shadow: 0 -8px 40px rgba(0,0,0,0.6);
+    }
+    .mic-overlay.open .mic-sheet {
+        transform: translateY(0);
+    }
+    .mic-handle {
+        width: 40px;
+        height: 4px;
+        background: var(--border);
+        border-radius: 2px;
+        margin: 0 auto 14px;
+    }
+    .mic-close {
+        position: absolute;
+        top: 14px;
+        right: 16px;
+        background: none;
+        border: none;
+        color: var(--muted);
+        font-size: 1rem;
+        cursor: pointer;
+        padding: 4px 8px;
+        line-height: 1;
+    }
+    .mic-content .tt-name {
+        font-size: 1rem;
+    }
+    .mic-content .tt-rarity {
+        font-size: 0.78rem;
+        margin-bottom: 3px;
+    }
+    .mic-content .tt-subtitle {
+        font-size: 0.73rem;
+        margin-bottom: 10px;
+    }
+    .mic-content .tt-stat-row {
+        font-size: 0.85rem;
+        padding: 3px 0;
+    }
+    .mic-content .tt-stat-label {
+        font-size: 0.78rem;
+    }
+    .mic-content .tt-stat-val {
+        font-size: 0.88rem;
+    }
+    .mic-content .tt-sell {
+        font-size: 0.78rem;
+        margin-top: 4px;
+    }
+    .mic-content .tt-divider {
+        margin: 10px 0;
+    }
+}
