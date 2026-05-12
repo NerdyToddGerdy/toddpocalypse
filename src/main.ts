@@ -46,6 +46,7 @@ const THEME_KEY = "toddpocalypse-theme";
 const THEMES = ["grimdark", "arcane", "tavern"] as const;
 type Theme = typeof THEMES[number];
 
+/** Sets the active visual theme on the root element, persists it, and updates picker button states. */
 function applyTheme(theme: Theme): void {
   document.documentElement.dataset.theme = theme;
   localStorage.setItem(THEME_KEY, theme);
@@ -54,6 +55,7 @@ function applyTheme(theme: Theme): void {
   });
 }
 
+/** Loads the persisted theme from localStorage (defaulting to "arcane") and applies it. */
 function initTheme(): void {
   const saved = localStorage.getItem(THEME_KEY);
   applyTheme((THEMES.includes(saved as Theme) ? saved : "arcane") as Theme);
@@ -71,12 +73,14 @@ let skillKey: string | null = null;
 let hoveredLootSlot: string | null = null;
 const flashStartTimes = new Map<string, number>(); // "ci:slot" → ms timestamp when flash began
 
+/** Typed getElementById helper — throws if the element is missing rather than returning null. */
 function $(id: string): HTMLElement {
   const el = document.getElementById(id);
   if (!el) throw new Error(`#${id} not found`);
   return el;
 }
 
+/** Invokes a GameState method, re-renders with the returned JSON, and auto-saves. */
 function call<K extends keyof GameState>(method: K, ...args: any[]): void {
   if (!game) return;
   try {
@@ -92,6 +96,7 @@ function call<K extends keyof GameState>(method: K, ...args: any[]): void {
 
 import { KILLS_PER_LEVEL, killsForFloor } from "./engine.js";
 
+/** Full re-render of all UI panels from a GameStateDict snapshot. */
 function render(state: GameStateDict): void {
   const enemy = state.enemy;
   $("enemy-name").textContent = enemy.name;
@@ -132,12 +137,14 @@ function render(state: GameStateDict): void {
   updatePrestigePanelVisibility(state);
 }
 
+/** Hides the Prestige panel until the player has reached floor 20 or has prestiged before. */
 function updatePrestigePanelVisibility(state: GameStateDict): void {
   const prestigeUnlocked = state.highest_level >= 20 || state.total_prestiges > 0;
   const panel = document.getElementById("prestige-panel");
   if (panel) panel.classList.toggle("prestige-locked", !prestigeUnlocked);
 }
 
+/** Hides the Guild Hall tab/panel until floor 40 is reached or any guild upgrade is owned. */
 function updateGuildTabVisibility(state: GameStateDict): void {
   const guildUnlocked =
     state.highest_level >= 40 ||
@@ -158,6 +165,7 @@ function updateGuildTabVisibility(state: GameStateDict): void {
   if (guildPanel) guildPanel.classList.toggle("guild-locked", !guildUnlocked);
 }
 
+/** Renders the kill-progress pips, boss indicator text, and checkpoint label below the enemy panel. */
 function renderFloorProgress(state: GameStateDict): void {
   const isBoss = state.enemy.is_boss;
   const left = state.monsters_left;
@@ -189,6 +197,7 @@ function renderFloorProgress(state: GameStateDict): void {
   }
 }
 
+/** Renders the vertical depth gauge showing current floor, personal best, and checkpoint markers. */
 function renderDepthGauge(state: GameStateDict): void {
   const current = state.dungeon_level;
   const highest = state.highest_level;
@@ -222,6 +231,7 @@ function renderDepthGauge(state: GameStateDict): void {
   }
 }
 
+/** Re-renders the party cards section, skipping the DOM write if nothing has changed. */
 function renderParty(state: GameStateDict): void {
   const prevPartyKey = partyKey;
   const newKey = JSON.stringify(
@@ -345,6 +355,7 @@ function applySlotHighlight(): void {
   });
 }
 
+/** Renders the loot chest with equip/sell buttons and auto-seller quality checkboxes. */
 function renderLoot(state: GameStateDict): void {
   const loot = state.loot_pool;
   const autoSellOwned = ((state.prestige_upgrades as Record<string, number>)["auto_seller"] ?? 0) > 0;
@@ -388,6 +399,7 @@ function renderLoot(state: GameStateDict): void {
   }
 }
 
+/** Renders per-character stat upgrade cards with current level, cost, and effect. */
 function renderUpgrades(state: GameStateDict): void {
   const newKey = JSON.stringify(state.upgrades) + "|" + state.gold;
   if (newKey === upgradeKey) return;
@@ -432,6 +444,7 @@ const PRESTIGE_SHOP_META: Record<string, { icon: string; name: string; desc: str
   xp_bonus:      { icon: "✨", name: "XP Bonus",       desc: "+10% XP gain for all party members.", max: Infinity },
 };
 
+/** Builds the HTML for quality-tier auto-sell checkboxes shown beneath the loot chest. */
 function renderAutoSellerConfig(state: GameStateDict): string {
   const threshold = autoSellThreshold(state.highest_level);
   const checked = new Set(state.auto_sell_qualities ?? []);
@@ -444,6 +457,7 @@ function renderAutoSellerConfig(state: GameStateDict): string {
   return `<div class="auto-seller-config">${rows}</div>`;
 }
 
+/** Renders the Prestige Shop item list, marking purchased one-time items and unaffordable items. */
 function renderPrestigeShop(state: GameStateDict): void {
   const newKey = JSON.stringify(state.prestige_upgrades) + "|" + state.prestige_points + "|" + state.highest_level + "|" + JSON.stringify(state.auto_sell_qualities);
   if (newKey === prestigeKey) return;
@@ -478,6 +492,7 @@ function renderPrestigeShop(state: GameStateDict): void {
   }).join("");
 }
 
+/** Enables/disables the Venture button based on whether the player has reached floor 40. */
 function updateVentureButton(state: GameStateDict): void {
   const newKey = String(state.venture_available) + "|" + state.dungeon_index;
   if (newKey === ventureKey) return;
@@ -493,6 +508,7 @@ function updateVentureButton(state: GameStateDict): void {
   }
 }
 
+/** Renders Guild Hall upgrade cards with current stack count, gold cost, and description. */
 function renderGuildHall(state: GameStateDict): void {
   const newKey = JSON.stringify(state.guild_upgrades) + "|" + Math.floor(state.gold);
   if (newKey === guildKey) return;
@@ -528,6 +544,7 @@ const SKILL_COOLDOWNS: Record<string, number> = {
   skill_arcane_surge: 90_000,
 };
 
+/** Shows/hides the active skill button and updates its cooldown drain bar. */
 function renderSkillButton(state: GameStateDict): void {
   const skillId = state.skill_available;
   const newKey = skillId + "|" + (skillId ? (state.skill_cooldowns[skillId] ?? 0) : 0) + "|" + (skillId ? (state.active_effects[skillId] ?? 0) : 0);
@@ -566,6 +583,7 @@ function renderSkillButton(state: GameStateDict): void {
   }
 }
 
+/** Enables/disables the Prestige button and updates its label with the points preview. */
 function updatePrestigeButton(state: GameStateDict): void {
   const btn = $("prestige-btn") as HTMLButtonElement;
   if (state.prestige_available) {
@@ -577,6 +595,7 @@ function updatePrestigeButton(state: GameStateDict): void {
   }
 }
 
+/** Populates the Lifetime Stats modal with totals and the enemy kill breakdown. */
 function updateLifetimeStats(state: GameStateDict): void {
   const ltKills = document.getElementById("lt-kills");
   const ltDeaths = document.getElementById("lt-deaths");
@@ -606,6 +625,7 @@ const PRESTIGE_COSTS: Record<string, number> = {
   auto_seller: 1, auto_equip: 2, auto_upgrade: 2, party_slot_2: 2, party_slot_3: 3, starting_gold: 1, xp_bonus: 1,
 };
 
+/** Shows notification badges on sidebar/mobile tabs when a Prestige or Guild item is affordable. */
 function updateShopBadge(state: GameStateDict): void {
   const badge = document.getElementById("shop-tab-badge");
   if (!badge) return;
@@ -632,6 +652,7 @@ function updateShopBadge(state: GameStateDict): void {
   if (stabGuildBadge) stabGuildBadge.hidden = !canBuyGuild;
 }
 
+/** Renders the drop-rate chart modal showing per-tier probabilities for the given dungeon floor. */
 function renderDropChart(dungeonLevel: number): void {
   $("drop-chart-floor").textContent = String(dungeonLevel);
   const weights = qualityWeights(dungeonLevel);
@@ -654,6 +675,7 @@ function renderDropChart(dungeonLevel: number): void {
   $("drop-chart-body").innerHTML = rows;
 }
 
+/** Renders the combat log panel from the state snapshot. */
 function renderLog(state: GameStateDict): void {
   $("combat-log").innerHTML = [...state.log]
     .reverse()
@@ -661,6 +683,7 @@ function renderLog(state: GameStateDict): void {
     .join("");
 }
 
+/** Prepends a message directly to the combat log DOM element (used for UI-layer error messages). */
 function appendLog(msg: string): void {
   $("combat-log").insertAdjacentHTML(
     "afterbegin",
@@ -789,14 +812,23 @@ function openPartyClassModal(slotType: string): void {
   picker.addEventListener("click", onPickerClick);
 }
 
+const CLOUD_SAVE_INTERVAL_MS = 30_000;
+let lastCloudSaveAt = 0;
+
+/** Serializes game state to localStorage every tick; writes to DynamoDB at most once per 30 seconds. */
 function saveGame(): void {
   if (!game) return;
   const data = game.respond();
   localStorage.setItem(SAVE_KEY, data);
   const token = getStoredToken();
-  if (token) cloudSave(token, data);
+  const now = Date.now();
+  if (token && now - lastCloudSaveAt >= CLOUD_SAVE_INTERVAL_MS) {
+    lastCloudSaveAt = now;
+    cloudSave(token, data);
+  }
 }
 
+/** Reads and parses the save from localStorage; returns null if absent or corrupt. */
 function loadSave(): GameStateDict | null {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
@@ -806,10 +838,12 @@ function loadSave(): GameStateDict | null {
   }
 }
 
+/** Removes the localStorage save (called before starting a new game). */
 function deleteSave(): void {
   localStorage.removeItem(SAVE_KEY);
 }
 
+/** Shows/hides the sign-in and sign-out UI elements based on whether a valid token is stored. */
 function updateAuthUI(): void {
   const token = getStoredToken();
   document.querySelectorAll<HTMLElement>("#cloud-signin-btn").forEach(btn => {
@@ -819,6 +853,7 @@ function updateAuthUI(): void {
   if (signoutRow) signoutRow.hidden = !token;
 }
 
+/** Handles the Cognito redirect hash, updates auth UI, and attempts to load save data from the cloud. */
 async function initAuth(): Promise<GameStateDict | null> {
   // Coming back from Google sign-in — hash contains the token
   const parsed = parseAuthHash(window.location.hash);
@@ -845,6 +880,7 @@ async function initAuth(): Promise<GameStateDict | null> {
   return null;
 }
 
+/** Creates a fresh GameState, clears any existing save, and starts the 100ms game loop. */
 function startGame(name: string, characterClass: string): void {
   $("creation-overlay").style.display = "none";
   deleteSave();
@@ -853,6 +889,7 @@ function startGame(name: string, characterClass: string): void {
   setInterval(() => { call("tick", 0.1); saveGame(); }, 100);
 }
 
+/** Restores a GameState from a saved snapshot, hides the creation overlay, and starts the game loop. */
 function continueGame(saved: GameStateDict): void {
   $("creation-overlay").style.display = "none";
   game = GameState.fromDict(saved);
