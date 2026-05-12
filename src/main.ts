@@ -2,6 +2,7 @@ import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, GUILD_HALL_COSTS, 
 import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
+import { parseAuthHash, getStoredToken, storeToken, clearToken, getLoginUrl, cloudLoad, cloudSave } from "./cloud.js";
 
 const CLASS_DESCS: Record<string, string> = {
   fighter: "Highest idle DPS. Each level-up multiplies damage by 1.2×.",
@@ -789,7 +790,11 @@ function openPartyClassModal(slotType: string): void {
 }
 
 function saveGame(): void {
-  if (game) localStorage.setItem(SAVE_KEY, game.respond());
+  if (!game) return;
+  const data = game.respond();
+  localStorage.setItem(SAVE_KEY, data);
+  const token = getStoredToken();
+  if (token) cloudSave(token, data);
 }
 
 function loadSave(): GameStateDict | null {
@@ -803,6 +808,40 @@ function loadSave(): GameStateDict | null {
 
 function deleteSave(): void {
   localStorage.removeItem(SAVE_KEY);
+}
+
+function updateAuthUI(): void {
+  const token = getStoredToken();
+  const signinBtn = document.getElementById("cloud-signin-btn");
+  const signoutRow = document.getElementById("cloud-signout-row");
+  if (signinBtn) signinBtn.hidden = !!token;
+  if (signoutRow) signoutRow.hidden = !token;
+}
+
+async function initAuth(): Promise<GameStateDict | null> {
+  // Coming back from Google sign-in — hash contains the token
+  const parsed = parseAuthHash(window.location.hash);
+  if (parsed) {
+    storeToken(parsed.token, parsed.expiry);
+    history.replaceState(null, "", window.location.pathname);
+  }
+
+  const token = getStoredToken();
+  updateAuthUI();
+  if (!token) return null;
+
+  // Try to load from cloud; fall back to localStorage
+  const cloudData = await cloudLoad(token);
+  if (cloudData) {
+    try {
+      const dict = JSON.parse(cloudData) as GameStateDict;
+      localStorage.setItem(SAVE_KEY, cloudData); // keep local in sync
+      return dict;
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
 function startGame(name: string, characterClass: string): void {
@@ -897,16 +936,27 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target === $("drop-chart-modal")) $("drop-chart-modal").classList.remove("open");
   });
 
-  const saved = loadSave();
+  // Wire up cloud auth UI
+  document.getElementById("cloud-signin-btn")?.addEventListener("click", () => {
+    window.location.href = getLoginUrl();
+  });
+  document.getElementById("cloud-signout-btn")?.addEventListener("click", () => {
+    clearToken();
+    updateAuthUI();
+  });
 
-  if (saved) {
-    continueGame(saved);
-  } else {
-    $("save-section").style.display = "none";
-    $("new-game-section").style.display = "flex";
-    $("creation-overlay").style.display = "flex";
-    updateClassDesc();
-  }
+  // Auth → cloud load → local load → new game
+  initAuth().then(cloudSaved => {
+    const saved = cloudSaved ?? loadSave();
+    if (saved) {
+      continueGame(saved);
+    } else {
+      $("save-section").style.display = "none";
+      $("new-game-section").style.display = "flex";
+      $("creation-overlay").style.display = "flex";
+      updateClassDesc();
+    }
+  });
 
   $("class-picker").addEventListener("click", (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLButtonElement>(".class-btn");

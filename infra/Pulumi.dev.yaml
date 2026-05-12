@@ -1,0 +1,6 @@
+config:
+  aws:region: us-east-1
+  toddpocalypse-infra:googleClientId:
+    secure: AAABAOcuhMigB0lsuLJxzET5iRM1c4PlR32DnEvI6mhbWgVMBZewzabR5pGwJ5cuRGjPZR6k7ceYG8APoteXdDiIrdK4rwTFwWeOtUKioN8et68ggeTQvlV14lSQZNCMUvolp+jGBkc=
+  toddpocalypse-infra:googleClientSecret:
+    secure: AAABACLAYlLLoaKSx5x7VsTKPnULVjCxT3sDmI8+Fy8ligjMu7TcRlittVhzZQldYFv71BsV6rmC+3FizWsz0+6daw==

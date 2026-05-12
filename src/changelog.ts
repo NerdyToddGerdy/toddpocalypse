@@ -1,4 +1,4 @@
-export const VERSION = "v2.5.2";
+export const VERSION = "v2.6.0";
 
 export interface ChangelogEntry {
   version: string;
@@ -7,6 +7,16 @@ export interface ChangelogEntry {
 }
 
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.0",
+    date: "2026-05-11",
+    changes: [
+      "Cloud save — sign in with Google to sync your save across devices",
+      "Save writes to AWS DynamoDB on every autosave tick when signed in",
+      "Cloud save loads automatically on page load; falls back to localStorage if offline or signed out",
+      "Sign in / Sign out available in Settings tab",
+    ],
+  },
   {
     version: "v2.5.2",
     date: "2026-05-11",

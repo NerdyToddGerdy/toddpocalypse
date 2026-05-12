@@ -821,6 +821,27 @@ main {
 
 #char-name-input:focus { border-color: var(--accent); }
 
+.creation-divider {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.75rem;
+    margin: 4px 0;
+}
+
+.google-signin-btn {
+    width: 100%;
+    padding: 10px;
+    background: #4285f4;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+.google-signin-btn:hover { opacity: 0.88; }
+
 #class-picker {
     display: flex;
     gap: 8px;

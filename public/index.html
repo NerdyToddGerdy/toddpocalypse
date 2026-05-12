@@ -34,6 +34,8 @@
       </div>
       <div id="class-desc"></div>
       <button id="start-btn">Begin Adventure</button>
+      <div class="creation-divider">or</div>
+      <button id="cloud-signin-btn" class="google-signin-btn">☁ Sign in with Google</button>
     </div>
   </div>
 </div>
@@ -143,6 +145,15 @@
     <section id="settings-panel">
       <h2>Settings</h2>
       <div id="settings-content">
+        <div class="settings-row">
+          <div class="settings-label">Cloud Save</div>
+          <div class="settings-desc">Sign in to sync your save across devices.</div>
+          <button id="cloud-signin-btn" class="google-signin-btn">☁ Sign in with Google</button>
+          <div id="cloud-signout-row" hidden>
+            <span class="settings-warn">Signed in — saves sync automatically.</span>
+            <button id="cloud-signout-btn" class="secondary-btn">Sign out</button>
+          </div>
+        </div>
         <div class="settings-row">
           <div class="settings-label">Visual Theme</div>
           <div class="settings-desc">Choose your fantasy aesthetic.</div>
