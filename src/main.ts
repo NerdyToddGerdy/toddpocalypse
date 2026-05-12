@@ -269,6 +269,9 @@ function renderParty(state: GameStateDict): void {
   partyKey = newKey;
 
   const partyEl = $("party-cards");
+  const partyH2 = document.querySelector<HTMLElement>("#party-panel h2");
+  if (partyH2) partyH2.dataset.party = encodeURIComponent(JSON.stringify(state.party));
+
   partyEl.innerHTML = state.party
     .map((c, ci) => {
       const xpPct = Math.round((c.xp / c.xp_to_next) * 100);
@@ -299,11 +302,12 @@ function renderParty(state: GameStateDict): void {
           ? `<span class="ability-badge unlocked" tabindex="0" data-tip="${a.desc}">${a.icon} ${a.name}</span>`
           : `<span class="ability-badge locked" tabindex="0" data-tip="Lv${a.level}: ${a.desc}">${a.icon} Lv${a.level}</span>`;
       }).join("");
+      const charJson = encodeURIComponent(JSON.stringify(c));
       return `
 <div class="char-card${leveledUp ? " levelup-flash" : ""}">
   <div class="char-header">
     <div>
-      <div class="char-name">${c.name}</div>
+      <div class="char-name" data-char="${charJson}">${c.name}</div>
       <div class="char-class">${c.character_class}</div>
     </div>
     <div class="char-dps">${c.dps.toFixed(1)} DPS</div>
@@ -734,6 +738,59 @@ function buildTooltipHTML(item: GearItemDict): string {
   `;
 }
 
+type CharDict = GameStateDict["party"][number];
+
+function statRow(label: string, value: string, cls = ""): string {
+  return `<div class="tt-stat-row"><span class="tt-stat-label">${label}</span><span class="tt-stat-val${cls ? " " + cls : ""}">${value}</span></div>`;
+}
+
+function buildCharTooltipHTML(c: CharDict): string {
+  const classAbilities = CLASS_ABILITIES[c.character_class] ?? [];
+  const unlocked = classAbilities.filter(a => c.abilities.includes(a.id));
+  const rows = [
+    statRow("DPS",        `${c.dps.toFixed(1)}`,                   "tt-dps"),
+    statRow("HP",         `${Math.ceil(c.health)} / ${c.max_health}`, "tt-hp"),
+    c.click_bonus   > 0 ? statRow("Click Dmg",   `+${c.click_bonus.toFixed(1)}`,           "tt-click") : "",
+    c.damage_reduction > 0 ? statRow("Defense",  `+${(c.damage_reduction * 100).toFixed(0)}%`, "tt-def")   : "",
+    c.crit_chance   > 0 ? statRow("Crit Chance", `+${(c.crit_chance * 100).toFixed(1)}%`,  "tt-crit")  : "",
+    c.gold_bonus    > 0 ? statRow("Gold Find",   `+${(c.gold_bonus * 100).toFixed(0)}%`,   "tt-gold")  : "",
+    c.lifesteal     > 0 ? statRow("Lifesteal",   `+${(c.lifesteal * 100).toFixed(0)}%`,    "tt-life")  : "",
+    c.haste         > 0 ? statRow("Haste",        `+${(c.haste * 100).toFixed(0)}%`,        "tt-haste") : "",
+    c.xp_multiplier > 1 ? statRow("XP Bonus",    `${(c.xp_multiplier * 100).toFixed(0)}%`, "tt-xp")   : "",
+  ].filter(Boolean).join("");
+  const abilityBadges = unlocked.length
+    ? `<div class="tt-divider"></div><div class="tt-abilities">${unlocked.map(a => `<span class="tt-ability">${a.icon} ${a.name}</span>`).join("")}</div>`
+    : "";
+  return `
+    <span class="tt-name">${c.name}</span>
+    <div class="tt-rarity" style="color:var(--muted);text-transform:none;font-weight:400">Lv${c.level} ${c.character_class}</div>
+    <div class="tt-divider"></div>
+    <div class="tt-stats">${rows}</div>
+    ${abilityBadges}
+  `;
+}
+
+function buildPartyTooltipHTML(party: CharDict[]): string {
+  const alive = party.filter(c => c.health > 0);
+  const totalDps  = alive.reduce((s, c) => s + c.dps, 0);
+  const totalHp   = party.reduce((s, c) => s + Math.ceil(c.health), 0);
+  const totalMaxHp = party.reduce((s, c) => s + c.max_health, 0);
+  const members = party.map(c =>
+    `<div class="tt-stat-row"><span class="tt-stat-label">${c.name}</span><span class="tt-stat-val" style="color:var(--muted);font-weight:400">Lv${c.level} ${c.character_class}</span></div>`
+  ).join("");
+  return `
+    <span class="tt-name">Your Party</span>
+    <div class="tt-subtitle">${party.length} member${party.length !== 1 ? "s" : ""}</div>
+    <div class="tt-divider"></div>
+    <div class="tt-stats">
+      ${statRow("Total DPS", totalDps.toFixed(1), "tt-dps")}
+      ${statRow("Total HP",  `${totalHp} / ${totalMaxHp}`, "tt-hp")}
+    </div>
+    <div class="tt-divider"></div>
+    <div class="tt-stats">${members}</div>
+  `;
+}
+
 function formatStats(stats: GearStats): string {
   const parts: string[] = [];
   if (stats.dps)        parts.push(`+${stats.dps.toFixed(1)} DPS`);
@@ -814,19 +871,23 @@ function initSidebarTabs(): void {
   showSidebarTab("upgrades");
 }
 
+const TOOLTIP_SELECTORS = ".gear-row.filled[data-item], .loot-item[data-item], .char-name[data-char], #party-panel h2[data-party]";
+
+function getTooltipContent(el: HTMLElement): string | null {
+  try {
+    if (el.dataset.item)  return buildTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.item)) as GearItemDict);
+    if (el.dataset.char)  return buildCharTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.char)) as CharDict);
+    if (el.dataset.party) return buildPartyTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.party)) as CharDict[]);
+  } catch { /* ignore */ }
+  return null;
+}
+
 function initItemTooltip(): void {
   const tooltip = document.getElementById("item-tooltip")!;
   let currentTarget: HTMLElement | null = null;
 
-  function parseItemData(el: HTMLElement): GearItemDict | null {
-    const raw = el.dataset.item;
-    if (!raw) return null;
-    try { return JSON.parse(decodeURIComponent(raw)) as GearItemDict; }
-    catch { return null; }
-  }
-
-  function show(el: HTMLElement, item: GearItemDict): void {
-    tooltip.innerHTML = buildTooltipHTML(item);
+  function show(content: string): void {
+    tooltip.innerHTML = content;
     tooltip.classList.add("visible");
   }
 
@@ -854,12 +915,12 @@ function initItemTooltip(): void {
   });
 
   document.addEventListener("mouseover", (e) => {
-    const el = (e.target as HTMLElement).closest<HTMLElement>(".gear-row.filled, .loot-item");
+    const el = (e.target as HTMLElement).closest<HTMLElement>(TOOLTIP_SELECTORS);
     if (!el || el === currentTarget) return;
-    const item = parseItemData(el);
-    if (!item) return;
+    const content = getTooltipContent(el);
+    if (!content) return;
     currentTarget = el;
-    show(el, item);
+    show(content);
     position(e as MouseEvent);
   });
 
@@ -867,7 +928,7 @@ function initItemTooltip(): void {
     if (!currentTarget) return;
     const relatedTarget = e.relatedTarget as HTMLElement | null;
     if (relatedTarget && currentTarget.contains(relatedTarget)) return;
-    if (relatedTarget?.closest(".gear-row.filled, .loot-item") !== currentTarget) hide();
+    if (relatedTarget?.closest(TOOLTIP_SELECTORS) !== currentTarget) hide();
   });
 
   document.addEventListener("click", () => hide());
@@ -879,8 +940,10 @@ function initMobileItemCard(): void {
   const closeBtn = overlay.querySelector<HTMLElement>(".mic-close")!;
   const backdrop = overlay.querySelector<HTMLElement>(".mic-backdrop")!;
 
-  function openCard(item: GearItemDict): void {
-    content.innerHTML = buildTooltipHTML(item);
+  const MOBILE_SELECTORS = ".gear-row.filled[data-item], .loot-item[data-item], .char-name[data-char]";
+
+  function openCard(html: string): void {
+    content.innerHTML = html;
     overlay.setAttribute("aria-hidden", "false");
     overlay.classList.add("open");
   }
@@ -898,12 +961,10 @@ function initMobileItemCard(): void {
     const target = e.target as HTMLElement;
     if (target.closest("button")) return;
 
-    const el = target.closest<HTMLElement>(".gear-row.filled, .loot-item");
-    if (!el?.dataset.item) return;
-    try {
-      const item = JSON.parse(decodeURIComponent(el.dataset.item)) as GearItemDict;
-      openCard(item);
-    } catch { /* ignore */ }
+    const el = target.closest<HTMLElement>(MOBILE_SELECTORS);
+    if (!el) return;
+    const html = getTooltipContent(el);
+    if (html) openCard(html);
   });
 }
 

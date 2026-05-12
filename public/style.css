@@ -2070,9 +2070,26 @@ footer {
     margin-top: 2px;
 }
 
-/* gear rows and loot items show cursor:help to hint tooltip */
+/* gear rows, loot items, and char names show cursor:help to hint tooltip */
 .gear-row.filled { cursor: help; }
 .loot-item       { cursor: help; }
+.char-name       { cursor: help; }
+#party-panel h2  { cursor: help; }
+
+.tt-abilities {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding-top: 2px;
+}
+.tt-ability {
+    font-size: 0.68rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 6px;
+    color: var(--text);
+}
 
 @media (max-width: 768px) {
     .item-tooltip { display: none; }

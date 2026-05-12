@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.7";
+export const VERSION = "v2.6.8";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.8",
+    date: "2026-05-11",
+    changes: [
+      "Hover a hero's name or 'Your Party' to see a stat card — DPS, HP, click damage, defense, crit, gold, lifesteal, haste, XP bonus, and unlocked abilities",
+      "Tapping a hero's name on mobile opens the same card as a bottom sheet",
+    ],
+  },
   {
     version: "v2.6.7",
     date: "2026-05-11",
