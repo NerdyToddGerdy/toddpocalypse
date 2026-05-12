@@ -4,12 +4,14 @@ import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
 import { parseAuthHash, getStoredToken, storeToken, clearToken, getLoginUrl, cloudLoad, cloudSave, cloudClaimSession, resetSessionId, getOrCreateSessionId } from "./cloud.js";
 
-// heroes.png is a 3-sprite sheet (fighter, rogue, mage), each 724×724px.
-// At display size 100px the sheet is 300×100; positions step by -100px.
-const HERO_SPRITE_X: Record<string, number> = {
-  fighter: 0, paladin: 0,
-  rogue: -100, ranger: -100,
-  mage: -200,
+// Both sprite sheets are 2172×724 with 724px-wide sprites.
+// At display size 100px: background-size 300×100; positions step by -100px.
+const HERO_SPRITE: Record<string, { img: string; x: number }> = {
+  fighter: { img: "heroes.png",   x: 0    },
+  rogue:   { img: "heroes.png",   x: -100 },
+  mage:    { img: "heroes.png",   x: -200 },
+  paladin: { img: "heroes 2.png", x: 0    },
+  ranger:  { img: "heroes 2.png", x: -100 },
 };
 
 const CLASS_DESCS: Record<string, string> = {
@@ -312,10 +314,10 @@ function renderParty(state: GameStateDict): void {
           : `<span class="ability-badge locked" tabindex="0" data-tip="Lv${a.level}: ${a.desc}" data-skill="${skillJson}">${a.icon} Lv${a.level}</span>`;
       }).join("");
       const charJson = encodeURIComponent(JSON.stringify(c));
-      const spriteX = HERO_SPRITE_X[c.character_class] ?? 0;
+      const sprite = HERO_SPRITE[c.character_class] ?? HERO_SPRITE.fighter;
       return `
 <div class="char-card${leveledUp ? " levelup-flash" : ""}">
-  <div class="hero-sprite" style="background-position:${spriteX}px 0"></div>
+  <div class="hero-sprite" style="background-image:url('${sprite.img}');background-position:${sprite.x}px 0"></div>
   <div class="char-header">
     <div>
       <div class="char-name" data-char="${charJson}">${c.name}</div>

@@ -307,7 +307,6 @@ main {
 }
 
 .hero-sprite {
-    background-image: url('heroes.png');
     background-size: 300px 100px;
     background-repeat: no-repeat;
     width: 100px;
