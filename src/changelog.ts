@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.26";
+export const VERSION = "v2.6.27";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.27",
+    date: "2026-05-12",
+    changes: [
+      "Fix: session-conflict banner now actually hides — CSS display:flex was overriding the hidden attribute",
+    ],
+  },
   {
     version: "v2.6.26",
     date: "2026-05-12",
