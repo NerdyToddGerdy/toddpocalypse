@@ -127,6 +127,8 @@ header {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    position: relative;
+    z-index: 55;
 }
 
 header h1 {
@@ -1194,6 +1196,7 @@ main {
         align-items: stretch;
         gap: 12px;
         padding: 12px;
+        padding-left: 56px; /* 44px gauge + 12px gap */
         padding-bottom: 260px; /* room for fixed enemy panel + tab bar */
         overflow-y: auto;
     }
@@ -1201,7 +1204,29 @@ main {
     #left-col  { display: contents; }
     #sidebar   { display: contents; background: none; border: none; border-radius: 0; }
     #sidebar-tabs { display: none; }
-    #depth-gauge { display: none; }
+
+    #depth-gauge {
+        display: flex;
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100dvh;
+        width: 44px;
+        flex-direction: column;
+        align-items: center;
+        padding: 8px 4px;
+        gap: 4px;
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        z-index: 45;
+    }
+
+    #depth-gauge #depth-track {
+        flex: 1;
+        min-height: unset;
+    }
+
+    #depth-gauge #depth-title { display: none; }
 
     #enemy-panel {
         display: flex !important;
