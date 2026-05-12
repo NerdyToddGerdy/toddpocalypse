@@ -69,6 +69,41 @@ export function getOrCreateSessionId(): string {
     return id;
 }
 
+/** Removes the stored session ID from localStorage. */
+export function clearSessionId(): void {
+    localStorage.removeItem(SESSION_KEY);
+}
+
+/** Clears the existing session ID and generates a fresh one, returning the new ID. */
+export function resetSessionId(): string {
+    clearSessionId();
+    return getOrCreateSessionId();
+}
+
+/**
+ * Force-claims this device as the active save device, bypassing any existing session lock.
+ * Sends X-Force-Session: true so the Lambda skips the conditional check.
+ * Returns "ok" or "error".
+ */
+export async function cloudClaimSession(token: string, data: string): Promise<"ok" | "error"> {
+    try {
+        const res = await fetch(`${API_URL}/save`, {
+            method: "PUT",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+                "X-Session-Id": getOrCreateSessionId(),
+                "X-Force-Session": "true",
+            },
+            body: data,
+        });
+        if (!res.ok) return "error";
+        return "ok";
+    } catch {
+        return "error";
+    }
+}
+
 /** Builds the Cognito hosted-UI login URL with the correct redirect_uri for the current host. */
 export function getLoginUrl(): string {
     const redirectUri = encodeURIComponent(

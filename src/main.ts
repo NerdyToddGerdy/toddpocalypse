@@ -2,7 +2,7 @@ import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, GUILD_HALL_COSTS, 
 import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, type GearStats, type GearItemDict } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
-import { parseAuthHash, getStoredToken, storeToken, clearToken, getLoginUrl, cloudLoad, cloudSave, getOrCreateSessionId } from "./cloud.js";
+import { parseAuthHash, getStoredToken, storeToken, clearToken, getLoginUrl, cloudLoad, cloudSave, cloudClaimSession, resetSessionId, getOrCreateSessionId } from "./cloud.js";
 
 const CLASS_DESCS: Record<string, string> = {
   fighter: "Highest idle DPS. Each level-up multiplies damage by 1.2×.",
@@ -1052,6 +1052,66 @@ async function saveGame(): Promise<void> {
   }
 }
 
+/** Shows a brief message in the cloud-status element, then hides it after a delay. */
+function showCloudStatus(msg: string, isError = false): void {
+  const el = document.getElementById("cloud-status-msg");
+  if (!el) return;
+  el.textContent = msg;
+  el.className = `cloud-status ${isError ? "cloud-status-error" : "cloud-status-ok"}`;
+  el.hidden = false;
+  setTimeout(() => { el.hidden = true; }, 4000);
+}
+
+/**
+ * Forces this device to become the active save device by resetting the session ID
+ * and writing a force-claim save to DynamoDB (bypasses the 409 session lock).
+ */
+async function setActiveDevice(): Promise<void> {
+  const token = getStoredToken();
+  if (!token || !game) return;
+  const btn = document.getElementById("claim-device-btn") as HTMLButtonElement | null;
+  const bannerBtn = document.getElementById("claim-device-banner-btn") as HTMLButtonElement | null;
+  if (btn) btn.disabled = true;
+  if (bannerBtn) bannerBtn.disabled = true;
+  try {
+    resetSessionId();
+    lastCloudSaveAt = 0; // force next periodic save to run immediately
+    const data = game.respond();
+    localStorage.setItem(SAVE_KEY, data);
+    const result = await cloudClaimSession(token, data);
+    if (result === "ok") {
+      hideSessionConflictBanner();
+      lastCloudSaveAt = Date.now();
+      showCloudStatus("✓ This device is now the active save device.");
+    } else {
+      showCloudStatus("✗ Could not claim device — check your connection.", true);
+    }
+  } finally {
+    if (btn) btn.disabled = false;
+    if (bannerBtn) bannerBtn.disabled = false;
+  }
+}
+
+/** Pulls the latest save from DynamoDB and reloads the page to apply it. */
+async function pullCloudSave(): Promise<void> {
+  const token = getStoredToken();
+  if (!token) return;
+  const btn = document.getElementById("pull-save-btn") as HTMLButtonElement | null;
+  if (btn) btn.disabled = true;
+  try {
+    const cloudData = await cloudLoad(token);
+    if (!cloudData) {
+      showCloudStatus("✗ No cloud save found.", true);
+      return;
+    }
+    localStorage.setItem(SAVE_KEY, cloudData);
+    showCloudStatus("✓ Cloud save loaded — reloading…");
+    setTimeout(() => window.location.reload(), 1200);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 /** Reads and parses the save from localStorage; returns null if absent or corrupt. */
 function loadSave(): GameStateDict | null {
   try {
@@ -1211,6 +1271,9 @@ document.addEventListener("DOMContentLoaded", () => {
     clearToken();
     updateAuthUI();
   });
+  document.getElementById("pull-save-btn")?.addEventListener("click", () => { pullCloudSave(); });
+  document.getElementById("claim-device-btn")?.addEventListener("click", () => { setActiveDevice(); });
+  document.getElementById("claim-device-banner-btn")?.addEventListener("click", () => { setActiveDevice(); });
 
   // Auth → cloud load → local load → new game
   initAuth().then(cloudSaved => {

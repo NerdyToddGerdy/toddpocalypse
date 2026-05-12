@@ -143,9 +143,10 @@ exports.handler = async (event) => {
     const body = event.body;
     if (!body) return { statusCode: 400, body: "Missing body" };
     const sessionId = event.headers?.["x-session-id"] ?? "unknown";
+    const forceSession = event.headers?.["x-force-session"] === "true";
     const now = Date.now();
     try {
-        await client.send(new PutItemCommand({
+        const putParams = {
             TableName: process.env.TABLE_NAME,
             Item: {
                 userId:        { S: userId },
@@ -154,13 +155,16 @@ exports.handler = async (event) => {
                 sessionId:     { S: sessionId },
                 sessionExpiry: { N: String(now + SESSION_TTL_MS) },
             },
-            ConditionExpression:
-                "attribute_not_exists(sessionId) OR sessionId = :sid OR sessionExpiry < :now",
-            ExpressionAttributeValues: {
+        };
+        if (!forceSession) {
+            putParams.ConditionExpression =
+                "attribute_not_exists(sessionId) OR sessionId = :sid OR sessionExpiry < :now";
+            putParams.ExpressionAttributeValues = {
                 ":sid": { S: sessionId },
                 ":now": { N: String(now) },
-            },
-        }));
+            };
+        }
+        await client.send(new PutItemCommand(putParams));
         return {
             statusCode: 200,
             headers: { "Access-Control-Allow-Origin": "*" },
@@ -187,7 +191,7 @@ const api = new aws.apigatewayv2.Api("toddpocalypse-api", {
     corsConfiguration: {
         allowOrigins: ["*"],
         allowMethods: ["GET", "PUT", "OPTIONS"],
-        allowHeaders: ["Authorization", "Content-Type", "X-Session-Id"],
+        allowHeaders: ["Authorization", "Content-Type", "X-Session-Id", "X-Force-Session"],
     },
 });
 

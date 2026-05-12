@@ -41,7 +41,8 @@
 </div>
 
 <div id="session-conflict-banner" hidden>
-  ⚠ Game is open on another device — cloud saving paused here.
+  <span>⚠ Game is open on another device — cloud saving paused here.</span>
+  <button id="claim-device-banner-btn" class="secondary-btn small-btn">Set This as Active</button>
 </div>
 
 <header>
@@ -167,7 +168,12 @@
           <button id="cloud-signin-btn" class="google-signin-btn">☁ Sign in with Google</button>
           <div id="cloud-signout-row" hidden>
             <span class="settings-warn">Signed in — saves sync automatically.</span>
-            <button id="cloud-signout-btn" class="secondary-btn">Sign out</button>
+            <div class="cloud-action-row">
+              <button id="pull-save-btn" class="secondary-btn">Load Cloud Save</button>
+              <button id="claim-device-btn" class="secondary-btn">Set Active Device</button>
+              <button id="cloud-signout-btn" class="secondary-btn">Sign out</button>
+            </div>
+            <div id="cloud-status-msg" class="cloud-status" hidden></div>
           </div>
         </div>
         <div class="settings-row">

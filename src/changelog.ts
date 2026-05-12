@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.8";
+export const VERSION = "v2.6.9";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.9",
+    date: "2026-05-12",
+    changes: [
+      "Set Active Device button: override a session conflict and claim this device as the primary saver — appears in Settings and in the conflict banner",
+      "Load Cloud Save button: pull the latest DynamoDB save to this device without waiting for the next auto-sync",
+    ],
+  },
   {
     version: "v2.6.8",
     date: "2026-05-11",

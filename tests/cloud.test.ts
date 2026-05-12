@@ -1,5 +1,15 @@
-import { describe, it, expect } from "vitest";
-import { parseAuthHash, isTokenExpired } from "../src/cloud.js";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { parseAuthHash, isTokenExpired, clearSessionId, resetSessionId, cloudClaimSession } from "../src/cloud.js";
+
+// Minimal localStorage stub for Node test environment
+const store: Record<string, string> = {};
+const localStorageMock = {
+  getItem: (k: string) => store[k] ?? null,
+  setItem: (k: string, v: string) => { store[k] = v; },
+  removeItem: (k: string) => { delete store[k]; },
+};
+vi.stubGlobal("localStorage", localStorageMock);
+vi.stubGlobal("crypto", { randomUUID: () => "new-uuid-1234" });
 
 describe("parseAuthHash", () => {
   it("returns null for empty string", () => {
@@ -39,5 +49,76 @@ describe("isTokenExpired", () => {
 
   it("returns false for a future timestamp", () => {
     expect(isTokenExpired(Date.now() + 60_000)).toBe(false);
+  });
+});
+
+describe("clearSessionId", () => {
+  beforeEach(() => { store["toddpocalypse-session"] = "old-session-id"; });
+  afterEach(() => { delete store["toddpocalypse-session"]; });
+
+  it("removes the stored session ID", () => {
+    clearSessionId();
+    expect(store["toddpocalypse-session"]).toBeUndefined();
+  });
+});
+
+describe("resetSessionId", () => {
+  beforeEach(() => { store["toddpocalypse-session"] = "old-session-id"; });
+  afterEach(() => { delete store["toddpocalypse-session"]; });
+
+  it("returns a new session ID", () => {
+    const id = resetSessionId();
+    expect(id).toBe("new-uuid-1234");
+  });
+
+  it("persists the new session ID", () => {
+    resetSessionId();
+    expect(store["toddpocalypse-session"]).toBe("new-uuid-1234");
+  });
+
+  it("returns an ID different from the old one", () => {
+    const id = resetSessionId();
+    expect(id).not.toBe("old-session-id");
+  });
+});
+
+describe("cloudClaimSession", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    store["toddpocalypse-session"] = "my-session";
+    fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.stubGlobal("localStorage", localStorageMock);
+    vi.stubGlobal("crypto", { randomUUID: () => "new-uuid-1234" });
+  });
+
+  it("sends PUT with X-Force-Session header", async () => {
+    fetchSpy.mockResolvedValue({ ok: true, status: 200 });
+    await cloudClaimSession("tok", "data");
+    const [, init] = fetchSpy.mock.calls[0];
+    expect((init as RequestInit & { headers: Record<string, string> }).headers["X-Force-Session"]).toBe("true");
+  });
+
+  it("returns ok on success", async () => {
+    fetchSpy.mockResolvedValue({ ok: true, status: 200 });
+    const result = await cloudClaimSession("tok", "data");
+    expect(result).toBe("ok");
+  });
+
+  it("returns error on HTTP failure", async () => {
+    fetchSpy.mockResolvedValue({ ok: false, status: 500 });
+    const result = await cloudClaimSession("tok", "data");
+    expect(result).toBe("error");
+  });
+
+  it("returns error on network failure", async () => {
+    fetchSpy.mockRejectedValue(new Error("network"));
+    const result = await cloudClaimSession("tok", "data");
+    expect(result).toBe("error");
   });
 });
