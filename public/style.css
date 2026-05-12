@@ -307,12 +307,12 @@ main {
 }
 
 .hero-sprite {
-    background-size: 300px 100px;
-    background-repeat: no-repeat;
     width: 84px;
     height: 140px;
     flex-shrink: 0;
+    object-fit: fill;
     image-rendering: pixelated;
+    border-radius: 4px;
 }
 
 .char-name { font-weight: 700; margin-bottom: 2px; }
@@ -2064,6 +2064,23 @@ footer {
     opacity: 1;
     transform: translateY(0);
 }
+.tt-hero-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 2px;
+}
+.tt-hero-info { flex: 1; min-width: 0; }
+.tt-hero-portrait {
+    width: 60px;
+    height: 100px;
+    object-fit: fill;
+    image-rendering: pixelated;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
 .tt-name {
     font-family: 'Cinzel', serif;
     font-size: 0.82rem;

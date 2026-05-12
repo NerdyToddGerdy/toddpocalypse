@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.22";
+export const VERSION = "v2.6.23";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.23",
+    date: "2026-05-12",
+    changes: [
+      "Fix: hero portraits now show the correct character (switched from sprite sheet to individual files)",
+      "Hero portrait now appears in the hero stat card popup",
+    ],
+  },
   {
     version: "v2.6.22",
     date: "2026-05-12",

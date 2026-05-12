@@ -4,14 +4,12 @@ import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
 import { parseAuthHash, getStoredToken, storeToken, clearToken, getLoginUrl, cloudLoad, cloudSave, cloudClaimSession, resetSessionId, getOrCreateSessionId } from "./cloud.js";
 
-// heroes 3.png: all 5 classes in one 2172×724 sheet (fighter, rogue, mage, paladin, ranger).
-// At display height 140px: sheet is 420×140; each sprite is 84px wide; positions step by -84px.
-const HERO_SPRITE: Record<string, { img: string; x: number }> = {
-  fighter: { img: "heroes 3.png", x: 0    },
-  rogue:   { img: "heroes 3.png", x: -84  },
-  mage:    { img: "heroes 3.png", x: -168 },
-  paladin: { img: "heroes 3.png", x: -252 },
-  ranger:  { img: "heroes 3.png", x: -336 },
+const HERO_IMG: Record<string, string> = {
+  fighter: "hero_fighter.png",
+  rogue:   "hero_rogue.png",
+  mage:    "hero_mage.png",
+  paladin: "hero_paladin.png",
+  ranger:  "hero_ranger.png",
 };
 
 const CLASS_DESCS: Record<string, string> = {
@@ -314,7 +312,7 @@ function renderParty(state: GameStateDict): void {
           : `<span class="ability-badge locked" tabindex="0" data-tip="Lv${a.level}: ${a.desc}" data-skill="${skillJson}">${a.icon} Lv${a.level}</span>`;
       }).join("");
       const charJson = encodeURIComponent(JSON.stringify(c));
-      const sprite = HERO_SPRITE[c.character_class] ?? HERO_SPRITE.fighter;
+      const heroImg = HERO_IMG[c.character_class] ?? HERO_IMG.fighter;
       return `
 <div class="char-card${leveledUp ? " levelup-flash" : ""}">
   <div class="char-header">
@@ -323,7 +321,7 @@ function renderParty(state: GameStateDict): void {
       <div class="char-class">${c.character_class}</div>
       <div class="char-dps">${c.dps.toFixed(1)} DPS</div>
     </div>
-    <div class="hero-sprite" style="background-image:url('${sprite.img}');background-position:${sprite.x}px 0"></div>
+    <img class="hero-sprite" src="${heroImg}" alt="${c.character_class}">
   </div>
   <div class="hp-section">
     <div class="hp-bar-header">
@@ -774,9 +772,15 @@ function buildCharTooltipHTML(c: CharDict): string {
   const abilityBadges = unlocked.length
     ? `<div class="tt-divider"></div><div class="tt-abilities">${unlocked.map(a => `<span class="tt-ability">${a.icon} ${a.name}</span>`).join("")}</div>`
     : "";
+  const heroImg = HERO_IMG[c.character_class] ?? HERO_IMG.fighter;
   return `
-    <span class="tt-name">${c.name}</span>
-    <div class="tt-rarity" style="color:var(--muted);text-transform:none;font-weight:400">Lv${c.level} ${c.character_class}</div>
+    <div class="tt-hero-header">
+      <div class="tt-hero-info">
+        <span class="tt-name">${c.name}</span>
+        <div class="tt-rarity" style="color:var(--muted);text-transform:none;font-weight:400">Lv${c.level} ${c.character_class}</div>
+      </div>
+      <img class="tt-hero-portrait" src="${heroImg}" alt="${c.character_class}">
+    </div>
     <div class="tt-divider"></div>
     <div class="tt-stats">${rows}</div>
     ${abilityBadges}
