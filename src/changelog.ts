@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.14";
+export const VERSION = "v2.6.15";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.15",
+    date: "2026-05-12",
+    changes: [
+      "Added pixel-art favicon (flaming skull warrior) — shows in browser tabs, bookmarks, and on iOS home screen",
+    ],
+  },
   {
     version: "v2.6.14",
     date: "2026-05-12",
