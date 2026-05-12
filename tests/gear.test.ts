@@ -11,6 +11,7 @@ import {
   qualityClass,
   gearLevelScale,
   autoSellThreshold,
+  gearPower,
 } from "../src/gear.js";
 
 describe("autoSellThreshold", () => {
@@ -214,10 +215,10 @@ describe("GearItem", () => {
     expect(item.getName()).toBe("legendary helm of hilarity");
   });
 
-  it("toDict has the expected keys including dungeon_level", () => {
+  it("toDict has the expected keys including dungeon_level and stats", () => {
     const item = new GearItem("legs", "greaves", "fine", "gentleness");
     expect(new Set(Object.keys(item.toDict()))).toEqual(
-      new Set(["slot", "slot_display", "name", "quality", "item_type", "adjective", "damage", "cost", "sell_value", "dungeon_level"]),
+      new Set(["slot", "slot_display", "name", "quality", "item_type", "adjective", "stats", "damage", "cost", "sell_value", "dungeon_level"]),
     );
   });
 
@@ -309,5 +310,91 @@ describe("qualityClass", () => {
   it("toDict includes quality field", () => {
     const item = new GearItem("helmet", "helm", "rare", "valor");
     expect(item.toDict()).toHaveProperty("quality", "rare");
+  });
+});
+
+describe("multi-stat rolling", () => {
+  it("getItem produces an item with at least one stat", () => {
+    for (let i = 0; i < 20; i++) {
+      const item = getItem();
+      expect(Object.keys(item.stats).length).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("broken quality rolls exactly 1 stat", () => {
+    for (let i = 0; i < 30; i++) {
+      const item = getItem("main_hand", 1);
+      if (item.quality === "broken") {
+        expect(Object.keys(item.stats)).toHaveLength(1);
+      }
+    }
+  });
+
+  it("mythic+ quality rolls exactly 3 stats", () => {
+    const item = new GearItem("main_hand", "sword", "mythic", "valor", { dps: 10, critChance: 0.05, haste: 0.03 }, 1);
+    expect(Object.keys(item.stats)).toHaveLength(3);
+  });
+
+  it("stat values are positive numbers", () => {
+    for (let i = 0; i < 30; i++) {
+      const item = getItem();
+      for (const v of Object.values(item.stats)) {
+        expect(v).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("dps stat scales with dungeon level for numeric stats", () => {
+    const low  = new GearItem("main_hand", "sword", "common", "valor", { dps: 11 }, 1);
+    const high = new GearItem("main_hand", "sword", "common", "valor", { dps: Math.ceil(11 * 1.5) }, 10);
+    expect(high.stats.dps!).toBeGreaterThan(low.stats.dps!);
+  });
+});
+
+describe("backward compatibility — fromDict with legacy damage field", () => {
+  it("fromDict migrates damage → stats.dps when no stats field present", () => {
+    const legacy = {
+      slot: "main_hand" as const,
+      slot_display: "Main Hand",
+      name: "common sword of valor",
+      quality: "common",
+      item_type: "sword",
+      adjective: "valor",
+      damage: 11,
+      cost: 60,
+      sell_value: 20,
+      dungeon_level: 1,
+    };
+    const item = GearItem.fromDict(legacy as any);
+    expect(item.stats.dps).toBe(11);
+  });
+
+  it("fromDict round-trips a new multi-stat item", () => {
+    const original = getItem("main_hand", 10);
+    const restored = GearItem.fromDict(original.toDict());
+    expect(restored.stats).toEqual(original.stats);
+    expect(restored.slot).toBe(original.slot);
+    expect(restored.quality).toBe(original.quality);
+  });
+});
+
+describe("gearPower", () => {
+  it("pure DPS item has power equal to its dps value", () => {
+    expect(gearPower({ dps: 25 })).toBe(25);
+  });
+
+  it("empty stats has power 0", () => {
+    expect(gearPower({})).toBe(0);
+  });
+
+  it("higher quality main_hand has higher power", () => {
+    const low  = new GearItem("main_hand", "sword", "common",    "valor", 1);
+    const high = new GearItem("main_hand", "sword", "legendary", "valor", 1);
+    expect(gearPower(high.stats)).toBeGreaterThan(gearPower(low.stats));
+  });
+
+  it("combines multiple stats into a single score", () => {
+    const p = gearPower({ dps: 10, critChance: 0.05 });
+    expect(p).toBeCloseTo(10 + 0.05 * 150);
   });
 });

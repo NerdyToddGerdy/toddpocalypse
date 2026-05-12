@@ -1,4 +1,4 @@
-import { GearItem, SLOTS, type GearItemDict, type Slot } from "./gear.js";
+import { GearItem, SLOTS, gearPower, type GearItemDict, type Slot } from "./gear.js";
 
 /** Serialized, plain-object form of an {@link Inventory}. */
 export type InventoryDict = Record<Slot, GearItemDict | null>;
@@ -28,7 +28,7 @@ export class Inventory {
     // Ring logic: fill empty slot first, then replace the weaker ring
     if (this.slots.ring1 === null) { this.slots.ring1 = item; return null; }
     if (this.slots.ring2 === null) { this.slots.ring2 = item; return null; }
-    const replaceRing2 = this.slots.ring2.damage <= this.slots.ring1.damage;
+    const replaceRing2 = gearPower(this.slots.ring2.stats) <= gearPower(this.slots.ring1.stats);
     if (replaceRing2) {
       const old = this.slots.ring2; this.slots.ring2 = item; return old;
     } else {

@@ -354,6 +354,10 @@ describe("toDict", () => {
       "xp_to_next",
       "click_bonus",
       "equipment",
+      "crit_chance",
+      "gold_bonus",
+      "lifesteal",
+      "haste",
     ]) {
       expect(d).toHaveProperty(k);
     }
@@ -362,5 +366,71 @@ describe("toDict", () => {
   it("equipment has all slots", () => {
     const d = makeChar().toDict();
     expect(new Set(Object.keys(d.equipment))).toEqual(new Set(SLOTS));
+  });
+});
+
+describe("multi-stat equipItem", () => {
+  it("equipping a maxHp item increases maxHealth and health", () => {
+    const c = makeChar();
+    const before = c.maxHealth;
+    c.equipItem(new GearItem("chest", "plate", "common", "valor", { maxHp: 40 }, 1));
+    expect(c.maxHealth).toBe(before + 40);
+    expect(c.health).toBeGreaterThanOrEqual(before);
+  });
+
+  it("equipping a defense item increases damageReduction", () => {
+    const c = makeChar();
+    c.equipItem(new GearItem("chest", "plate", "common", "valor", { defense: 0.05 }, 1));
+    expect(c.damageReduction).toBeCloseTo(0.05);
+  });
+
+  it("damageReduction is capped at 0.95", () => {
+    const c = makeChar();
+    c.equipItem(new GearItem("chest", "plate", "divine", "valor", { defense: 0.99 }, 1));
+    expect(c.damageReduction).toBeLessThanOrEqual(0.95);
+  });
+
+  it("equipping a critChance item increases critChance", () => {
+    const c = makeChar();
+    c.equipItem(new GearItem("ring1", "ring", "rare", "valor", { critChance: 0.07 }, 1));
+    expect(c.critChance).toBeCloseTo(0.07);
+  });
+
+  it("equipping a goldBonus item increases goldBonus", () => {
+    const c = makeChar();
+    c.equipItem(new GearItem("shoes", "boots", "fine", "valor", { goldBonus: 0.05 }, 1));
+    expect(c.goldBonus).toBeCloseTo(0.05);
+  });
+
+  it("equipping a lifesteal item increases lifesteal", () => {
+    const c = makeChar();
+    c.equipItem(new GearItem("off_hand", "shield", "rare", "valor", { lifesteal: 0.03 }, 1));
+    expect(c.lifesteal).toBeCloseTo(0.03);
+  });
+
+  it("equipping a haste item increases haste", () => {
+    const c = makeChar();
+    c.equipItem(new GearItem("shoes", "boots", "fine", "valor", { haste: 0.05 }, 1));
+    expect(c.haste).toBeCloseTo(0.05);
+  });
+
+  it("replacing a non-ring slot removes old stats and applies new ones", () => {
+    const c = makeChar();
+    c.equipItem(new GearItem("chest", "plate", "common", "valor", { critChance: 0.05, goldBonus: 0.03 }, 1));
+    expect(c.critChance).toBeCloseTo(0.05);
+    c.equipItem(new GearItem("chest", "plate", "rare", "valor", { haste: 0.06 }, 1));
+    expect(c.critChance).toBeCloseTo(0);
+    expect(c.goldBonus).toBeCloseTo(0);
+    expect(c.haste).toBeCloseTo(0.06);
+  });
+
+  it("new stat fields survive toDict/fromDict round-trip", () => {
+    const c = makeChar();
+    c.equipItem(new GearItem("ring1", "ring", "rare", "valor", { critChance: 0.07, goldBonus: 0.05 }, 1));
+    const restored = Character.fromDict(c.toDict());
+    expect(restored.critChance).toBeCloseTo(0.07);
+    expect(restored.goldBonus).toBeCloseTo(0.05);
+    expect(restored.lifesteal).toBeCloseTo(0);
+    expect(restored.haste).toBeCloseTo(0);
   });
 });

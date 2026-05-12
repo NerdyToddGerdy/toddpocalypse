@@ -2224,3 +2224,82 @@ describe("lifetime enemy kill tracking", () => {
     expect(gs.toDict().lifetime_enemy_kills["Cursed Spider"]).toBe(4);
   });
 });
+
+describe("multi-stat gear — combat integration", () => {
+  it("critChance=1 always deals 2× DPS", () => {
+    const gs = make();
+    const hero = gs.party.team[0];
+    hero.equipItem(new GearItem("main_hand" as Slot, "sword", "common", "valor", { dps: 10 }, 1));
+    hero.critChance = 1.0;
+    gs.enemy.hp = gs.enemy.max_hp = 10_000;
+    gs.enemy.attack_dps = 0;
+    const before = gs.enemy.hp;
+    gs.tick(1.0);
+    const dealt = before - gs.enemy.hp;
+    expect(dealt).toBeGreaterThan(10 * 1.8); // at least ~2× the base DPS
+  });
+
+  it("critChance=0 never crits (DPS is not doubled)", () => {
+    const gs = make();
+    const hero = gs.party.team[0];
+    hero.equipItem(new GearItem("main_hand" as Slot, "sword", "common", "valor", { dps: 10 }, 1));
+    hero.critChance = 0;
+    gs.enemy.hp = gs.enemy.max_hp = 10_000;
+    gs.enemy.attack_dps = 0;
+    const before = gs.enemy.hp;
+    gs.tick(1.0);
+    const dealt = before - gs.enemy.hp;
+    expect(dealt).toBeLessThanOrEqual(10 * 1.5); // no crit multiplier applied
+  });
+
+  it("gold bonus multiplies gold on boss kill", () => {
+    const gs = make();
+    const hero = gs.party.team[0];
+    hero.goldBonus = 1.0; // 100% bonus = 2× gold
+    gs.enemy.isBoss = true;
+    gs.enemy.gold_reward = 10;
+    gs.gold = 0;
+    gs.onEnemyDeath();
+    expect(gs.gold).toBeCloseTo(20);
+  });
+
+  it("zero gold bonus does not change boss gold reward", () => {
+    const gs = make();
+    gs.party.team[0].goldBonus = 0;
+    gs.enemy.isBoss = true;
+    gs.enemy.gold_reward = 10;
+    gs.gold = 0;
+    gs.onEnemyDeath();
+    expect(gs.gold).toBeCloseTo(10);
+  });
+
+  it("lifesteal heals the front character proportionally to damage dealt", () => {
+    const gs = make();
+    const hero = gs.party.team[0];
+    hero.equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor", { dps: 100 }, 1));
+    hero.lifesteal = 0.5;
+    hero.health = 1;
+    gs.enemy.hp = gs.enemy.max_hp = 10_000;
+    gs.enemy.attack_dps = 0;
+    gs.tick(1.0);
+    expect(hero.health).toBeGreaterThan(1);
+  });
+
+  it("haste increases effective DPS output", () => {
+    const gs1 = make();
+    const gs2 = make();
+    const item = new GearItem("main_hand" as Slot, "sword", "legendary", "valor", { dps: 50 }, 1);
+    gs1.party.team[0].equipItem(item);
+    gs2.party.team[0].equipItem(item);
+    gs2.party.team[0].haste = 1.0; // 100% haste = 2× DPS
+    gs1.enemy.hp = gs1.enemy.max_hp = 100_000;
+    gs1.enemy.attack_dps = 0;
+    gs2.enemy.hp = gs2.enemy.max_hp = 100_000;
+    gs2.enemy.attack_dps = 0;
+    gs1.tick(1.0);
+    gs2.tick(1.0);
+    const dealt1 = 100_000 - gs1.enemy.hp;
+    const dealt2 = 100_000 - gs2.enemy.hp;
+    expect(dealt2).toBeGreaterThan(dealt1 * 1.5);
+  });
+});

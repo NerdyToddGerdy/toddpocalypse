@@ -73,7 +73,7 @@ export const ADJ = [
 /** Base drop-weight curve; index 0 = max available tier, higher index = farther below max. */
 export const DROP_WEIGHTS = [30, 22, 16, 12, 8, 5, 4, 2, 1, 0.5, 0.3, 0.15, 0.08, 0.04, 0.02];
 
-/** Base damage value for each quality tier before depth scaling. */
+/** Base damage value for each quality tier before depth scaling (retained for cost reference). */
 export const DAMAGE_BY_QUALITY: Record<string, number> = {
   broken: 1,
   worn: 2,
@@ -154,6 +154,103 @@ export function autoSellThreshold(highestLevel: number): number {
   return Math.min(Math.floor((highestLevel - 1) / 4), QUAL.length - 2);
 }
 
+/** Stat bonuses a gear item can contribute to the equipped character. */
+export interface GearStats {
+  /** Passive DPS contribution. */
+  dps?: number;
+  /** Max health bonus (current health also increases when equipping). */
+  maxHp?: number;
+  /** Flat click damage bonus. */
+  clickBonus?: number;
+  /** Additive damage reduction (0–1). */
+  defense?: number;
+  /** Additive XP multiplier bonus. */
+  xpBonus?: number;
+  /** Per-tick crit probability (0–1). */
+  critChance?: number;
+  /** Additive gold drop multiplier. */
+  goldBonus?: number;
+  /** Fraction of damage dealt returned as healing (0–1). */
+  lifesteal?: number;
+  /** Additive passive DPS rate multiplier. */
+  haste?: number;
+}
+
+/** Per-stat base values at each quality tier (index matches QUAL order). */
+const STAT_SCALE: Record<keyof GearStats, number[]> = {
+  dps:        [1,2,4,7,11,17,25,36,52,75,110,160,230,335,480],
+  maxHp:      [4,8,15,25,40,60,90,130,180,260,380,540,780,1100,1500],
+  clickBonus: [0.5,1,2,3.5,5.5,8,12,18,26,38,55,80,115,168,240],
+  defense:    [0.01,0.01,0.02,0.02,0.03,0.03,0.04,0.05,0.06,0.07,0.08,0.10,0.12,0.15,0.18],
+  xpBonus:    [0.01,0.02,0.02,0.03,0.03,0.04,0.05,0.06,0.07,0.09,0.11,0.13,0.15,0.18,0.20],
+  critChance: [0.01,0.01,0.02,0.02,0.03,0.03,0.04,0.05,0.06,0.07,0.09,0.11,0.13,0.16,0.20],
+  goldBonus:  [0.01,0.02,0.02,0.03,0.04,0.05,0.06,0.08,0.10,0.12,0.15,0.18,0.22,0.27,0.30],
+  lifesteal:  [0.005,0.005,0.01,0.01,0.015,0.02,0.025,0.03,0.04,0.05,0.06,0.07,0.08,0.09,0.10],
+  haste:      [0.01,0.01,0.02,0.02,0.03,0.04,0.05,0.06,0.07,0.09,0.11,0.13,0.15,0.18,0.20],
+};
+
+/** Stats that scale with dungeon level (numeric); percentage stats do not scale. */
+const NUMERIC_STATS = new Set<keyof GearStats>(["dps", "maxHp", "clickBonus"]);
+
+/** Weighted probability of each stat rolling on each slot. */
+const SLOT_STAT_WEIGHTS: Record<Slot, Partial<Record<keyof GearStats, number>>> = {
+  main_hand: { dps:50, critChance:20, clickBonus:15, haste:10, lifesteal:5 },
+  off_hand:  { dps:25, defense:35, maxHp:20, haste:10, lifesteal:10 },
+  helmet:    { maxHp:35, defense:20, critChance:15, xpBonus:20, goldBonus:10 },
+  chest:     { maxHp:50, defense:30, lifesteal:15, haste:5 },
+  gloves:    { clickBonus:40, critChance:25, dps:20, haste:15 },
+  legs:      { maxHp:40, defense:25, haste:20, lifesteal:15 },
+  shoes:     { haste:35, xpBonus:30, goldBonus:25, defense:10 },
+  ring1:     { dps:15, maxHp:15, critChance:20, goldBonus:20, xpBonus:15, lifesteal:15 },
+  ring2:     { dps:15, maxHp:15, critChance:20, goldBonus:20, xpBonus:15, lifesteal:15 },
+};
+
+/** Number of stat rolls based on quality tier index. */
+function getRollCount(qualityIdx: number): number {
+  if (qualityIdx <= 2) return 1;
+  if (qualityIdx <= 5) return Math.random() < 0.5 ? 1 : 2;
+  if (qualityIdx <= 7) return 2;
+  if (qualityIdx <= 9) return Math.random() < 0.5 ? 2 : 3;
+  return 3;
+}
+
+/** Rolls 1–3 stat bonuses for a gear item based on slot, quality, and dungeon level. */
+function rollStats(slot: Slot, quality: string, dungeonLevel: number): GearStats {
+  const qIdx = QUAL.indexOf(quality as typeof QUAL[number]);
+  const rollCount = getRollCount(qIdx < 0 ? 4 : qIdx);
+  const pool = { ...SLOT_STAT_WEIGHTS[slot] } as Record<keyof GearStats, number>;
+  const scale = gearLevelScale(dungeonLevel);
+  const result: GearStats = {};
+
+  for (let i = 0; i < rollCount; i++) {
+    const keys = Object.keys(pool) as (keyof GearStats)[];
+    if (keys.length === 0) break;
+    const stat = weightedPick(keys, keys.map(k => pool[k] ?? 0));
+    delete pool[stat];
+    const base = qIdx >= 0 ? STAT_SCALE[stat][qIdx] : (STAT_SCALE[stat][4]);
+    result[stat] = NUMERIC_STATS.has(stat)
+      ? Math.ceil(base * scale) as never
+      : base as never;
+  }
+  return result;
+}
+
+/**
+ * Normalised power score for comparing items across stat types.
+ * Used for ▲/▼ tier indicators and ring replacement logic.
+ */
+export function gearPower(stats: GearStats): number {
+  return (stats.dps ?? 0)
+    + (stats.maxHp ?? 0) * 0.08
+    + (stats.clickBonus ?? 0) * 0.5
+    + (stats.defense ?? 0) * 120
+    + (stats.critChance ?? 0) * 150
+    + (stats.goldBonus ?? 0) * 80
+    + (stats.lifesteal ?? 0) * 180
+    + (stats.haste ?? 0) * 100
+    + (stats.xpBonus ?? 0) * 60;
+}
+
 /** Serialized, plain-object form of a {@link GearItem}. */
 export interface GearItemDict {
   slot: Slot;
@@ -162,6 +259,8 @@ export interface GearItemDict {
   quality: string;
   item_type: string;
   adjective: string;
+  stats: GearStats;
+  /** Retained for backward-compat when reading old saves that have no stats field. */
   damage: number;
   cost: number;
   sell_value: number;
@@ -178,8 +277,8 @@ export class GearItem {
   readonly quality: string;
   /** Flavor adjective in the item name. */
   readonly adjective: string;
-  /** Scaled DPS contribution when equipped. */
-  readonly damage: number;
+  /** All stat bonuses this item grants when equipped. */
+  readonly stats: GearStats;
   /** Gold cost to buy from a shop (currently unused in UI but tracked). */
   readonly cost: number;
   /** Gold received when selling. */
@@ -187,16 +286,37 @@ export class GearItem {
   /** Dungeon floor at which this item dropped, used for damage scaling. */
   readonly dungeonLevel: number;
 
-  constructor(slot: Slot, itemType: string, quality: string, adjective: string, dungeonLevel = 1) {
-    const scale = gearLevelScale(dungeonLevel);
+  /**
+   * Creates a GearItem with explicit stats.
+   * When the 5th argument is a number it is treated as dungeonLevel (backward-compat)
+   * and stats are auto-computed as { dps: scaledDamage }.
+   */
+  constructor(
+    slot: Slot,
+    itemType: string,
+    quality: string,
+    adjective: string,
+    statsOrLevel: GearStats | number = 1,
+    dungeonLevel?: number,
+  ) {
+    const isNum = typeof statsOrLevel === "number";
+    const level = isNum ? (statsOrLevel as number) : (dungeonLevel ?? 1);
+    const scale = gearLevelScale(level);
     this.slot = slot;
     this.itemType = itemType;
     this.quality = quality;
     this.adjective = adjective;
-    this.dungeonLevel = dungeonLevel;
-    this.damage = Math.ceil(DAMAGE_BY_QUALITY[quality] * scale);
+    this.dungeonLevel = level;
+    this.stats = isNum
+      ? { dps: Math.ceil(DAMAGE_BY_QUALITY[quality] * scale) }
+      : (statsOrLevel as GearStats);
     this.cost = Math.ceil(COST_BY_QUALITY[quality] * scale);
     this.sellValue = Math.max(1, Math.floor(this.cost / 3));
+  }
+
+  /** DPS contribution; equals stats.dps for backward compatibility with code that reads .damage. */
+  get damage(): number {
+    return Math.round((this.stats.dps ?? 0) * 100) / 100;
   }
 
   /** Returns the display name in "quality itemType of adjective" format. */
@@ -213,6 +333,7 @@ export class GearItem {
       quality: this.quality,
       item_type: this.itemType,
       adjective: this.adjective,
+      stats: this.stats,
       damage: this.damage,
       cost: this.cost,
       sell_value: this.sellValue,
@@ -220,9 +341,10 @@ export class GearItem {
     };
   }
 
-  /** Reconstructs a GearItem from its serialized form. */
-  static fromDict(d: GearItemDict): GearItem {
-    return new GearItem(d.slot, d.item_type, d.quality, d.adjective, d.dungeon_level ?? 1);
+  /** Reconstructs a GearItem from its serialized form, migrating old saves that have damage but no stats. */
+  static fromDict(d: GearItemDict & { damage?: number; stats?: GearStats }): GearItem {
+    const stats: GearStats = d.stats ?? (d.damage !== undefined ? { dps: d.damage } : {});
+    return new GearItem(d.slot, d.item_type, d.quality, d.adjective, stats, d.dungeon_level ?? 1);
   }
 }
 
@@ -251,7 +373,8 @@ export function getItem(slot?: Slot, dungeonLevel = 1): GearItem {
   const itemType = pick(SLOT_ITEM_TYPES[effectiveSlot]);
   const quality = weightedPick(QUAL, qualityWeights(dungeonLevel));
   const adjective = pick(ADJ);
-  return new GearItem(effectiveSlot, itemType, quality, adjective, dungeonLevel);
+  const stats = rollStats(effectiveSlot, quality, dungeonLevel);
+  return new GearItem(effectiveSlot, itemType, quality, adjective, stats, dungeonLevel);
 }
 
 /** Convenience wrapper — generates a random main-hand weapon. */

@@ -1,5 +1,5 @@
 import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, GUILD_HALL_COSTS, SKILL_DEFS } from "./engine.js";
-import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES } from "./gear.js";
+import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, type GearStats } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
 import { parseAuthHash, getStoredToken, storeToken, clearToken, getLoginUrl, cloudLoad, cloudSave, getOrCreateSessionId } from "./cloud.js";
@@ -280,7 +280,7 @@ function renderParty(state: GameStateDict): void {
             return `<div class="gear-row filled" data-slot="${slot}">
               <span class="gear-icon">${SLOT_ICONS[slot]}</span>
               <span class="gear-name ${qc}">${item.name}</span>
-              <span class="gear-bonus ${qc}">+${item.damage}</span>
+              <span class="gear-bonus ${qc}">${formatStats(item.stats ?? { dps: item.damage })}</span>
             </div>`;
           }
           return `<div class="gear-row empty" data-slot="${slot}">
@@ -387,7 +387,7 @@ function renderLoot(state: GameStateDict): void {
     <span class="loot-name ${qc}">${item.name}</span>
   </div>
   <div class="loot-actions">
-    <span class="loot-dmg ${triCls || qc}">${tri}+${item.damage}</span>
+    <span class="loot-dmg ${triCls || qc}">${tri}${formatStats(item.stats ?? { dps: item.damage })}</span>
     <button class="equip-btn" data-action="equip" data-idx="${i}">Equip</button>
     <button class="sell-btn"  data-action="sell"  data-idx="${i}">${item.sell_value}g</button>
   </div>
@@ -698,20 +698,35 @@ function appendLog(msg: string): void {
   );
 }
 
+function formatStats(stats: GearStats): string {
+  const parts: string[] = [];
+  if (stats.dps)        parts.push(`+${stats.dps.toFixed(1)} DPS`);
+  if (stats.maxHp)      parts.push(`+${stats.maxHp} HP`);
+  if (stats.clickBonus) parts.push(`+${stats.clickBonus.toFixed(1)} Click`);
+  if (stats.defense)    parts.push(`+${(stats.defense * 100).toFixed(0)}% Def`);
+  if (stats.critChance) parts.push(`+${(stats.critChance * 100).toFixed(0)}% Crit`);
+  if (stats.goldBonus)  parts.push(`+${(stats.goldBonus * 100).toFixed(0)}% Gold`);
+  if (stats.lifesteal)  parts.push(`+${(stats.lifesteal * 100).toFixed(0)}% Life`);
+  if (stats.haste)      parts.push(`+${(stats.haste * 100).toFixed(0)}% Haste`);
+  if (stats.xpBonus)    parts.push(`+${(stats.xpBonus * 100).toFixed(0)}% XP`);
+  return parts.join("  ") || "+0";
+}
+
 // ▲ green: beats every party member's equip in this slot
 // ▼ red:   loses to the worst equipped item and nobody has an empty slot
 function lootTier(
   item: GameStateDict["loot_pool"][number],
   party: GameStateDict["party"],
 ): [string, string] {
-  const damages = party.map((c) => {
+  const itemPower = gearPower(item.stats ?? { dps: item.damage });
+  const powers = party.map((c) => {
     const eq = c.equipment[item.slot as keyof typeof c.equipment];
-    return eq ? eq.damage : 0;
+    return eq ? gearPower(eq.stats ?? { dps: eq.damage }) : 0;
   });
-  const max = Math.max(...damages);
-  const min = Math.min(...damages);
-  if (item.damage > max) return ["▲", "ind-up"];
-  if (min > 0 && item.damage < min) return ["▼", "ind-down"];
+  const max = Math.max(...powers);
+  const min = Math.min(...powers);
+  if (itemPower > max) return ["▲", "ind-up"];
+  if (min > 0 && itemPower < min) return ["▼", "ind-down"];
   return ["", ""];
 }
 

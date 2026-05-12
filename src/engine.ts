@@ -1,6 +1,6 @@
 import { Character } from "./character.js";
 import { Party } from "./party.js";
-import { GearItem, getItem, QUAL, autoSellThreshold, type GearItemDict } from "./gear.js";
+import { GearItem, getItem, gearPower, QUAL, autoSellThreshold, type GearItemDict } from "./gear.js";
 import { generateEnemy, generateBoss, type Enemy } from "./dungeon.js";
 
 /** Base number of kills required to reach the boss on floor 1. */
@@ -251,18 +251,32 @@ export class GameState {
     const battleCryMult = (this.activeEffects["skill_battle_cry"] ?? 0) > now ? 2.0 : 1.0;
     const arcaneSurgeMult = (this.activeEffects["skill_arcane_surge"] ?? 0) > now ? 3.0 : 1.0;
 
-    const totalDps = this.party.team.reduce((s, c) => {
-      if (!c.isAlive()) return s;
-      if (c.inventory.equippedItems().length === 0) return s;
+    let baseDps = 0;
+    const partyHaste = this.party.team.reduce((s, c) => c.isAlive() ? s + c.haste : s, 0);
+    for (const c of this.party.team) {
+      if (!c.isAlive()) continue;
+      if (c.inventory.equippedItems().length === 0) continue;
       let dps = c.dps;
       if (c.abilities.includes("bloodlust") && c.health <= c.maxHealth * 0.5) dps *= BLOODLUST_MULTIPLIER;
-      return s + dps;
-    }, 0);
+      if (c.critChance > 0 && Math.random() < c.critChance) dps *= 2;
+      baseDps += dps;
+    }
+    const totalDps = baseDps * (1 + partyHaste);
     const dmgMult = (hasExpose ? EXPOSE_WEAKNESS_MULT : 1.0) * (hasMark ? 1.20 : 1.0) * battleCryMult * arcaneSurgeMult * (divineWrathActive ? 1.15 : 1.0);
-    this.enemy.hp -= totalDps * dmgMult * dt;
+    const damageDealt = totalDps * dmgMult * dt;
+    this.enemy.hp -= damageDealt;
     if (this.enemy.hp <= 0) {
       this.onEnemyDeath();
       return this.respond();
+    }
+
+    // Lifesteal: heal the first injured alive character proportionally to damage dealt
+    const partyLifesteal = this.party.team.reduce((s, c) => c.isAlive() ? s + c.lifesteal : s, 0);
+    if (damageDealt > 0 && partyLifesteal > 0) {
+      const healTarget = this.party.team.find(c => c.isAlive() && c.health < c.maxHealth);
+      if (healTarget) {
+        healTarget.health = Math.min(healTarget.maxHealth, healTarget.health + damageDealt * partyLifesteal);
+      }
     }
 
     const living = this.party.team.filter(c => c.isAlive());
@@ -317,7 +331,7 @@ export class GameState {
     for (const item of this.lootPool) {
       const target = this.bestRecipient(item);
       const current = this.slotToCompare(target, item);
-      const netGain = item.damage - (current ? current.damage : 0);
+      const netGain = gearPower(item.stats) - (current ? gearPower(current.stats) : 0);
       if (netGain > 0) {
         const old = target.equipItem(item);
         this.addLog(`${target.name} equips ${item.getName()}!`);
@@ -677,14 +691,15 @@ export class GameState {
   bestRecipient(item: GearItem): Character {
     const lead = this.party.team[0];
     const leadCurrent = this.slotToCompare(lead, item);
+    const itemPower = gearPower(item.stats);
     // Lead has first claim: give item to them if they have an empty slot or it beats their gear
-    if (!leadCurrent || item.damage > leadCurrent.damage) return lead;
+    if (!leadCurrent || itemPower > gearPower(leadCurrent.stats)) return lead;
     // Lead doesn't benefit — pick the companion with the most to gain
     return this.party.team.slice(1).reduce((best, c) => {
       const bestCurrent = this.slotToCompare(best, item);
       const cCurrent = this.slotToCompare(c, item);
-      const bestGain = item.damage - (bestCurrent ? bestCurrent.damage : 0);
-      const cGain = item.damage - (cCurrent ? cCurrent.damage : 0);
+      const bestGain = itemPower - (bestCurrent ? gearPower(bestCurrent.stats) : 0);
+      const cGain = itemPower - (cCurrent ? gearPower(cCurrent.stats) : 0);
       if (cGain > bestGain) return c;
       if (cGain === bestGain && c.dps > best.dps) return c;
       return best;
@@ -721,8 +736,9 @@ export class GameState {
       }
     }
 
+    const partyGoldBonus = this.party.team.reduce((s, c) => s + c.goldBonus, 0);
     if (this.enemy.isBoss) {
-      this.gold += this.enemy.gold_reward;
+      this.gold += this.enemy.gold_reward * (1 + partyGoldBonus);
       if (this.lootPool.length < this.lootMax) {
         const drop = getItem(undefined, this.dungeonLevel);
         this.lootPool.push(drop);
@@ -800,7 +816,7 @@ export class GameState {
     const r1 = c.inventory.slots.ring1;
     const r2 = c.inventory.slots.ring2;
     if (!r1 || !r2) return null; // fills empty ring slot
-    return r1.damage <= r2.damage ? r1 : r2; // weaker ring will be displaced
+    return gearPower(r1.stats) <= gearPower(r2.stats) ? r1 : r2; // weaker ring will be displaced
   }
 
   /** Sells all loot items matching the auto-sell quality list, skipping items that are upgrades. */
@@ -874,7 +890,7 @@ export class GameState {
   private isUpgradeForAnyMember(item: GearItem): boolean {
     return this.party.team.some(c => {
       const equipped = this.slotToCompare(c, item);
-      return !equipped || item.damage > equipped.damage;
+      return !equipped || gearPower(item.stats) > gearPower(equipped.stats);
     });
   }
 

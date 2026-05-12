@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.2";
+export const VERSION = "v2.6.3";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,17 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.3",
+    date: "2026-05-11",
+    changes: [
+      "Multi-stat gear system — items now roll 1–3 stats (DPS, HP, Click, Defense, Crit, Gold, Lifesteal, Haste, XP) based on quality tier and slot type",
+      "4 new character stats: Crit Chance (per-tick double damage), Gold Find (% more gold from bosses), Lifesteal (heal on damage dealt), Haste (DPS rate multiplier)",
+      "Loot display now shows all stat bonuses instead of a single damage number",
+      "Gear comparison (▲/▼) uses normalized power score across all stat types",
+      "Backward-compatible: old saves with single-damage items migrate automatically",
+    ],
+  },
   {
     version: "v2.6.2",
     date: "2026-05-11",

@@ -102,6 +102,10 @@ export interface CharacterDict {
   equipment: InventoryDict;
   abilities: string[];
   damage_reduction: number;
+  crit_chance: number;
+  gold_bonus: number;
+  lifesteal: number;
+  haste: number;
 }
 
 /** A player character or companion with class stats, equipment, and abilities. */
@@ -132,6 +136,14 @@ export class Character {
   abilities: string[] = [];
   /** Fraction of incoming damage negated (0–1). */
   damageReduction = 0;
+  /** Per-tick probability of dealing double damage (0–1). */
+  critChance = 0;
+  /** Additive bonus to gold dropped by enemies (0 = no bonus). */
+  goldBonus = 0;
+  /** Fraction of damage dealt returned as HP (0–1). */
+  lifesteal = 0;
+  /** Additive multiplier on passive DPS tick rate (0 = no bonus). */
+  haste = 0;
   /** Seconds accumulated toward the next Mana Surge burst. */
   surgeTimer = 0;
   /** Party-wide ability effects queued to apply after the current enemy dies. */
@@ -156,12 +168,42 @@ export class Character {
     return this.health > 0;
   }
 
-  /** Equips an item, adjusting DPS, and returns the displaced item (or null). */
+  /** Equips an item, applying all stat deltas, and returns the displaced item (or null). */
   equipItem(item: GearItem): GearItem | null {
     const old = this.inventory.equip(item);
-    if (old) this.dps -= old.damage;
-    this.dps += item.damage;
+    if (old) this.removeStats(old.stats);
+    this.applyStats(item.stats);
     return old;
+  }
+
+  /** Adds all stat bonuses from a GearStats object to this character. */
+  private applyStats(s: import("./gear.js").GearStats): void {
+    this.dps += s.dps ?? 0;
+    const hp = s.maxHp ?? 0;
+    this.maxHealth += hp;
+    this.health = Math.min(this.health + hp, this.maxHealth);
+    this.clickBonus += s.clickBonus ?? 0;
+    this.damageReduction = Math.min(0.95, this.damageReduction + (s.defense ?? 0));
+    this.xpMultiplier += s.xpBonus ?? 0;
+    this.critChance += s.critChance ?? 0;
+    this.goldBonus += s.goldBonus ?? 0;
+    this.lifesteal += s.lifesteal ?? 0;
+    this.haste += s.haste ?? 0;
+  }
+
+  /** Removes all stat bonuses from a GearStats object from this character. */
+  private removeStats(s: import("./gear.js").GearStats): void {
+    this.dps -= s.dps ?? 0;
+    const hp = s.maxHp ?? 0;
+    this.maxHealth -= hp;
+    this.health = Math.min(this.health, this.maxHealth);
+    this.clickBonus -= s.clickBonus ?? 0;
+    this.damageReduction = Math.max(0, this.damageReduction - (s.defense ?? 0));
+    this.xpMultiplier -= s.xpBonus ?? 0;
+    this.critChance -= s.critChance ?? 0;
+    this.goldBonus -= s.goldBonus ?? 0;
+    this.lifesteal -= s.lifesteal ?? 0;
+    this.haste -= s.haste ?? 0;
   }
 
   /** Adds XP scaled by xpMultiplier and triggers level-ups until XP is consumed. */
@@ -222,6 +264,10 @@ export class Character {
       equipment: this.inventory.toDict(),
       abilities: [...this.abilities],
       damage_reduction: this.damageReduction,
+      crit_chance: Math.round(this.critChance * 10000) / 10000,
+      gold_bonus: Math.round(this.goldBonus * 10000) / 10000,
+      lifesteal: Math.round(this.lifesteal * 10000) / 10000,
+      haste: Math.round(this.haste * 10000) / 10000,
     };
   }
 
@@ -237,6 +283,10 @@ export class Character {
     c.maxHealth = d.max_health;
     c.abilities = [...(d.abilities ?? [])];
     c.damageReduction = d.damage_reduction ?? 0;
+    c.critChance = d.crit_chance ?? 0;
+    c.goldBonus = d.gold_bonus ?? 0;
+    c.lifesteal = d.lifesteal ?? 0;
+    c.haste = d.haste ?? 0;
     for (const [slot, item] of Object.entries(d.equipment)) {
       if (item) {
         c.inventory.slots[slot as keyof typeof c.inventory.slots] = GearItem.fromDict(item);
