@@ -812,9 +812,10 @@ function deleteSave(): void {
 
 function updateAuthUI(): void {
   const token = getStoredToken();
-  const signinBtn = document.getElementById("cloud-signin-btn");
+  document.querySelectorAll<HTMLElement>("#cloud-signin-btn").forEach(btn => {
+    btn.hidden = !!token;
+  });
   const signoutRow = document.getElementById("cloud-signout-row");
-  if (signinBtn) signinBtn.hidden = !!token;
   if (signoutRow) signoutRow.hidden = !token;
 }
 
@@ -936,9 +937,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target === $("drop-chart-modal")) $("drop-chart-modal").classList.remove("open");
   });
 
-  // Wire up cloud auth UI
-  document.getElementById("cloud-signin-btn")?.addEventListener("click", () => {
-    window.location.href = getLoginUrl();
+  // Wire up cloud auth UI — two sign-in buttons share the same id (creation overlay + settings)
+  document.querySelectorAll<HTMLElement>("#cloud-signin-btn").forEach(btn => {
+    btn.addEventListener("click", () => { window.location.href = getLoginUrl(); });
   });
   document.getElementById("cloud-signout-btn")?.addEventListener("click", () => {
     clearToken();
