@@ -1169,6 +1169,14 @@ main {
     #guild-hall-panel.guild-locked   { display: none !important; }
     #prestige-panel.prestige-locked  { display: none !important; }
 
+    /* Let panels expand to full height so main's scroll handles the whole shop tab */
+    #upgrades-panel,
+    #prestige-panel,
+    #guild-hall-panel {
+        overflow-y: visible;
+        max-height: none;
+    }
+
     #mobile-tabs {
         display: flex;
         position: fixed;
