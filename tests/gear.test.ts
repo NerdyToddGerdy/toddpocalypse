@@ -155,20 +155,41 @@ describe("qualityWeights", () => {
     }
   });
 
-  it("legendary locked before level 24", () => {
-    expect(qualityWeights(23)[9]).toBe(0);
+  it("legendary is a tiny dream-drop before level 24 (not fully locked)", () => {
+    // floor 23: maxTier=8 (epic), legendary=9 is maxTier+1 → dream weight 1.0
+    expect(qualityWeights(23)[9]).toBe(1.0);
   });
 
-  it("legendary unlocks at level 24", () => {
-    expect(qualityWeights(24)[9]).toBeGreaterThan(0);
+  it("legendary full-odds unlock at level 24 gives it much higher weight", () => {
+    // floor 24: maxTier=9 (legendary), DROP_WEIGHTS[0]=30 >> dream weight 1.0
+    expect(qualityWeights(24)[9]).toBeGreaterThan(qualityWeights(23)[9] * 10);
   });
 
-  it("divine locked before level 44", () => {
-    expect(qualityWeights(43)[14]).toBe(0);
+  it("divine is a tiny dream-drop before level 44 (not fully locked)", () => {
+    // floor 43: maxTier=13 (void), divine=14 is maxTier+1 → dream weight 1.0
+    expect(qualityWeights(43)[14]).toBe(1.0);
   });
 
-  it("divine unlocks at level 44", () => {
-    expect(qualityWeights(44)[14]).toBeGreaterThan(0);
+  it("divine full-odds unlock at level 44 gives it much higher weight", () => {
+    expect(qualityWeights(44)[14]).toBeGreaterThan(qualityWeights(43)[14] * 10);
+  });
+
+  it("dream-drop tier is capped: no weight above divine", () => {
+    // divine is the last tier; nothing above it should get non-zero weight
+    const w = qualityWeights(44);
+    expect(w).toHaveLength(QUAL.length);
+    // All weights at or below divine should be accounted for; array shouldn't grow
+    expect(w.every((v, i) => i < QUAL.length)).toBe(true);
+  });
+
+  it("two-tiers-above gets the smaller dream weight", () => {
+    // floor 1: maxTier=3 (poor), fine=5 is maxTier+2 → dream weight 0.5
+    expect(qualityWeights(1)[5]).toBe(0.5);
+  });
+
+  it("three+ tiers above max still get weight 0", () => {
+    // floor 1: maxTier=3, superior=6 is maxTier+3 → should be 0
+    expect(qualityWeights(1)[6]).toBe(0);
   });
 });
 

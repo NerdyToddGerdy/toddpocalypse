@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.4";
+export const VERSION = "v2.6.5";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.5",
+    date: "2026-05-11",
+    changes: [
+      "Dream drops — the two quality tiers above the current floor maximum can now drop at ~1% and ~0.5% chance respectively",
+    ],
+  },
   {
     version: "v2.6.4",
     date: "2026-05-11",

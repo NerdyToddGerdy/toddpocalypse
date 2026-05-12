@@ -111,10 +111,16 @@ export const COST_BY_QUALITY: Record<string, number> = {
   divine: 7_200,
 };
 
-/** Returns per-tier drop weights for the given dungeon floor; tiers above the current max get weight 0. */
+/** Dream-drop weights for the one and two tiers above the current max. */
+const DREAM_WEIGHTS = [1.0, 0.5] as const;
+
+/** Returns per-tier drop weights for the given dungeon floor.
+ *  The two tiers above the current max have a small dream-drop chance (~1% / ~0.5%). */
 export function qualityWeights(dungeonLevel: number): number[] {
   const maxTier = Math.min(3 + Math.floor(dungeonLevel / 4), QUAL.length - 1);
   return QUAL.map((_, i) => {
+    if (i === maxTier + 1) return DREAM_WEIGHTS[0];
+    if (i === maxTier + 2) return DREAM_WEIGHTS[1];
     if (i > maxTier) return 0;
     return DROP_WEIGHTS[maxTier - i];
   });
