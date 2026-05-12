@@ -1,3 +1,4 @@
+/** Title adjectives for boss enemies. */
 const BOSS_TITLES = [
   "Abyssal",
   "Dread",
@@ -11,6 +12,7 @@ const BOSS_TITLES = [
   "Ancient",
 ];
 
+/** Adjectives prepended to regular enemy names. */
 const ENEMY_ADJECTIVES = [
   "Frightening",
   "Hideous",
@@ -29,6 +31,7 @@ const ENEMY_ADJECTIVES = [
   "Venomous",
 ];
 
+/** Nouns used as enemy creature type names. */
 const ENEMY_NOUNS = [
   "Goblin",
   "Troll",
@@ -47,25 +50,37 @@ const ENEMY_NOUNS = [
   "Witch",
 ];
 
+/** Live state of an enemy currently being fought. */
 export interface Enemy {
+  /** Display name shown in the enemy panel. */
   name: string;
+  /** Dungeon floor level used to derive HP and attack. */
   level: number;
+  /** Maximum HP for this spawn. */
   max_hp: number;
+  /** Current HP; reaches 0 on death. */
   hp: number;
+  /** XP awarded to each party member on defeat. */
   xp_reward: number;
+  /** Gold awarded to the party on defeat. */
   gold_reward: number;
+  /** Damage per second dealt to a random living party member. */
   attack_dps: number;
+  /** True for floor bosses; false for regular enemies. */
   isBoss: boolean;
 }
 
+/** Returns a uniformly random element from an array. */
 function pick<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+/** Returns a random integer in [min, max] inclusive. */
 function randInt(min: number, max: number): number {
   return min + Math.floor(Math.random() * (max - min + 1));
 }
 
+/** Generates a scaled regular enemy for the given dungeon floor. */
 export function generateEnemy(dungeonLevel: number): Enemy {
   const name = `${pick(ENEMY_ADJECTIVES)} ${pick(ENEMY_NOUNS)}`;
   const hp = Math.floor(10 * Math.pow(1.3, dungeonLevel) + randInt(0, dungeonLevel * 2));
@@ -84,6 +99,7 @@ export function generateEnemy(dungeonLevel: number): Enemy {
   };
 }
 
+/** Generates a scaled floor boss with higher HP and attack than regular enemies. */
 export function generateBoss(dungeonLevel: number): Enemy {
   const name = `The ${pick(BOSS_TITLES)} ${pick(ENEMY_NOUNS)} Lord`;
   const hp = Math.floor(100 * Math.pow(1.3, dungeonLevel));

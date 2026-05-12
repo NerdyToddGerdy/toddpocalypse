@@ -1,20 +1,28 @@
 import { Inventory, type InventoryDict } from "./inventory.js";
 import { GearItem } from "./gear.js";
 
+/** Maps job-number codes (used by legacy Python save format) to class name strings. */
 const SWITCHER: Record<number, string> = {
   1: "fighter",
   2: "rogue",
   3: "mage",
 };
 
+/** Display and unlock metadata for a single class ability. */
 export interface AbilityMeta {
+  /** Character level at which this ability unlocks. */
   level: number;
+  /** Internal identifier used to check if a character has the ability. */
   id: string;
+  /** Short display name shown on the ability badge. */
   name: string;
+  /** One-line description shown in the tooltip. */
   desc: string;
+  /** Emoji icon rendered on the badge. */
   icon: string;
 }
 
+/** Ability definitions for each class, in unlock-level order. */
 export const CLASS_ABILITIES: Record<string, AbilityMeta[]> = {
   fighter: [
     { level: 5,  id: "iron_skin",       name: "Iron Skin",       desc: "20% damage reduction",          icon: "🛡" },
@@ -43,6 +51,7 @@ export const CLASS_ABILITIES: Record<string, AbilityMeta[]> = {
   ],
 };
 
+/** Base idle DPS per class before any level-ups or gear. */
 const BASE_DPS: Record<string, number> = {
   fighter: 2.0,
   rogue: 1.5,
@@ -51,12 +60,17 @@ const BASE_DPS: Record<string, number> = {
   ranger: 1.5,
 };
 
+/** Per-level-up stat bonuses for each class. */
 interface LevelUpBonuses {
+  /** Multiplicative DPS scaling applied each level. */
   dpsMult: number;
+  /** Flat click damage added each level. */
   clickBonus: number;
+  /** XP multiplier added each level. */
   xpMultiplier: number;
 }
 
+/** Level-up bonus definitions per class. */
 const LEVEL_UP: Record<string, LevelUpBonuses> = {
   fighter: { dpsMult: 1.2,  clickBonus: 0.0, xpMultiplier: 0.0 },
   rogue:   { dpsMult: 1.15, clickBonus: 0.3, xpMultiplier: 0.0 },
@@ -65,12 +79,15 @@ const LEVEL_UP: Record<string, LevelUpBonuses> = {
   ranger:  { dpsMult: 1.18, clickBonus: 0.2, xpMultiplier: 0.0 },
 };
 
+/** HP gained per character level-up. */
 export const HP_PER_LEVEL = 10;
 
+/** Maps a legacy job number (1–3) to a class name string, or null if unknown. */
 export function switchClass(jobNumber: number): string | null {
   return SWITCHER[jobNumber] ?? null;
 }
 
+/** Serialized, plain-object form of a {@link Character}. */
 export interface CharacterDict {
   name: string;
   character_class: string;
@@ -87,21 +104,37 @@ export interface CharacterDict {
   damage_reduction: number;
 }
 
+/** A player character or companion with class stats, equipment, and abilities. */
 export class Character {
+  /** Display name shown in the party card and combat log. */
   name: string;
+  /** Class identifier (e.g. "fighter", "mage"). */
   characterClass: string;
+  /** Current character level. */
   level: number;
+  /** Equipped gear slots. */
   inventory: Inventory;
+  /** Accumulated XP toward the next level. */
   xp: number;
+  /** XP required to reach the next level. */
   xpToNext: number;
+  /** Current passive DPS output including gear and abilities. */
   dps: number;
+  /** Multiplier applied to all XP gained. */
   xpMultiplier: number;
+  /** Flat damage added per manual click. */
   clickBonus: number;
+  /** Maximum HP (increases with level and hp upgrades). */
   maxHealth: number;
+  /** Current HP; 0 means dead until party respawn. */
   health: number;
+  /** Ids of unlocked ability effects. */
   abilities: string[] = [];
+  /** Fraction of incoming damage negated (0–1). */
   damageReduction = 0;
+  /** Seconds accumulated toward the next Mana Surge burst. */
   surgeTimer = 0;
+  /** Party-wide ability effects queued to apply after the current enemy dies. */
   pendingPartyAbilities: string[] = [];
 
   constructor(name: string, characterClass: string, level = 1) {
@@ -118,10 +151,12 @@ export class Character {
     this.health = this.maxHealth;
   }
 
+  /** Returns true if this character has HP remaining. */
   isAlive(): boolean {
     return this.health > 0;
   }
 
+  /** Equips an item, adjusting DPS, and returns the displaced item (or null). */
   equipItem(item: GearItem): GearItem | null {
     const old = this.inventory.equip(item);
     if (old) this.dps -= old.damage;
@@ -129,6 +164,7 @@ export class Character {
     return old;
   }
 
+  /** Adds XP scaled by xpMultiplier and triggers level-ups until XP is consumed. */
   gainXp(amount: number): void {
     this.xp += Math.floor(amount * this.xpMultiplier);
     while (this.xp >= this.xpToNext) {
@@ -136,6 +172,7 @@ export class Character {
     }
   }
 
+  /** Increments level, applies class bonuses, and unlocks any ability at the new level. */
   levelUp(): void {
     this.level += 1;
     this.xp -= this.xpToNext;
@@ -154,6 +191,7 @@ export class Character {
     }
   }
 
+  /** Applies the immediate stat effect of a newly unlocked ability; party effects are deferred. */
   private applyAbilityEffect(id: string): void {
     if (id === "iron_skin") {
       this.damageReduction = 0.2;
@@ -168,6 +206,7 @@ export class Character {
     }
   }
 
+  /** Serializes to a plain object safe for JSON. */
   toDict(): CharacterDict {
     return {
       name: this.name,
@@ -186,6 +225,7 @@ export class Character {
     };
   }
 
+  /** Reconstructs a Character from its serialized form. */
   static fromDict(d: CharacterDict): Character {
     const c = new Character(d.name, d.character_class, d.level);
     c.dps = d.dps;

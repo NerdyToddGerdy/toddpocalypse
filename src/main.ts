@@ -112,6 +112,13 @@ function render(state: GameStateDict): void {
   $("stat-kills").textContent = String(state.kills);
   $("stat-deaths").textContent = String(state.deaths);
 
+  const aliveMembers = state.party.filter(c => c.health > 0);
+  const totalHp = aliveMembers.reduce((s, c) => s + Math.ceil(c.health), 0);
+  const totalMaxHp = state.party.reduce((s, c) => s + c.max_health, 0);
+  const totalDps = aliveMembers.reduce((s, c) => s + c.dps, 0);
+  $("stat-party-hp").textContent = `${totalHp}/${totalMaxHp}`;
+  $("stat-party-dps").textContent = totalDps < 10 ? totalDps.toFixed(1) : String(Math.round(totalDps));
+
   const idleEl = $("stat-idle-gold");
   if (state.idle_gold_rate > 0) {
     $("stat-idle-rate").textContent = state.idle_gold_rate.toFixed(1);
@@ -934,7 +941,9 @@ document.addEventListener("DOMContentLoaded", () => {
     applySlotHighlight();
   });
 
-  $("stats-btn").addEventListener("click", () => { $("stats-modal").classList.add("open"); });
+  const openStats = () => { $("stats-modal").classList.add("open"); };
+  $("stats-btn").addEventListener("click", openStats);
+  $("mobile-stats-btn").addEventListener("click", openStats);
   $("stats-close").addEventListener("click", () => { $("stats-modal").classList.remove("open"); });
   $("stats-modal").addEventListener("click", (e) => {
     if (e.target === $("stats-modal")) $("stats-modal").classList.remove("open");
@@ -952,9 +961,9 @@ document.addEventListener("DOMContentLoaded", () => {
     </div>
   `).join("");
 
-  $("version-btn").addEventListener("click", () => {
-    $("changelog-modal").classList.add("open");
-  });
+  const openChangelog = () => { $("changelog-modal").classList.add("open"); };
+  $("version-btn").addEventListener("click", openChangelog);
+  $("mobile-changelog-btn").addEventListener("click", openChangelog);
   $("changelog-close").addEventListener("click", () => {
     $("changelog-modal").classList.remove("open");
   });

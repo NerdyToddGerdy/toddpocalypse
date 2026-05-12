@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.1";
+export const VERSION = "v2.6.2";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,16 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.2",
+    date: "2026-05-11",
+    changes: [
+      "Mobile: party HP and DPS now shown in the header stats bar",
+      "Mobile: Lifetime Stats and Changelog accessible from Settings tab",
+      "Mobile: enemy panel compacted — smaller name, HP text overlaid on bar, floor progress in 1-2 rows",
+      "Mobile: unified scroll for shop tab (upgrades + prestige scroll as one page)",
+    ],
+  },
   {
     version: "v2.6.1",
     date: "2026-05-11",

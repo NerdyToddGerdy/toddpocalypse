@@ -54,6 +54,8 @@
     <div>Best: <span id="stat-best">1</span></div>
     <div>Kills: <span id="stat-kills">0</span></div>
     <div>Deaths: <span id="stat-deaths">0</span></div>
+    <div id="stat-party-hp-wrap">♥ <span id="stat-party-hp">0/0</span></div>
+    <div id="stat-party-dps-wrap">⚔ <span id="stat-party-dps">0</span>/s</div>
     <button id="prestige-btn" data-action="prestige" disabled>★ Prestige</button>
     <button id="venture-btn" data-action="venture" disabled>⚔ Venture</button>
   </div>
@@ -71,8 +73,8 @@
       </div>
       <div class="hp-bar-wrap">
         <div id="enemy-hp-bar" style="width:100%"></div>
+        <div id="enemy-hp-text"></div>
       </div>
-      <div id="enemy-hp-text"></div>
       <div id="floor-progress">
         <span id="monsters-left-text"></span>
         <div id="floor-pip-row"></div>
@@ -149,6 +151,16 @@
     <section id="settings-panel">
       <h2>Settings</h2>
       <div id="settings-content">
+        <div class="settings-row">
+          <div class="settings-label">Lifetime Stats</div>
+          <div class="settings-desc">View your total kills, deaths, and other cumulative records.</div>
+          <button id="mobile-stats-btn" class="secondary-btn">View Stats</button>
+        </div>
+        <div class="settings-row">
+          <div class="settings-label">Changelog</div>
+          <div class="settings-desc">See what's new in this version.</div>
+          <button id="mobile-changelog-btn" class="secondary-btn">View Changelog</button>
+        </div>
         <div class="settings-row">
           <div class="settings-label">Cloud Save</div>
           <div class="settings-desc">Sign in to sync your save across devices.</div>

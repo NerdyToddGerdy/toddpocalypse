@@ -3,16 +3,27 @@ import { Party } from "./party.js";
 import { GearItem, getItem, QUAL, autoSellThreshold, type GearItemDict } from "./gear.js";
 import { generateEnemy, generateBoss, type Enemy } from "./dungeon.js";
 
+/** Base number of kills required to reach the boss on floor 1. */
 export const KILLS_PER_LEVEL = 5;
 
+/** Returns the number of regular kills needed to clear a given floor before the boss spawns. */
 export function killsForFloor(dungeonLevel: number): number {
   return KILLS_PER_LEVEL + Math.floor(dungeonLevel / 5) * 2;
 }
+
+/** Multiplier applied to total party DPS when computing a manual click's burst damage. */
 export const CLICK_DAMAGE_MULTIPLIER = 2.0;
+
+/** Maximum number of messages retained in the combat log. */
 export const MAX_LOG = 6;
+
+/** Default maximum number of items the loot pool can hold (before Guild Hall expansion). */
 export const LOOT_MAX = 8;
+
+/** Probability that a regular enemy kill produces a loot drop. */
 export const DROP_CHANCE = 0.45;
 
+/** Base gold cost for the first level of each upgrade type. */
 export const UPGRADE_BASES: Record<string, number> = {
   dps: 50,
   xp: 75,
@@ -20,25 +31,47 @@ export const UPGRADE_BASES: Record<string, number> = {
   hp: 60,
 };
 
+/** Stat delta applied per upgrade level for DPS, XP-rate, and click-damage upgrades. */
 export const UPGRADE_EFFECTS: Record<string, number> = {
   dps: 0.5,
   xp: 0.1,
   click: 0.5,
 };
 
+/** HP added per HP-upgrade level. */
 export const HP_UPGRADE_EFFECT = 25;
 
+/** DPS multiplier applied to a Fighter or Paladin while their HP is at or below 50%. */
 export const BLOODLUST_MULTIPLIER = 1.6;
+
+/** Incoming damage multiplier applied to enemies while Expose Weakness / Hunter's Mark is active. */
 export const EXPOSE_WEAKNESS_MULT = 1.25;
+
+/** Seconds between each Mana Surge auto-burst. */
 export const MANA_SURGE_INTERVAL = 20;
+
+/** DPS multiplier applied during a Mana Surge burst. */
 export const MANA_SURGE_MULTIPLIER = 5;
+
+/** Probability that a click triggers Lucky Strike. */
 export const LUCKY_STRIKE_CHANCE = 0.25;
+
+/** Click damage multiplier when Lucky Strike procs. */
 export const LUCKY_STRIKE_MULTIPLIER = 3;
+
+/** Click damage multiplier granted by the Empower ability. */
 export const EMPOWER_MULTIPLIER = 2;
 
+/** Minimum dungeon floor (highest_level) required to trigger a prestige. */
 export const PRESTIGE_UNLOCK_LEVEL = 20;
+
+/** Minimum dungeon floor (highest_level) required to venture to the next dungeon. */
 export const VENTURE_UNLOCK_LEVEL = 40;
-export const IDLE_GOLD_RATE = 0.5; // gold per DPS-point per second from idle companions
+
+/** Gold earned per idle companion DPS-point per real second after venturing. */
+export const IDLE_GOLD_RATE = 0.5;
+
+/** Prestige point cost for each prestige shop item. */
 export const PRESTIGE_SHOP_COSTS: Record<string, number> = {
   auto_seller: 1,
   auto_equip: 2,
@@ -50,6 +83,8 @@ export const PRESTIGE_SHOP_COSTS: Record<string, number> = {
   starting_gold: 1,
   xp_bonus: 1,
 };
+
+/** Gold cost for each stack of every Guild Hall upgrade. */
 export const GUILD_HALL_COSTS: Record<string, number[]> = {
   companion_hall:      [5_000, 15_000],
   expanded_armory:     [1_000, 2_000, 3_000],
@@ -59,17 +94,27 @@ export const GUILD_HALL_COSTS: Record<string, number[]> = {
   skill_shadow_strike: [2_500],
   skill_arcane_surge:  [2_500],
 };
+
+/** Cooldown and duration (ms) and lead-class requirement for each active combat skill. */
 export const SKILL_DEFS: Record<string, { cooldownMs: number; durationMs: number; class: string }> = {
   skill_battle_cry:    { cooldownMs: 120_000, durationMs: 15_000, class: "fighter" },
   skill_shadow_strike: { cooldownMs: 45_000,  durationMs: 8_000,  class: "rogue" },
   skill_arcane_surge:  { cooldownMs: 90_000,  durationMs: 15_000, class: "mage" },
 };
+
+/** Gold granted per starting_gold prestige upgrade level. */
 export const STARTING_GOLD_PER_LEVEL = 250;
+
+/** XP multiplier bonus added per xp_bonus prestige upgrade level. */
 export const XP_BONUS_PER_LEVEL = 0.10;
 
+/** The four stat categories that can be upgraded per character. */
 type UpgradeType = "dps" | "xp" | "click" | "hp";
+
+/** Current level for each upgrade type on a single character. */
 type UpgradeLevels = Record<UpgradeType, number>;
 
+/** Full serialized snapshot of a {@link GameState}, sent to the renderer after every action. */
 export interface GameStateDict {
   dungeon_level: number;
   gold: number;
@@ -105,34 +150,62 @@ export interface GameStateDict {
   loot_max: number;
 }
 
+/** Central game loop: owns all mutable state and exposes action methods that return serialized JSON. */
 export class GameState {
+  /** The active party for the current dungeon. */
   party: Party;
+  /** Current dungeon floor (resets on prestige/venture). */
   dungeonLevel = 1;
+  /** Current gold balance. */
   gold = 0;
+  /** Enemy kills this prestige run. */
   kills = 0;
+  /** Party deaths this prestige run. */
   deaths = 0;
+  /** Deepest floor reached this prestige run. */
   highestLevel = 1;
+  /** Recent combat log messages (capped at MAX_LOG). */
   log: string[] = [];
+  /** Items currently in the loot chest awaiting equip or sell. */
   lootPool: GearItem[] = [];
+  /** The enemy currently being fought. */
   enemy: Enemy;
+  /** Upgrade levels keyed by character name then upgrade type. */
   upgrades: Record<string, UpgradeLevels> = {};
+  /** Prestige points available to spend in the Prestige Shop. */
   prestigePoints = 0;
+  /** Total kills across all prestige runs (never resets). */
   lifetimeKills = 0;
+  /** Total deaths across all prestige runs (never resets). */
   lifetimeDeaths = 0;
+  /** Highest floor ever reached across all prestige runs. */
   lifetimeBestLevel = 1;
+  /** Kill count per enemy name, used in the Lifetime Stats breakdown. */
   lifetimeEnemyKills: Record<string, number> = {};
+  /** Number of prestiges performed (never resets). */
   totalPrestiges = 0;
+  /** Purchased prestige upgrade stacks, keyed by upgrade type. */
   prestigeUpgrades: Record<string, number> = {};
+  /** Class chosen for each companion slot, persisted across prestiges. */
   prestigePartyClasses: Record<string, string> = {};
+  /** Quality tier names currently enabled for auto-sell. */
   autoSellQualities: string[] = [];
+  /** Floor to respawn on after a party wipe (set every 10 floors). */
   checkpointLevel = 1;
+  /** Regular kills on the current floor (resets when the boss spawns). */
   floorKills = 0;
+  /** Number of times the player has ventured (0 = first dungeon). */
   dungeonIndex = 0;
+  /** Gold per second passively earned from idle companions in previous dungeons. */
   idleGoldRate = 0;
+  /** Purchased Guild Hall upgrade stacks, keyed by upgrade id. */
   guildUpgrades: Record<string, number> = {};
+  /** Unix-ms timestamp of the last activation per skill id (for cooldown tracking). */
   skillCooldowns: Record<string, number> = {};
+  /** Unix-ms expiry timestamp per active skill effect; entries are pruned on tick. */
   activeEffects: Record<string, number> = {};
 
+  /** Current loot chest capacity, expanding with Expanded Armory guild upgrades. */
   get lootMax(): number { return 8 + 2 * (this.guildUpgrades["expanded_armory"] ?? 0); }
 
   constructor(name = "Hero", characterClass = "fighter") {
@@ -144,6 +217,11 @@ export class GameState {
     }
   }
 
+  /**
+   * Advances the game simulation by `dt` seconds.
+   * Applies idle gold, mana surges, passive DPS, enemy attacks, and death checks.
+   * Returns serialized JSON state.
+   */
   tick(dt: number): string {
     if (this.idleGoldRate > 0) this.gold += this.idleGoldRate * dt;
     // Prune expired active effects
@@ -199,6 +277,7 @@ export class GameState {
     return this.respond();
   }
 
+  /** Deals a burst of manual click damage, with crit and skill-effect modifiers applied. Returns serialized JSON. */
   click(): string {
     const totalDps = this.party.team.reduce((s, c) => c.isAlive() ? s + c.dps : s, 0);
     const clickBonus = this.party.team.reduce((s, c) => c.isAlive() ? s + c.clickBonus : s, 0);
@@ -222,6 +301,7 @@ export class GameState {
     return this.respond();
   }
 
+  /** Equips the loot item at the given pool index, routing it to the best party recipient. Returns serialized JSON. */
   equipLoot(idx: number): string {
     if (idx < 0 || idx >= this.lootPool.length) return this.respond();
     const item = this.lootPool.splice(idx, 1)[0];
@@ -232,6 +312,7 @@ export class GameState {
     return this.respond();
   }
 
+  /** Equips every item in the loot pool that is an upgrade; sells the rest. Returns serialized JSON. */
   equipAll(): string {
     for (const item of this.lootPool) {
       const target = this.bestRecipient(item);
@@ -250,6 +331,7 @@ export class GameState {
     return this.respond();
   }
 
+  /** Sells the loot item at the given pool index for its sell value. Returns serialized JSON. */
   sellLoot(idx: number): string {
     if (idx < 0 || idx >= this.lootPool.length) return this.respond();
     const item = this.lootPool.splice(idx, 1)[0];
@@ -258,6 +340,7 @@ export class GameState {
     return this.respond();
   }
 
+  /** Purchases one level of the specified upgrade for a character, deducting gold. Returns serialized JSON. */
   buyUpgrade(charName: string, upgradeType: string): string {
     if (!(upgradeType in UPGRADE_BASES)) return this.respond();
     const ut = upgradeType as UpgradeType;
@@ -281,10 +364,12 @@ export class GameState {
     return this.respond();
   }
 
+  /** Calculates how many prestige points the player would earn if they prestiged right now. */
   prestigePointsPreview(): number {
     return 1 + Math.floor(Math.max(0, this.highestLevel - PRESTIGE_UNLOCK_LEVEL) / 5);
   }
 
+  /** Advances to the next dungeon, leaving companions behind as idle earners. Returns serialized JSON. */
   venture(): string {
     if (this.highestLevel < VENTURE_UNLOCK_LEVEL) return this.respond();
 
@@ -322,6 +407,7 @@ export class GameState {
     return this.respond();
   }
 
+  /** Resets the current run, awards prestige points, and rebuilds the party from prestige upgrades. Returns serialized JSON. */
   prestige(): string {
     if (this.highestLevel < PRESTIGE_UNLOCK_LEVEL) return this.respond();
     const earned = this.prestigePointsPreview();
@@ -390,6 +476,7 @@ export class GameState {
     return this.respond();
   }
 
+  /** Purchases a Prestige Shop item, optionally specifying the companion's class for slot unlocks. Returns serialized JSON. */
   buyPrestigeUpgrade(type: string, characterClass?: string): string {
     if (!(type in PRESTIGE_SHOP_COSTS)) return this.respond();
     if (type === "party_slot_3" && !(this.prestigeUpgrades["party_slot_2"] > 0)) return this.respond();
@@ -456,6 +543,7 @@ export class GameState {
     return this.respond();
   }
 
+  /** Toggles a quality tier in the auto-sell list, then immediately runs the auto-seller. Returns serialized JSON. */
   toggleAutoSellQuality(quality: string): string {
     const idx = this.autoSellQualities.indexOf(quality);
     if (idx === -1) {
@@ -467,6 +555,7 @@ export class GameState {
     return this.respond();
   }
 
+  /** Purchases the next stack of a Guild Hall upgrade, deducting gold. Returns serialized JSON. */
   buyGuildUpgrade(type: string): string {
     if (!(type in GUILD_HALL_COSTS)) return this.respond();
     const costs = GUILD_HALL_COSTS[type];
@@ -483,6 +572,7 @@ export class GameState {
     return this.respond();
   }
 
+  /** Activates a purchased combat skill for the lead character if off cooldown. Returns serialized JSON. */
   activateSkill(skillId: string): string {
     if (!((this.guildUpgrades[skillId] ?? 0) > 0)) return this.respond();
     const def = SKILL_DEFS[skillId];
@@ -497,6 +587,7 @@ export class GameState {
     return this.respond();
   }
 
+  /** Returns the skill id available to the lead character's class, or null if none is purchased. */
   private computeSkillAvailable(): string | null {
     const leadClass = this.party.team[0].characterClass;
     for (const [skillId, def] of Object.entries(SKILL_DEFS)) {
@@ -505,10 +596,12 @@ export class GameState {
     return null;
   }
 
+  /** Serializes the current game state to a JSON string for the renderer. */
   respond(): string {
     return JSON.stringify(this.toDict());
   }
 
+  /** Returns a plain-object snapshot of all game state, used by respond() and fromDict(). */
   toDict(): GameStateDict {
     return {
       dungeon_level: this.dungeonLevel,
@@ -571,11 +664,16 @@ export class GameState {
     };
   }
 
+  /** Returns the gold cost for the next level of an upgrade (doubles each level). */
   upgradeCost(charName: string, upgradeType: UpgradeType): number {
     const level = this.upgrades[charName][upgradeType];
     return Math.floor(UPGRADE_BASES[upgradeType] * Math.pow(2, level));
   }
 
+  /**
+   * Returns the party member who benefits most from the given item.
+   * The lead always has first claim; companions compete on net damage gain.
+   */
   bestRecipient(item: GearItem): Character {
     const lead = this.party.team[0];
     const leadCurrent = this.slotToCompare(lead, item);
@@ -593,6 +691,7 @@ export class GameState {
     }, lead);
   }
 
+  /** Handles enemy defeat: awards XP/gold/loot, applies pending party abilities, and advances the floor. */
   onEnemyDeath(): void {
     const name = this.enemy.name;
     this.lifetimeEnemyKills[name] = (this.lifetimeEnemyKills[name] ?? 0) + 1;
@@ -659,6 +758,7 @@ export class GameState {
     this.runAutoUpgrade();
   }
 
+  /** Handles party wipe: increments deaths, resets to checkpoint, and fully restores all HP. */
   onPlayerDeath(): void {
     const player = this.party.team[0];
     this.deaths += 1;
@@ -675,6 +775,7 @@ export class GameState {
     this.enemy = generateEnemy(this.checkpointLevel);
   }
 
+  /** Passes a displaced item to the best recipient if it is an upgrade for them; otherwise sells it. */
   private disposeItem(old: GearItem): void {
     if (this.isUpgradeForAnyMember(old)) {
       const recipient = this.bestRecipient(old);
@@ -690,6 +791,10 @@ export class GameState {
     }
   }
 
+  /**
+   * Returns the equipped item that would be displaced if this item were equipped.
+   * For rings, returns the weaker ring (the one that will be replaced).
+   */
   private slotToCompare(c: Character, item: GearItem): GearItem | null {
     if (item.slot !== "ring1") return c.inventory.slots[item.slot];
     const r1 = c.inventory.slots.ring1;
@@ -698,6 +803,7 @@ export class GameState {
     return r1.damage <= r2.damage ? r1 : r2; // weaker ring will be displaced
   }
 
+  /** Sells all loot items matching the auto-sell quality list, skipping items that are upgrades. */
   private runAutoSeller(): void {
     if (!(this.prestigeUpgrades["auto_seller"] > 0) || this.autoSellQualities.length === 0) return;
     const toSell = this.lootPool.filter(
@@ -710,6 +816,7 @@ export class GameState {
     this.addLog(`Auto Seller: sold ${toSell.length} item(s) for ${gold}g`);
   }
 
+  /** Equips all upgrade items from the loot pool, cascading displaced items to other party members. */
   private runAutoEquip(): void {
     if (!(this.prestigeUpgrades["auto_equip"] > 0)) return;
     let found = true;
@@ -730,6 +837,7 @@ export class GameState {
     }
   }
 
+  /** Greedily buys the cheapest affordable stat upgrade for any party member until gold runs out. */
   private runAutoUpgrade(): void {
     if (!(this.prestigeUpgrades["auto_upgrade"] > 0)) return;
     const upgradeTypes: UpgradeType[] = ["dps", "xp", "click", "hp"];
@@ -762,6 +870,7 @@ export class GameState {
     }
   }
 
+  /** Returns true if the given item is a net damage upgrade for at least one party member. */
   private isUpgradeForAnyMember(item: GearItem): boolean {
     return this.party.team.some(c => {
       const equipped = this.slotToCompare(c, item);
@@ -769,11 +878,13 @@ export class GameState {
     });
   }
 
+  /** Appends a message to the combat log, evicting the oldest entry when full. */
   private addLog(message: string): void {
     this.log.push(message);
     if (this.log.length > MAX_LOG) this.log.shift();
   }
 
+  /** Reconstructs a GameState from a serialized snapshot. */
   static fromDict(d: GameStateDict): GameState {
     const gs = new GameState();
     gs.party.team = [];

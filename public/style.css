@@ -120,6 +120,13 @@ header h1 {
 
 #stats-bar span { color: var(--text); font-weight: 600; }
 
+#stat-party-hp-wrap { display: none; }
+#stat-party-dps-wrap { display: none; }
+#stat-party-hp-wrap { color: var(--hp-green); }
+#stat-party-dps-wrap { color: var(--muted); }
+#stat-party-hp-wrap span { color: var(--hp-green); }
+#stat-party-dps-wrap span { color: var(--accent2, #a78bfa); }
+
 #prestige-btn {
     padding: 6px 14px;
     font-size: 0.78rem;
@@ -190,6 +197,7 @@ main {
     height: 18px;
     overflow: hidden;
     border: 1px solid var(--border);
+    position: relative;
 }
 
 #enemy-hp-bar {
@@ -200,9 +208,16 @@ main {
 }
 
 #enemy-hp-text {
-    font-size: 0.8rem;
-    color: var(--muted);
-    text-align: right;
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+    pointer-events: none;
 }
 
 /* ── Attack button ── */
@@ -1146,6 +1161,8 @@ main {
     header { padding: 10px 14px; flex-wrap: wrap; gap: 8px; }
     header h1 { font-size: 1.1rem; }
     #stats-bar { flex-wrap: wrap; gap: 10px; font-size: 0.8rem; }
+    #stat-party-hp-wrap { display: flex; }
+    #stat-party-dps-wrap { display: flex; }
 
     #creation-box { width: min(340px, 92vw); }
 
@@ -1155,12 +1172,20 @@ main {
 
     footer { display: none; }
 
-    #enemy-name  { font-size: 1.1rem; }
-    #enemy-level { font-size: 0.78rem; }
-    .hp-bar-wrap { height: 12px; }
-    #enemy-hp-text { font-size: 0.72rem; }
-    #floor-progress { gap: 4px; }
-    .floor-pip { width: 10px; height: 6px; }
+    #enemy-name  { font-size: 0.9rem; }
+    #enemy-level { font-size: 0.72rem; }
+    .hp-bar-wrap { height: 16px; }
+    #enemy-hp-text { font-size: 0.65rem; }
+    #floor-progress {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 8px;
+    }
+    #monsters-left-text { font-size: 0.68rem; flex: 0 0 auto; text-align: left; }
+    #floor-pip-row { flex: 1; justify-content: flex-end; gap: 3px; }
+    .floor-pip { width: 8px; height: 5px; }
+    #checkpoint-display { width: 100%; font-size: 0.65rem; text-align: right; }
     #attack-btn { padding: 10px; font-size: 0.95rem; margin-top: 2px; }
 
     #loot-panel  { order: 1; }
@@ -1169,13 +1194,16 @@ main {
     #guild-hall-panel.guild-locked   { display: none !important; }
     #prestige-panel.prestige-locked  { display: none !important; }
 
-    /* Let panels expand to full height so main's scroll handles the whole shop tab.
+    /* Let panels expand to full content height so main's scroll handles the whole shop tab.
+       flex-shrink:0 prevents the flex algorithm from capping panel heights.
        !important needed because global panel rules are declared after this block. */
     #upgrades-panel,
     #prestige-panel,
     #guild-hall-panel {
         overflow-y: visible !important;
         max-height: none !important;
+        flex-shrink: 0;
+        height: auto;
     }
 
     #mobile-tabs {
