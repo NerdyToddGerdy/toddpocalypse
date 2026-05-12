@@ -134,6 +134,17 @@ header h1 {
     letter-spacing: 2px;
     color: var(--accent);
     text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#title-icon {
+    height: 2em;
+    width: 2em;
+    object-fit: cover;
+    border-radius: 4px;
+    image-rendering: pixelated;
 }
 
 #stats-bar {
