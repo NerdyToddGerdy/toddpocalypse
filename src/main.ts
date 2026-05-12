@@ -774,13 +774,9 @@ function buildCharTooltipHTML(c: CharDict): string {
     : "";
   const heroImg = HERO_IMG[c.character_class] ?? HERO_IMG.fighter;
   return `
-    <div class="tt-hero-header">
-      <div class="tt-hero-info">
-        <span class="tt-name">${c.name}</span>
-        <div class="tt-rarity" style="color:var(--muted);text-transform:none;font-weight:400">Lv${c.level} ${c.character_class}</div>
-      </div>
-      <img class="tt-hero-portrait" src="${heroImg}" alt="${c.character_class}">
-    </div>
+    <img class="tt-hero-portrait" src="${heroImg}" alt="${c.character_class}">
+    <span class="tt-name">${c.name}</span>
+    <div class="tt-rarity" style="color:var(--muted);text-transform:none;font-weight:400">Lv${c.level} ${c.character_class}</div>
     <div class="tt-divider"></div>
     <div class="tt-stats">${rows}</div>
     ${abilityBadges}

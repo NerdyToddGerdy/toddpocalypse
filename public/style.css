@@ -2064,21 +2064,15 @@ footer {
     opacity: 1;
     transform: translateY(0);
 }
-.tt-hero-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 8px;
-    margin-bottom: 2px;
-}
-.tt-hero-info { flex: 1; min-width: 0; }
 .tt-hero-portrait {
-    width: 60px;
-    height: 100px;
-    object-fit: fill;
+    display: block;
+    width: calc(100% + 28px);
+    margin: -12px -14px 12px -14px;
+    height: 200px;
+    object-fit: cover;
+    object-position: center 30%;
     image-rendering: pixelated;
-    border-radius: 4px;
-    flex-shrink: 0;
+    border-radius: 6px 6px 0 0;
 }
 
 .tt-name {
