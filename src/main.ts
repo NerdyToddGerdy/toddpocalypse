@@ -4,14 +4,14 @@ import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
 import { parseAuthHash, getStoredToken, storeToken, clearToken, getLoginUrl, cloudLoad, cloudSave, cloudClaimSession, resetSessionId, getOrCreateSessionId } from "./cloud.js";
 
-// Both sprite sheets are 2172×724 with 724px-wide sprites.
-// At display size 100px: background-size 300×100; positions step by -100px.
+// heroes 3.png: all 5 classes in one 2172×724 sheet (fighter, rogue, mage, paladin, ranger).
+// At display height 100px: sheet is 300×100; each sprite is 60px wide; positions step by -60px.
 const HERO_SPRITE: Record<string, { img: string; x: number }> = {
-  fighter: { img: "heroes.png",   x: 0    },
-  rogue:   { img: "heroes.png",   x: -100 },
-  mage:    { img: "heroes.png",   x: -200 },
-  paladin: { img: "heroes 2.png", x: 0    },
-  ranger:  { img: "heroes 2.png", x: -100 },
+  fighter: { img: "heroes 3.png", x: 0    },
+  rogue:   { img: "heroes 3.png", x: -60  },
+  mage:    { img: "heroes 3.png", x: -120 },
+  paladin: { img: "heroes 3.png", x: -180 },
+  ranger:  { img: "heroes 3.png", x: -240 },
 };
 
 const CLASS_DESCS: Record<string, string> = {

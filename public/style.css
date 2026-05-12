@@ -309,7 +309,7 @@ main {
 .hero-sprite {
     background-size: 300px 100px;
     background-repeat: no-repeat;
-    width: 100px;
+    width: 60px;
     height: 100px;
     margin: 0 auto 10px;
     image-rendering: pixelated;
