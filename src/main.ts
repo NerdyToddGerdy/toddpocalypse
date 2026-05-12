@@ -5,13 +5,13 @@ import { CLASS_ABILITIES } from "./character.js";
 import { parseAuthHash, getStoredToken, storeToken, clearToken, getLoginUrl, cloudLoad, cloudSave, cloudClaimSession, resetSessionId, getOrCreateSessionId } from "./cloud.js";
 
 // heroes 3.png: all 5 classes in one 2172×724 sheet (fighter, rogue, mage, paladin, ranger).
-// At display height 100px: sheet is 300×100; each sprite is 60px wide; positions step by -60px.
+// At display height 140px: sheet is 420×140; each sprite is 84px wide; positions step by -84px.
 const HERO_SPRITE: Record<string, { img: string; x: number }> = {
   fighter: { img: "heroes 3.png", x: 0    },
-  rogue:   { img: "heroes 3.png", x: -60  },
-  mage:    { img: "heroes 3.png", x: -120 },
-  paladin: { img: "heroes 3.png", x: -180 },
-  ranger:  { img: "heroes 3.png", x: -240 },
+  rogue:   { img: "heroes 3.png", x: -84  },
+  mage:    { img: "heroes 3.png", x: -168 },
+  paladin: { img: "heroes 3.png", x: -252 },
+  ranger:  { img: "heroes 3.png", x: -336 },
 };
 
 const CLASS_DESCS: Record<string, string> = {
@@ -317,13 +317,13 @@ function renderParty(state: GameStateDict): void {
       const sprite = HERO_SPRITE[c.character_class] ?? HERO_SPRITE.fighter;
       return `
 <div class="char-card${leveledUp ? " levelup-flash" : ""}">
-  <div class="hero-sprite" style="background-image:url('${sprite.img}');background-position:${sprite.x}px 0"></div>
   <div class="char-header">
-    <div>
+    <div class="char-header-left">
       <div class="char-name" data-char="${charJson}">${c.name}</div>
       <div class="char-class">${c.character_class}</div>
+      <div class="char-dps">${c.dps.toFixed(1)} DPS</div>
     </div>
-    <div class="char-dps">${c.dps.toFixed(1)} DPS</div>
+    <div class="hero-sprite" style="background-image:url('${sprite.img}');background-position:${sprite.x}px 0"></div>
   </div>
   <div class="hp-section">
     <div class="hp-bar-header">

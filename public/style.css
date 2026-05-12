@@ -309,23 +309,31 @@ main {
 .hero-sprite {
     background-size: 300px 100px;
     background-repeat: no-repeat;
-    width: 60px;
-    height: 100px;
-    margin: 0 auto 10px;
+    width: 84px;
+    height: 140px;
+    flex-shrink: 0;
     image-rendering: pixelated;
 }
 
 .char-name { font-weight: 700; margin-bottom: 2px; }
-.char-class { font-size: 0.78rem; color: var(--muted); }
+.char-class { font-size: 0.78rem; color: var(--muted); margin-bottom: 6px; }
 
 .char-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
+    gap: 8px;
     margin-bottom: 8px;
 }
 
-.char-dps { font-size: 0.95rem; color: var(--accent); font-weight: 700; white-space: nowrap; }
+.char-header-left {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.char-dps { font-size: 0.95rem; color: var(--accent); font-weight: 700; }
 
 .char-gear { margin-bottom: 6px; }
 
