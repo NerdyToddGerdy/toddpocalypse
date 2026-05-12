@@ -357,6 +357,16 @@ export class GameState {
     return this.respond();
   }
 
+  /** Sells every item in the loot pool. Returns serialized JSON. */
+  sellAll(): string {
+    for (const item of this.lootPool) {
+      this.gold += item.sellValue;
+      this.addLog(`Sold ${item.getName()} for ${item.sellValue}g.`);
+    }
+    this.lootPool = [];
+    return this.respond();
+  }
+
   /** Sells the loot item at the given pool index for its sell value. Returns serialized JSON. */
   sellLoot(idx: number): string {
     if (idx < 0 || idx >= this.lootPool.length) return this.respond();

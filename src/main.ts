@@ -390,6 +390,8 @@ function renderLoot(state: GameStateDict): void {
     $("loot-count").textContent = loot.length ? `(${loot.length}/${state.loot_max})` : "";
     const equipAllBtn = document.querySelector<HTMLButtonElement>(".equip-all-btn");
     if (equipAllBtn) equipAllBtn.disabled = loot.length === 0;
+    const sellAllBtn = document.querySelector<HTMLButtonElement>(".sell-all-btn");
+    if (sellAllBtn) sellAllBtn.disabled = loot.length === 0;
 
     lootEl.innerHTML = loot.length === 0
       ? `<div class="loot-empty">No drops yet…</div>`
@@ -1344,6 +1346,7 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (action === "upgrade") call("buyUpgrade", btn.dataset.char!, btn.dataset.type!);
     else if (action === "attack") call("click");
     else if (action === "equip-all") call("equipAll");
+    else if (action === "sell-all") call("sellAll");
     else if (action === "prestige") {
       if (!game) return;
       const pts = game.prestigePointsPreview();

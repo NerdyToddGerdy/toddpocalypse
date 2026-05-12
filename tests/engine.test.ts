@@ -460,6 +460,30 @@ describe("loot", () => {
     expect(JSON.parse(withLoot().equipAll())).toHaveProperty("loot_pool");
   });
 
+  it("sellAll clears the pool", () => {
+    const gs = withLoot();
+    gs.sellAll();
+    expect(gs.lootPool.length).toBe(0);
+  });
+
+  it("sellAll adds gold for every item", () => {
+    const gs = withLoot();
+    const total = gs.lootPool.reduce((s, i) => s + i.sellValue, 0);
+    gs.sellAll();
+    expect(gs.gold).toBe(total);
+  });
+
+  it("sellAll on empty pool is a no-op", () => {
+    const gs = make();
+    gs.lootPool = [];
+    gs.sellAll();
+    expect(gs.gold).toBe(0);
+  });
+
+  it("sellAll returns valid JSON", () => {
+    expect(JSON.parse(withLoot().sellAll())).toHaveProperty("loot_pool");
+  });
+
   it("ring equip replaces weaker ring when ring2 is the worse slot", () => {
     const gs = make();
     gs.party.team[0].equipItem(new GearItem("ring1", "ring", "legendary", "valor")); // ring1 = legendary

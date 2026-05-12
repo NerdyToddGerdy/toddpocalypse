@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.27";
+export const VERSION = "v2.6.28";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.28",
+    date: "2026-05-12",
+    changes: [
+      "Sell All button in the Loot panel — sells every item in one click",
+    ],
+  },
   {
     version: "v2.6.27",
     date: "2026-05-12",
