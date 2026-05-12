@@ -1,5 +1,5 @@
 import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, GUILD_HALL_COSTS, SKILL_DEFS } from "./engine.js";
-import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, type GearStats } from "./gear.js";
+import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, type GearStats, type GearItemDict } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
 import { parseAuthHash, getStoredToken, storeToken, clearToken, getLoginUrl, cloudLoad, cloudSave, getOrCreateSessionId } from "./cloud.js";
@@ -277,7 +277,8 @@ function renderParty(state: GameStateDict): void {
         .map(([slot, item]) => {
           if (item) {
             const qc = qualityClass(item.quality);
-            return `<div class="gear-row filled" data-slot="${slot}">
+            const itemJson = encodeURIComponent(JSON.stringify(item));
+            return `<div class="gear-row filled" data-slot="${slot}" data-item="${itemJson}">
               <span class="gear-icon">${SLOT_ICONS[slot]}</span>
               <span class="gear-name ${qc}">${item.name}</span>
               <span class="gear-bonus ${qc}">${formatStats(item.stats ?? { dps: item.damage })}</span>
@@ -380,8 +381,9 @@ function renderLoot(state: GameStateDict): void {
       : loot.map((item, i) => {
           const [tri, triCls] = lootTier(item, state.party);
           const qc = qualityClass(item.quality);
+          const itemJson = encodeURIComponent(JSON.stringify(item));
           return `
-<div class="loot-item" data-slot="${item.slot}">
+<div class="loot-item" data-slot="${item.slot}" data-item="${itemJson}">
   <div class="loot-meta">
     <span class="loot-slot-badge">${item.slot_display}</span>
     <span class="loot-name ${qc}">${item.name}</span>
@@ -698,6 +700,39 @@ function appendLog(msg: string): void {
   );
 }
 
+/** Builds the inner HTML for the item tooltip given a serialized GearItemDict. */
+function buildTooltipHTML(item: GearItemDict): string {
+  const qc = qualityClass(item.quality);
+  const stats = item.stats ?? { dps: item.damage };
+  const defs: [keyof GearStats, string, string, boolean][] = [
+    ["dps",        "Damage",      "tt-dps",   true],
+    ["maxHp",      "Max HP",      "tt-hp",    true],
+    ["clickBonus", "Click Dmg",   "tt-click", true],
+    ["defense",    "Defense",     "tt-def",   false],
+    ["critChance", "Crit Chance", "tt-crit",  false],
+    ["goldBonus",  "Gold Find",   "tt-gold",  false],
+    ["lifesteal",  "Lifesteal",   "tt-life",  false],
+    ["haste",      "Haste",       "tt-haste", false],
+    ["xpBonus",    "XP Bonus",    "tt-xp",    false],
+  ];
+  const statRows = defs
+    .filter(([k]) => (stats[k] ?? 0) > 0)
+    .map(([k, label, cls, isNumeric]) => {
+      const v = stats[k]!;
+      const fmt = isNumeric ? `+${v.toFixed(1)}` : `+${(v * 100).toFixed(0)}%`;
+      return `<div class="tt-stat-row"><span class="tt-stat-label">${label}</span><span class="tt-stat-val ${cls}">${fmt}</span></div>`;
+    })
+    .join("");
+  return `
+    <span class="tt-name ${qc}">${item.name}</span>
+    <div class="tt-subtitle">${item.slot_display} · Floor ${item.dungeon_level}</div>
+    <div class="tt-divider"></div>
+    <div class="tt-stats">${statRows || '<div class="tt-stat-row"><span class="tt-stat-label">No stats</span></div>'}</div>
+    <div class="tt-divider"></div>
+    <div class="tt-sell">Sell: ${item.sell_value}g</div>
+  `;
+}
+
 function formatStats(stats: GearStats): string {
   const parts: string[] = [];
   if (stats.dps)        parts.push(`+${stats.dps.toFixed(1)} DPS`);
@@ -776,6 +811,65 @@ function initSidebarTabs(): void {
 
   tabs.forEach(btn => btn.addEventListener("click", () => showSidebarTab(btn.dataset.stab!)));
   showSidebarTab("upgrades");
+}
+
+function initItemTooltip(): void {
+  const tooltip = document.getElementById("item-tooltip")!;
+  let currentTarget: HTMLElement | null = null;
+
+  function parseItemData(el: HTMLElement): GearItemDict | null {
+    const raw = el.dataset.item;
+    if (!raw) return null;
+    try { return JSON.parse(decodeURIComponent(raw)) as GearItemDict; }
+    catch { return null; }
+  }
+
+  function show(el: HTMLElement, item: GearItemDict): void {
+    tooltip.innerHTML = buildTooltipHTML(item);
+    tooltip.classList.add("visible");
+  }
+
+  function hide(): void {
+    tooltip.classList.remove("visible");
+    currentTarget = null;
+  }
+
+  function position(e: MouseEvent): void {
+    const W = window.innerWidth, H = window.innerHeight;
+    const tw = tooltip.offsetWidth || 240;
+    const th = tooltip.offsetHeight || 180;
+    let x = e.clientX + 18;
+    let y = e.clientY + 18;
+    if (x + tw > W - 8) x = e.clientX - tw - 8;
+    if (y + th > H - 8) y = e.clientY - th - 8;
+    if (y < 8) y = 8;
+    tooltip.style.left = `${x}px`;
+    tooltip.style.top = `${y}px`;
+  }
+
+  document.addEventListener("mousemove", (e) => {
+    if (!currentTarget) return;
+    position(e);
+  });
+
+  document.addEventListener("mouseover", (e) => {
+    const el = (e.target as HTMLElement).closest<HTMLElement>(".gear-row.filled, .loot-item");
+    if (!el || el === currentTarget) return;
+    const item = parseItemData(el);
+    if (!item) return;
+    currentTarget = el;
+    show(el, item);
+    position(e as MouseEvent);
+  });
+
+  document.addEventListener("mouseout", (e) => {
+    if (!currentTarget) return;
+    const relatedTarget = e.relatedTarget as HTMLElement | null;
+    if (relatedTarget && currentTarget.contains(relatedTarget)) return;
+    if (relatedTarget?.closest(".gear-row.filled, .loot-item") !== currentTarget) hide();
+  });
+
+  document.addEventListener("click", () => hide());
 }
 
 function updateClassDesc(): void {
@@ -936,6 +1030,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initTheme();
   initMobileTabs();
   initSidebarTabs();
+  initItemTooltip();
 
   document.querySelectorAll<HTMLElement>(".theme-btn").forEach(btn => {
     btn.addEventListener("click", () => {

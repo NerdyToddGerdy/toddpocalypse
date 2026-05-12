@@ -205,13 +205,13 @@ const SLOT_STAT_WEIGHTS: Record<Slot, Partial<Record<keyof GearStats, number>>> 
   ring2:     { dps:15, maxHp:15, critChance:20, goldBonus:20, xpBonus:15, lifesteal:15 },
 };
 
-/** Number of stat rolls based on quality tier index. */
+/** Number of stat rolls based on quality tier index. Sub-common (< index 4) always roll 1. */
 function getRollCount(qualityIdx: number): number {
-  if (qualityIdx <= 2) return 1;
-  if (qualityIdx <= 5) return Math.random() < 0.5 ? 1 : 2;
-  if (qualityIdx <= 7) return 2;
-  if (qualityIdx <= 9) return Math.random() < 0.5 ? 2 : 3;
-  return 3;
+  if (qualityIdx <= 3) return 1;                               // broken, worn, crude, poor
+  if (qualityIdx <= 6) return Math.random() < 0.5 ? 1 : 2;   // common, fine, superior
+  if (qualityIdx <= 8) return 2;                               // rare, epic
+  if (qualityIdx <= 10) return Math.random() < 0.5 ? 2 : 3;  // legendary, mythic
+  return 3;                                                    // ancient+
 }
 
 /** Rolls 1–3 stat bonuses for a gear item based on slot, quality, and dungeon level. */

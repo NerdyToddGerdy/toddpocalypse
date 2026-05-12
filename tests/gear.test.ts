@@ -321,13 +321,16 @@ describe("multi-stat rolling", () => {
     }
   });
 
-  it("broken quality rolls exactly 1 stat", () => {
-    for (let i = 0; i < 30; i++) {
+  it("sub-common qualities (broken/worn/crude/poor) always roll exactly 1 stat", () => {
+    const subCommon = new Set(["broken", "worn", "crude", "poor"]);
+    let violations = 0;
+    for (let i = 0; i < 400; i++) {
       const item = getItem("main_hand", 1);
-      if (item.quality === "broken") {
-        expect(Object.keys(item.stats)).toHaveLength(1);
+      if (subCommon.has(item.quality) && Object.keys(item.stats).length > 1) {
+        violations++;
       }
     }
+    expect(violations).toBe(0);
   });
 
   it("mythic+ quality rolls exactly 3 stats", () => {
