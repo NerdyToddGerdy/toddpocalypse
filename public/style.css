@@ -644,6 +644,21 @@ main {
 .equip-all-btn:hover:not(:disabled) { background: var(--hp-green); color: #0e0e14; }
 .equip-all-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
+.sell-all-btn {
+    padding: 5px 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: var(--surface);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.1s, color 0.1s;
+}
+
+.sell-all-btn:hover:not(:disabled) { background: var(--accent); color: #0e0e14; }
+.sell-all-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
 #loot-panel h2, #upgrades-panel h2 {
     font-size: 0.75rem;
     text-transform: uppercase;
