@@ -4,6 +4,14 @@ import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
 import { parseAuthHash, getStoredToken, storeToken, clearToken, getLoginUrl, cloudLoad, cloudSave, cloudClaimSession, resetSessionId, getOrCreateSessionId } from "./cloud.js";
 
+// heroes.png is a 3-sprite sheet (fighter, rogue, mage), each 724×724px.
+// At display size 100px the sheet is 300×100; positions step by -100px.
+const HERO_SPRITE_X: Record<string, number> = {
+  fighter: 0, paladin: 0,
+  rogue: -100, ranger: -100,
+  mage: -200,
+};
+
 const CLASS_DESCS: Record<string, string> = {
   fighter: "Highest idle DPS. Each level-up multiplies damage by 1.2×.",
   rogue: "Gains +0.3 click damage every level. Rewards active play.",
@@ -304,8 +312,10 @@ function renderParty(state: GameStateDict): void {
           : `<span class="ability-badge locked" tabindex="0" data-tip="Lv${a.level}: ${a.desc}" data-skill="${skillJson}">${a.icon} Lv${a.level}</span>`;
       }).join("");
       const charJson = encodeURIComponent(JSON.stringify(c));
+      const spriteX = HERO_SPRITE_X[c.character_class] ?? 0;
       return `
 <div class="char-card${leveledUp ? " levelup-flash" : ""}">
+  <div class="hero-sprite" style="background-position:${spriteX}px 0"></div>
   <div class="char-header">
     <div>
       <div class="char-name" data-char="${charJson}">${c.name}</div>

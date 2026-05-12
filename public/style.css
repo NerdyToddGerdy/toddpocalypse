@@ -306,6 +306,16 @@ main {
     padding: 12px 14px;
 }
 
+.hero-sprite {
+    background-image: url('heroes.png');
+    background-size: 300px 100px;
+    background-repeat: no-repeat;
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 10px;
+    image-rendering: pixelated;
+}
+
 .char-name { font-weight: 700; margin-bottom: 2px; }
 .char-class { font-size: 0.78rem; color: var(--muted); }
 
