@@ -1092,7 +1092,7 @@ async function setActiveDevice(): Promise<void> {
     lastCloudSaveAt = 0; // force next periodic save to run immediately
     const data = game.respond();
     localStorage.setItem(SAVE_KEY, data);
-    const result = await cloudClaimSession(token, data);
+    const result = await cloudClaimSession(token, data, true);
     if (result === "ok") {
       hideSessionConflictBanner();
       lastCloudSaveAt = Date.now();

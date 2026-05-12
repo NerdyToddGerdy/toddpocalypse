@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.11";
+export const VERSION = "v2.6.12";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.12",
+    date: "2026-05-12",
+    changes: [
+      "Fix: Set Active Device now actually bypasses the session lock — previously sent the wrong session ID after reset, causing an immediate 409 conflict",
+    ],
+  },
   {
     version: "v2.6.11",
     date: "2026-05-12",
