@@ -278,8 +278,8 @@ function renderParty(state: GameStateDict): void {
       const abilitiesHtml = classAbilities.map(a => {
         const unlocked = c.abilities.includes(a.id);
         return unlocked
-          ? `<span class="ability-badge unlocked" title="${a.desc}">${a.icon} ${a.name}</span>`
-          : `<span class="ability-badge locked" title="Unlocks at level ${a.level}: ${a.desc}">${a.icon} Lv${a.level}</span>`;
+          ? `<span class="ability-badge unlocked" tabindex="0" data-tip="${a.desc}">${a.icon} ${a.name}</span>`
+          : `<span class="ability-badge locked" tabindex="0" data-tip="Lv${a.level}: ${a.desc}">${a.icon} Lv${a.level}</span>`;
       }).join("");
       return `
 <div class="char-card${leveledUp ? " levelup-flash" : ""}">
