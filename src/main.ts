@@ -723,8 +723,10 @@ function buildTooltipHTML(item: GearItemDict): string {
       return `<div class="tt-stat-row"><span class="tt-stat-label">${label}</span><span class="tt-stat-val ${cls}">${fmt}</span></div>`;
     })
     .join("");
+  const rarity = item.quality.charAt(0).toUpperCase() + item.quality.slice(1);
   return `
     <span class="tt-name ${qc}">${item.name}</span>
+    <div class="tt-rarity ${qc}">${rarity}</div>
     <div class="tt-subtitle">${item.slot_display} · Floor ${item.dungeon_level}</div>
     <div class="tt-divider"></div>
     <div class="tt-stats">${statRows || '<div class="tt-stat-row"><span class="tt-stat-label">No stats</span></div>'}</div>

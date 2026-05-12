@@ -2012,6 +2012,13 @@ footer {
     margin-bottom: 3px;
     display: block;
 }
+.tt-rarity {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
 .tt-subtitle {
     font-size: 0.68rem;
     color: var(--muted);
