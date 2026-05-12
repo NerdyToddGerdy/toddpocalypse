@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.6";
+export const VERSION = "v2.6.7";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.7",
+    date: "2026-05-11",
+    changes: [
+      "Prestige: Smart Seller (4pt) — automatically checks new quality tiers in the Auto Seller as they unlock while climbing floors. Requires Auto Seller.",
+    ],
+  },
   {
     version: "v2.6.6",
     date: "2026-05-11",

@@ -1140,6 +1140,58 @@ describe("prestige shop", () => {
     expect(gs.prestigePoints).toBe(4);
   });
 
+  it("smart_seller costs 4 points", () => {
+    const gs = withPrestige(10);
+    gs.buyPrestigeUpgrade("auto_seller");
+    gs.buyPrestigeUpgrade("smart_seller");
+    expect(gs.prestigeUpgrades["smart_seller"]).toBe(1);
+    expect(gs.prestigePoints).toBe(5); // 10 - 1 (auto_seller) - 4 (smart_seller)
+  });
+
+  it("smart_seller cannot be bought without auto_seller", () => {
+    const gs = withPrestige(10);
+    gs.buyPrestigeUpgrade("smart_seller");
+    expect(gs.prestigeUpgrades["smart_seller"] ?? 0).toBe(0);
+    expect(gs.prestigePoints).toBe(10);
+  });
+
+  it("smart_seller cannot be bought twice", () => {
+    const gs = withPrestige(20);
+    gs.buyPrestigeUpgrade("auto_seller");
+    gs.buyPrestigeUpgrade("smart_seller"); gs.buyPrestigeUpgrade("smart_seller");
+    expect(gs.prestigeUpgrades["smart_seller"]).toBe(1);
+  });
+
+  it("smart_seller immediately adds available qualities on purchase", () => {
+    const gs = withPrestige(10);
+    gs.highestLevel = 5; // autoSellThreshold(5) = 1 → broken + worn
+    gs.buyPrestigeUpgrade("auto_seller");
+    gs.buyPrestigeUpgrade("smart_seller");
+    expect(gs.autoSellQualities).toContain("broken");
+    expect(gs.autoSellQualities).toContain("worn");
+  });
+
+  it("smart_seller adds new quality when highestLevel advances past a threshold", () => {
+    const gs = withPrestige(10);
+    gs.buyPrestigeUpgrade("auto_seller");
+    gs.buyPrestigeUpgrade("smart_seller");
+    gs.highestLevel = 4; // autoSellThreshold(4) = 0 → only broken
+    gs.autoSellQualities = [];
+    // Simulate advancing to a new floor that crosses the threshold
+    gs.highestLevel = 5; // autoSellThreshold(5) = 1 → worn becomes available
+    // Manually call onEnemyDeath path by advancing highestLevel and triggering sync
+    // We can test syncSmartSeller indirectly by checking after next boss kill
+    // Instead test the public effect: after highestLevel update the qualities sync
+    // The sync happens inside onEnemyDeath when dungeonLevel > highestLevel
+    gs.highestLevel = 4; // reset
+    gs.dungeonLevel = 5;
+    gs.enemy.isBoss = true;
+    gs.enemy.xp_reward = 0;
+    gs.enemy.gold_reward = 0;
+    gs.onEnemyDeath();
+    expect(gs.autoSellQualities).toContain("worn");
+  });
+
   it("starting_gold is stackable", () => {
     const gs = withPrestige(5);
     gs.buyPrestigeUpgrade("starting_gold"); gs.buyPrestigeUpgrade("starting_gold");

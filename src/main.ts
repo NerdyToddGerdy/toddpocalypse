@@ -445,6 +445,7 @@ const PRESTIGE_SHOP_META: Record<string, { icon: string; name: string; desc: str
   auto_seller:   { icon: "🤖", name: "Auto Seller",    desc: "Auto-sells checked quality tiers after each kill.", max: 1 },
   auto_equip:    { icon: "⚔", name: "Auto Equip",     desc: "Automatically equips loot upgrades after each kill.", max: 1 },
   auto_upgrade:  { icon: "📈", name: "Auto Upgrade",   desc: "Automatically buys the cheapest affordable stat upgrade after each kill.", max: 1 },
+  smart_seller:  { icon: "🧠", name: "Smart Seller",   desc: "Automatically checks new quality tiers in the Auto Seller as they become available. Requires Auto Seller.", max: 1 },
   party_slot_2:  { icon: "👤", name: "Party Slot II",  desc: "Add a 2nd party member (pick class).", max: 1 },
   party_slot_3:  { icon: "👥", name: "Party Slot III", desc: "Add a 3rd member. Requires Slot II.", max: 1 },
   party_slot_4:  { icon: "👥", name: "Party Slot IV",  desc: "Add a 4th member. Requires Slot III + Companion Hall.", max: 1, guildReq: 1 },
@@ -484,7 +485,8 @@ function renderPrestigeShop(state: GameStateDict): void {
     const owned = ups[type] ?? 0;
     const cost = prestigeUpgradeCost(type, owned);
     const atMax = owned >= meta.max;
-    const prereqMissing = (type === "party_slot_3" && !(ups["party_slot_2"] > 0))
+    const prereqMissing = (type === "smart_seller" && !(ups["auto_seller"] > 0))
+      || (type === "party_slot_3" && !(ups["party_slot_2"] > 0))
       || (type === "party_slot_4" && !(ups["party_slot_3"] > 0))
       || (type === "party_slot_5" && !(ups["party_slot_4"] > 0));
     const canAfford = pts >= cost;
@@ -641,7 +643,8 @@ function updateShopBadge(state: GameStateDict): void {
   const canBuyPrestige = Object.keys(PRESTIGE_SHOP_META).some(type => {
     const owned = ups[type] ?? 0;
     const atMax = owned >= (PRESTIGE_SHOP_META[type]?.max ?? 1);
-    const prereqMissing = type === "party_slot_3" && !(ups["party_slot_2"] > 0);
+    const prereqMissing = (type === "smart_seller" && !(ups["auto_seller"] > 0))
+      || (type === "party_slot_3" && !(ups["party_slot_2"] > 0));
     const cost = prestigeUpgradeCost(type, owned);
     return !atMax && !prereqMissing && state.prestige_points >= cost;
   });

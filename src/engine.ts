@@ -76,6 +76,7 @@ export const PRESTIGE_SHOP_COSTS: Record<string, number> = {
   auto_seller: 1,
   auto_equip: 2,
   auto_upgrade: 2,
+  smart_seller: 4,
   party_slot_2: 2,
   party_slot_3: 3,
   party_slot_4: 4,
@@ -504,6 +505,7 @@ export class GameState {
   /** Purchases a Prestige Shop item, optionally specifying the companion's class for slot unlocks. Returns serialized JSON. */
   buyPrestigeUpgrade(type: string, characterClass?: string): string {
     if (!(type in PRESTIGE_SHOP_COSTS)) return this.respond();
+    if (type === "smart_seller" && !(this.prestigeUpgrades["auto_seller"] > 0)) return this.respond();
     if (type === "party_slot_3" && !(this.prestigeUpgrades["party_slot_2"] > 0)) return this.respond();
     if (type === "party_slot_4") {
       if (!(this.prestigeUpgrades["party_slot_3"] > 0)) return this.respond();
@@ -513,7 +515,7 @@ export class GameState {
       if (!(this.prestigeUpgrades["party_slot_4"] > 0)) return this.respond();
       if (!((this.guildUpgrades["companion_hall"] ?? 0) >= 2)) return this.respond();
     }
-    const oneTime = ["auto_seller", "auto_equip", "auto_upgrade", "party_slot_2", "party_slot_3", "party_slot_4", "party_slot_5"];
+    const oneTime = ["auto_seller", "auto_equip", "auto_upgrade", "smart_seller", "party_slot_2", "party_slot_3", "party_slot_4", "party_slot_5"];
     if (oneTime.includes(type) && (this.prestigeUpgrades[type] ?? 0) >= 1) return this.respond();
     const currentStacks = this.prestigeUpgrades[type] ?? 0;
     const cost = prestigeUpgradeCost(type, currentStacks);
@@ -566,6 +568,7 @@ export class GameState {
     if (type === "auto_seller") this.runAutoSeller();
     if (type === "auto_equip") this.runAutoEquip();
     if (type === "auto_upgrade") this.runAutoUpgrade();
+    if (type === "smart_seller") this.syncSmartSeller();
     return this.respond();
   }
 
@@ -758,7 +761,10 @@ export class GameState {
       }
       this.dungeonLevel += 1;
       this.floorKills = 0;
-      if (this.dungeonLevel > this.highestLevel) this.highestLevel = this.dungeonLevel;
+      if (this.dungeonLevel > this.highestLevel) {
+        this.highestLevel = this.dungeonLevel;
+        this.syncSmartSeller();
+      }
       if (this.dungeonLevel % 10 === 0) {
         this.checkpointLevel = this.dungeonLevel;
         this.addLog(`⚑ Checkpoint! Respawn set to floor ${this.checkpointLevel}.`);
@@ -842,6 +848,18 @@ export class GameState {
     this.gold += gold;
     this.lootPool = this.lootPool.filter(item => !toSell.includes(item));
     this.addLog(`Auto Seller: sold ${toSell.length} item(s) for ${gold}g`);
+  }
+
+  /** Adds any newly available quality tiers to autoSellQualities when Smart Seller is owned. */
+  private syncSmartSeller(): void {
+    if (!(this.prestigeUpgrades["smart_seller"] > 0)) return;
+    const threshold = autoSellThreshold(this.highestLevel);
+    for (let i = 0; i <= threshold; i++) {
+      const quality = QUAL[i];
+      if (!this.autoSellQualities.includes(quality)) {
+        this.autoSellQualities.push(quality);
+      }
+    }
   }
 
   /** Equips all upgrade items from the loot pool, cascading displaced items to other party members. */
