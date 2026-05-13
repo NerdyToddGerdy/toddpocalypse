@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.37";
+export const VERSION = "v2.6.38";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.38",
+    date: "2026-05-12",
+    changes: [
+      "Guild Hall tab is now always visible, replacing the Log tab",
+      "Guild Hall added to mobile navigation",
+    ],
+  },
   {
     version: "v2.6.37",
     date: "2026-05-12",

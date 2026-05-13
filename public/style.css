@@ -1390,7 +1390,6 @@ main {
     #loot-panel  { order: 1; }
     #party-panel { order: 2; }
 
-    #guild-hall-panel.guild-locked   { display: none !important; }
     #prestige-panel.prestige-locked  { display: none !important; }
 
     /* Let panels expand to full content height so main's scroll handles the whole shop tab.

@@ -168,7 +168,6 @@ function render(state: GameStateDict): void {
   updateVentureButton(state);
   updateLifetimeStats(state);
   updateShopBadge(state);
-  updateGuildTabVisibility(state);
   updatePrestigePanelVisibility(state);
 }
 
@@ -177,27 +176,6 @@ function updatePrestigePanelVisibility(state: GameStateDict): void {
   const prestigeUnlocked = state.highest_level >= 20 || state.total_prestiges > 0;
   const panel = document.getElementById("prestige-panel");
   if (panel) panel.classList.toggle("prestige-locked", !prestigeUnlocked);
-}
-
-/** Hides the Guild Hall tab/panel until floor 40 is reached (lifetime) or any guild upgrade is owned. */
-function updateGuildTabVisibility(state: GameStateDict): void {
-  const guildUnlocked =
-    (state.lifetime_best_level ?? state.highest_level) >= 40 ||
-    Object.keys(state.guild_upgrades ?? {}).length > 0;
-
-  // Desktop: hide/show the sidebar tab button
-  const guildTab = document.querySelector<HTMLElement>('[data-stab="guild"]');
-  if (guildTab) {
-    const wasHidden = guildTab.hidden;
-    guildTab.hidden = !guildUnlocked;
-    if (!wasHidden && !guildUnlocked && guildTab.classList.contains("active")) {
-      (document.querySelector<HTMLElement>('[data-stab="upgrades"]') as HTMLElement).click();
-    }
-  }
-
-  // Mobile: hide/show the panel itself (tab-visible uses !important so we need guild-locked to beat it)
-  const guildPanel = document.getElementById("guild-hall-panel");
-  if (guildPanel) guildPanel.classList.toggle("guild-locked", !guildUnlocked);
 }
 
 /** Renders the kill-progress pips, boss indicator text, and checkpoint label below the enemy panel. */
@@ -695,6 +673,8 @@ function updateShopBadge(state: GameStateDict): void {
   if (stabPrestigeBadge) stabPrestigeBadge.hidden = !canBuyPrestige;
   const stabGuildBadge = document.getElementById("stab-guild-badge");
   if (stabGuildBadge) stabGuildBadge.hidden = !canBuyGuild;
+  const mobileGuildBadge = document.getElementById("guild-tab-badge");
+  if (mobileGuildBadge) mobileGuildBadge.hidden = !canBuyGuild;
 }
 
 /** Renders the drop-rate chart modal showing per-tier probabilities for the given dungeon floor. */
