@@ -51,7 +51,7 @@ const UPGRADE_LABELS: Record<string, { icon: string; label: string }> = {
 
 const SAVE_KEY = "toddpocalypse-save";
 const THEME_KEY = "toddpocalypse-theme";
-const THEMES = ["grimdark", "arcane", "tavern"] as const;
+const THEMES = ["grimdark", "arcane", "tavern", "inferno"] as const;
 type Theme = typeof THEMES[number];
 
 /** Sets the active visual theme on the root element, persists it, and updates picker button states. */

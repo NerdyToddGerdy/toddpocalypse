@@ -2098,6 +2098,53 @@ footer {
     --font-body: 'Crimson Pro', Georgia, serif;
 }
 
+/* ── Inferno ── */
+[data-theme="inferno"] {
+    --bg: #080500;
+    --surface: #110a02;
+    --surface2: #1c1204;
+    --border: #5c2a06;
+    --accent: #e8601a;
+    --accent2: #18c8e8;
+    --danger: #ff2010;
+    --text: #f2dab8;
+    --muted: #7a5030;
+    --hp-green: #48a038;
+    --xp-blue: #3878d8;
+    --font-display: 'Pirata One', serif;
+    --font-body: 'Crimson Pro', Georgia, serif;
+}
+
+[data-theme="inferno"] h1 {
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.18em;
+    text-shadow: 0 0 18px #e8601a, 0 0 40px rgba(232,96,26,0.4), 0 0 70px rgba(232,96,26,0.15);
+}
+
+[data-theme="inferno"] header {
+    background: linear-gradient(180deg, #110a02 0%, #0d0700 100%);
+    border-bottom-color: #5c2a06;
+    box-shadow: 0 2px 20px rgba(232,96,26,0.15);
+}
+
+/* Ember glow on panel borders */
+[data-theme="inferno"] #enemy-panel,
+[data-theme="inferno"] #party-panel,
+[data-theme="inferno"] #upgrades-panel,
+[data-theme="inferno"] #loot-panel,
+[data-theme="inferno"] #prestige-panel,
+[data-theme="inferno"] #guild-hall-panel,
+[data-theme="inferno"] #log-panel,
+[data-theme="inferno"] #settings-panel {
+    border-color: #5c2a06;
+    box-shadow: 0 0 12px rgba(232,96,26,0.08), inset 0 0 24px rgba(0,0,0,0.4);
+}
+
+/* Flame-coloured prestige button */
+[data-theme="inferno"] #prestige-btn {
+    background: linear-gradient(135deg, #e8601a, #9c3008);
+}
+
 /* ── Shared fantasy decorations (active on any theme) ── */
 [data-theme] body {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
