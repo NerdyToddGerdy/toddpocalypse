@@ -1297,6 +1297,15 @@ describe("prestige shop", () => {
     expect(gs.prestigePoints).toBe(1);
   });
 
+  it("starting_gold adds gold immediately on purchase", () => {
+    const gs = withPrestige(10);
+    const goldBefore = gs.gold;
+    gs.buyPrestigeUpgrade("starting_gold");
+    expect(gs.gold).toBe(goldBefore + STARTING_GOLD_PER_LEVEL);
+    gs.buyPrestigeUpgrade("starting_gold");
+    expect(gs.gold).toBe(goldBefore + STARTING_GOLD_PER_LEVEL * 2);
+  });
+
   it("one-time upgrades (auto_seller) do not scale", () => {
     expect(prestigeUpgradeCost("auto_seller", 0)).toBe(1);
     expect(prestigeUpgradeCost("auto_seller", 1)).toBe(1); // ignored — it's one-time

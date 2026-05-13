@@ -579,6 +579,8 @@ export class GameState {
       for (const c of this.party.team) {
         c.xpMultiplier += XP_BONUS_PER_LEVEL;
       }
+    } else if (type === "starting_gold") {
+      this.gold += STARTING_GOLD_PER_LEVEL;
     }
 
     this.addLog(`Prestige upgrade: ${type} purchased!`);
