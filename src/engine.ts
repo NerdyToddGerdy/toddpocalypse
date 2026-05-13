@@ -769,7 +769,7 @@ export class GameState {
     this.addLog(`${name} defeated! +${xp}xp`);
     for (const c of this.party.team) {
       c.gainXp(xp);
-      c.health = Math.min(c.maxHealth, c.health + c.maxHealth * COMBAT_HEAL_FRACTION);
+      c.health = Math.min(c.maxHealth, c.health + (c.maxHealth - c.health) * COMBAT_HEAL_FRACTION);
       while (c.pendingPartyAbilities.length > 0) {
         const ability = c.pendingPartyAbilities.shift()!;
         if (ability === "battle_standard") {

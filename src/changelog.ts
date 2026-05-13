@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.45";
+export const VERSION = "v2.6.46";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.46",
+    date: "2026-05-13",
+    changes: [
+      "Post-combat heal now restores 30% of lost HP (was 30% of max HP)",
+    ],
+  },
   {
     version: "v2.6.45",
     date: "2026-05-13",

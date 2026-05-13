@@ -149,7 +149,7 @@ describe("tick", () => {
     gs.enemy.hp = 0.1;
     gs.enemy.isBoss = false;
     gs.tick(1.0);
-    const expected = Math.min(player.maxHealth, 1 + player.maxHealth * COMBAT_HEAL_FRACTION);
+    const expected = Math.min(player.maxHealth, 1 + (player.maxHealth - 1) * COMBAT_HEAL_FRACTION);
     expect(player.health).toBeCloseTo(expected, 1);
   });
 
