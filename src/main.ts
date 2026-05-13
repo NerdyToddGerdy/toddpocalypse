@@ -78,6 +78,7 @@ let prestigeKey: string | null = null;
 let ventureKey: string | null = null;
 let guildKey: string | null = null;
 let skillKey: string | null = null;
+let companionSkillKey: string | null = null;
 let hoveredLootSlot: string | null = null;
 const flashStartTimes = new Map<string, number>(); // "ci:slot" → ms timestamp when flash began
 let bossPortraitShowing = false;
@@ -163,6 +164,7 @@ function render(state: GameStateDict): void {
   renderPrestigeShop(state);
   renderGuildHall(state);
   renderSkillButton(state);
+  renderCompanionSkills(state);
   renderLog(state);
   updatePrestigeButton(state);
   updateVentureButton(state);
@@ -612,6 +614,35 @@ function renderSkillButton(state: GameStateDict): void {
   } else {
     bar.hidden = true;
   }
+}
+
+/** Renders skill buttons for companion party members below the attack button. */
+function renderCompanionSkills(state: GameStateDict): void {
+  const skills = state.companion_skills_available;
+  const newKey = JSON.stringify(skills) + "|" + skills.map(id =>
+    (state.skill_cooldowns[id] ?? 0) + ":" + (state.active_effects[id] ?? 0)
+  ).join(",");
+  if (newKey === companionSkillKey) return;
+  companionSkillKey = newKey;
+
+  const container = document.getElementById("companion-skills")!;
+  if (!skills.length) { container.innerHTML = ""; return; }
+
+  const now = Date.now();
+  container.innerHTML = skills.map(skillId => {
+    const lastUsed = state.skill_cooldowns[skillId] ?? 0;
+    const expiry = state.active_effects[skillId] ?? 0;
+    const cooldownMs = SKILL_COOLDOWNS[skillId] ?? 60_000;
+    const isActive = expiry > now;
+    const elapsed = now - lastUsed;
+    const onCooldown = lastUsed > 0 && elapsed < cooldownMs && !isActive;
+    const pct = onCooldown ? Math.min(100, (elapsed / cooldownMs) * 100) : 0;
+    const label = SKILL_NAMES[skillId] ?? skillId;
+    return `
+      <button class="companion-skill-btn${isActive ? " active" : ""}" data-action="activate-companion-skill" data-skill="${skillId}"${onCooldown ? " disabled" : ""}>${label}</button>
+      ${onCooldown ? `<div class="skill-cooldown-bar companion-cooldown-bar"><div class="skill-cooldown-fill" style="width:${pct}%"></div></div>` : ""}
+    `;
+  }).join("");
 }
 
 /** Enables/disables the Prestige button and updates its label with the points preview. */
@@ -1375,6 +1406,10 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!game) return;
       const state = JSON.parse(game.respond()) as GameStateDict;
       if (state.skill_available) call("activateSkill", state.skill_available);
+    }
+    else if (action === "activate-companion-skill") {
+      const skillId = (target as HTMLElement).dataset.skill;
+      if (skillId) call("activateSkill", skillId);
     }
     else if (action === "venture") {
       if (confirm("Venture to a new dungeon? Your companions will stay behind and earn gold. You start fresh with just your class.")) {

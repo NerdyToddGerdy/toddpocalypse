@@ -157,6 +157,7 @@ export interface GameStateDict {
   venture_available: boolean;
   guild_upgrades: Record<string, number>;
   skill_available: string | null;
+  companion_skills_available: string[];
   skill_cooldowns: Record<string, number>;
   active_effects: Record<string, number>;
   loot_max: number;
@@ -636,6 +637,22 @@ export class GameState {
     return null;
   }
 
+  /** Returns skill ids available to companions, deduped and excluding the lead's skill. */
+  private computeCompanionSkillsAvailable(): string[] {
+    const leadSkill = this.computeSkillAvailable();
+    const seen = new Set<string>(leadSkill ? [leadSkill] : []);
+    const result: string[] = [];
+    for (const companion of this.party.team.slice(1)) {
+      for (const [skillId, def] of Object.entries(SKILL_DEFS)) {
+        if ((this.guildUpgrades[skillId] ?? 0) > 0 && def.class === companion.characterClass && !seen.has(skillId)) {
+          seen.add(skillId);
+          result.push(skillId);
+        }
+      }
+    }
+    return result;
+  }
+
   /** Serializes the current game state to a JSON string for the renderer. */
   respond(): string {
     return JSON.stringify(this.toDict());
@@ -698,6 +715,7 @@ export class GameState {
       venture_available: this.highestLevel >= VENTURE_UNLOCK_LEVEL,
       guild_upgrades: { ...this.guildUpgrades },
       skill_available: this.computeSkillAvailable(),
+      companion_skills_available: this.computeCompanionSkillsAvailable(),
       skill_cooldowns: { ...this.skillCooldowns },
       active_effects: { ...this.activeEffects },
       loot_max: this.lootMax,

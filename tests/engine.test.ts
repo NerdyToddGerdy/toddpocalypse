@@ -2421,3 +2421,50 @@ describe("multi-stat gear — combat integration", () => {
     expect(dealt2).toBeGreaterThan(dealt1 * 1.5);
   });
 });
+
+describe("companion_skills_available", () => {
+  function withCompanion(leadClass: string, companionClass: string): GameState {
+    const gs = new GameState("Hero", leadClass);
+    gs.prestigePoints = 100;
+    gs.buyPrestigeUpgrade("party_slot_2", companionClass);
+    return gs;
+  }
+
+  it("is empty when party has only the lead", () => {
+    const gs = new GameState("Hero", "rogue");
+    gs.guildUpgrades["skill_shadow_strike"] = 1;
+    const d = JSON.parse(gs.respond());
+    expect(d.companion_skills_available).toEqual([]);
+  });
+
+  it("includes companion skill when guild upgrade is purchased", () => {
+    const gs = withCompanion("fighter", "rogue");
+    gs.guildUpgrades["skill_shadow_strike"] = 1;
+    const d = JSON.parse(gs.respond());
+    expect(d.companion_skills_available).toContain("skill_shadow_strike");
+  });
+
+  it("excludes companion skill when guild upgrade is not purchased", () => {
+    const gs = withCompanion("fighter", "rogue");
+    const d = JSON.parse(gs.respond());
+    expect(d.companion_skills_available).not.toContain("skill_shadow_strike");
+  });
+
+  it("excludes skill already shown for lead", () => {
+    const gs = withCompanion("fighter", "fighter");
+    gs.guildUpgrades["skill_battle_cry"] = 1;
+    const d = JSON.parse(gs.respond());
+    expect(d.skill_available).toBe("skill_battle_cry");
+    expect(d.companion_skills_available).not.toContain("skill_battle_cry");
+  });
+
+  it("deduplicates when two companions share a class", () => {
+    const gs = new GameState("Hero", "mage");
+    gs.prestigePoints = 100;
+    gs.buyPrestigeUpgrade("party_slot_2", "rogue");
+    gs.buyPrestigeUpgrade("party_slot_3", "rogue");
+    gs.guildUpgrades["skill_shadow_strike"] = 1;
+    const d = JSON.parse(gs.respond());
+    expect(d.companion_skills_available.filter((s: string) => s === "skill_shadow_strike").length).toBe(1);
+  });
+});
