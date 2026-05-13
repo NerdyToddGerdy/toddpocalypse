@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.38";
+export const VERSION = "v2.6.39";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.39",
+    date: "2026-05-12",
+    changes: [
+      "Balance: idle companion gold rate reduced from 0.5 to 0.01 per DPS per second",
+    ],
+  },
   {
     version: "v2.6.38",
     date: "2026-05-12",

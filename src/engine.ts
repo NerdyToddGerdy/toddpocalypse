@@ -69,7 +69,7 @@ export const PRESTIGE_UNLOCK_LEVEL = 20;
 export const VENTURE_UNLOCK_LEVEL = 40;
 
 /** Gold earned per idle companion DPS-point per real second after venturing. */
-export const IDLE_GOLD_RATE = 0.5;
+export const IDLE_GOLD_RATE = 0.01;
 
 /** Prestige point cost for each prestige shop item (one-time purchases use a flat cost). */
 export const PRESTIGE_SHOP_COSTS: Record<string, number> = {
