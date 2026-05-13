@@ -581,6 +581,11 @@ const SKILL_COOLDOWNS: Record<string, number> = {
   skill_shadow_strike: 45_000,
   skill_arcane_surge: 90_000,
 };
+const SKILL_DESCS: Record<string, string> = {
+  skill_battle_cry: "Doubles party damage for 5 kills.",
+  skill_shadow_strike: "Multiplies click damage by 5× for 3 kills.",
+  skill_arcane_surge: "Triples party damage for 5 kills.",
+};
 
 /** Shows/hides the active skill button and updates its cooldown drain bar. */
 function renderSkillButton(state: GameStateDict): void {
@@ -609,6 +614,7 @@ function renderSkillButton(state: GameStateDict): void {
   const onCooldown = lastUsed > 0 && elapsed < cooldownMs && !isActive;
 
   btn.textContent = SKILL_NAMES[skillId] ?? skillId;
+  btn.dataset.activeSkill = skillId;
   btn.disabled = onCooldown;
   btn.className = isActive ? "active" : "";
 
@@ -644,7 +650,7 @@ function renderCompanionSkills(state: GameStateDict): void {
     const pct = onCooldown ? Math.min(100, (elapsed / cooldownMs) * 100) : 0;
     const label = SKILL_NAMES[skillId] ?? skillId;
     return `
-      <button class="companion-skill-btn${isActive ? " active" : ""}" data-action="activate-companion-skill" data-skill="${skillId}"${onCooldown ? " disabled" : ""}>${label}</button>
+      <button class="companion-skill-btn${isActive ? " active" : ""}" data-action="activate-companion-skill" data-skill="${skillId}" data-active-skill="${skillId}"${onCooldown ? " disabled" : ""}>${label}</button>
       ${onCooldown ? `<div class="skill-cooldown-bar companion-cooldown-bar"><div class="skill-cooldown-fill" style="width:${pct}%"></div></div>` : ""}
     `;
   }).join("");
@@ -942,10 +948,19 @@ function buildSkillTooltipHTML(a: AbilityCardData): string {
     <div class="tt-stat-row"><span class="tt-stat-label">${a.desc}</span></div>`;
 }
 
-const TOOLTIP_SELECTORS = ".gear-row.filled[data-item], .loot-item[data-item], .char-name[data-char], #party-panel h2[data-party]";
+const TOOLTIP_SELECTORS = ".gear-row.filled[data-item], .loot-item[data-item], .char-name[data-char], #party-panel h2[data-party], [data-active-skill]";
+
+function buildActiveSkillTooltipHTML(skillId: string): string {
+  const name = SKILL_NAMES[skillId] ?? skillId;
+  const desc = SKILL_DESCS[skillId] ?? "";
+  const cooldownSec = Math.round((SKILL_COOLDOWNS[skillId] ?? 60_000) / 1000);
+  const cooldownLabel = cooldownSec >= 60 ? `${cooldownSec / 60} min` : `${cooldownSec} sec`;
+  return `<div class="skill-tooltip"><div class="skill-tooltip-name">${name}</div><div class="skill-tooltip-desc">${desc}</div><div class="skill-tooltip-cd">Cooldown: ${cooldownLabel}</div></div>`;
+}
 
 function getTooltipContent(el: HTMLElement): string | null {
   try {
+    if (el.dataset.activeSkill) return buildActiveSkillTooltipHTML(el.dataset.activeSkill);
     if (el.dataset.item)  return buildTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.item)) as GearItemDict);
     if (el.dataset.char)  return buildCharTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.char)) as CharDict);
     if (el.dataset.party) return buildPartyTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.party)) as CharDict[]);

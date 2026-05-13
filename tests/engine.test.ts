@@ -5,7 +5,7 @@ import {
   BLOODLUST_MULTIPLIER, EXPOSE_WEAKNESS_MULT, MANA_SURGE_INTERVAL, MANA_SURGE_MULTIPLIER,
   LUCKY_STRIKE_CHANCE, LUCKY_STRIKE_MULTIPLIER, EMPOWER_MULTIPLIER,
   VENTURE_UNLOCK_LEVEL, IDLE_GOLD_RATE,
-  GUILD_HALL_COSTS, SKILL_DEFS,
+  GUILD_HALL_COSTS, SKILL_DEFS, COMBAT_HEAL_FRACTION,
   killsForFloor, prestigeUpgradeCost,
 } from "../src/engine.js";
 import { Character } from "../src/character.js";
@@ -141,13 +141,45 @@ describe("tick", () => {
     expect(player.health).toBeLessThan(start);
   });
 
-  it("enemy kill heals player to full", () => {
+  it("regular enemy kill partially heals player by COMBAT_HEAL_FRACTION", () => {
     const gs = make();
     const player = gs.party.team[0];
     player.equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
     player.health = 1;
     gs.enemy.hp = 0.1;
+    gs.enemy.isBoss = false;
     gs.tick(1.0);
+    const expected = Math.min(player.maxHealth, 1 + player.maxHealth * COMBAT_HEAL_FRACTION);
+    expect(player.health).toBeCloseTo(expected, 1);
+  });
+
+  it("regular enemy kill does not overheal above maxHealth", () => {
+    const gs = make();
+    const player = gs.party.team[0];
+    player.equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
+    player.health = player.maxHealth;
+    gs.enemy.hp = 0.1;
+    gs.enemy.isBoss = false;
+    gs.tick(1.0);
+    expect(player.health).toBe(player.maxHealth);
+  });
+
+  it("boss kill fully heals party", () => {
+    const gs = make();
+    const player = gs.party.team[0];
+    player.equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
+    player.health = 1;
+    gs.enemy = { name: "Boss", level: 1, hp: 0, max_hp: 1, xp_reward: 1, gold_reward: 1, attack_dps: 0, isBoss: true };
+    gs.dungeonLevel = 1;
+    gs.onEnemyDeath();
+    expect(player.health).toBe(player.maxHealth);
+  });
+
+  it("level-up fully heals the character", () => {
+    const gs = make();
+    const player = gs.party.team[0];
+    player.health = 1;
+    player.levelUp();
     expect(player.health).toBe(player.maxHealth);
   });
 

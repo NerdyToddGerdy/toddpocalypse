@@ -224,7 +224,7 @@ export class Character {
     this.clickBonus += bonuses.clickBonus;
     this.xpMultiplier += bonuses.xpMultiplier;
     this.maxHealth += HP_PER_LEVEL;
-    this.health += HP_PER_LEVEL;
+    this.health = this.maxHealth;
 
     const unlock = CLASS_ABILITIES[this.characterClass]?.find(a => a.level === this.level);
     if (unlock) {

@@ -117,6 +117,9 @@ export const SKILL_DEFS: Record<string, { cooldownMs: number; durationKills: num
   skill_arcane_surge:  { cooldownMs: 90_000,  durationKills: 5, class: "mage" },
 };
 
+/** Fraction of maxHealth restored after each regular enemy kill. */
+export const COMBAT_HEAL_FRACTION = 0.30;
+
 /** Gold granted per starting_gold prestige upgrade level. */
 export const STARTING_GOLD_PER_LEVEL = 250;
 
@@ -763,7 +766,7 @@ export class GameState {
     this.addLog(`${name} defeated! +${xp}xp`);
     for (const c of this.party.team) {
       c.gainXp(xp);
-      c.health = c.maxHealth;
+      c.health = Math.min(c.maxHealth, c.health + c.maxHealth * COMBAT_HEAL_FRACTION);
       while (c.pendingPartyAbilities.length > 0) {
         const ability = c.pendingPartyAbilities.shift()!;
         if (ability === "battle_standard") {
@@ -811,6 +814,7 @@ export class GameState {
         this.checkpointLevel = this.dungeonLevel;
         this.addLog(`⚑ Checkpoint! Respawn set to floor ${this.checkpointLevel}.`);
       }
+      for (const c of this.party.team) c.health = c.maxHealth;
       this.addLog(`Descending to level ${this.dungeonLevel}!`);
       this.enemy = generateEnemy(this.dungeonLevel, this.dungeonIndex);
     } else {
