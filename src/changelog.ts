@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.42";
+export const VERSION = "v2.6.43";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.43",
+    date: "2026-05-12",
+    changes: [
+      "Companion active skills now work (any party member with matching class can trigger their skill)",
+      "Skill duration changed from seconds to number of monsters killed (Battle Cry: 5 kills, Arcane Surge: 5 kills, Shadow Strike: 3 kills)",
+      "Checkpoint is now a prestige unlock: floor 15 only (1pt), every 10 floors (2pt), every 5 floors (3pt)",
+    ],
+  },
   {
     version: "v2.6.42",
     date: "2026-05-12",

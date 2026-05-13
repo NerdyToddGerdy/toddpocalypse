@@ -83,6 +83,9 @@ export const PRESTIGE_SHOP_COSTS: Record<string, number> = {
   party_slot_5: 5,
   starting_gold: 1,
   xp_bonus: 1,
+  checkpoint_1: 1,
+  checkpoint_2: 2,
+  checkpoint_3: 3,
 };
 
 /** Stackable upgrades whose cost increases by 1 pt per stack already owned. */
@@ -107,11 +110,11 @@ export const GUILD_HALL_COSTS: Record<string, number[]> = {
   skill_arcane_surge:  [2_500],
 };
 
-/** Cooldown and duration (ms) and lead-class requirement for each active combat skill. */
-export const SKILL_DEFS: Record<string, { cooldownMs: number; durationMs: number; class: string }> = {
-  skill_battle_cry:    { cooldownMs: 120_000, durationMs: 15_000, class: "fighter" },
-  skill_shadow_strike: { cooldownMs: 45_000,  durationMs: 8_000,  class: "rogue" },
-  skill_arcane_surge:  { cooldownMs: 90_000,  durationMs: 15_000, class: "mage" },
+/** Cooldown (ms) and duration (kills) and class requirement for each active combat skill. */
+export const SKILL_DEFS: Record<string, { cooldownMs: number; durationKills: number; class: string }> = {
+  skill_battle_cry:    { cooldownMs: 120_000, durationKills: 5, class: "fighter" },
+  skill_shadow_strike: { cooldownMs: 45_000,  durationKills: 3, class: "rogue" },
+  skill_arcane_surge:  { cooldownMs: 90_000,  durationKills: 5, class: "mage" },
 };
 
 /** Gold granted per starting_gold prestige upgrade level. */
@@ -237,11 +240,6 @@ export class GameState {
    */
   tick(dt: number): string {
     if (this.idleGoldRate > 0) this.gold += this.idleGoldRate * dt;
-    // Prune expired active effects
-    const now = Date.now();
-    for (const key of Object.keys(this.activeEffects)) {
-      if (this.activeEffects[key] <= now) delete this.activeEffects[key];
-    }
     // Mana Surge — fires before regular DPS so we can early-return if enemy dies
     for (const c of this.party.team) {
       if (!c.isAlive()) continue;
@@ -261,8 +259,8 @@ export class GameState {
     const hasMark = this.party.team.some(c => c.isAlive() && c.abilities.includes("hunters_mark"));
     const hasDead = this.party.team.some(c => !c.isAlive());
     const divineWrathActive = hasDead && this.party.team.some(c => c.isAlive() && c.abilities.includes("divine_wrath"));
-    const battleCryMult = (this.activeEffects["skill_battle_cry"] ?? 0) > now ? 2.0 : 1.0;
-    const arcaneSurgeMult = (this.activeEffects["skill_arcane_surge"] ?? 0) > now ? 3.0 : 1.0;
+    const battleCryMult = (this.activeEffects["skill_battle_cry"] ?? 0) > 0 ? 2.0 : 1.0;
+    const arcaneSurgeMult = (this.activeEffects["skill_arcane_surge"] ?? 0) > 0 ? 3.0 : 1.0;
 
     let baseDps = 0;
     const partyHaste = this.party.team.reduce((s, c) => c.isAlive() ? s + c.haste : s, 0);
@@ -310,7 +308,7 @@ export class GameState {
     const clickBonus = this.party.team.reduce((s, c) => c.isAlive() ? s + c.clickBonus : s, 0);
     let damage = Math.max(1.0, totalDps * CLICK_DAMAGE_MULTIPLIER * 0.1 + clickBonus);
     if (this.party.team.some(c => c.isAlive() && c.abilities.includes("empower"))) damage *= EMPOWER_MULTIPLIER;
-    const shadowStrikeActive = (this.activeEffects["skill_shadow_strike"] ?? 0) > Date.now();
+    const shadowStrikeActive = (this.activeEffects["skill_shadow_strike"] ?? 0) > 0;
     if (shadowStrikeActive) damage *= 5;
     const hasLuckyStrike = this.party.team.some(c => c.isAlive() && c.abilities.includes("lucky_strike"));
     const hasEagleEye = this.party.team.some(c => c.isAlive() && c.abilities.includes("eagle_eye"));
@@ -519,6 +517,8 @@ export class GameState {
     if (!(type in PRESTIGE_SHOP_COSTS)) return this.respond();
     if (type === "smart_seller" && !(this.prestigeUpgrades["auto_seller"] > 0)) return this.respond();
     if (type === "party_slot_3" && !(this.prestigeUpgrades["party_slot_2"] > 0)) return this.respond();
+    if (type === "checkpoint_2" && !(this.prestigeUpgrades["checkpoint_1"] > 0)) return this.respond();
+    if (type === "checkpoint_3" && !(this.prestigeUpgrades["checkpoint_2"] > 0)) return this.respond();
     if (type === "party_slot_4") {
       if (!(this.prestigeUpgrades["party_slot_3"] > 0)) return this.respond();
       if (!((this.guildUpgrades["companion_hall"] ?? 0) >= 1)) return this.respond();
@@ -527,7 +527,7 @@ export class GameState {
       if (!(this.prestigeUpgrades["party_slot_4"] > 0)) return this.respond();
       if (!((this.guildUpgrades["companion_hall"] ?? 0) >= 2)) return this.respond();
     }
-    const oneTime = ["auto_seller", "auto_equip", "auto_upgrade", "smart_seller", "party_slot_2", "party_slot_3", "party_slot_4", "party_slot_5"];
+    const oneTime = ["auto_seller", "auto_equip", "auto_upgrade", "smart_seller", "party_slot_2", "party_slot_3", "party_slot_4", "party_slot_5", "checkpoint_1", "checkpoint_2", "checkpoint_3"];
     if (oneTime.includes(type) && (this.prestigeUpgrades[type] ?? 0) >= 1) return this.respond();
     const currentStacks = this.prestigeUpgrades[type] ?? 0;
     const cost = prestigeUpgradeCost(type, currentStacks);
@@ -618,13 +618,14 @@ export class GameState {
     if (!((this.guildUpgrades[skillId] ?? 0) > 0)) return this.respond();
     const def = SKILL_DEFS[skillId];
     if (!def) return this.respond();
-    if (this.party.team[0].characterClass !== def.class) return this.respond();
+    const caster = this.party.team.find(c => c.characterClass === def.class);
+    if (!caster) return this.respond();
     const now = Date.now();
     const lastUsed = this.skillCooldowns[skillId] ?? 0;
     if (now - lastUsed < def.cooldownMs) return this.respond();
     this.skillCooldowns[skillId] = now;
-    this.activeEffects[skillId] = now + def.durationMs;
-    this.addLog(`${this.party.team[0].name} uses ${skillId.replace("skill_", "").replace(/_/g, " ")}!`);
+    this.activeEffects[skillId] = def.durationKills;
+    this.addLog(`${caster.name} uses ${skillId.replace("skill_", "").replace(/_/g, " ")}!`);
     return this.respond();
   }
 
@@ -752,6 +753,10 @@ export class GameState {
 
   /** Handles enemy defeat: awards XP/gold/loot, applies pending party abilities, and advances the floor. */
   onEnemyDeath(): void {
+    for (const key of Object.keys(this.activeEffects)) {
+      this.activeEffects[key] -= 1;
+      if (this.activeEffects[key] <= 0) delete this.activeEffects[key];
+    }
     const name = this.enemy.name;
     this.lifetimeEnemyKills[name] = (this.lifetimeEnemyKills[name] ?? 0) + 1;
     const xp = this.enemy.xp_reward;
@@ -795,7 +800,14 @@ export class GameState {
         this.highestLevel = this.dungeonLevel;
         this.syncSmartSeller();
       }
-      if (this.dungeonLevel % 10 === 0) {
+      const cp3 = (this.prestigeUpgrades["checkpoint_3"] ?? 0) > 0;
+      const cp2 = (this.prestigeUpgrades["checkpoint_2"] ?? 0) > 0;
+      const cp1 = (this.prestigeUpgrades["checkpoint_1"] ?? 0) > 0;
+      const isCheckpoint = cp3 ? (this.dungeonLevel % 5 === 0)
+        : cp2 ? (this.dungeonLevel % 10 === 0)
+        : cp1 ? (this.dungeonLevel === 15)
+        : false;
+      if (isCheckpoint) {
         this.checkpointLevel = this.dungeonLevel;
         this.addLog(`⚑ Checkpoint! Respawn set to floor ${this.checkpointLevel}.`);
       }

@@ -1858,29 +1858,34 @@ describe("checkpoint system", () => {
     expect(make().checkpointLevel).toBe(1);
   });
 
-  it("checkpoint updates to dungeonLevel when a multiple-of-10 floor is entered", () => {
+  it("checkpoint updates to dungeonLevel when a multiple-of-10 floor is entered (with checkpoint_2)", () => {
     const gs = make();
+    gs.prestigeUpgrades["checkpoint_1"] = 1;
+    gs.prestigeUpgrades["checkpoint_2"] = 1;
     killBossAtLevel(gs, 9); // boss on floor 9 → enter floor 10
     expect(gs.checkpointLevel).toBe(10);
   });
 
-  it("checkpoint updates at 20 and 30", () => {
+  it("checkpoint updates at 20 and 30 (with checkpoint_2)", () => {
     const gs = make();
+    gs.prestigeUpgrades["checkpoint_1"] = 1;
+    gs.prestigeUpgrades["checkpoint_2"] = 1;
     killBossAtLevel(gs, 19);
     expect(gs.checkpointLevel).toBe(20);
     killBossAtLevel(gs, 29);
     expect(gs.checkpointLevel).toBe(30);
   });
 
-  it("checkpoint does NOT update on non-multiple floors", () => {
+  it("checkpoint does NOT update without prestige upgrade", () => {
     const gs = make();
-    killBossAtLevel(gs, 5); // floor 6
-    killBossAtLevel(gs, 13); // floor 14
+    killBossAtLevel(gs, 9); // floor 10 — no upgrade, no checkpoint
     expect(gs.checkpointLevel).toBe(1);
   });
 
   it("death respawns at checkpointLevel", () => {
     const gs = make();
+    gs.prestigeUpgrades["checkpoint_1"] = 1;
+    gs.prestigeUpgrades["checkpoint_2"] = 1;
     killBossAtLevel(gs, 9); // set checkpoint to 10
     gs.onPlayerDeath();
     expect(gs.dungeonLevel).toBe(10);
@@ -1896,6 +1901,8 @@ describe("checkpoint system", () => {
 
   it("prestige resets checkpointLevel to 1", () => {
     const gs = withHighLevel(20);
+    gs.prestigeUpgrades["checkpoint_1"] = 1;
+    gs.prestigeUpgrades["checkpoint_2"] = 1;
     killBossAtLevel(gs, 9);
     expect(gs.checkpointLevel).toBe(10);
     gs.prestige();
@@ -1904,6 +1911,8 @@ describe("checkpoint system", () => {
 
   it("checkpoint_level round-trips through toDict/fromDict", () => {
     const gs = make();
+    gs.prestigeUpgrades["checkpoint_1"] = 1;
+    gs.prestigeUpgrades["checkpoint_2"] = 1;
     killBossAtLevel(gs, 9);
     expect(gs.checkpointLevel).toBe(10);
     const restored = GameState.fromDict(gs.toDict());
@@ -2141,7 +2150,7 @@ describe("guild hall", () => {
   });
 
   // ── activateSkill ────────────────────────────────────────────────
-  it("activateSkill sets cooldown and active effect", () => {
+  it("activateSkill sets cooldown and active effect (kill-based)", () => {
     const gs = withGuildGold();
     gs.guildUpgrades["skill_battle_cry"] = 1;
     gs.party.team[0] = new Character("Hero", "fighter", 1);
@@ -2149,7 +2158,19 @@ describe("guild hall", () => {
     gs.activateSkill("skill_battle_cry");
     const def = SKILL_DEFS["skill_battle_cry"];
     expect(gs.skillCooldowns["skill_battle_cry"]).toBeGreaterThanOrEqual(before);
-    expect(gs.activeEffects["skill_battle_cry"]).toBeGreaterThan(before + def.durationMs - 100);
+    expect(gs.activeEffects["skill_battle_cry"]).toBe(def.durationKills);
+  });
+
+  it("activateSkill works when a companion has the matching class", () => {
+    const gs = withGuildGold();
+    gs.guildUpgrades["skill_battle_cry"] = 1;
+    // Lead is rogue, companion is fighter — skill should still activate
+    gs.party.team[0] = new Character("Hero", "rogue", 1);
+    const fighter = new Character("Tank", "fighter", 1);
+    gs.party.team.push(fighter);
+    gs.upgrades["Tank"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+    gs.activateSkill("skill_battle_cry");
+    expect(gs.activeEffects["skill_battle_cry"]).toBe(SKILL_DEFS["skill_battle_cry"].durationKills);
   });
 
   it("activateSkill fails when skill not purchased", () => {
@@ -2159,12 +2180,28 @@ describe("guild hall", () => {
     expect(gs.skillCooldowns["skill_battle_cry"]).toBeUndefined();
   });
 
-  it("activateSkill fails when lead is wrong class", () => {
+  it("activateSkill fails when no party member has the matching class", () => {
     const gs = make();
     gs.guildUpgrades["skill_battle_cry"] = 1;
     gs.party.team[0] = new Character("Hero", "rogue", 1);
     gs.activateSkill("skill_battle_cry");
     expect(gs.skillCooldowns["skill_battle_cry"]).toBeUndefined();
+  });
+
+  it("active skill decrements by 1 on each enemy kill", () => {
+    const gs = make();
+    gs.activeEffects["skill_battle_cry"] = 3;
+    gs.enemy.hp = 0;
+    gs.tick(0.1);
+    expect(gs.activeEffects["skill_battle_cry"]).toBe(2);
+  });
+
+  it("active skill expires after durationKills kills", () => {
+    const gs = make();
+    gs.activeEffects["skill_battle_cry"] = 1;
+    gs.enemy.hp = 0;
+    gs.tick(0.1);
+    expect(gs.activeEffects["skill_battle_cry"]).toBeUndefined();
   });
 
   it("activateSkill fails when on cooldown", () => {
@@ -2183,7 +2220,7 @@ describe("guild hall", () => {
     const gs = make();
     gs.guildUpgrades["skill_battle_cry"] = 1;
     gs.party.team[0].equipItem(sword);
-    gs.activeEffects["skill_battle_cry"] = Date.now() + 15_000;
+    gs.activeEffects["skill_battle_cry"] = 5;
 
     const gs2 = make();
     gs2.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "common", "valor"));
@@ -2199,7 +2236,7 @@ describe("guild hall", () => {
     const gs = make();
     gs.guildUpgrades["skill_shadow_strike"] = 1;
     gs.party.team[0] = new Character("Hero", "rogue", 1);
-    gs.activeEffects["skill_shadow_strike"] = Date.now() + 8_000;
+    gs.activeEffects["skill_shadow_strike"] = 3;
     gs.enemy.hp = 99_999;
     const stateBefore = JSON.parse(gs.click());
     const dmgDealt = 99_999 - stateBefore.enemy.hp;
@@ -2466,5 +2503,58 @@ describe("companion_skills_available", () => {
     gs.guildUpgrades["skill_shadow_strike"] = 1;
     const d = JSON.parse(gs.respond());
     expect(d.companion_skills_available.filter((s: string) => s === "skill_shadow_strike").length).toBe(1);
+  });
+});
+
+describe("checkpoint prestige upgrades", () => {
+  function killBoss(gs: GameState, level: number): void {
+    gs.dungeonLevel = level;
+    gs.enemy = { name: "Boss", level, hp: 0, max_hp: 1, xp_reward: 1, gold_reward: 1, attack_dps: 0, isBoss: true };
+    gs.onEnemyDeath();
+  }
+
+  it("no checkpoint without upgrade when boss dies at floor 9 (→ 10)", () => {
+    const gs = make();
+    killBoss(gs, 9);
+    expect(gs.checkpointLevel).toBe(1);
+  });
+
+  it("checkpoint_1 sets checkpoint at floor 15", () => {
+    const gs = make();
+    gs.prestigeUpgrades["checkpoint_1"] = 1;
+    killBoss(gs, 14); // boss on 14 → advance to 15
+    expect(gs.checkpointLevel).toBe(15);
+  });
+
+  it("checkpoint_1 does not trigger when advancing to floor 20", () => {
+    const gs = make();
+    gs.prestigeUpgrades["checkpoint_1"] = 1;
+    killBoss(gs, 19); // advances to 20 — not floor 15
+    expect(gs.checkpointLevel).toBe(1);
+  });
+
+  it("checkpoint_2 sets checkpoint every 10 floors", () => {
+    const gs = make();
+    gs.prestigeUpgrades["checkpoint_1"] = 1;
+    gs.prestigeUpgrades["checkpoint_2"] = 1;
+    killBoss(gs, 19); // → floor 20
+    expect(gs.checkpointLevel).toBe(20);
+  });
+
+  it("checkpoint_3 sets checkpoint every 5 floors", () => {
+    const gs = make();
+    gs.prestigeUpgrades["checkpoint_1"] = 1;
+    gs.prestigeUpgrades["checkpoint_2"] = 1;
+    gs.prestigeUpgrades["checkpoint_3"] = 1;
+    killBoss(gs, 24); // → floor 25
+    expect(gs.checkpointLevel).toBe(25);
+  });
+
+  it("checkpoint_2 does not trigger at non-10 multiples (floor 15)", () => {
+    const gs = make();
+    gs.prestigeUpgrades["checkpoint_1"] = 1;
+    gs.prestigeUpgrades["checkpoint_2"] = 1;
+    killBoss(gs, 14); // → floor 15, not a multiple of 10
+    expect(gs.checkpointLevel).toBe(1);
   });
 });

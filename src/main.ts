@@ -469,6 +469,9 @@ const PRESTIGE_SHOP_META: Record<string, { icon: string; name: string; desc: str
   party_slot_5:  { icon: "👥", name: "Party Slot V",   desc: "Add a 5th member. Requires Slot IV + Companion Hall II.", max: 1, guildReq: 2 },
   starting_gold: { icon: "💰", name: "Starting Gold",  desc: "+250g at the start of each run.", max: Infinity },
   xp_bonus:      { icon: "✨", name: "XP Bonus",       desc: "+10% XP gain for all party members.", max: Infinity },
+  checkpoint_1:  { icon: "⚑", name: "Checkpoint I",   desc: "Set a respawn checkpoint at floor 15.", max: 1 },
+  checkpoint_2:  { icon: "⚑", name: "Checkpoint II",  desc: "Respawn checkpoint every 10 floors. Requires Checkpoint I.", max: 1 },
+  checkpoint_3:  { icon: "⚑", name: "Checkpoint III", desc: "Respawn checkpoint every 5 floors. Requires Checkpoint II.", max: 1 },
 };
 
 /** Builds the HTML for quality-tier auto-sell checkboxes shown beneath the loot chest. */
@@ -505,7 +508,9 @@ function renderPrestigeShop(state: GameStateDict): void {
     const prereqMissing = (type === "smart_seller" && !(ups["auto_seller"] > 0))
       || (type === "party_slot_3" && !(ups["party_slot_2"] > 0))
       || (type === "party_slot_4" && !(ups["party_slot_3"] > 0))
-      || (type === "party_slot_5" && !(ups["party_slot_4"] > 0));
+      || (type === "party_slot_5" && !(ups["party_slot_4"] > 0))
+      || (type === "checkpoint_2" && !(ups["checkpoint_1"] > 0))
+      || (type === "checkpoint_3" && !(ups["checkpoint_2"] > 0));
     const canAfford = pts >= cost;
     const disabled = atMax || prereqMissing || !canAfford;
     const ownedLabel = atMax ? " ✓" : owned > 0 ? ` (${owned})` : "";
@@ -599,7 +604,7 @@ function renderSkillButton(state: GameStateDict): void {
   const lastUsed = state.skill_cooldowns[skillId] ?? 0;
   const expiry = state.active_effects[skillId] ?? 0;
   const cooldownMs = SKILL_COOLDOWNS[skillId] ?? 60_000;
-  const isActive = expiry > now;
+  const isActive = expiry > 0;
   const elapsed = now - lastUsed;
   const onCooldown = lastUsed > 0 && elapsed < cooldownMs && !isActive;
 
@@ -633,7 +638,7 @@ function renderCompanionSkills(state: GameStateDict): void {
     const lastUsed = state.skill_cooldowns[skillId] ?? 0;
     const expiry = state.active_effects[skillId] ?? 0;
     const cooldownMs = SKILL_COOLDOWNS[skillId] ?? 60_000;
-    const isActive = expiry > now;
+    const isActive = expiry > 0;
     const elapsed = now - lastUsed;
     const onCooldown = lastUsed > 0 && elapsed < cooldownMs && !isActive;
     const pct = onCooldown ? Math.min(100, (elapsed / cooldownMs) * 100) : 0;
@@ -696,7 +701,9 @@ function updateShopBadge(state: GameStateDict): void {
     const owned = ups[type] ?? 0;
     const atMax = owned >= (PRESTIGE_SHOP_META[type]?.max ?? 1);
     const prereqMissing = (type === "smart_seller" && !(ups["auto_seller"] > 0))
-      || (type === "party_slot_3" && !(ups["party_slot_2"] > 0));
+      || (type === "party_slot_3" && !(ups["party_slot_2"] > 0))
+      || (type === "checkpoint_2" && !(ups["checkpoint_1"] > 0))
+      || (type === "checkpoint_3" && !(ups["checkpoint_2"] > 0));
     const cost = prestigeUpgradeCost(type, owned);
     return !atMax && !prereqMissing && state.prestige_points >= cost;
   });
