@@ -886,10 +886,14 @@ export class GameState {
 
   /** Sells all loot items matching the auto-sell quality list, skipping items that are upgrades. */
   private runAutoSeller(): void {
-    if (!(this.prestigeUpgrades["auto_seller"] > 0) || this.autoSellQualities.length === 0) return;
-    const toSell = this.lootPool.filter(
-      item => this.autoSellQualities.includes(item.quality) && !this.isUpgradeForAnyMember(item)
-    );
+    if (!(this.prestigeUpgrades["auto_seller"] > 0)) return;
+    const smartFull = (this.prestigeUpgrades["smart_seller"] ?? 0) > 0 && this.lootPool.length >= this.lootMax;
+    if (this.autoSellQualities.length === 0 && !smartFull) return;
+    const toSell = this.lootPool.filter(item => {
+      if (this.isUpgradeForAnyMember(item)) return false;
+      if (this.autoSellQualities.includes(item.quality)) return true;
+      return smartFull; // chest full + smart seller: clear non-upgrades regardless of quality
+    });
     if (toSell.length === 0) return;
     const gold = toSell.reduce((sum, item) => sum + item.sellValue, 0);
     this.gold += gold;

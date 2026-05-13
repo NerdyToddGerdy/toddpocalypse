@@ -1254,6 +1254,42 @@ describe("prestige shop", () => {
     expect(gs.autoSellQualities).toContain("worn");
   });
 
+  it("smart_seller sells non-upgrades when chest is full", () => {
+    const gs = withPrestige(10);
+    gs.buyPrestigeUpgrade("auto_seller");
+    gs.buyPrestigeUpgrade("smart_seller");
+    gs.autoSellQualities = []; // no quality tiers checked
+    // Equip the lead with legendary gear in every slot so nothing in the pool is an upgrade
+    const lead = gs.party.team[0];
+    for (const slot of Object.keys(lead.inventory.slots)) {
+      lead.inventory.slots[slot as Slot] = new GearItem(slot as Slot, "sword", "legendary", "valor");
+    }
+    // Fill chest to max with weak items
+    gs.lootPool = [];
+    for (let i = 0; i < gs.lootMax; i++) {
+      gs.lootPool.push(new GearItem("main_hand" as Slot, "sword", "broken", "rusty"));
+    }
+    const goldBefore = gs.gold;
+    gs.onEnemyDeath();
+    expect(gs.lootPool.length).toBeLessThan(gs.lootMax);
+    expect(gs.gold).toBeGreaterThan(goldBefore);
+  });
+
+  it("smart_seller does NOT sell non-upgrades when chest is not full", () => {
+    const gs = withPrestige(10);
+    gs.buyPrestigeUpgrade("auto_seller");
+    gs.buyPrestigeUpgrade("smart_seller");
+    gs.autoSellQualities = [];
+    const lead = gs.party.team[0];
+    for (const slot of Object.keys(lead.inventory.slots)) {
+      lead.inventory.slots[slot as Slot] = new GearItem(slot as Slot, "sword", "legendary", "valor");
+    }
+    const weakItem = new GearItem("main_hand" as Slot, "sword", "broken", "rusty");
+    gs.lootPool = [weakItem]; // 1 item — chest not full
+    gs.onEnemyDeath();
+    expect(gs.lootPool).toContain(weakItem); // item kept since chest wasn't full
+  });
+
   it("starting_gold is stackable", () => {
     const gs = withPrestige(5);
     gs.buyPrestigeUpgrade("starting_gold"); gs.buyPrestigeUpgrade("starting_gold");

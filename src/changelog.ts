@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.64";
+export const VERSION = "v2.6.65";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.65",
+    date: "2026-05-13",
+    changes: [
+      "Smart Seller now clears non-upgrade items from a full loot chest, regardless of quality tier",
+    ],
+  },
   {
     version: "v2.6.64",
     date: "2026-05-13",
