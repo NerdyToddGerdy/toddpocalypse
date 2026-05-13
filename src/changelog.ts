@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.44";
+export const VERSION = "v2.6.45";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.45",
+    date: "2026-05-13",
+    changes: [
+      "Guild tab hidden until floor 10; Prestige tab hidden until floor 20 (both unlock permanently via lifetime best level)",
+    ],
+  },
   {
     version: "v2.6.44",
     date: "2026-05-13",

@@ -65,6 +65,9 @@ export const EMPOWER_MULTIPLIER = 2;
 /** Minimum dungeon floor (highest_level) required to trigger a prestige. */
 export const PRESTIGE_UNLOCK_LEVEL = 20;
 
+/** Minimum lifetime best level required to unlock the Guild Hall tab. */
+export const GUILD_UNLOCK_LEVEL = 10;
+
 /** Minimum dungeon floor (highest_level) required to venture to the next dungeon. */
 export const VENTURE_UNLOCK_LEVEL = 40;
 

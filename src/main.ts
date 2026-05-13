@@ -1,4 +1,4 @@
-import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, GUILD_HALL_COSTS, SKILL_DEFS, prestigeUpgradeCost } from "./engine.js";
+import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, PRESTIGE_UNLOCK_LEVEL, GUILD_UNLOCK_LEVEL, GUILD_HALL_COSTS, SKILL_DEFS, prestigeUpgradeCost } from "./engine.js";
 import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, type GearStats, type GearItemDict } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
@@ -170,14 +170,28 @@ function render(state: GameStateDict): void {
   updateVentureButton(state);
   updateLifetimeStats(state);
   updateShopBadge(state);
-  updatePrestigePanelVisibility(state);
+  updateTabVisibility(state);
 }
 
-/** Hides the Prestige panel until the player has reached floor 20 or has prestiged before. */
-function updatePrestigePanelVisibility(state: GameStateDict): void {
-  const prestigeUnlocked = state.highest_level >= 20 || state.total_prestiges > 0;
-  const panel = document.getElementById("prestige-panel");
-  if (panel) panel.classList.toggle("prestige-locked", !prestigeUnlocked);
+let tabVisKey = "";
+/** Hides the Prestige and Guild tabs until the player has reached the unlock thresholds. */
+function updateTabVisibility(state: GameStateDict): void {
+  const lifetime = state.lifetime_best_level;
+  const prestigeUnlocked = lifetime >= PRESTIGE_UNLOCK_LEVEL || state.total_prestiges > 0;
+  const guildUnlocked    = lifetime >= GUILD_UNLOCK_LEVEL;
+  const newKey = `${prestigeUnlocked}|${guildUnlocked}`;
+  if (newKey === tabVisKey) return;
+  tabVisKey = newKey;
+
+  // Sidebar tabs
+  const stabPrestige = document.querySelector<HTMLElement>(".stab-btn[data-stab='prestige']");
+  const stabGuild    = document.querySelector<HTMLElement>(".stab-btn[data-stab='guild']");
+  if (stabPrestige) stabPrestige.hidden = !prestigeUnlocked;
+  if (stabGuild)    stabGuild.hidden    = !guildUnlocked;
+
+  // Mobile tabs
+  const mobileGuild = document.querySelector<HTMLElement>(".mobile-tab-btn[data-tab='guild']");
+  if (mobileGuild) mobileGuild.hidden = !guildUnlocked;
 }
 
 /** Renders the kill-progress pips, boss indicator text, and checkpoint label below the enemy panel. */
