@@ -164,7 +164,7 @@ describe("tick", () => {
     expect(player.health).toBe(player.maxHealth);
   });
 
-  it("boss kill fully heals party", () => {
+  it("boss kill partially heals party (same as regular enemy)", () => {
     const gs = make();
     const player = gs.party.team[0];
     player.equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
@@ -172,7 +172,8 @@ describe("tick", () => {
     gs.enemy = { name: "Boss", level: 1, hp: 0, max_hp: 1, xp_reward: 1, gold_reward: 1, attack_dps: 0, isBoss: true };
     gs.dungeonLevel = 1;
     gs.onEnemyDeath();
-    expect(player.health).toBe(player.maxHealth);
+    const expected = Math.min(player.maxHealth, 1 + (player.maxHealth - 1) * COMBAT_HEAL_FRACTION);
+    expect(player.health).toBeCloseTo(expected, 1);
   });
 
   it("level-up fully heals the character", () => {

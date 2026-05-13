@@ -817,7 +817,6 @@ export class GameState {
         this.checkpointLevel = this.dungeonLevel;
         this.addLog(`⚑ Checkpoint! Respawn set to floor ${this.checkpointLevel}.`);
       }
-      for (const c of this.party.team) c.health = c.maxHealth;
       this.addLog(`Descending to level ${this.dungeonLevel}!`);
       this.enemy = generateEnemy(this.dungeonLevel, this.dungeonIndex);
     } else {
