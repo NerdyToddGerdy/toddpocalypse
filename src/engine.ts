@@ -797,6 +797,7 @@ export class GameState {
       }
     }
 
+    this.runAutoSeller(); // sell existing loot before new drops land
     const partyGoldBonus = this.party.team.reduce((s, c) => s + c.goldBonus, 0);
     if (this.enemy.isBoss) {
       this.gold += this.enemy.gold_reward * (1 + partyGoldBonus);
@@ -844,7 +845,6 @@ export class GameState {
       }
     }
     this.runAutoEquip();
-    this.runAutoSeller();
     this.runAutoUpgrade();
   }
 
