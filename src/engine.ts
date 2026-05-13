@@ -65,8 +65,6 @@ export const EMPOWER_MULTIPLIER = 2;
 /** Minimum dungeon floor (highest_level) required to trigger a prestige. */
 export const PRESTIGE_UNLOCK_LEVEL = 20;
 
-/** Minimum lifetime best level required to unlock the Guild Hall tab. */
-export const GUILD_UNLOCK_LEVEL = 10;
 
 /** Minimum dungeon floor (highest_level) required to venture to the next dungeon. */
 export const VENTURE_UNLOCK_LEVEL = 40;
@@ -76,6 +74,7 @@ export const IDLE_GOLD_RATE = 0.01;
 
 /** Prestige point cost for each prestige shop item (one-time purchases use a flat cost). */
 export const PRESTIGE_SHOP_COSTS: Record<string, number> = {
+  guild_hall_access: 5,
   auto_seller: 1,
   auto_equip: 2,
   auto_upgrade: 2,
@@ -533,7 +532,7 @@ export class GameState {
       if (!(this.prestigeUpgrades["party_slot_4"] > 0)) return this.respond();
       if (!((this.guildUpgrades["companion_hall"] ?? 0) >= 2)) return this.respond();
     }
-    const oneTime = ["auto_seller", "auto_equip", "auto_upgrade", "smart_seller", "party_slot_2", "party_slot_3", "party_slot_4", "party_slot_5", "checkpoint_1", "checkpoint_2", "checkpoint_3"];
+    const oneTime = ["guild_hall_access", "auto_seller", "auto_equip", "auto_upgrade", "smart_seller", "party_slot_2", "party_slot_3", "party_slot_4", "party_slot_5", "checkpoint_1", "checkpoint_2", "checkpoint_3"];
     if (oneTime.includes(type) && (this.prestigeUpgrades[type] ?? 0) >= 1) return this.respond();
     const currentStacks = this.prestigeUpgrades[type] ?? 0;
     const cost = prestigeUpgradeCost(type, currentStacks);

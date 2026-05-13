@@ -1,4 +1,4 @@
-import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, PRESTIGE_UNLOCK_LEVEL, GUILD_UNLOCK_LEVEL, GUILD_HALL_COSTS, SKILL_DEFS, prestigeUpgradeCost } from "./engine.js";
+import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, SKILL_DEFS, prestigeUpgradeCost } from "./engine.js";
 import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, type GearStats, type GearItemDict } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
@@ -176,9 +176,12 @@ function render(state: GameStateDict): void {
 let tabVisKey = "";
 /** Hides the Prestige and Guild tabs until the player has reached the unlock thresholds. */
 function updateTabVisibility(state: GameStateDict): void {
-  const lifetime = state.lifetime_best_level;
-  const prestigeUnlocked = lifetime >= PRESTIGE_UNLOCK_LEVEL || state.total_prestiges > 0;
-  const guildUnlocked    = lifetime >= GUILD_UNLOCK_LEVEL;
+  const ups = state.prestige_upgrades as Record<string, number>;
+  const guildUpgrades = state.guild_upgrades as Record<string, number>;
+  const prestigeUnlocked = state.lifetime_best_level >= PRESTIGE_UNLOCK_LEVEL || state.total_prestiges > 0;
+  // unlocked by prestige purchase, or already has guild items (backward compat for existing saves)
+  const guildUnlocked = (ups["guild_hall_access"] ?? 0) > 0
+    || Object.values(guildUpgrades).some(v => v > 0);
   const newKey = `${prestigeUnlocked}|${guildUnlocked}`;
   if (newKey === tabVisKey) return;
   tabVisKey = newKey;
@@ -473,6 +476,7 @@ function renderUpgrades(state: GameStateDict): void {
 }
 
 const PRESTIGE_SHOP_META: Record<string, { icon: string; name: string; desc: string; max: number; guildReq?: number }> = {
+  guild_hall_access: { icon: "⚔", name: "Guild Hall",    desc: "Unlocks the Guild Hall — hire companions, learn skills, and expand your party.", max: 1 },
   auto_seller:   { icon: "🤖", name: "Auto Seller",    desc: "Auto-sells checked quality tiers after each kill.", max: 1 },
   auto_equip:    { icon: "⚔", name: "Auto Equip",     desc: "Automatically equips loot upgrades after each kill.", max: 1 },
   auto_upgrade:  { icon: "📈", name: "Auto Upgrade",   desc: "Automatically buys the cheapest affordable stat upgrade after each kill.", max: 1 },
