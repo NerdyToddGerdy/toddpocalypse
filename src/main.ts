@@ -1408,8 +1408,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (state.skill_available) call("activateSkill", state.skill_available);
     }
     else if (action === "activate-companion-skill") {
-      const skillId = (target as HTMLElement).dataset.skill;
-      if (skillId) call("activateSkill", skillId);
+      if (btn.dataset.skill) call("activateSkill", btn.dataset.skill);
     }
     else if (action === "venture") {
       if (confirm("Venture to a new dungeon? Your companions will stay behind and earn gold. You start fresh with just your class.")) {
