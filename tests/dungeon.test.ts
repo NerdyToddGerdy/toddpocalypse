@@ -58,6 +58,36 @@ describe("generateEnemy", () => {
   it("isBoss is false", () => {
     expect(generateEnemy(1).isBoss).toBe(false);
   });
+
+  it("dungeonIndex=0 behaves identically to no second arg", () => {
+    // attack_dps is deterministic — safe to compare
+    expect(generateEnemy(5, 0).attack_dps).toBe(generateEnemy(5).attack_dps);
+  });
+
+  it("dungeonIndex increases attack_dps by 25% per index", () => {
+    const base = generateEnemy(10, 0).attack_dps;
+    expect(generateEnemy(10, 1).attack_dps).toBeCloseTo(base * 1.25, 5);
+    expect(generateEnemy(10, 2).attack_dps).toBeCloseTo(base * 1.50, 5);
+  });
+
+  it("dungeonIndex=1 produces higher attack_dps than dungeonIndex=0 at same level", () => {
+    // attack_dps is deterministic — no random variance
+    for (let lvl = 1; lvl <= 10; lvl++) {
+      expect(generateEnemy(lvl, 1).attack_dps).toBeGreaterThan(generateEnemy(lvl, 0).attack_dps);
+    }
+  });
+
+  it("dungeonIndex=1 produces higher max_hp at levels where ranges cannot overlap", () => {
+    // At level 8+, the 25% multiplier exceeds the randInt(0, level*2) variance
+    for (let lvl = 8; lvl <= 15; lvl++) {
+      expect(generateEnemy(lvl, 1).max_hp).toBeGreaterThan(generateEnemy(lvl, 0).max_hp);
+    }
+  });
+
+  it("dungeonIndex scales gold_reward upward", () => {
+    // gold has randomness — test that idx=2 gives more than idx=0 at a high level
+    expect(generateEnemy(15, 2).gold_reward).toBeGreaterThan(generateEnemy(15, 0).gold_reward);
+  });
 });
 
 describe("generateBoss", () => {
@@ -102,6 +132,22 @@ describe("generateBoss", () => {
 
   it("scales with dungeon level", () => {
     expect(generateBoss(10).max_hp).toBeGreaterThan(generateBoss(1).max_hp);
+  });
+
+  it("dungeonIndex increases boss HP with each successive dungeon", () => {
+    const [h0, h1, h2] = [0, 1, 2].map(i => generateBoss(5, i).max_hp);
+    expect(h1).toBeGreaterThan(h0);
+    expect(h2).toBeGreaterThan(h1);
+  });
+
+  it("dungeonIndex increases boss attack_dps with each successive dungeon", () => {
+    const [a0, a1, a2] = [0, 1, 2].map(i => generateBoss(5, i).attack_dps);
+    expect(a1).toBeGreaterThan(a0);
+    expect(a2).toBeGreaterThan(a1);
+  });
+
+  it("dungeonIndex=0 is backward compatible", () => {
+    expect(generateBoss(5, 0).max_hp).toBe(generateBoss(5).max_hp);
   });
 });
 

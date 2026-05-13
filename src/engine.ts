@@ -223,7 +223,7 @@ export class GameState {
   constructor(name = "Hero", characterClass = "fighter") {
     this.party = new Party();
     this.party.addPlayer(new Character(name, characterClass, 1));
-    this.enemy = generateEnemy(this.dungeonLevel);
+    this.enemy = generateEnemy(this.dungeonLevel, this.dungeonIndex);
     for (const c of this.party.team) {
       this.upgrades[c.name] = { dps: 0, xp: 0, click: 0, hp: 0 };
     }
@@ -437,7 +437,7 @@ export class GameState {
     this.checkpointLevel = 1;
     this.lootPool = [];
     this.log = [];
-    this.enemy = generateEnemy(1);
+    this.enemy = generateEnemy(1, this.dungeonIndex);
 
     this.addLog(`Ventured to dungeon ${this.dungeonIndex + 1}! Total idle: ${this.idleGoldRate.toFixed(1)} gold/sec.`);
     return this.respond();
@@ -466,7 +466,7 @@ export class GameState {
     this.autoSellQualities = [];
     this.lootPool = [];
     this.log = [];
-    this.enemy = generateEnemy(1);
+    this.enemy = generateEnemy(1, this.dungeonIndex);
     this.skillCooldowns = {};
     this.activeEffects = {};
 
@@ -765,7 +765,8 @@ export class GameState {
     if (this.enemy.isBoss) {
       this.gold += this.enemy.gold_reward * (1 + partyGoldBonus);
       if (this.lootPool.length < this.lootMax) {
-        const drop = getItem(undefined, this.dungeonLevel);
+        const effectiveLevel = this.dungeonLevel + this.dungeonIndex * 5;
+        const drop = getItem(undefined, effectiveLevel);
         this.lootPool.push(drop);
         this.addLog(`Dropped: ${drop.getName()}!`);
       }
@@ -780,10 +781,12 @@ export class GameState {
         this.addLog(`⚑ Checkpoint! Respawn set to floor ${this.checkpointLevel}.`);
       }
       this.addLog(`Descending to level ${this.dungeonLevel}!`);
-      this.enemy = generateEnemy(this.dungeonLevel);
+      this.enemy = generateEnemy(this.dungeonLevel, this.dungeonIndex);
     } else {
-      if (Math.random() < DROP_CHANCE && this.lootPool.length < this.lootMax) {
-        const drop = getItem(undefined, this.dungeonLevel);
+      const dropChance = Math.min(0.75, DROP_CHANCE + this.dungeonIndex * 0.05);
+      if (Math.random() < dropChance && this.lootPool.length < this.lootMax) {
+        const effectiveLevel = this.dungeonLevel + this.dungeonIndex * 5;
+        const drop = getItem(undefined, effectiveLevel);
         this.lootPool.push(drop);
         this.addLog(`Dropped: ${drop.getName()}!`);
       }
@@ -792,9 +795,9 @@ export class GameState {
       if (this.floorKills >= killsForFloor(this.dungeonLevel)) {
         this.floorKills = 0;
         this.addLog(`Floor ${this.dungeonLevel} cleared! Boss incoming!`);
-        this.enemy = generateBoss(this.dungeonLevel);
+        this.enemy = generateBoss(this.dungeonLevel, this.dungeonIndex);
       } else {
-        this.enemy = generateEnemy(this.dungeonLevel);
+        this.enemy = generateEnemy(this.dungeonLevel, this.dungeonIndex);
       }
     }
     this.runAutoEquip();

@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.35";
+export const VERSION = "v2.6.36";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.36",
+    date: "2026-05-12",
+    changes: [
+      "Each dungeon beyond the first scales enemies +25% HP and attack per dungeon",
+      "Loot quality improves with dungeon depth (+5 effective levels per dungeon)",
+      "Drop rate increases by 5% per dungeon (capped at 75%)",
+    ],
+  },
   {
     version: "v2.6.35",
     date: "2026-05-12",
