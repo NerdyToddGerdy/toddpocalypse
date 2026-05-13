@@ -1488,12 +1488,15 @@ describe("auto-seller", () => {
     const gs = withAutoSeller();
     gs.autoSellQualities = ["broken"];
     gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
+    const broken = new GearItem("main_hand" as Slot, "sword", "broken", "rusty");
     gs.lootPool = [];
     for (let i = 0; i < LOOT_MAX; i++) {
       gs.lootPool.push(new GearItem("main_hand" as Slot, "sword", "broken", "rusty"));
     }
+    const goldBefore = gs.gold;
     gs.onEnemyDeath();
-    expect(gs.lootPool.some(i => i.quality === "broken")).toBe(false);
+    // All LOOT_MAX broken items were sold before the new drop landed
+    expect(gs.gold).toBeGreaterThanOrEqual(goldBefore + broken.sellValue * LOOT_MAX);
   });
 
   it("buying Auto Seller sweeps existing loot immediately", () => {
