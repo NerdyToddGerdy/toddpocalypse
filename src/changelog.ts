@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.39";
+export const VERSION = "v2.6.40";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.40",
+    date: "2026-05-12",
+    changes: [
+      "Fix: Guild Hall buttons no longer flash or block clicks (DOM was rebuilding every tick due to gold changing)",
+    ],
+  },
   {
     version: "v2.6.39",
     date: "2026-05-12",

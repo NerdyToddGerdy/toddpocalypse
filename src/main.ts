@@ -535,11 +535,17 @@ function updateVentureButton(state: GameStateDict): void {
 
 /** Renders Guild Hall upgrade cards with current stack count, gold cost, and description. */
 function renderGuildHall(state: GameStateDict): void {
-  const newKey = JSON.stringify(state.guild_upgrades) + "|" + Math.floor(state.gold);
+  const owned = state.guild_upgrades as Record<string, number>;
+  const affordKey = Object.keys(GUILD_HALL_META).map(type => {
+    const stacks = owned[type] ?? 0;
+    const costs = GUILD_HALL_COSTS[type];
+    if (stacks >= costs.length) return "max";
+    return state.gold >= costs[stacks] ? "yes" : "no";
+  }).join(",");
+  const newKey = JSON.stringify(state.guild_upgrades) + "|" + affordKey;
   if (newKey === guildKey) return;
   guildKey = newKey;
 
-  const owned = state.guild_upgrades as Record<string, number>;
   $("guild-hall-items").innerHTML = Object.entries(GUILD_HALL_META).map(([type, meta]) => {
     const stacks = owned[type] ?? 0;
     const costs = GUILD_HALL_COSTS[type];
