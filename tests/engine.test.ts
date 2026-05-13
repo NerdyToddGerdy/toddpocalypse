@@ -176,12 +176,17 @@ describe("tick", () => {
     expect(player.health).toBeCloseTo(expected, 1);
   });
 
-  it("level-up fully heals the character", () => {
+  it("level-up restores 50% of missing HP", () => {
     const gs = make();
     const player = gs.party.team[0];
-    player.health = 1;
+    const startHealth = 1;
+    player.health = startHealth;
+    const maxBefore = player.maxHealth;
     player.levelUp();
-    expect(player.health).toBe(player.maxHealth);
+    const newMax = player.maxHealth; // maxHealth increased by HP_PER_LEVEL
+    const expected = Math.min(newMax, startHealth + (newMax - startHealth) * 0.50);
+    expect(player.health).toBeCloseTo(expected, 1);
+    expect(player.health).toBeLessThan(newMax);
   });
 
   it("player death resets dungeon level", () => {

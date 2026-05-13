@@ -145,11 +145,11 @@ describe("xp and leveling", () => {
     expect(c.maxHealth).toBe(before + HP_PER_LEVEL);
   });
 
-  it("level up increases current health by HP_PER_LEVEL", () => {
+  it("level up increases current health by 50% of the HP gained (when at full health)", () => {
     const c = makeChar();
-    const before = c.health;
     c.gainXp(10);
-    expect(c.health).toBe(before + HP_PER_LEVEL);
+    // maxHealth grew by HP_PER_LEVEL; health recovers 50% of that gap
+    expect(c.health).toBeCloseTo(c.maxHealth - HP_PER_LEVEL * 0.50, 1);
   });
 
   it("maxHealth grows with each level", () => {

@@ -82,6 +82,9 @@ const LEVEL_UP: Record<string, LevelUpBonuses> = {
 /** HP gained per character level-up. */
 export const HP_PER_LEVEL = 10;
 
+/** Fraction of missing HP restored on level-up. */
+export const LEVELUP_HEAL_FRACTION = 0.50;
+
 /** Maps a legacy job number (1–3) to a class name string, or null if unknown. */
 export function switchClass(jobNumber: number): string | null {
   return SWITCHER[jobNumber] ?? null;
@@ -224,7 +227,7 @@ export class Character {
     this.clickBonus += bonuses.clickBonus;
     this.xpMultiplier += bonuses.xpMultiplier;
     this.maxHealth += HP_PER_LEVEL;
-    this.health = this.maxHealth;
+    this.health = Math.min(this.maxHealth, this.health + (this.maxHealth - this.health) * LEVELUP_HEAL_FRACTION);
 
     const unlock = CLASS_ABILITIES[this.characterClass]?.find(a => a.level === this.level);
     if (unlock) {
