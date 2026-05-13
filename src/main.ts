@@ -487,9 +487,7 @@ const PRESTIGE_SHOP_META: Record<string, { icon: string; name: string; desc: str
   party_slot_5:  { icon: "👥", name: "Party Slot V",   desc: "Add a 5th member. Requires Slot IV + Companion Hall II.", max: 1, guildReq: 2 },
   starting_gold: { icon: "💰", name: "Starting Gold",  desc: "+250g at the start of each run.", max: Infinity },
   xp_bonus:      { icon: "✨", name: "XP Bonus",       desc: "+10% XP gain for all party members.", max: Infinity },
-  checkpoint_1:  { icon: "⚑", name: "Checkpoint I",   desc: "Set a respawn checkpoint at floor 15.", max: 1 },
-  checkpoint_2:  { icon: "⚑", name: "Checkpoint II",  desc: "Respawn checkpoint every 10 floors. Requires Checkpoint I.", max: 1 },
-  checkpoint_3:  { icon: "⚑", name: "Checkpoint III", desc: "Respawn checkpoint every 5 floors. Requires Checkpoint II.", max: 1 },
+  checkpoint:    { icon: "⚑", name: "Checkpoint",     desc: "Set a respawn point every N floors. Lv1: every 15 · Lv2: every 10 · Lv3: every 5", max: 3 },
 };
 
 /** Builds the HTML for quality-tier auto-sell checkboxes shown beneath the loot chest. */
@@ -542,8 +540,7 @@ function renderPrestigeShop(state: GameStateDict): void {
         || (type === "party_slot_3" && !(ups["party_slot_2"] > 0))
         || (type === "party_slot_4" && !(ups["party_slot_3"] > 0))
         || (type === "party_slot_5" && !(ups["party_slot_4"] > 0))
-        || (type === "checkpoint_2" && !(ups["checkpoint_1"] > 0))
-        || (type === "checkpoint_3" && !(ups["checkpoint_2"] > 0));
+;
       const canAfford = pts >= cost;
       const disabled = atMax || prereqMissing || !canAfford;
       const ownedLabel = atMax ? " ✓" : owned > 0 ? ` (${owned})` : "";

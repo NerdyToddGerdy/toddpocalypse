@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.61";
+export const VERSION = "v2.6.62";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.62",
+    date: "2026-05-13",
+    changes: [
+      "Checkpoint is now a single 3-level prestige upgrade (lv1: every 15 floors · lv2: every 10 · lv3: every 5); existing saves migrate automatically",
+    ],
+  },
   {
     version: "v2.6.61",
     date: "2026-05-13",

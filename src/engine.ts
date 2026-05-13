@@ -85,13 +85,11 @@ export const PRESTIGE_SHOP_COSTS: Record<string, number> = {
   party_slot_5: 5,
   starting_gold: 1,
   xp_bonus: 1,
-  checkpoint_1: 1,
-  checkpoint_2: 2,
-  checkpoint_3: 3,
+  checkpoint: 1,
 };
 
 /** Stackable upgrades whose cost increases by 1 pt per stack already owned. */
-const SCALING_PRESTIGE_UPGRADES = new Set(["starting_gold", "xp_bonus"]);
+const SCALING_PRESTIGE_UPGRADES = new Set(["starting_gold", "xp_bonus", "checkpoint"]);
 
 /** Returns the prestige point cost for the next purchase of a given upgrade type. */
 export function prestigeUpgradeCost(type: string, currentStacks: number): number {
@@ -526,8 +524,7 @@ export class GameState {
     if (!(type in PRESTIGE_SHOP_COSTS)) return this.respond();
     if (type === "smart_seller" && !(this.prestigeUpgrades["auto_seller"] > 0)) return this.respond();
     if (type === "party_slot_3" && !(this.prestigeUpgrades["party_slot_2"] > 0)) return this.respond();
-    if (type === "checkpoint_2" && !(this.prestigeUpgrades["checkpoint_1"] > 0)) return this.respond();
-    if (type === "checkpoint_3" && !(this.prestigeUpgrades["checkpoint_2"] > 0)) return this.respond();
+    if (type === "checkpoint" && (this.prestigeUpgrades["checkpoint"] ?? 0) >= 3) return this.respond();
     if (type === "party_slot_4") {
       if (!(this.prestigeUpgrades["party_slot_3"] > 0)) return this.respond();
       if (!((this.guildUpgrades["companion_hall"] ?? 0) >= 1)) return this.respond();
@@ -536,7 +533,7 @@ export class GameState {
       if (!(this.prestigeUpgrades["party_slot_4"] > 0)) return this.respond();
       if (!((this.guildUpgrades["companion_hall"] ?? 0) >= 2)) return this.respond();
     }
-    const oneTime = ["guild_hall_access", "auto_seller", "auto_equip", "auto_upgrade", "smart_seller", "party_slot_2", "party_slot_3", "party_slot_4", "party_slot_5", "checkpoint_1", "checkpoint_2", "checkpoint_3"];
+    const oneTime = ["guild_hall_access", "auto_seller", "auto_equip", "auto_upgrade", "smart_seller", "party_slot_2", "party_slot_3", "party_slot_4", "party_slot_5"];
     if (oneTime.includes(type) && (this.prestigeUpgrades[type] ?? 0) >= 1) return this.respond();
     const currentStacks = this.prestigeUpgrades[type] ?? 0;
     const cost = prestigeUpgradeCost(type, currentStacks);
@@ -814,13 +811,9 @@ export class GameState {
         this.highestLevel = this.dungeonLevel;
         this.syncSmartSeller();
       }
-      const cp3 = (this.prestigeUpgrades["checkpoint_3"] ?? 0) > 0;
-      const cp2 = (this.prestigeUpgrades["checkpoint_2"] ?? 0) > 0;
-      const cp1 = (this.prestigeUpgrades["checkpoint_1"] ?? 0) > 0;
-      const isCheckpoint = cp3 ? (this.dungeonLevel % 5 === 0)
-        : cp2 ? (this.dungeonLevel % 10 === 0)
-        : cp1 ? (this.dungeonLevel === 15)
-        : false;
+      const cpLevel = this.prestigeUpgrades["checkpoint"] ?? 0;
+      const cpInterval = cpLevel >= 3 ? 5 : cpLevel === 2 ? 10 : cpLevel === 1 ? 15 : 0;
+      const isCheckpoint = cpInterval > 0 && this.dungeonLevel % cpInterval === 0;
       if (isCheckpoint) {
         this.checkpointLevel = this.dungeonLevel;
         this.addLog(`⚑ Checkpoint! Respawn set to floor ${this.checkpointLevel}.`);
@@ -1029,6 +1022,17 @@ export class GameState {
     gs.skillCooldowns = { ...(d.skill_cooldowns ?? {}) };
     gs.activeEffects = { ...(d.active_effects ?? {}) };
     gs.runId = d.run_id ?? crypto.randomUUID();
+
+    // Migrate old checkpoint_1/2/3 one-time upgrades to single leveled checkpoint
+    if (!("checkpoint" in gs.prestigeUpgrades)) {
+      const cp3 = (gs.prestigeUpgrades["checkpoint_3"] ?? 0) > 0;
+      const cp2 = (gs.prestigeUpgrades["checkpoint_2"] ?? 0) > 0;
+      const cp1 = (gs.prestigeUpgrades["checkpoint_1"] ?? 0) > 0;
+      gs.prestigeUpgrades["checkpoint"] = cp3 ? 3 : cp2 ? 2 : cp1 ? 1 : 0;
+      delete gs.prestigeUpgrades["checkpoint_1"];
+      delete gs.prestigeUpgrades["checkpoint_2"];
+      delete gs.prestigeUpgrades["checkpoint_3"];
+    }
 
     gs.enemy = {
       name: d.enemy.name,

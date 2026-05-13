@@ -1910,18 +1910,16 @@ describe("checkpoint system", () => {
     expect(make().checkpointLevel).toBe(1);
   });
 
-  it("checkpoint updates to dungeonLevel when a multiple-of-10 floor is entered (with checkpoint_2)", () => {
+  it("checkpoint updates to dungeonLevel when a multiple-of-10 floor is entered (lv2)", () => {
     const gs = make();
-    gs.prestigeUpgrades["checkpoint_1"] = 1;
-    gs.prestigeUpgrades["checkpoint_2"] = 1;
+    gs.prestigeUpgrades["checkpoint"] = 2;
     killBossAtLevel(gs, 9); // boss on floor 9 → enter floor 10
     expect(gs.checkpointLevel).toBe(10);
   });
 
-  it("checkpoint updates at 20 and 30 (with checkpoint_2)", () => {
+  it("checkpoint updates at 20 and 30 (lv2)", () => {
     const gs = make();
-    gs.prestigeUpgrades["checkpoint_1"] = 1;
-    gs.prestigeUpgrades["checkpoint_2"] = 1;
+    gs.prestigeUpgrades["checkpoint"] = 2;
     killBossAtLevel(gs, 19);
     expect(gs.checkpointLevel).toBe(20);
     killBossAtLevel(gs, 29);
@@ -1936,8 +1934,7 @@ describe("checkpoint system", () => {
 
   it("death respawns at checkpointLevel", () => {
     const gs = make();
-    gs.prestigeUpgrades["checkpoint_1"] = 1;
-    gs.prestigeUpgrades["checkpoint_2"] = 1;
+    gs.prestigeUpgrades["checkpoint"] = 2;
     killBossAtLevel(gs, 9); // set checkpoint to 10
     gs.onPlayerDeath();
     expect(gs.dungeonLevel).toBe(10);
@@ -1953,8 +1950,7 @@ describe("checkpoint system", () => {
 
   it("prestige resets checkpointLevel to 1", () => {
     const gs = withHighLevel(20);
-    gs.prestigeUpgrades["checkpoint_1"] = 1;
-    gs.prestigeUpgrades["checkpoint_2"] = 1;
+    gs.prestigeUpgrades["checkpoint"] = 2;
     killBossAtLevel(gs, 9);
     expect(gs.checkpointLevel).toBe(10);
     gs.prestige();
@@ -1963,8 +1959,7 @@ describe("checkpoint system", () => {
 
   it("checkpoint_level round-trips through toDict/fromDict", () => {
     const gs = make();
-    gs.prestigeUpgrades["checkpoint_1"] = 1;
-    gs.prestigeUpgrades["checkpoint_2"] = 1;
+    gs.prestigeUpgrades["checkpoint"] = 2;
     killBossAtLevel(gs, 9);
     expect(gs.checkpointLevel).toBe(10);
     const restored = GameState.fromDict(gs.toDict());
@@ -2571,42 +2566,50 @@ describe("checkpoint prestige upgrades", () => {
     expect(gs.checkpointLevel).toBe(1);
   });
 
-  it("checkpoint_1 sets checkpoint at floor 15", () => {
+  it("lv1 sets checkpoint every 15 floors", () => {
     const gs = make();
-    gs.prestigeUpgrades["checkpoint_1"] = 1;
-    killBoss(gs, 14); // boss on 14 → advance to 15
+    gs.prestigeUpgrades["checkpoint"] = 1;
+    killBoss(gs, 14); // → floor 15
     expect(gs.checkpointLevel).toBe(15);
   });
 
-  it("checkpoint_1 does not trigger when advancing to floor 20", () => {
+  it("lv1 does not trigger at non-15 multiples (floor 20)", () => {
     const gs = make();
-    gs.prestigeUpgrades["checkpoint_1"] = 1;
-    killBoss(gs, 19); // advances to 20 — not floor 15
+    gs.prestigeUpgrades["checkpoint"] = 1;
+    killBoss(gs, 19); // → floor 20, not a multiple of 15
     expect(gs.checkpointLevel).toBe(1);
   });
 
-  it("checkpoint_2 sets checkpoint every 10 floors", () => {
+  it("lv2 sets checkpoint every 10 floors", () => {
     const gs = make();
-    gs.prestigeUpgrades["checkpoint_1"] = 1;
-    gs.prestigeUpgrades["checkpoint_2"] = 1;
+    gs.prestigeUpgrades["checkpoint"] = 2;
     killBoss(gs, 19); // → floor 20
     expect(gs.checkpointLevel).toBe(20);
   });
 
-  it("checkpoint_3 sets checkpoint every 5 floors", () => {
+  it("lv3 sets checkpoint every 5 floors", () => {
     const gs = make();
-    gs.prestigeUpgrades["checkpoint_1"] = 1;
-    gs.prestigeUpgrades["checkpoint_2"] = 1;
-    gs.prestigeUpgrades["checkpoint_3"] = 1;
+    gs.prestigeUpgrades["checkpoint"] = 3;
     killBoss(gs, 24); // → floor 25
     expect(gs.checkpointLevel).toBe(25);
   });
 
-  it("checkpoint_2 does not trigger at non-10 multiples (floor 15)", () => {
+  it("lv2 does not trigger at non-10 multiples (floor 15)", () => {
+    const gs = make();
+    gs.prestigeUpgrades["checkpoint"] = 2;
+    killBoss(gs, 14); // → floor 15, not a multiple of 10
+    expect(gs.checkpointLevel).toBe(1);
+  });
+
+  it("migration: old checkpoint_1/2/3 keys map to checkpoint level 1/2/3", () => {
     const gs = make();
     gs.prestigeUpgrades["checkpoint_1"] = 1;
     gs.prestigeUpgrades["checkpoint_2"] = 1;
-    killBoss(gs, 14); // → floor 15, not a multiple of 10
-    expect(gs.checkpointLevel).toBe(1);
+    gs.prestigeUpgrades["checkpoint_3"] = 1;
+    const restored = GameState.fromDict(gs.toDict());
+    expect(restored.prestigeUpgrades["checkpoint"]).toBe(3);
+    expect(restored.prestigeUpgrades["checkpoint_1"]).toBeUndefined();
+    expect(restored.prestigeUpgrades["checkpoint_2"]).toBeUndefined();
+    expect(restored.prestigeUpgrades["checkpoint_3"]).toBeUndefined();
   });
 });
