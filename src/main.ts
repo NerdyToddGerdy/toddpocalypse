@@ -1348,7 +1348,21 @@ document.addEventListener("DOMContentLoaded", () => {
     $("hard-reset-confirm").hidden = true;
     $("hard-reset-btn").hidden = false;
   });
-  $("hard-reset-yes").addEventListener("click", () => {
+  $("hard-reset-yes").addEventListener("click", async () => {
+    const token = getStoredToken();
+    if (token) {
+      const btn = $("hard-reset-yes") as HTMLButtonElement;
+      btn.disabled = true;
+      btn.textContent = "Clearing cloud…";
+      const freshData = new GameState().respond();
+      const result = await cloudClaimSession(token, freshData, true);
+      if (result === "error") {
+        btn.disabled = false;
+        btn.textContent = "Yes, reset everything";
+        showCloudStatus("✗ Could not clear cloud save — check your connection and try again.", true);
+        return;
+      }
+    }
     deleteSave();
     window.location.reload();
   });

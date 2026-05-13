@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.50";
+export const VERSION = "v2.6.51";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.51",
+    date: "2026-05-13",
+    changes: [
+      "Hard Reset now clears cloud save when signed in — reloading won't restore the old save",
+    ],
+  },
   {
     version: "v2.6.50",
     date: "2026-05-13",
