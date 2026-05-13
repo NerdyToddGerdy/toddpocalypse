@@ -2382,10 +2382,29 @@ footer {
 }
 
 /* gear rows, loot items, and char names show cursor:help to hint tooltip */
-.gear-row.filled { cursor: help; }
-.loot-item       { cursor: help; }
-.char-name       { cursor: help; }
-#party-panel h2  { cursor: help; }
+.gear-row.filled   { cursor: help; }
+.loot-item         { cursor: help; }
+.char-name         { cursor: help; }
+#party-panel h2    { cursor: help; }
+[data-active-skill] { cursor: help; }
+
+.skill-tooltip {}
+.skill-tooltip-name {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    color: var(--accent);
+    margin-bottom: 4px;
+}
+.skill-tooltip-desc {
+    font-size: 0.82rem;
+    color: var(--text);
+    line-height: 1.4;
+    margin-bottom: 6px;
+}
+.skill-tooltip-cd {
+    font-size: 0.75rem;
+    color: var(--muted);
+}
 
 .tt-abilities {
     display: flex;
