@@ -1787,6 +1787,8 @@ describe("auto-equip prestige upgrade", () => {
     const strong = new GearItem("main_hand" as Slot, "sword", "legendary", "valor");
     lead.inventory.slots["main_hand" as Slot] = weak;
     lead.dps += weak.damage;
+    // Clear companion's starting gear so weak is always an upgrade for them
+    comp.inventory.slots["main_hand" as Slot] = undefined;
     gs.lootPool = [strong];
     gs.onEnemyDeath();
     expect(lead.inventory.slots["main_hand" as Slot]).toBe(strong);

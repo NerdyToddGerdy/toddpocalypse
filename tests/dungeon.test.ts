@@ -85,8 +85,13 @@ describe("generateEnemy", () => {
   });
 
   it("dungeonIndex scales gold_reward upward", () => {
-    // gold has randomness — test that idx=2 gives more than idx=0 at a high level
-    expect(generateEnemy(15, 2).gold_reward).toBeGreaterThan(generateEnemy(15, 0).gold_reward);
+    // single-call comparison can overlap due to randInt; average 100 samples to be reliable
+    let sum0 = 0, sum2 = 0;
+    for (let i = 0; i < 100; i++) {
+      sum0 += generateEnemy(15, 0).gold_reward;
+      sum2 += generateEnemy(15, 2).gold_reward;
+    }
+    expect(sum2).toBeGreaterThan(sum0);
   });
 });
 

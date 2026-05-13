@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.53";
+export const VERSION = "v2.6.54";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.54",
+    date: "2026-05-13",
+    changes: [
+      "Fix two flaky CI tests: companion auto-equip and gold scaling randomness",
+    ],
+  },
   {
     version: "v2.6.53",
     date: "2026-05-13",
