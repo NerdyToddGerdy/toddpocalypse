@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.62";
+export const VERSION = "v2.6.63";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.63",
+    date: "2026-05-13",
+    changes: [
+      "Checkpoint: each level unlocks the next floor-5 checkpoint (lv1→floor 5, lv2→floor 10, lv3→floor 15…); buy more to push checkpoints deeper",
+    ],
+  },
   {
     version: "v2.6.62",
     date: "2026-05-13",

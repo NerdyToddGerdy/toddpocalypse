@@ -1910,25 +1910,25 @@ describe("checkpoint system", () => {
     expect(make().checkpointLevel).toBe(1);
   });
 
-  it("checkpoint updates to dungeonLevel when a multiple-of-10 floor is entered (lv2)", () => {
+  it("checkpoint updates when entering a covered floor (lv2 = up to floor 10)", () => {
     const gs = make();
     gs.prestigeUpgrades["checkpoint"] = 2;
     killBossAtLevel(gs, 9); // boss on floor 9 → enter floor 10
     expect(gs.checkpointLevel).toBe(10);
   });
 
-  it("checkpoint updates at 20 and 30 (lv2)", () => {
+  it("checkpoint fires at floor 5 and 10 with lv2", () => {
     const gs = make();
     gs.prestigeUpgrades["checkpoint"] = 2;
-    killBossAtLevel(gs, 19);
-    expect(gs.checkpointLevel).toBe(20);
-    killBossAtLevel(gs, 29);
-    expect(gs.checkpointLevel).toBe(30);
+    killBossAtLevel(gs, 4);
+    expect(gs.checkpointLevel).toBe(5);
+    killBossAtLevel(gs, 9);
+    expect(gs.checkpointLevel).toBe(10);
   });
 
   it("checkpoint does NOT update without prestige upgrade", () => {
     const gs = make();
-    killBossAtLevel(gs, 9); // floor 10 — no upgrade, no checkpoint
+    killBossAtLevel(gs, 4); // → floor 5, no upgrade
     expect(gs.checkpointLevel).toBe(1);
   });
 
@@ -2566,48 +2566,57 @@ describe("checkpoint prestige upgrades", () => {
     expect(gs.checkpointLevel).toBe(1);
   });
 
-  it("lv1 sets checkpoint every 15 floors", () => {
+  it("lv1 sets checkpoint at floor 5 only", () => {
     const gs = make();
     gs.prestigeUpgrades["checkpoint"] = 1;
+    killBoss(gs, 4); // → floor 5
+    expect(gs.checkpointLevel).toBe(5);
+  });
+
+  it("lv1 does not trigger at floor 10 (beyond coverage)", () => {
+    const gs = make();
+    gs.prestigeUpgrades["checkpoint"] = 1;
+    killBoss(gs, 9); // → floor 10, beyond lv1 coverage
+    expect(gs.checkpointLevel).toBe(1);
+  });
+
+  it("lv2 covers floors 5 and 10", () => {
+    const gs = make();
+    gs.prestigeUpgrades["checkpoint"] = 2;
+    killBoss(gs, 4);
+    expect(gs.checkpointLevel).toBe(5);
+    killBoss(gs, 9);
+    expect(gs.checkpointLevel).toBe(10);
+  });
+
+  it("lv2 does not trigger at floor 15 (beyond coverage)", () => {
+    const gs = make();
+    gs.prestigeUpgrades["checkpoint"] = 2;
+    killBoss(gs, 14); // → floor 15, beyond lv2 coverage
+    expect(gs.checkpointLevel).toBe(1);
+  });
+
+  it("lv3 covers floors 5, 10, and 15", () => {
+    const gs = make();
+    gs.prestigeUpgrades["checkpoint"] = 3;
     killBoss(gs, 14); // → floor 15
     expect(gs.checkpointLevel).toBe(15);
   });
 
-  it("lv1 does not trigger at non-15 multiples (floor 20)", () => {
+  it("non-multiple-of-5 floor never triggers checkpoint", () => {
     const gs = make();
-    gs.prestigeUpgrades["checkpoint"] = 1;
-    killBoss(gs, 19); // → floor 20, not a multiple of 15
+    gs.prestigeUpgrades["checkpoint"] = 10;
+    killBoss(gs, 6); // → floor 7
     expect(gs.checkpointLevel).toBe(1);
   });
 
-  it("lv2 sets checkpoint every 10 floors", () => {
-    const gs = make();
-    gs.prestigeUpgrades["checkpoint"] = 2;
-    killBoss(gs, 19); // → floor 20
-    expect(gs.checkpointLevel).toBe(20);
-  });
-
-  it("lv3 sets checkpoint every 5 floors", () => {
-    const gs = make();
-    gs.prestigeUpgrades["checkpoint"] = 3;
-    killBoss(gs, 24); // → floor 25
-    expect(gs.checkpointLevel).toBe(25);
-  });
-
-  it("lv2 does not trigger at non-10 multiples (floor 15)", () => {
-    const gs = make();
-    gs.prestigeUpgrades["checkpoint"] = 2;
-    killBoss(gs, 14); // → floor 15, not a multiple of 10
-    expect(gs.checkpointLevel).toBe(1);
-  });
-
-  it("migration: old checkpoint_1/2/3 keys map to checkpoint level 1/2/3", () => {
+  it("migration: old checkpoint_1/2/3 keys map to appropriate levels", () => {
     const gs = make();
     gs.prestigeUpgrades["checkpoint_1"] = 1;
     gs.prestigeUpgrades["checkpoint_2"] = 1;
     gs.prestigeUpgrades["checkpoint_3"] = 1;
     const restored = GameState.fromDict(gs.toDict());
-    expect(restored.prestigeUpgrades["checkpoint"]).toBe(3);
+    expect(restored.prestigeUpgrades["checkpoint"]).toBe(10);
     expect(restored.prestigeUpgrades["checkpoint_1"]).toBeUndefined();
     expect(restored.prestigeUpgrades["checkpoint_2"]).toBeUndefined();
     expect(restored.prestigeUpgrades["checkpoint_3"]).toBeUndefined();

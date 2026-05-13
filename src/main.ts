@@ -487,7 +487,7 @@ const PRESTIGE_SHOP_META: Record<string, { icon: string; name: string; desc: str
   party_slot_5:  { icon: "👥", name: "Party Slot V",   desc: "Add a 5th member. Requires Slot IV + Companion Hall II.", max: 1, guildReq: 2 },
   starting_gold: { icon: "💰", name: "Starting Gold",  desc: "+250g at the start of each run.", max: Infinity },
   xp_bonus:      { icon: "✨", name: "XP Bonus",       desc: "+10% XP gain for all party members.", max: Infinity },
-  checkpoint:    { icon: "⚑", name: "Checkpoint",     desc: "Set a respawn point every N floors. Lv1: every 15 · Lv2: every 10 · Lv3: every 5", max: 3 },
+  checkpoint:    { icon: "⚑", name: "Checkpoint",     desc: "Each level adds a respawn checkpoint at the next multiple of 5 (lv1→floor 5, lv2→floor 10, lv3→floor 15…).", max: 20 },
 };
 
 /** Builds the HTML for quality-tier auto-sell checkboxes shown beneath the loot chest. */

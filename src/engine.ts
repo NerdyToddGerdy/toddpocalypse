@@ -524,7 +524,6 @@ export class GameState {
     if (!(type in PRESTIGE_SHOP_COSTS)) return this.respond();
     if (type === "smart_seller" && !(this.prestigeUpgrades["auto_seller"] > 0)) return this.respond();
     if (type === "party_slot_3" && !(this.prestigeUpgrades["party_slot_2"] > 0)) return this.respond();
-    if (type === "checkpoint" && (this.prestigeUpgrades["checkpoint"] ?? 0) >= 3) return this.respond();
     if (type === "party_slot_4") {
       if (!(this.prestigeUpgrades["party_slot_3"] > 0)) return this.respond();
       if (!((this.guildUpgrades["companion_hall"] ?? 0) >= 1)) return this.respond();
@@ -812,8 +811,7 @@ export class GameState {
         this.syncSmartSeller();
       }
       const cpLevel = this.prestigeUpgrades["checkpoint"] ?? 0;
-      const cpInterval = cpLevel >= 3 ? 5 : cpLevel === 2 ? 10 : cpLevel === 1 ? 15 : 0;
-      const isCheckpoint = cpInterval > 0 && this.dungeonLevel % cpInterval === 0;
+      const isCheckpoint = cpLevel > 0 && this.dungeonLevel % 5 === 0 && this.dungeonLevel <= cpLevel * 5;
       if (isCheckpoint) {
         this.checkpointLevel = this.dungeonLevel;
         this.addLog(`⚑ Checkpoint! Respawn set to floor ${this.checkpointLevel}.`);
@@ -1028,7 +1026,7 @@ export class GameState {
       const cp3 = (gs.prestigeUpgrades["checkpoint_3"] ?? 0) > 0;
       const cp2 = (gs.prestigeUpgrades["checkpoint_2"] ?? 0) > 0;
       const cp1 = (gs.prestigeUpgrades["checkpoint_1"] ?? 0) > 0;
-      gs.prestigeUpgrades["checkpoint"] = cp3 ? 3 : cp2 ? 2 : cp1 ? 1 : 0;
+      gs.prestigeUpgrades["checkpoint"] = cp3 ? 10 : cp2 ? 6 : cp1 ? 3 : 0;
       delete gs.prestigeUpgrades["checkpoint_1"];
       delete gs.prestigeUpgrades["checkpoint_2"];
       delete gs.prestigeUpgrades["checkpoint_3"];
