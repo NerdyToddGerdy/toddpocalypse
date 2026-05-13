@@ -428,6 +428,7 @@ export class GameState {
 
     this.party.team = [newLead];
     this.upgrades = { [leadName]: { dps: 0, xp: 0, click: 0, hp: 0 } };
+    this.lifetimeBestLevel = Math.max(this.lifetimeBestLevel, this.highestLevel);
     this.gold = 0;
     this.dungeonLevel = 1;
     this.kills = 0;
