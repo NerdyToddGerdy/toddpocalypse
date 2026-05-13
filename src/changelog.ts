@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.49";
+export const VERSION = "v2.6.50";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.50",
+    date: "2026-05-13",
+    changes: [
+      "Enemy attack DPS further increased (regular ×3.0/level, boss ×5.0/level)",
+      "HP upgrade bonus reduced from +25 to +15 HP to keep enemy attack pressure relevant",
+    ],
+  },
   {
     version: "v2.6.49",
     date: "2026-05-13",

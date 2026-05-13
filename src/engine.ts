@@ -39,7 +39,7 @@ export const UPGRADE_EFFECTS: Record<string, number> = {
 };
 
 /** HP added per HP-upgrade level. */
-export const HP_UPGRADE_EFFECT = 25;
+export const HP_UPGRADE_EFFECT = 15;
 
 /** DPS multiplier applied to a Fighter or Paladin while their HP is at or below 50%. */
 export const BLOODLUST_MULTIPLIER = 1.6;
