@@ -120,8 +120,8 @@ export const SKILL_DEFS: Record<string, { cooldownMs: number; durationKills: num
   skill_arcane_surge:  { cooldownMs: 90_000,  durationKills: 5, class: "mage" },
 };
 
-/** Fraction of maxHealth restored after each regular enemy kill. */
-export const COMBAT_HEAL_FRACTION = 0.30;
+/** Fraction of missing HP restored after each enemy kill. */
+export const COMBAT_HEAL_FRACTION = 0.20;
 
 /** Gold granted per starting_gold prestige upgrade level. */
 export const STARTING_GOLD_PER_LEVEL = 250;

@@ -89,7 +89,7 @@ export function generateEnemy(dungeonLevel: number, dungeonIndex = 0): Enemy {
   const hp = Math.floor(baseHp * mult);
   const xpReward = Math.max(1, dungeonLevel * 3 + randInt(1, 4));
   const goldReward = Math.max(1, Math.floor((dungeonLevel * 5 + randInt(0, dungeonLevel * 3)) * (1 + dungeonIndex * 0.15)));
-  const attackDps = Math.round(dungeonLevel * 1.0 * mult * 10) / 10;
+  const attackDps = Math.round(dungeonLevel * 2.0 * mult * 10) / 10;
   return {
     name,
     level: dungeonLevel,
@@ -110,7 +110,7 @@ export function generateBoss(dungeonLevel: number, dungeonIndex = 0): Enemy {
   const hp = Math.floor(100 * Math.pow(1.3, dungeonLevel) * mult);
   const xpReward = Math.max(5, dungeonLevel * 9 + 5);
   const goldReward = Math.max(5, Math.floor(dungeonLevel * 15 * (1 + dungeonIndex * 0.15)));
-  const attackDps = Math.round(dungeonLevel * 1.5 * mult * 10) / 10;
+  const attackDps = Math.round(dungeonLevel * 3.5 * mult * 10) / 10;
   return {
     name,
     level: dungeonLevel,
