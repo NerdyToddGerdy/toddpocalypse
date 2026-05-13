@@ -2100,17 +2100,17 @@ footer {
 
 /* ── Inferno ── */
 [data-theme="inferno"] {
-    --bg: #080500;
-    --surface: #110a02;
-    --surface2: #1c1204;
-    --border: #5c2a06;
-    --accent: #e8601a;
-    --accent2: #18c8e8;
-    --danger: #ff2010;
-    --text: #f2dab8;
-    --muted: #7a5030;
-    --hp-green: #48a038;
-    --xp-blue: #3878d8;
+    --bg: #0b0600;
+    --surface: #160c04;
+    --surface2: #221206;
+    --border: #6e2e08;
+    --accent: #ff6520;
+    --accent2: #e02010;
+    --danger: #ff1500;
+    --text: #f5dbb5;
+    --muted: #8a5028;
+    --hp-green: #3a9838;
+    --xp-blue: #4080e8;
     --font-display: 'Pirata One', serif;
     --font-body: 'Crimson Pro', Georgia, serif;
 }
@@ -2118,16 +2118,44 @@ footer {
 [data-theme="inferno"] h1 {
     font-family: 'Cinzel', serif;
     letter-spacing: 0.18em;
-    text-shadow: 0 0 18px #e8601a, 0 0 40px rgba(232,96,26,0.4), 0 0 70px rgba(232,96,26,0.15);
+    text-shadow: 0 0 16px #ff6520, 0 0 38px rgba(255,101,32,0.55), 0 0 80px rgba(255,60,0,0.2);
+}
+
+[data-theme="inferno"] body {
+    background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"),
+        radial-gradient(ellipse 90% 55% at 50% 105%, rgba(200,50,0,0.14) 0%, transparent 65%);
 }
 
 [data-theme="inferno"] header {
-    background: linear-gradient(180deg, #110a02 0%, #0d0700 100%);
-    border-bottom-color: #5c2a06;
-    box-shadow: 0 2px 20px rgba(232,96,26,0.15);
+    background: linear-gradient(180deg, #1e0e04 0%, #110800 100%);
+    border-bottom: 1px solid #6e2e08;
+    box-shadow: 0 2px 24px rgba(255,101,32,0.18);
 }
 
-/* Ember glow on panel borders */
+/* Fiery attack button */
+[data-theme="inferno"] #attack-btn {
+    background: linear-gradient(135deg, #e85010 0%, #9c1a00 100%);
+    box-shadow: 0 4px 18px rgba(232,80,16,0.5);
+}
+[data-theme="inferno"] #attack-btn:active { box-shadow: none; }
+
+/* Ember depth fill */
+[data-theme="inferno"] #depth-fill {
+    background: linear-gradient(180deg, rgba(255,101,32,0.12) 0%, rgba(200,50,0,0.38) 100%);
+}
+
+/* Prestige + venture buttons */
+[data-theme="inferno"] #prestige-btn {
+    background: linear-gradient(135deg, #ff6520, #9c1a00);
+}
+[data-theme="inferno"] #venture-btn {
+    background: color-mix(in srgb, var(--accent2) 20%, var(--surface));
+    color: var(--accent2);
+    border-color: var(--accent2);
+}
+
+/* Ember glow on all panels */
 [data-theme="inferno"] #enemy-panel,
 [data-theme="inferno"] #party-panel,
 [data-theme="inferno"] #upgrades-panel,
@@ -2136,13 +2164,8 @@ footer {
 [data-theme="inferno"] #guild-hall-panel,
 [data-theme="inferno"] #log-panel,
 [data-theme="inferno"] #settings-panel {
-    border-color: #5c2a06;
-    box-shadow: 0 0 12px rgba(232,96,26,0.08), inset 0 0 24px rgba(0,0,0,0.4);
-}
-
-/* Flame-coloured prestige button */
-[data-theme="inferno"] #prestige-btn {
-    background: linear-gradient(135deg, #e8601a, #9c3008);
+    border-color: #6e2e08;
+    box-shadow: 0 0 18px rgba(255,80,0,0.1), inset 0 0 32px rgba(0,0,0,0.5);
 }
 
 /* ── Shared fantasy decorations (active on any theme) ── */
