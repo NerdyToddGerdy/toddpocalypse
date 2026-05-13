@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.34";
+export const VERSION = "v2.6.35";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.35",
+    date: "2026-05-12",
+    changes: [
+      "Fix: Guild Hall tab now stays visible after venturing to a new dungeon (uses lifetime best depth, not current-run depth)",
+    ],
+  },
   {
     version: "v2.6.34",
     date: "2026-05-12",

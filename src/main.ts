@@ -179,10 +179,10 @@ function updatePrestigePanelVisibility(state: GameStateDict): void {
   if (panel) panel.classList.toggle("prestige-locked", !prestigeUnlocked);
 }
 
-/** Hides the Guild Hall tab/panel until floor 40 is reached or any guild upgrade is owned. */
+/** Hides the Guild Hall tab/panel until floor 40 is reached (lifetime) or any guild upgrade is owned. */
 function updateGuildTabVisibility(state: GameStateDict): void {
   const guildUnlocked =
-    state.highest_level >= 40 ||
+    (state.lifetime_best_level ?? state.highest_level) >= 40 ||
     Object.keys(state.guild_upgrades ?? {}).length > 0;
 
   // Desktop: hide/show the sidebar tab button
