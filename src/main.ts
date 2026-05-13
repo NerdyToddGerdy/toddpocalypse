@@ -517,29 +517,40 @@ function renderPrestigeShop(state: GameStateDict): void {
   const ups = state.prestige_upgrades as Record<string, number>;
   const guildUpgrades = state.guild_upgrades as Record<string, number>;
   const companionHall = guildUpgrades["companion_hall"] ?? 0;
-  $("prestige-shop-items").innerHTML = Object.entries(PRESTIGE_SHOP_META).map(([type, meta]) => {
-    const guildReq = meta.guildReq ?? 0;
-    if (guildReq > 0 && companionHall < guildReq) return ""; // hidden until guild unlock
-    const owned = ups[type] ?? 0;
-    const cost = prestigeUpgradeCost(type, owned);
-    const atMax = owned >= meta.max;
-    const prereqMissing = (type === "smart_seller" && !(ups["auto_seller"] > 0))
-      || (type === "party_slot_3" && !(ups["party_slot_2"] > 0))
-      || (type === "party_slot_4" && !(ups["party_slot_3"] > 0))
-      || (type === "party_slot_5" && !(ups["party_slot_4"] > 0))
-      || (type === "checkpoint_2" && !(ups["checkpoint_1"] > 0))
-      || (type === "checkpoint_3" && !(ups["checkpoint_2"] > 0));
-    const canAfford = pts >= cost;
-    const disabled = atMax || prereqMissing || !canAfford;
-    const ownedLabel = atMax ? " ✓" : owned > 0 ? ` (${owned})` : "";
-    return `<div class="prestige-item">
+  $("prestige-shop-items").innerHTML = Object.entries(PRESTIGE_SHOP_META)
+    .filter(([type, meta]) => {
+      const guildReq = meta.guildReq ?? 0;
+      return !(guildReq > 0 && companionHall < guildReq);
+    })
+    .map(([type, meta]) => {
+      const owned = ups[type] ?? 0;
+      const cost = prestigeUpgradeCost(type, owned);
+      const atMax = owned >= meta.max;
+      return { type, meta, owned, cost, atMax };
+    })
+    .sort((a, b) => {
+      if (a.atMax !== b.atMax) return a.atMax ? 1 : -1;
+      return a.cost - b.cost;
+    })
+    .map(({ type, meta, owned, cost, atMax }) => {
+      const prereqMissing = (type === "smart_seller" && !(ups["auto_seller"] > 0))
+        || (type === "party_slot_3" && !(ups["party_slot_2"] > 0))
+        || (type === "party_slot_4" && !(ups["party_slot_3"] > 0))
+        || (type === "party_slot_5" && !(ups["party_slot_4"] > 0))
+        || (type === "checkpoint_2" && !(ups["checkpoint_1"] > 0))
+        || (type === "checkpoint_3" && !(ups["checkpoint_2"] > 0));
+      const canAfford = pts >= cost;
+      const disabled = atMax || prereqMissing || !canAfford;
+      const ownedLabel = atMax ? " ✓" : owned > 0 ? ` (${owned})` : "";
+      return `<div class="prestige-item">
       <div class="prestige-item-meta">
         <div class="prestige-item-name">${meta.icon} ${meta.name}${ownedLabel}</div>
         <div class="prestige-item-desc">${meta.desc}</div>
       </div>
       <button class="prestige-buy-btn" data-action="buy-prestige" data-type="${type}" ${disabled ? "disabled" : ""}>${atMax ? "Owned" : cost + "pt"}</button>
     </div>`;
-  }).join("");
+    })
+    .join("");
 }
 
 /** Enables/disables the Venture button based on whether the player has reached floor 40. */
