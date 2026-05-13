@@ -1341,12 +1341,25 @@ function continueGame(saved: GameStateDict): void {
   setInterval(() => { call("tick", 0.1); saveGame(); }, 100);
 }
 
+function initPartyGearToggle(): void {
+  const panel = $("party-panel");
+  const btn = $("party-gear-toggle");
+  const hidden = localStorage.getItem("party-gear-hidden") === "1";
+  if (hidden) { panel.classList.add("gear-hidden"); btn.classList.add("active"); }
+  btn.addEventListener("click", () => {
+    const nowHidden = panel.classList.toggle("gear-hidden");
+    btn.classList.toggle("active", nowHidden);
+    localStorage.setItem("party-gear-hidden", nowHidden ? "1" : "0");
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   initTheme();
   initMobileTabs();
   initSidebarTabs();
   initItemTooltip();
   initMobileItemCard();
+  initPartyGearToggle();
 
   document.querySelectorAll<HTMLElement>(".theme-btn").forEach(btn => {
     btn.addEventListener("click", () => {

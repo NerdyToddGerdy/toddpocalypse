@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.63";
+export const VERSION = "v2.6.64";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.64",
+    date: "2026-05-13",
+    changes: [
+      "Party panel: ⚔ toggle button hides/shows gear and abilities for a condensed HP+XP view; preference saved across sessions",
+    ],
+  },
   {
     version: "v2.6.63",
     date: "2026-05-13",

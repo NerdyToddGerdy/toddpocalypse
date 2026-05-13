@@ -377,6 +377,24 @@ main {
     letter-spacing: 1.5px;
     color: var(--muted);
     margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#party-gear-toggle {
+    font-size: 0.8rem;
+    opacity: 0.55;
+    padding: 1px 5px;
+    border-radius: 4px;
+    transition: opacity 0.15s;
+}
+#party-gear-toggle:hover { opacity: 1; }
+#party-gear-toggle.active { opacity: 1; color: var(--accent); }
+
+#party-panel.gear-hidden .char-gear,
+#party-panel.gear-hidden .char-abilities {
+    display: none;
 }
 
 #party-cards {
