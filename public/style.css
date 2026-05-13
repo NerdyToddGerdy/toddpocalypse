@@ -219,6 +219,15 @@ main {
     border-radius: 10px;
     padding: 20px 24px;
     display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+}
+
+#enemy-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
     flex-direction: column;
     gap: 12px;
 }
@@ -231,8 +240,6 @@ main {
 #monster-portrait-wrap {
     flex-shrink: 0;
     width: 0;
-    height: 200px;
-    align-self: center;
     overflow: hidden;
     transition: width 0.55s cubic-bezier(0.34, 1.4, 0.64, 1);
 }
@@ -1296,7 +1303,9 @@ main {
     #left-col        { display: contents; }
     #left-col-panels { display: contents; }
     #party-panel     { width: auto; }
-    #monster-portrait-wrap { display: none; }
+
+    #monster-portrait-wrap.boss-visible { width: 72px; }
+    #portrait-inner { width: 72px; height: 110px; }
     #sidebar   { display: contents; background: none; border: none; border-radius: 0; }
     #sidebar-tabs { display: none; }
 
