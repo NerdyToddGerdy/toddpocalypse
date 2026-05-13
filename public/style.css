@@ -2069,6 +2069,13 @@ footer {
     font-weight: 500;
 }
 
+.auto-sell-next {
+    width: 100%;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 2px;
+}
+
 /* ═══════════════════════════════════════
    FANTASY THEMES
    ═══════════════════════════════════════ */

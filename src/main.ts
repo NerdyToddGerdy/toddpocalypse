@@ -502,7 +502,12 @@ function renderAutoSellerConfig(state: GameStateDict): string {
       <span class="auto-sell-name ${qualityClass(q)}">${q}</span>
     </label>`
   ).join("");
-  return `<div class="auto-seller-config">${rows}</div>`;
+  const nextIdx = threshold + 1;
+  const nextFloor = nextIdx * 4 + 1;
+  const nextTier = nextIdx < (QUAL as readonly string[]).length - 1
+    ? `<div class="auto-sell-next">Next: <span class="${qualityClass((QUAL as readonly string[])[nextIdx])}">${(QUAL as readonly string[])[nextIdx]}</span> at floor ${nextFloor}</div>`
+    : "";
+  return `<div class="auto-seller-config">${rows}${nextTier}</div>`;
 }
 
 /** Renders the Prestige Shop item list, marking purchased one-time items and unaffordable items. */
