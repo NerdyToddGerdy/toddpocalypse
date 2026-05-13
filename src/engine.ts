@@ -298,7 +298,8 @@ export class GameState {
     const living = this.party.team.filter(c => c.isAlive());
     if (living.length > 0) {
       const target = living[Math.floor(Math.random() * living.length)];
-      target.health -= this.enemy.attack_dps * dt * (1 - target.damageReduction);
+      const partySizeMult = Math.sqrt(living.length);
+      target.health -= this.enemy.attack_dps * partySizeMult * dt * (1 - target.damageReduction);
       target.health = Math.max(0, target.health);
     }
     if (this.party.team.every(c => !c.isAlive())) {

@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.57";
+export const VERSION = "v2.6.58";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.58",
+    date: "2026-05-13",
+    changes: [
+      "Enemy attack scales by sqrt(living party size) — companions are still strong but danger stays meaningful",
+    ],
+  },
   {
     version: "v2.6.57",
     date: "2026-05-13",
