@@ -136,6 +136,7 @@ type UpgradeLevels = Record<UpgradeType, number>;
 
 /** Full serialized snapshot of a {@link GameState}, sent to the renderer after every action. */
 export interface GameStateDict {
+  run_id: string;
   dungeon_level: number;
   gold: number;
   kills: number;
@@ -225,6 +226,8 @@ export class GameState {
   skillCooldowns: Record<string, number> = {};
   /** Unix-ms expiry timestamp per active skill effect; entries are pruned on tick. */
   activeEffects: Record<string, number> = {};
+  /** Unique ID for this save file — generated once on new game, survives prestiges. */
+  runId: string = crypto.randomUUID();
 
   /** Current loot chest capacity, expanding with Expanded Armory guild upgrades. */
   get lootMax(): number { return 8 + 2 * (this.guildUpgrades["expanded_armory"] ?? 0); }
@@ -727,6 +730,7 @@ export class GameState {
       companion_skills_available: this.computeCompanionSkillsAvailable(),
       skill_cooldowns: { ...this.skillCooldowns },
       active_effects: { ...this.activeEffects },
+      run_id: this.runId,
       loot_max: this.lootMax,
     };
   }
@@ -1024,6 +1028,7 @@ export class GameState {
     gs.guildUpgrades = { ...(d.guild_upgrades ?? {}) };
     gs.skillCooldowns = { ...(d.skill_cooldowns ?? {}) };
     gs.activeEffects = { ...(d.active_effects ?? {}) };
+    gs.runId = d.run_id ?? crypto.randomUUID();
 
     gs.enemy = {
       name: d.enemy.name,

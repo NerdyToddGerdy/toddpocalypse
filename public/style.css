@@ -1804,6 +1804,59 @@ footer {
 #stats-btn:hover { color: var(--muted); }
 
 /* ── Changelog modal ── */
+#save-conflict-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(14,14,20,0.92);
+    align-items: center;
+    justify-content: center;
+    z-index: 300;
+}
+
+#save-conflict-modal.open { display: flex; }
+
+#save-conflict-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 28px 24px 24px;
+    max-width: 480px;
+    width: 90%;
+    text-align: center;
+}
+
+#save-conflict-box h2 { margin: 0 0 8px; font-size: 1.15rem; }
+#save-conflict-box > p { color: var(--muted); font-size: 0.88rem; margin: 0 0 20px; }
+
+#save-conflict-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.save-conflict-card {
+    background: rgba(0,0,0,0.25);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.save-conflict-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.save-conflict-stats {
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.6;
+    flex: 1;
+}
+
 #changelog-modal {
     display: none;
     position: fixed;

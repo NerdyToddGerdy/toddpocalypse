@@ -1259,6 +1259,33 @@ function updateAuthUI(): void {
   if (signoutRow) signoutRow.hidden = !token;
 }
 
+/** Returns a human-readable summary of a save for the conflict modal. */
+function saveConflictStats(d: GameStateDict): string {
+  const kills = (d.lifetime_kills as number) ?? 0;
+  const best = (d.lifetime_best_level as number) ?? 1;
+  const prestiges = (d.total_prestiges as number) ?? 0;
+  return `Floor ${best} reached<br>${kills.toLocaleString()} lifetime kills<br>${prestiges} prestige${prestiges !== 1 ? "s" : ""}`;
+}
+
+/** Shows the save-conflict modal and resolves with the chosen save JSON string. */
+function promptSaveConflict(localRaw: string, cloudRaw: string): Promise<string> {
+  const localDict = JSON.parse(localRaw) as GameStateDict;
+  const cloudDict = JSON.parse(cloudRaw) as GameStateDict;
+  $("conflict-local-stats").innerHTML = saveConflictStats(localDict);
+  $("conflict-cloud-stats").innerHTML = saveConflictStats(cloudDict);
+  $("save-conflict-modal").classList.add("open");
+  return new Promise(resolve => {
+    document.getElementById("conflict-use-local")!.onclick = () => {
+      $("save-conflict-modal").classList.remove("open");
+      resolve(localRaw);
+    };
+    document.getElementById("conflict-use-cloud")!.onclick = () => {
+      $("save-conflict-modal").classList.remove("open");
+      resolve(cloudRaw);
+    };
+  });
+}
+
 /** Handles the Cognito redirect hash, updates auth UI, and attempts to load save data from the cloud. */
 async function initAuth(): Promise<GameStateDict | null> {
   getOrCreateSessionId(); // ensure session ID exists before first save
@@ -1273,18 +1300,31 @@ async function initAuth(): Promise<GameStateDict | null> {
   updateAuthUI();
   if (!token) return null;
 
-  // Try to load from cloud; fall back to localStorage
-  const cloudData = await cloudLoad(token);
-  if (cloudData) {
-    try {
-      const dict = JSON.parse(cloudData) as GameStateDict;
-      localStorage.setItem(SAVE_KEY, cloudData); // keep local in sync
-      return dict;
-    } catch {
-      return null;
+  const cloudRaw = await cloudLoad(token);
+  if (!cloudRaw) return null;
+
+  try {
+    const cloudDict = JSON.parse(cloudRaw) as GameStateDict;
+    const localRaw = localStorage.getItem(SAVE_KEY);
+    const localDict: GameStateDict | null = localRaw ? JSON.parse(localRaw) as GameStateDict : null;
+
+    let chosenRaw = cloudRaw;
+
+    if (localDict && localDict.run_id && cloudDict.run_id && localDict.run_id !== cloudDict.run_id) {
+      // Different runs — ask the user
+      chosenRaw = await promptSaveConflict(localRaw!, cloudRaw);
+    } else if (localDict) {
+      // Same run (or old save without run_id) — silently use whichever has more progress
+      const localKills = (localDict.lifetime_kills as number) ?? 0;
+      const cloudKills = (cloudDict.lifetime_kills as number) ?? 0;
+      if (localKills > cloudKills) chosenRaw = localRaw!;
     }
+
+    localStorage.setItem(SAVE_KEY, chosenRaw);
+    return JSON.parse(chosenRaw) as GameStateDict;
+  } catch {
+    return null;
   }
-  return null;
 }
 
 /** Creates a fresh GameState, clears any existing save, and starts the 100ms game loop. */

@@ -285,6 +285,25 @@
   </div>
 </div>
 
+<div id="save-conflict-modal" aria-modal="true" role="dialog" aria-labelledby="save-conflict-title">
+  <div id="save-conflict-box">
+    <h2 id="save-conflict-title">⚠ Save Conflict</h2>
+    <p>Your local save and cloud save are from different runs. Which would you like to keep?</p>
+    <div id="save-conflict-options">
+      <div class="save-conflict-card" id="conflict-local-card">
+        <div class="save-conflict-label">Local Save</div>
+        <div id="conflict-local-stats" class="save-conflict-stats"></div>
+        <button id="conflict-use-local" class="primary-btn">Use Local</button>
+      </div>
+      <div class="save-conflict-card" id="conflict-cloud-card">
+        <div class="save-conflict-label">Cloud Save</div>
+        <div id="conflict-cloud-stats" class="save-conflict-stats"></div>
+        <button id="conflict-use-cloud" class="primary-btn">Use Cloud</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="changelog-modal" aria-modal="true" role="dialog" aria-labelledby="changelog-title">
   <div id="changelog-box">
     <div id="changelog-header">
