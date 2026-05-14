@@ -185,6 +185,7 @@ export interface GameStateDict {
   dungeon_index: number;
   idle_gold_rate: number;
   venture_available: boolean;
+  death_floors: Record<number, number>;
   guild_upgrades: Record<string, number>;
   skill_available: string | null;
   companion_skills_available: string[];
@@ -243,6 +244,8 @@ export class GameState {
   idleGoldRate = 0;
   /** Purchased Guild Hall upgrade stacks, keyed by upgrade id. */
   guildUpgrades: Record<string, number> = {};
+  /** Death count per dungeon floor this run (floor → count); resets on prestige/venture. */
+  deathFloors: Record<number, number> = {};
   /** Unix-ms timestamp of the last activation per skill id (for cooldown tracking). */
   skillCooldowns: Record<string, number> = {};
   /** Unix-ms expiry timestamp per active skill effect; entries are pruned on tick. */
@@ -472,6 +475,7 @@ export class GameState {
     this.deaths = 0;
     this.highestLevel = 1;
     this.checkpointLevel = 1;
+    this.deathFloors = {};
     this.lootPool = [];
     this.log = [];
     this.enemy = generateEnemy(1, this.dungeonIndex);
@@ -503,6 +507,7 @@ export class GameState {
     this.autoSellQualities = [];
     this.lootPool = [];
     this.log = [];
+    this.deathFloors = {};
     this.enemy = generateEnemy(1, this.dungeonIndex);
     this.skillCooldowns = {};
     this.activeEffects = {};
@@ -752,6 +757,7 @@ export class GameState {
       idle_gold_rate: this.idleGoldRate,
       venture_available: this.highestLevel >= ventureUnlockLevel(this.dungeonIndex),
       guild_upgrades: { ...this.guildUpgrades },
+      death_floors: { ...this.deathFloors },
       skill_available: this.computeSkillAvailable(),
       companion_skills_available: this.computeCompanionSkillsAvailable(),
       skill_cooldowns: { ...this.skillCooldowns },
@@ -885,6 +891,7 @@ export class GameState {
   onPlayerDeath(): void {
     const player = this.party.team[0];
     this.deaths += 1;
+    this.deathFloors[this.dungeonLevel] = (this.deathFloors[this.dungeonLevel] ?? 0) + 1;
     const msg = this.checkpointLevel > 1
       ? `${player.name} was defeated! Respawning at floor ${this.checkpointLevel}...`
       : `${player.name} was defeated! Returning to level 1...`;
@@ -1063,6 +1070,7 @@ export class GameState {
     gs.dungeonIndex = d.dungeon_index ?? 0;
     gs.idleGoldRate = d.idle_gold_rate ?? 0;
     gs.guildUpgrades = { ...(d.guild_upgrades ?? {}) };
+    gs.deathFloors = { ...(d.death_floors ?? {}) };
     // Migrate old timestamp-based cooldowns (values > 1000) to 0 (kill-based system)
     const rawCooldowns = d.skill_cooldowns ?? {};
     gs.skillCooldowns = Object.fromEntries(

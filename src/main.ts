@@ -231,11 +231,18 @@ function renderFloorProgress(state: GameStateDict): void {
   }
 }
 
-/** Renders the vertical depth gauge showing current floor, personal best, and checkpoint markers. */
+let depthKey: string | null = null;
+
+/** Renders the vertical depth gauge showing current floor, personal best, checkpoint, and death markers. */
 function renderDepthGauge(state: GameStateDict): void {
   const current = state.dungeon_level;
   const highest = state.highest_level;
   const maxDisplay = Math.max(highest + 3, 10);
+  const deathFloors = state.death_floors as Record<number, number> ?? {};
+
+  const newKey = `${current}|${highest}|${state.checkpoint_level}|${JSON.stringify(deathFloors)}`;
+  if (newKey === depthKey) return;
+  depthKey = newKey;
 
   $("depth-label-top").textContent = "▲ 1";
   $("depth-label-bottom").textContent = `▼ ${maxDisplay}`;
@@ -263,6 +270,13 @@ function renderDepthGauge(state: GameStateDict): void {
   if (checkpoint > 1) {
     cpEl.style.top = toPercent(checkpoint) + "px";
   }
+
+  const deathContainer = $("depth-deaths-container");
+  deathContainer.innerHTML = Object.entries(deathFloors).map(([floor, count]) => {
+    const top = toPercent(Number(floor));
+    const label = count > 1 ? `💀×${count}` : "💀";
+    return `<div class="depth-death-marker" style="top:${top}px"><span class="depth-death-label">${label}</span></div>`;
+  }).join("");
 }
 
 /** Re-renders the party cards section, skipping the DOM write if nothing has changed. */

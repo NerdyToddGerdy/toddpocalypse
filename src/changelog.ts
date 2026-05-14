@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.69";
+export const VERSION = "v2.6.70";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.70",
+    date: "2026-05-14",
+    changes: [
+      "Depth gauge now shows 💀 skull markers at floors where you died (stacked deaths show ×count)",
+    ],
+  },
   {
     version: "v2.6.69",
     date: "2026-05-14",

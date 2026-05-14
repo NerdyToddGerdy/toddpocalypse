@@ -795,6 +795,52 @@ describe("killsForFloor", () => {
     expect(gs.floorKills).toBe(0);
   });
 
+  it("player death records the floor in deathFloors", () => {
+    const gs = make();
+    gs.dungeonLevel = 7;
+    gs.onPlayerDeath();
+    expect(gs.deathFloors[7]).toBe(1);
+  });
+
+  it("deathFloors increments on repeated deaths at the same floor", () => {
+    const gs = make();
+    gs.dungeonLevel = 3;
+    gs.onPlayerDeath();
+    gs.dungeonLevel = 3; // reset back (onPlayerDeath sends you to checkpoint)
+    gs.onPlayerDeath();
+    expect(gs.deathFloors[3]).toBe(2);
+  });
+
+  it("deathFloors resets on prestige", () => {
+    const gs = withHighLevel(PRESTIGE_UNLOCK_LEVEL);
+    gs.deathFloors = { 5: 1, 10: 2 };
+    gs.prestige();
+    expect(gs.deathFloors).toEqual({});
+  });
+
+  it("deathFloors resets on venture", () => {
+    const gs = make();
+    gs.highestLevel = VENTURE_UNLOCK_LEVEL;
+    gs.deathFloors = { 5: 1, 12: 1 };
+    gs.venture();
+    expect(gs.deathFloors).toEqual({});
+  });
+
+  it("death_floors appears in toDict", () => {
+    const gs = make();
+    gs.dungeonLevel = 8;
+    gs.onPlayerDeath();
+    expect(gs.toDict().death_floors[8]).toBe(1);
+  });
+
+  it("death_floors round-trips through fromDict", () => {
+    const gs = make();
+    gs.deathFloors = { 5: 2, 10: 1 };
+    const restored = GameState.fromDict(gs.toDict());
+    expect(restored.deathFloors[5]).toBe(2);
+    expect(restored.deathFloors[10]).toBe(1);
+  });
+
   it("prestige resets floorKills", () => {
     const gs = withHighLevel(20);
     gs.floorKills = 4;
