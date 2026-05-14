@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.67";
+export const VERSION = "v2.6.68";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.68",
+    date: "2026-05-14",
+    changes: [
+      "Venture now resets auto tools (Auto Seller, Auto Equip, Auto Upgrade, Smart Seller) — must re-buy each dungeon",
+      "New dungeon 2+ Guild Hall skills: Consecrate (Paladin, heals party 25% max HP per kill for 5 kills) and Volley (Ranger, ×4 DPS for 4 kills)",
+      "New dungeon 2+ prestige upgrades: Gold Mastery (+20% boss gold per stack) and Gear Luck (+5% drop chance per stack)",
+    ],
+  },
   {
     version: "v2.6.67",
     date: "2026-05-14",

@@ -20,14 +20,16 @@ const CLASS_DESCS: Record<string, string> = {
   ranger: "Gains +0.2 click damage every level. 30% crit chance at Lv5, +60% DPS at Lv10.",
 };
 
-const GUILD_HALL_META: Record<string, { icon: string; name: string; desc: string }> = {
+const GUILD_HALL_META: Record<string, { icon: string; name: string; desc: string; dungeonReq?: number }> = {
   companion_hall:      { icon: "🏰", name: "Companion Hall",   desc: "Unlock Party Slot IV (stack 1) and Slot V (stack 2) in the Prestige Shop." },
   expanded_armory:     { icon: "🗄", name: "Expanded Armory",  desc: "+2 loot chest capacity per stack (max 14)." },
   class_paladin:       { icon: "🛡", name: "Recruit: Paladin", desc: "Unlock Paladin as a recruitable class for companions." },
   class_ranger:        { icon: "🏹", name: "Recruit: Ranger",  desc: "Unlock Ranger as a recruitable class for companions." },
-  skill_battle_cry:    { icon: "📯", name: "Battle Cry",       desc: "Fighter: ×2 party DPS for 15s. 2-min cooldown." },
-  skill_shadow_strike: { icon: "🌑", name: "Shadow Strike",    desc: "Rogue: ×5 click damage for 8s. 45s cooldown." },
-  skill_arcane_surge:  { icon: "⚡", name: "Arcane Surge",     desc: "Mage: ×3 DPS for 15s. 90s cooldown." },
+  skill_battle_cry:    { icon: "📯", name: "Battle Cry",       desc: "Fighter: ×2 party DPS for 5 kills. 30-kill cooldown." },
+  skill_shadow_strike: { icon: "🌑", name: "Shadow Strike",    desc: "Rogue: ×5 click damage for 3 kills. 15-kill cooldown." },
+  skill_arcane_surge:  { icon: "⚡", name: "Arcane Surge",     desc: "Mage: ×3 DPS for 5 kills. 25-kill cooldown." },
+  skill_consecrate:    { icon: "✝", name: "Consecrate",       desc: "Paladin: heals party 25% max HP per kill for 5 kills. 20-kill cooldown.", dungeonReq: 1 },
+  skill_volley:        { icon: "🏹", name: "Volley",           desc: "Ranger: ×4 party DPS for 4 kills. 20-kill cooldown.", dungeonReq: 1 },
 };
 
 const SLOT_ICONS: Record<string, string> = {
@@ -475,7 +477,7 @@ function renderUpgrades(state: GameStateDict): void {
     .join("");
 }
 
-const PRESTIGE_SHOP_META: Record<string, { icon: string; name: string; desc: string; max: number; guildReq?: number }> = {
+const PRESTIGE_SHOP_META: Record<string, { icon: string; name: string; desc: string; max: number; guildReq?: number; dungeonReq?: number }> = {
   guild_hall_access: { icon: "⚔", name: "Guild Hall",    desc: "Unlocks the Guild Hall — hire companions, learn skills, and expand your party.", max: 1 },
   auto_seller:   { icon: "🤖", name: "Auto Seller",    desc: "Auto-sells checked quality tiers after each kill.", max: 1 },
   auto_equip:    { icon: "⚔", name: "Auto Equip",     desc: "Automatically equips loot upgrades after each kill.", max: 1 },
@@ -488,6 +490,8 @@ const PRESTIGE_SHOP_META: Record<string, { icon: string; name: string; desc: str
   starting_gold: { icon: "💰", name: "Starting Gold",  desc: "+250g at the start of each run.", max: Infinity },
   xp_bonus:      { icon: "✨", name: "XP Bonus",       desc: "+10% XP gain for all party members.", max: Infinity },
   checkpoint:    { icon: "⚑", name: "Checkpoint",     desc: "Each level adds a respawn checkpoint at the next multiple of 5 (lv1→floor 5, lv2→floor 10, lv3→floor 15…).", max: 20 },
+  gold_mastery:  { icon: "💰", name: "Gold Mastery",   desc: "+20% gold from bosses per stack. Dungeon 2+.", max: Infinity, dungeonReq: 1 },
+  gear_luck:     { icon: "🍀", name: "Gear Luck",      desc: "+5% item drop chance per stack (max 75%). Dungeon 2+.", max: 10, dungeonReq: 1 },
 };
 
 /** Builds the HTML for quality-tier auto-sell checkboxes shown beneath the loot chest. */
@@ -510,7 +514,7 @@ function renderAutoSellerConfig(state: GameStateDict): string {
 
 /** Renders the Prestige Shop item list, marking purchased one-time items and unaffordable items. */
 function renderPrestigeShop(state: GameStateDict): void {
-  const newKey = JSON.stringify(state.prestige_upgrades) + "|" + state.prestige_points + "|" + state.highest_level + "|" + JSON.stringify(state.auto_sell_qualities);
+  const newKey = JSON.stringify(state.prestige_upgrades) + "|" + state.prestige_points + "|" + state.highest_level + "|" + JSON.stringify(state.auto_sell_qualities) + "|" + state.dungeon_index;
   if (newKey === prestigeKey) return;
   prestigeKey = newKey;
 
@@ -523,7 +527,9 @@ function renderPrestigeShop(state: GameStateDict): void {
   $("prestige-shop-items").innerHTML = Object.entries(PRESTIGE_SHOP_META)
     .filter(([type, meta]) => {
       const guildReq = meta.guildReq ?? 0;
-      return !(guildReq > 0 && companionHall < guildReq);
+      if (guildReq > 0 && companionHall < guildReq) return false;
+      const dungeonReq = meta.dungeonReq ?? 0;
+      return state.dungeon_index >= dungeonReq;
     })
     .map(([type, meta]) => {
       const owned = ups[type] ?? 0;
@@ -580,11 +586,13 @@ function renderGuildHall(state: GameStateDict): void {
     if (stacks >= costs.length) return "max";
     return state.gold >= costs[stacks] ? "yes" : "no";
   }).join(",");
-  const newKey = JSON.stringify(state.guild_upgrades) + "|" + affordKey;
+  const newKey = JSON.stringify(state.guild_upgrades) + "|" + affordKey + "|" + state.dungeon_index;
   if (newKey === guildKey) return;
   guildKey = newKey;
 
-  $("guild-hall-items").innerHTML = Object.entries(GUILD_HALL_META).map(([type, meta]) => {
+  $("guild-hall-items").innerHTML = Object.entries(GUILD_HALL_META).filter(([, meta]) => {
+    return state.dungeon_index >= (meta.dungeonReq ?? 0);
+  }).map(([type, meta]) => {
     const stacks = owned[type] ?? 0;
     const costs = GUILD_HALL_COSTS[type];
     const atMax = stacks >= costs.length;
@@ -603,14 +611,18 @@ function renderGuildHall(state: GameStateDict): void {
 }
 
 const SKILL_NAMES: Record<string, string> = {
-  skill_battle_cry: "📯 Battle Cry",
+  skill_battle_cry:    "📯 Battle Cry",
   skill_shadow_strike: "🌑 Shadow Strike",
-  skill_arcane_surge: "⚡ Arcane Surge",
+  skill_arcane_surge:  "⚡ Arcane Surge",
+  skill_consecrate:    "✝ Consecrate",
+  skill_volley:        "🏹 Volley",
 };
 const SKILL_DESCS: Record<string, string> = {
-  skill_battle_cry: "Doubles party damage for 5 kills.",
+  skill_battle_cry:    "Doubles party damage for 5 kills.",
   skill_shadow_strike: "Multiplies click damage by 5× for 3 kills.",
-  skill_arcane_surge: "Triples party damage for 5 kills.",
+  skill_arcane_surge:  "Triples party damage for 5 kills.",
+  skill_consecrate:    "Heals party 25% max HP per kill for 5 kills.",
+  skill_volley:        "Quadruples party DPS for 4 kills.",
 };
 
 /** Shows/hides the active skill button and updates its cooldown drain bar. */

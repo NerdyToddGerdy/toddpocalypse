@@ -86,10 +86,18 @@ export const PRESTIGE_SHOP_COSTS: Record<string, number> = {
   starting_gold: 1,
   xp_bonus: 1,
   checkpoint: 1,
+  gold_mastery: 2,
+  gear_luck: 2,
+};
+
+/** Minimum dungeonIndex required to purchase each prestige upgrade. */
+export const PRESTIGE_DUNGEON_REQ: Record<string, number> = {
+  gold_mastery: 1,
+  gear_luck: 1,
 };
 
 /** Stackable upgrades whose cost increases by 1 pt per stack already owned. */
-const SCALING_PRESTIGE_UPGRADES = new Set(["starting_gold", "xp_bonus", "checkpoint"]);
+const SCALING_PRESTIGE_UPGRADES = new Set(["starting_gold", "xp_bonus", "checkpoint", "gold_mastery", "gear_luck"]);
 
 /** Returns the prestige point cost for the next purchase of a given upgrade type. */
 export function prestigeUpgradeCost(type: string, currentStacks: number): number {
@@ -108,6 +116,14 @@ export const GUILD_HALL_COSTS: Record<string, number[]> = {
   skill_battle_cry:    [2_500],
   skill_shadow_strike: [2_500],
   skill_arcane_surge:  [2_500],
+  skill_consecrate:    [8_000],
+  skill_volley:        [8_000],
+};
+
+/** Minimum dungeonIndex required to purchase each Guild Hall upgrade. */
+export const GUILD_HALL_DUNGEON_REQ: Record<string, number> = {
+  skill_consecrate: 1,
+  skill_volley: 1,
 };
 
 /** Cooldown (ms) and duration (kills) and class requirement for each active combat skill. */
@@ -115,6 +131,8 @@ export const SKILL_DEFS: Record<string, { cooldownKills: number; durationKills: 
   skill_battle_cry:    { cooldownKills: 30, durationKills: 5, class: "fighter" },
   skill_shadow_strike: { cooldownKills: 15, durationKills: 3, class: "rogue" },
   skill_arcane_surge:  { cooldownKills: 25, durationKills: 5, class: "mage" },
+  skill_consecrate:    { cooldownKills: 20, durationKills: 5, class: "paladin" },
+  skill_volley:        { cooldownKills: 20, durationKills: 4, class: "ranger" },
 };
 
 /** Fraction of missing HP restored after each enemy kill. */
@@ -267,6 +285,7 @@ export class GameState {
     const divineWrathActive = hasDead && this.party.team.some(c => c.isAlive() && c.abilities.includes("divine_wrath"));
     const battleCryMult = (this.activeEffects["skill_battle_cry"] ?? 0) > 0 ? 2.0 : 1.0;
     const arcaneSurgeMult = (this.activeEffects["skill_arcane_surge"] ?? 0) > 0 ? 3.0 : 1.0;
+    const volleyMult = (this.activeEffects["skill_volley"] ?? 0) > 0 ? 4.0 : 1.0;
 
     let baseDps = 0;
     const partyHaste = this.party.team.reduce((s, c) => c.isAlive() ? s + c.haste : s, 0);
@@ -279,7 +298,7 @@ export class GameState {
       baseDps += dps;
     }
     const totalDps = baseDps * (1 + partyHaste);
-    const dmgMult = (hasExpose ? EXPOSE_WEAKNESS_MULT : 1.0) * (hasMark ? 1.20 : 1.0) * battleCryMult * arcaneSurgeMult * (divineWrathActive ? 1.15 : 1.0);
+    const dmgMult = (hasExpose ? EXPOSE_WEAKNESS_MULT : 1.0) * (hasMark ? 1.20 : 1.0) * battleCryMult * arcaneSurgeMult * volleyMult * (divineWrathActive ? 1.15 : 1.0);
     const damageDealt = totalDps * dmgMult * dt;
     this.enemy.hp -= damageDealt;
     if (this.enemy.hp <= 0) {
@@ -425,6 +444,12 @@ export class GameState {
     this.prestigeUpgrades["party_slot_3"] = 0;
     this.prestigeUpgrades["party_slot_4"] = 0;
     this.prestigeUpgrades["party_slot_5"] = 0;
+    // Reset auto tools — must be re-purchased via prestige each dungeon
+    this.prestigeUpgrades["auto_seller"] = 0;
+    this.prestigeUpgrades["auto_equip"] = 0;
+    this.prestigeUpgrades["auto_upgrade"] = 0;
+    this.prestigeUpgrades["smart_seller"] = 0;
+    this.autoSellQualities = [];
     this.skillCooldowns = {};
     this.activeEffects = {};
 
@@ -522,6 +547,7 @@ export class GameState {
   /** Purchases a Prestige Shop item, optionally specifying the companion's class for slot unlocks. Returns serialized JSON. */
   buyPrestigeUpgrade(type: string, characterClass?: string): string {
     if (!(type in PRESTIGE_SHOP_COSTS)) return this.respond();
+    if (this.dungeonIndex < (PRESTIGE_DUNGEON_REQ[type] ?? 0)) return this.respond();
     if (type === "smart_seller" && !(this.prestigeUpgrades["auto_seller"] > 0)) return this.respond();
     if (type === "party_slot_3" && !(this.prestigeUpgrades["party_slot_2"] > 0)) return this.respond();
     if (type === "party_slot_4") {
@@ -606,6 +632,7 @@ export class GameState {
   /** Purchases the next stack of a Guild Hall upgrade, deducting gold. Returns serialized JSON. */
   buyGuildUpgrade(type: string): string {
     if (!(type in GUILD_HALL_COSTS)) return this.respond();
+    if (this.dungeonIndex < (GUILD_HALL_DUNGEON_REQ[type] ?? 0)) return this.respond();
     const costs = GUILD_HALL_COSTS[type];
     const owned = this.guildUpgrades[type] ?? 0;
     if (owned >= costs.length) return this.respond();
@@ -795,11 +822,18 @@ export class GameState {
       }
     }
 
+    if ((this.activeEffects["skill_consecrate"] ?? 0) > 0) {
+      for (const c of this.party.team) {
+        c.health = Math.min(c.maxHealth, c.health + c.maxHealth * 0.25);
+      }
+    }
+
     this.runAutoSeller(); // sell existing loot before new drops land
     this.runAutoEquip();  // equip existing loot before new drops land
     const partyGoldBonus = this.party.team.reduce((s, c) => s + c.goldBonus, 0);
+    const goldMasteryMult = 1 + 0.20 * (this.prestigeUpgrades["gold_mastery"] ?? 0);
     if (this.enemy.isBoss) {
-      this.gold += this.enemy.gold_reward * (1 + partyGoldBonus);
+      this.gold += this.enemy.gold_reward * (1 + partyGoldBonus) * goldMasteryMult;
       if (this.lootPool.length < this.lootMax) {
         const effectiveLevel = this.dungeonLevel + this.dungeonIndex * 5;
         const drop = getItem(undefined, effectiveLevel);
@@ -821,7 +855,8 @@ export class GameState {
       this.addLog(`Descending to level ${this.dungeonLevel}!`);
       this.enemy = generateEnemy(this.dungeonLevel, this.dungeonIndex);
     } else {
-      const dropChance = Math.min(0.75, DROP_CHANCE + this.dungeonIndex * 0.05);
+      const gearLuckBonus = 0.05 * (this.prestigeUpgrades["gear_luck"] ?? 0);
+      const dropChance = Math.min(0.75, DROP_CHANCE + this.dungeonIndex * 0.05 + gearLuckBonus);
       if (Math.random() < dropChance && this.lootPool.length < this.lootMax) {
         const effectiveLevel = this.dungeonLevel + this.dungeonIndex * 5;
         const drop = getItem(undefined, effectiveLevel);

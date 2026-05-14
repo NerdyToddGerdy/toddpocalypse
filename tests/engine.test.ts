@@ -2692,3 +2692,220 @@ describe("checkpoint prestige upgrades", () => {
     expect(restored.prestigeUpgrades["checkpoint_3"]).toBeUndefined();
   });
 });
+
+describe("venture auto-tool reset", () => {
+  function withAutoTools(): GameState {
+    const gs = make();
+    gs.highestLevel = VENTURE_UNLOCK_LEVEL;
+    gs.prestigeUpgrades["auto_seller"] = 1;
+    gs.prestigeUpgrades["auto_equip"] = 1;
+    gs.prestigeUpgrades["auto_upgrade"] = 1;
+    gs.prestigeUpgrades["smart_seller"] = 1;
+    gs.autoSellQualities = ["common", "worn"];
+    return gs;
+  }
+
+  it("venture resets auto_seller to 0", () => {
+    const gs = withAutoTools();
+    gs.venture();
+    expect(gs.prestigeUpgrades["auto_seller"] ?? 0).toBe(0);
+  });
+
+  it("venture resets auto_equip to 0", () => {
+    const gs = withAutoTools();
+    gs.venture();
+    expect(gs.prestigeUpgrades["auto_equip"] ?? 0).toBe(0);
+  });
+
+  it("venture resets auto_upgrade to 0", () => {
+    const gs = withAutoTools();
+    gs.venture();
+    expect(gs.prestigeUpgrades["auto_upgrade"] ?? 0).toBe(0);
+  });
+
+  it("venture resets smart_seller to 0", () => {
+    const gs = withAutoTools();
+    gs.venture();
+    expect(gs.prestigeUpgrades["smart_seller"] ?? 0).toBe(0);
+  });
+
+  it("venture clears autoSellQualities", () => {
+    const gs = withAutoTools();
+    gs.venture();
+    expect(gs.autoSellQualities).toEqual([]);
+  });
+});
+
+describe("dungeon 2 content", () => {
+  function withDungeon2Gold(gold = 100_000): GameState {
+    const gs = make();
+    gs.gold = gold;
+    gs.dungeonIndex = 1;
+    return gs;
+  }
+
+  // ── new guild hall skills ────────────────────────────────────────
+
+  it("skill_consecrate exists in SKILL_DEFS with class paladin", () => {
+    expect(SKILL_DEFS["skill_consecrate"]).toBeDefined();
+    expect(SKILL_DEFS["skill_consecrate"].class).toBe("paladin");
+  });
+
+  it("skill_volley exists in SKILL_DEFS with class ranger", () => {
+    expect(SKILL_DEFS["skill_volley"]).toBeDefined();
+    expect(SKILL_DEFS["skill_volley"].class).toBe("ranger");
+  });
+
+  it("skill_consecrate exists in GUILD_HALL_COSTS", () => {
+    expect(GUILD_HALL_COSTS["skill_consecrate"]).toBeDefined();
+    expect(GUILD_HALL_COSTS["skill_consecrate"].length).toBeGreaterThan(0);
+  });
+
+  it("skill_volley exists in GUILD_HALL_COSTS", () => {
+    expect(GUILD_HALL_COSTS["skill_volley"]).toBeDefined();
+    expect(GUILD_HALL_COSTS["skill_volley"].length).toBeGreaterThan(0);
+  });
+
+  it("buyGuildUpgrade blocks skill_consecrate in dungeon 1", () => {
+    const gs = make();
+    gs.gold = 100_000;
+    gs.dungeonIndex = 0;
+    gs.buyGuildUpgrade("skill_consecrate");
+    expect(gs.guildUpgrades["skill_consecrate"] ?? 0).toBe(0);
+  });
+
+  it("buyGuildUpgrade allows skill_consecrate in dungeon 2+", () => {
+    const gs = withDungeon2Gold();
+    gs.buyGuildUpgrade("skill_consecrate");
+    expect(gs.guildUpgrades["skill_consecrate"]).toBe(1);
+  });
+
+  it("buyGuildUpgrade blocks skill_volley in dungeon 1", () => {
+    const gs = make();
+    gs.gold = 100_000;
+    gs.dungeonIndex = 0;
+    gs.buyGuildUpgrade("skill_volley");
+    expect(gs.guildUpgrades["skill_volley"] ?? 0).toBe(0);
+  });
+
+  it("buyGuildUpgrade allows skill_volley in dungeon 2+", () => {
+    const gs = withDungeon2Gold();
+    gs.buyGuildUpgrade("skill_volley");
+    expect(gs.guildUpgrades["skill_volley"]).toBe(1);
+  });
+
+  // ── new prestige upgrades ────────────────────────────────────────
+
+  it("gold_mastery exists in PRESTIGE_SHOP_COSTS", () => {
+    expect(PRESTIGE_SHOP_COSTS["gold_mastery"]).toBeDefined();
+  });
+
+  it("gear_luck exists in PRESTIGE_SHOP_COSTS", () => {
+    expect(PRESTIGE_SHOP_COSTS["gear_luck"]).toBeDefined();
+  });
+
+  it("buyPrestigeUpgrade blocks gold_mastery in dungeon 1", () => {
+    const gs = withPrestige(10);
+    gs.dungeonIndex = 0;
+    gs.buyPrestigeUpgrade("gold_mastery");
+    expect(gs.prestigeUpgrades["gold_mastery"] ?? 0).toBe(0);
+  });
+
+  it("buyPrestigeUpgrade allows gold_mastery in dungeon 2+", () => {
+    const gs = withPrestige(10);
+    gs.dungeonIndex = 1;
+    gs.buyPrestigeUpgrade("gold_mastery");
+    expect(gs.prestigeUpgrades["gold_mastery"]).toBe(1);
+  });
+
+  it("buyPrestigeUpgrade blocks gear_luck in dungeon 1", () => {
+    const gs = withPrestige(10);
+    gs.dungeonIndex = 0;
+    gs.buyPrestigeUpgrade("gear_luck");
+    expect(gs.prestigeUpgrades["gear_luck"] ?? 0).toBe(0);
+  });
+
+  it("buyPrestigeUpgrade allows gear_luck in dungeon 2+", () => {
+    const gs = withPrestige(10);
+    gs.dungeonIndex = 1;
+    gs.buyPrestigeUpgrade("gear_luck");
+    expect(gs.prestigeUpgrades["gear_luck"]).toBe(1);
+  });
+
+  it("gold_mastery stacks — each purchase adds 1 to count", () => {
+    const gs = withPrestige(20);
+    gs.dungeonIndex = 1;
+    gs.buyPrestigeUpgrade("gold_mastery");
+    gs.buyPrestigeUpgrade("gold_mastery");
+    expect(gs.prestigeUpgrades["gold_mastery"]).toBe(2);
+  });
+
+  it("gold_mastery increases boss gold reward by 20% per stack", () => {
+    const gs = make();
+    gs.dungeonIndex = 1;
+    gs.prestigeUpgrades["gold_mastery"] = 2; // +40% gold
+    const baseGold = 100;
+    gs.enemy = { name: "Boss", level: 5, hp: 0, max_hp: 1, xp_reward: 1, gold_reward: baseGold, attack_dps: 0, isBoss: true };
+    gs.onEnemyDeath();
+    expect(gs.gold).toBeCloseTo(baseGold * 1.4);
+  });
+
+  it("gear_luck increases drop chance proportionally", () => {
+    const gs = withDungeon2Gold();
+    gs.prestigeUpgrades["gear_luck"] = 4; // +20% drop chance
+    let drops = 0;
+    const trials = 1000;
+    for (let i = 0; i < trials; i++) {
+      gs.lootPool = [];
+      gs.enemy = { name: "Mob", level: 1, hp: 0, max_hp: 1, xp_reward: 1, gold_reward: 1, attack_dps: 0, isBoss: false };
+      gs.onEnemyDeath();
+      if (gs.lootPool.length > 0) drops++;
+    }
+    // Base drop chance at dungeonIndex=1 is 0.50; with 4 stacks gear_luck = 0.70
+    expect(drops / trials).toBeGreaterThan(0.60);
+  });
+
+  // ── skill_volley effect ──────────────────────────────────────────
+
+  it("skill_volley quadruples party DPS during active window", () => {
+    const sword = new GearItem("main_hand" as Slot, "sword", "common", "valor");
+
+    const gs = make();
+    gs.party.team[0].equipItem(sword);
+    gs.activeEffects["skill_volley"] = 4;
+    gs.enemy.hp = 99_999;
+    const dmgWith = 99_999 - JSON.parse(gs.tick(1)).enemy.hp;
+
+    const gs2 = make();
+    gs2.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "common", "valor"));
+    gs2.enemy.hp = 99_999;
+    const dmgWithout = 99_999 - JSON.parse(gs2.tick(1)).enemy.hp;
+
+    expect(dmgWith).toBeCloseTo(dmgWithout * 4, 0);
+  });
+
+  // ── skill_consecrate effect ──────────────────────────────────────
+
+  it("skill_consecrate heals party for 25% max HP per kill during active", () => {
+    const gs = make();
+    const player = gs.party.team[0];
+    player.health = 1; // nearly dead
+    player.maxHealth = 100;
+    gs.activeEffects["skill_consecrate"] = 5;
+    gs.enemy = { name: "Mob", level: 1, hp: 0, max_hp: 1, xp_reward: 1, gold_reward: 1, attack_dps: 0, isBoss: false };
+    gs.onEnemyDeath();
+    // 12% missing-HP heal + 25% max-HP consecrate heal
+    expect(player.health).toBeGreaterThan(25);
+  });
+
+  it("skill_consecrate does not heal when inactive", () => {
+    const gs = make();
+    const player = gs.party.team[0];
+    player.health = 1;
+    player.maxHealth = 100;
+    gs.enemy = { name: "Mob", level: 1, hp: 0, max_hp: 1, xp_reward: 1, gold_reward: 1, attack_dps: 0, isBoss: false };
+    gs.onEnemyDeath();
+    // Only the 12% missing-HP heal (99 missing × 0.12 ≈ 12.88)
+    expect(player.health).toBeLessThan(15);
+  });
+});
