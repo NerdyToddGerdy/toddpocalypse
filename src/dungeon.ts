@@ -83,13 +83,13 @@ function randInt(min: number, max: number): number {
 /** Generates a scaled regular enemy for the given dungeon floor and dungeon index.
  *  Each dungeon beyond the first adds 25% to HP/attack and 15% to gold. */
 export function generateEnemy(dungeonLevel: number, dungeonIndex = 0): Enemy {
-  const mult = 1 + dungeonIndex * 0.25;
+  const mult = 1 + dungeonIndex * 0.40;
   const name = `${pick(ENEMY_ADJECTIVES)} ${pick(ENEMY_NOUNS)}`;
   const baseHp = Math.floor(10 * Math.pow(1.3, dungeonLevel) + randInt(0, dungeonLevel * 2));
   const hp = Math.floor(baseHp * mult);
   const xpReward = Math.max(1, dungeonLevel * 3 + randInt(1, 4));
   const goldReward = Math.max(1, Math.floor((dungeonLevel * 5 + randInt(0, dungeonLevel * 3)) * (1 + dungeonIndex * 0.15)));
-  const attackDps = Math.round(dungeonLevel * 3.0 * mult * 10) / 10;
+  const attackDps = Math.round(dungeonLevel * 4.0 * mult * 10) / 10;
   return {
     name,
     level: dungeonLevel,
@@ -105,12 +105,12 @@ export function generateEnemy(dungeonLevel: number, dungeonIndex = 0): Enemy {
 /** Generates a scaled floor boss with higher HP and attack than regular enemies.
  *  Each dungeon beyond the first adds 25% to HP/attack and 15% to gold. */
 export function generateBoss(dungeonLevel: number, dungeonIndex = 0): Enemy {
-  const mult = 1 + dungeonIndex * 0.25;
+  const mult = 1 + dungeonIndex * 0.40;
   const name = `The ${pick(BOSS_TITLES)} ${pick(ENEMY_NOUNS)} Lord`;
   const hp = Math.floor(100 * Math.pow(1.3, dungeonLevel) * mult);
   const xpReward = Math.max(5, dungeonLevel * 9 + 5);
   const goldReward = Math.max(5, Math.floor(dungeonLevel * 15 * (1 + dungeonIndex * 0.15)));
-  const attackDps = Math.round(dungeonLevel * 5.0 * mult * 10) / 10;
+  const attackDps = Math.round(dungeonLevel * 6.5 * mult * 10) / 10;
   return {
     name,
     level: dungeonLevel,

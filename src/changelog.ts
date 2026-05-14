@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.66";
+export const VERSION = "v2.6.67";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.67",
+    date: "2026-05-14",
+    changes: [
+      "Difficulty tuning: enemy attack DPS raised (regular 3.0→4.0, boss 5.0→6.5 per floor)",
+      "Dungeon index attack multiplier increased (25%→40% per dungeon)",
+      "Combat heal per kill reduced (20%→12% of missing HP)",
+    ],
+  },
   {
     version: "v2.6.66",
     date: "2026-05-13",

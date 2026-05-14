@@ -118,7 +118,7 @@ export const SKILL_DEFS: Record<string, { cooldownKills: number; durationKills: 
 };
 
 /** Fraction of missing HP restored after each enemy kill. */
-export const COMBAT_HEAL_FRACTION = 0.20;
+export const COMBAT_HEAL_FRACTION = 0.12;
 
 /** Gold granted per starting_gold prestige upgrade level. */
 export const STARTING_GOLD_PER_LEVEL = 250;

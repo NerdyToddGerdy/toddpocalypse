@@ -64,10 +64,15 @@ describe("generateEnemy", () => {
     expect(generateEnemy(5, 0).attack_dps).toBe(generateEnemy(5).attack_dps);
   });
 
-  it("dungeonIndex increases attack_dps by 25% per index", () => {
+  it("dungeonIndex increases attack_dps by 40% per index", () => {
     const base = generateEnemy(10, 0).attack_dps;
-    expect(generateEnemy(10, 1).attack_dps).toBeCloseTo(base * 1.25, 5);
-    expect(generateEnemy(10, 2).attack_dps).toBeCloseTo(base * 1.50, 5);
+    expect(generateEnemy(10, 1).attack_dps).toBeCloseTo(base * 1.40, 5);
+    expect(generateEnemy(10, 2).attack_dps).toBeCloseTo(base * 1.80, 5);
+  });
+
+  it("base attack_dps coefficient is 4.0 per dungeon level", () => {
+    expect(generateEnemy(10, 0).attack_dps).toBeCloseTo(40.0, 5);
+    expect(generateEnemy(20, 0).attack_dps).toBeCloseTo(80.0, 5);
   });
 
   it("dungeonIndex=1 produces higher attack_dps than dungeonIndex=0 at same level", () => {
@@ -149,6 +154,11 @@ describe("generateBoss", () => {
     const [a0, a1, a2] = [0, 1, 2].map(i => generateBoss(5, i).attack_dps);
     expect(a1).toBeGreaterThan(a0);
     expect(a2).toBeGreaterThan(a1);
+  });
+
+  it("base boss attack_dps coefficient is 6.5 per dungeon level", () => {
+    expect(generateBoss(10, 0).attack_dps).toBeCloseTo(65.0, 5);
+    expect(generateBoss(20, 0).attack_dps).toBeCloseTo(130.0, 5);
   });
 
   it("dungeonIndex=0 is backward compatible", () => {
