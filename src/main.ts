@@ -1,4 +1,4 @@
-import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, SKILL_DEFS, prestigeUpgradeCost } from "./engine.js";
+import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, SKILL_DEFS, prestigeUpgradeCost } from "./engine.js";
 import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, type GearStats, type GearItemDict } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
@@ -573,7 +573,7 @@ function updateVentureButton(state: GameStateDict): void {
     btn.textContent = "⚔ Venture Forth";
   } else {
     btn.disabled = true;
-    btn.textContent = `⚔ Venture (need lv${VENTURE_UNLOCK_LEVEL})`;
+    btn.textContent = `⚔ Venture (need lv${ventureUnlockLevel(state.dungeon_index)})`;
   }
 }
 

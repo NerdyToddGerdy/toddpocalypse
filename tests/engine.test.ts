@@ -6,7 +6,7 @@ import {
   LUCKY_STRIKE_CHANCE, LUCKY_STRIKE_MULTIPLIER, EMPOWER_MULTIPLIER,
   VENTURE_UNLOCK_LEVEL, IDLE_GOLD_RATE,
   GUILD_HALL_COSTS, SKILL_DEFS, COMBAT_HEAL_FRACTION,
-  killsForFloor, prestigeUpgradeCost,
+  killsForFloor, prestigeUpgradeCost, ventureUnlockLevel,
 } from "../src/engine.js";
 import { Character } from "../src/character.js";
 import { GearItem, getItem, type Slot } from "../src/gear.js";
@@ -2111,11 +2111,18 @@ describe("venture", () => {
     expect(gs.party.team[1].characterClass).toBe("rogue");
   });
 
+  it("ventureUnlockLevel increases by 10 per dungeon", () => {
+    expect(ventureUnlockLevel(0)).toBe(40);
+    expect(ventureUnlockLevel(1)).toBe(50);
+    expect(ventureUnlockLevel(2)).toBe(60);
+    expect(ventureUnlockLevel(3)).toBe(70);
+  });
+
   it("venture increments dungeonIndex on each call (infinite progression)", () => {
     const gs = withVentureReady();
     gs.venture();
     expect(gs.dungeonIndex).toBe(1);
-    gs.highestLevel = VENTURE_UNLOCK_LEVEL;
+    gs.highestLevel = ventureUnlockLevel(1); // dungeon 2 requires floor 50
     gs.venture();
     expect(gs.dungeonIndex).toBe(2);
   });
@@ -2128,19 +2135,27 @@ describe("venture", () => {
     // Re-buy party slot and get a companion for dungeon 2
     gs.prestigePoints = 5;
     gs.buyPrestigeUpgrade("party_slot_2", "rogue");
-    gs.highestLevel = VENTURE_UNLOCK_LEVEL;
+    gs.highestLevel = ventureUnlockLevel(1); // dungeon 2 requires floor 50
     const secondCompDps = gs.party.team[1].dps;
     gs.venture();
     expect(gs.idleGoldRate).toBeCloseTo(rateAfterFirst + secondCompDps * IDLE_GOLD_RATE);
   });
 
-  it("venture_available is true again at floor 40 in dungeon 2", () => {
+  it("venture_available is true again at floor 50 in dungeon 2", () => {
     const gs = withVentureReady();
     gs.venture();
-    gs.highestLevel = VENTURE_UNLOCK_LEVEL;
+    gs.highestLevel = ventureUnlockLevel(1); // dungeon 2 requires floor 50
     const d = gs.toDict();
     expect(d.venture_available).toBe(true);
     expect(d.dungeon_index).toBe(1);
+  });
+
+  it("venture_available is false at floor 40 in dungeon 2", () => {
+    const gs = withVentureReady();
+    gs.venture();
+    gs.highestLevel = VENTURE_UNLOCK_LEVEL; // only floor 40, dungeon 2 needs 50
+    const d = gs.toDict();
+    expect(d.venture_available).toBe(false);
   });
 });
 

@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.68";
+export const VERSION = "v2.6.69";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.69",
+    date: "2026-05-14",
+    changes: [
+      "Venture unlock floor increases by 10 per dungeon (dungeon 2 needs floor 50, dungeon 3 needs floor 60, …)",
+    ],
+  },
   {
     version: "v2.6.68",
     date: "2026-05-14",

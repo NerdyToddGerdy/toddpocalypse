@@ -66,8 +66,13 @@ export const EMPOWER_MULTIPLIER = 2;
 export const PRESTIGE_UNLOCK_LEVEL = 20;
 
 
-/** Minimum dungeon floor (highest_level) required to venture to the next dungeon. */
+/** Minimum dungeon floor (highest_level) required to venture from dungeon 1. */
 export const VENTURE_UNLOCK_LEVEL = 40;
+
+/** Returns the floor required to venture from the given dungeon (increases by 10 per dungeon). */
+export function ventureUnlockLevel(dungeonIndex: number): number {
+  return VENTURE_UNLOCK_LEVEL + dungeonIndex * 10;
+}
 
 /** Gold earned per idle companion DPS-point per real second after venturing. */
 export const IDLE_GOLD_RATE = 0.01;
@@ -432,7 +437,7 @@ export class GameState {
 
   /** Advances to the next dungeon, leaving companions behind as idle earners. Returns serialized JSON. */
   venture(): string {
-    if (this.highestLevel < VENTURE_UNLOCK_LEVEL) return this.respond();
+    if (this.highestLevel < ventureUnlockLevel(this.dungeonIndex)) return this.respond();
 
     const companions = this.party.team.slice(1);
     this.idleGoldRate += companions.reduce((sum, c) => sum + c.dps, 0) * IDLE_GOLD_RATE;
@@ -745,7 +750,7 @@ export class GameState {
       floor_kills: this.floorKills,
       dungeon_index: this.dungeonIndex,
       idle_gold_rate: this.idleGoldRate,
-      venture_available: this.highestLevel >= VENTURE_UNLOCK_LEVEL,
+      venture_available: this.highestLevel >= ventureUnlockLevel(this.dungeonIndex),
       guild_upgrades: { ...this.guildUpgrades },
       skill_available: this.computeSkillAvailable(),
       companion_skills_available: this.computeCompanionSkillsAvailable(),
