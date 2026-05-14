@@ -275,6 +275,18 @@ function renderDepthGauge(state: GameStateDict): void {
     cpEl.style.top = toPercent(checkpoint) + "px";
   }
 
+  // Every-5-floor tick marks on the left side; checkpoint tick gets ⚑ prefix
+  const tickContainer = $("depth-ticks-container");
+  const ticks: string[] = [];
+  for (let floor = 5; floor <= maxDisplay; floor += 5) {
+    const top = toPercent(floor);
+    const isCp = floor === checkpoint && checkpoint > 1;
+    const label = isCp ? `⚑${floor}` : `${floor}`;
+    const cls = isCp ? "depth-tick checkpoint-tick" : "depth-tick";
+    ticks.push(`<div class="${cls}" style="top:${top}px"><span class="depth-tick-label">${label}</span></div>`);
+  }
+  tickContainer.innerHTML = ticks.join("");
+
   const deathContainer = $("depth-deaths-container");
   deathContainer.innerHTML = Object.entries(deathFloors).map(([floor, count]) => {
     const top = toPercent(Number(floor));

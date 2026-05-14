@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.73";
+export const VERSION = "v2.6.74";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.74",
+    date: "2026-05-14",
+    changes: [
+      "Depth gauge: tick marks at every 5 floors on the left side; checkpoint tick highlighted with ⚑",
+    ],
+  },
   {
     version: "v2.6.73",
     date: "2026-05-14",
