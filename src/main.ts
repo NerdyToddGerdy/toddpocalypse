@@ -1357,6 +1357,19 @@ function startGame(name: string, characterClass: string): void {
 function continueGame(saved: GameStateDict): void {
   $("creation-overlay").style.display = "none";
   game = GameState.fromDict(saved);
+
+  if (saved.saved_at && saved.saved_at > 0) {
+    const elapsedMs = Date.now() - saved.saved_at;
+    const earned = game.applyOfflineProgress(elapsedMs);
+    if (earned >= 1) {
+      const mins = Math.round(elapsedMs / 60_000);
+      const timeStr = mins >= 60
+        ? `${Math.floor(mins / 60)}h ${mins % 60}m`
+        : `${mins}m`;
+      game.log.push(`Welcome back! Earned ${Math.floor(earned).toLocaleString()} gold while away (${timeStr}).`);
+    }
+  }
+
   render(JSON.parse(game.respond()));
   setInterval(() => { call("tick", 0.1); saveGame(); }, 100);
 }

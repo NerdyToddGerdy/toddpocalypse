@@ -4,7 +4,7 @@ import {
   PRESTIGE_UNLOCK_LEVEL, PRESTIGE_SHOP_COSTS, STARTING_GOLD_PER_LEVEL, XP_BONUS_PER_LEVEL,
   BLOODLUST_MULTIPLIER, EXPOSE_WEAKNESS_MULT, MANA_SURGE_INTERVAL, MANA_SURGE_MULTIPLIER,
   LUCKY_STRIKE_CHANCE, LUCKY_STRIKE_MULTIPLIER, EMPOWER_MULTIPLIER,
-  VENTURE_UNLOCK_LEVEL, IDLE_GOLD_RATE,
+  VENTURE_UNLOCK_LEVEL, IDLE_GOLD_RATE, OFFLINE_GOLD_CAP_SECONDS,
   GUILD_HALL_COSTS, SKILL_DEFS, COMBAT_HEAL_FRACTION,
   killsForFloor, prestigeUpgradeCost, ventureUnlockLevel,
 } from "../src/engine.js";
@@ -2968,5 +2968,61 @@ describe("dungeon 2 content", () => {
     gs.onEnemyDeath();
     // Only the 12% missing-HP heal (99 missing × 0.12 ≈ 12.88)
     expect(player.health).toBeLessThan(15);
+  });
+});
+
+describe("offline progress catch-up", () => {
+  it("applyOfflineProgress returns 0 and adds nothing when idleGoldRate is 0", () => {
+    const gs = make();
+    gs.idleGoldRate = 0;
+    const before = gs.gold;
+    const earned = gs.applyOfflineProgress(3600_000);
+    expect(earned).toBe(0);
+    expect(gs.gold).toBe(before);
+  });
+
+  it("awards gold = idleGoldRate × elapsed seconds", () => {
+    const gs = make();
+    gs.idleGoldRate = 5; // 5 gold/sec
+    const before = gs.gold;
+    const elapsed = 120_000; // 2 minutes
+    const earned = gs.applyOfflineProgress(elapsed);
+    expect(earned).toBeCloseTo(5 * 120);
+    expect(gs.gold).toBeCloseTo(before + 5 * 120);
+  });
+
+  it("caps at OFFLINE_GOLD_CAP_SECONDS regardless of elapsed time", () => {
+    const gs = make();
+    gs.idleGoldRate = 10;
+    const before = gs.gold;
+    const earned = gs.applyOfflineProgress(999_999_000); // way beyond cap
+    expect(earned).toBeCloseTo(10 * OFFLINE_GOLD_CAP_SECONDS);
+    expect(gs.gold).toBeCloseTo(before + 10 * OFFLINE_GOLD_CAP_SECONDS);
+  });
+
+  it("returns 0 for negative or zero elapsed time", () => {
+    const gs = make();
+    gs.idleGoldRate = 10;
+    const before = gs.gold;
+    expect(gs.applyOfflineProgress(0)).toBe(0);
+    expect(gs.applyOfflineProgress(-5000)).toBe(0);
+    expect(gs.gold).toBe(before);
+  });
+
+  it("saved_at round-trips through toDict/fromDict", () => {
+    const gs = make();
+    const before = Date.now();
+    const dict = gs.toDict();
+    expect(dict.saved_at).toBeGreaterThanOrEqual(before);
+    const restored = GameState.fromDict(dict);
+    expect(restored.savedAt).toBe(dict.saved_at);
+  });
+
+  it("fromDict with missing saved_at defaults to 0 (triggers no offline award)", () => {
+    const gs = make();
+    const dict = gs.toDict();
+    delete (dict as unknown as Record<string, unknown>).saved_at;
+    const restored = GameState.fromDict(dict);
+    expect(restored.savedAt).toBe(0);
   });
 });

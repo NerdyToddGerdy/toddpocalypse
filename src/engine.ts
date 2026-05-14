@@ -143,6 +143,9 @@ export const SKILL_DEFS: Record<string, { cooldownKills: number; durationKills: 
 /** Fraction of missing HP restored after each enemy kill. */
 export const COMBAT_HEAL_FRACTION = 0.12;
 
+/** Maximum offline time (in seconds) credited for idle gold catch-up. */
+export const OFFLINE_GOLD_CAP_SECONDS = 8 * 3600; // 8 hours
+
 /** Gold granted per starting_gold prestige upgrade level. */
 export const STARTING_GOLD_PER_LEVEL = 250;
 
@@ -192,6 +195,7 @@ export interface GameStateDict {
   skill_cooldowns: Record<string, number>;
   active_effects: Record<string, number>;
   loot_max: number;
+  saved_at: number;
 }
 
 /** Central game loop: owns all mutable state and exposes action methods that return serialized JSON. */
@@ -252,6 +256,8 @@ export class GameState {
   activeEffects: Record<string, number> = {};
   /** Unique ID for this save file — generated once on new game, survives prestiges. */
   runId: string = crypto.randomUUID();
+  /** Unix-ms timestamp when the state was last serialized (used for offline catch-up). */
+  savedAt = 0;
 
   /** Current loot chest capacity, expanding with Expanded Armory guild upgrades. */
   get lootMax(): number { return 8 + 2 * (this.guildUpgrades["expanded_armory"] ?? 0); }
@@ -764,7 +770,17 @@ export class GameState {
       active_effects: { ...this.activeEffects },
       run_id: this.runId,
       loot_max: this.lootMax,
+      saved_at: Date.now(),
     };
+  }
+
+  /** Awards idle gold for time spent offline, capped at OFFLINE_GOLD_CAP_SECONDS. Returns gold earned. */
+  applyOfflineProgress(elapsedMs: number): number {
+    if (elapsedMs <= 0 || this.idleGoldRate <= 0) return 0;
+    const elapsedSec = Math.min(elapsedMs / 1000, OFFLINE_GOLD_CAP_SECONDS);
+    const earned = this.idleGoldRate * elapsedSec;
+    this.gold += earned;
+    return earned;
   }
 
   /** Returns the gold cost for the next level of an upgrade (doubles each level). */
@@ -1078,6 +1094,7 @@ export class GameState {
     );
     gs.activeEffects = { ...(d.active_effects ?? {}) };
     gs.runId = d.run_id ?? crypto.randomUUID();
+    gs.savedAt = d.saved_at ?? 0;
 
     // Migrate old checkpoint_1/2/3 one-time upgrades to single leveled checkpoint
     if (!("checkpoint" in gs.prestigeUpgrades)) {
