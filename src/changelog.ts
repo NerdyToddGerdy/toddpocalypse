@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.71";
+export const VERSION = "v2.6.72";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.72",
+    date: "2026-05-14",
+    changes: [
+      "Mobile: depth gauge top now tracks live header height via ResizeObserver — no longer hidden behind header",
+      "Mobile: prestige and venture buttons locked to a single stable row (no bouncing when HP changes)",
+      "Mobile: Prestige Shop and Guild Hall hidden in shop tab until unlocked",
+    ],
+  },
   {
     version: "v2.6.71",
     date: "2026-05-14",

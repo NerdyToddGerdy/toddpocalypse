@@ -197,6 +197,10 @@ function updateTabVisibility(state: GameStateDict): void {
   // Mobile tabs
   const mobileGuild = document.querySelector<HTMLElement>(".mobile-tab-btn[data-tab='guild']");
   if (mobileGuild) mobileGuild.hidden = !guildUnlocked;
+
+  // Mobile shop panel visibility — hide until unlocked so the shop tab doesn't show empty sections
+  $("prestige-panel").classList.toggle("prestige-locked", !prestigeUnlocked);
+  $("guild-hall-panel").classList.toggle("guild-locked", !guildUnlocked);
 }
 
 /** Renders the kill-progress pips, boss indicator text, and checkpoint label below the enemy panel. */
@@ -1369,8 +1373,16 @@ function initPartyGearToggle(): void {
   });
 }
 
+function initHeaderHeightVar(): void {
+  const hdr = document.querySelector("header") as HTMLElement;
+  const update = () => document.documentElement.style.setProperty("--header-h", hdr.offsetHeight + "px");
+  update();
+  new ResizeObserver(update).observe(hdr);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   initTheme();
+  initHeaderHeightVar();
   initMobileTabs();
   initSidebarTabs();
   initItemTooltip();

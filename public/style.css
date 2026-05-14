@@ -167,6 +167,8 @@ header h1 {
 #stat-party-hp-wrap span { color: var(--hp-green); }
 #stat-party-dps-wrap span { color: var(--accent2, #a78bfa); }
 
+#action-btns { display: contents; }
+
 #prestige-btn {
     padding: 6px 14px;
     font-size: 0.78rem;
@@ -1356,8 +1358,8 @@ main {
         width: 44px;
         flex-direction: column;
         align-items: center;
-        /* top padding clears the header (~72px); bottom padding clears enemy panel + tab bar (260px) */
-        padding: 72px 4px 264px;
+        /* top padding tracks the live header height via JS ResizeObserver */
+        padding: var(--header-h, 148px) 4px 264px;
         gap: 4px;
         background: var(--surface);
         border-right: 1px solid var(--border);
@@ -1402,6 +1404,18 @@ main {
     #stat-party-hp-wrap { display: flex; }
     #stat-party-dps-wrap { display: flex; }
 
+    /* Keep prestige+venture on one stable row so HP changes don't shift them */
+    #action-btns {
+        display: flex;
+        gap: 8px;
+        width: 100%;
+    }
+    #action-btns #prestige-btn,
+    #action-btns #venture-btn {
+        flex: 1;
+        text-align: center;
+    }
+
     #creation-box { width: min(340px, 92vw); }
 
     #party-cards { grid-template-columns: 1fr; }
@@ -1430,6 +1444,7 @@ main {
     #party-panel { order: 2; }
 
     #prestige-panel.prestige-locked  { display: none !important; }
+    #guild-hall-panel.guild-locked   { display: none !important; }
 
     /* Let panels expand to full content height so main's scroll handles the whole shop tab.
        flex-shrink:0 prevents the flex algorithm from capping panel heights.
