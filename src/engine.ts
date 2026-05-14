@@ -111,10 +111,10 @@ export const GUILD_HALL_COSTS: Record<string, number[]> = {
 };
 
 /** Cooldown (ms) and duration (kills) and class requirement for each active combat skill. */
-export const SKILL_DEFS: Record<string, { cooldownMs: number; durationKills: number; class: string }> = {
-  skill_battle_cry:    { cooldownMs: 120_000, durationKills: 5, class: "fighter" },
-  skill_shadow_strike: { cooldownMs: 45_000,  durationKills: 3, class: "rogue" },
-  skill_arcane_surge:  { cooldownMs: 90_000,  durationKills: 5, class: "mage" },
+export const SKILL_DEFS: Record<string, { cooldownKills: number; durationKills: number; class: string }> = {
+  skill_battle_cry:    { cooldownKills: 30, durationKills: 5, class: "fighter" },
+  skill_shadow_strike: { cooldownKills: 15, durationKills: 3, class: "rogue" },
+  skill_arcane_surge:  { cooldownKills: 25, durationKills: 5, class: "mage" },
 };
 
 /** Fraction of missing HP restored after each enemy kill. */
@@ -627,10 +627,8 @@ export class GameState {
     if (!def) return this.respond();
     const caster = this.party.team.find(c => c.characterClass === def.class);
     if (!caster) return this.respond();
-    const now = Date.now();
-    const lastUsed = this.skillCooldowns[skillId] ?? 0;
-    if (now - lastUsed < def.cooldownMs) return this.respond();
-    this.skillCooldowns[skillId] = now;
+    if ((this.skillCooldowns[skillId] ?? 0) > 0) return this.respond();
+    this.skillCooldowns[skillId] = def.cooldownKills;
     this.activeEffects[skillId] = def.durationKills;
     this.addLog(`${caster.name} uses ${skillId.replace("skill_", "").replace(/_/g, " ")}!`);
     return this.respond();
@@ -764,6 +762,10 @@ export class GameState {
     for (const key of Object.keys(this.activeEffects)) {
       this.activeEffects[key] -= 1;
       if (this.activeEffects[key] <= 0) delete this.activeEffects[key];
+    }
+    for (const key of Object.keys(this.skillCooldowns)) {
+      this.skillCooldowns[key] -= 1;
+      if (this.skillCooldowns[key] <= 0) delete this.skillCooldowns[key];
     }
     const name = this.enemy.name;
     this.lifetimeEnemyKills[name] = (this.lifetimeEnemyKills[name] ?? 0) + 1;
@@ -1021,7 +1023,11 @@ export class GameState {
     gs.dungeonIndex = d.dungeon_index ?? 0;
     gs.idleGoldRate = d.idle_gold_rate ?? 0;
     gs.guildUpgrades = { ...(d.guild_upgrades ?? {}) };
-    gs.skillCooldowns = { ...(d.skill_cooldowns ?? {}) };
+    // Migrate old timestamp-based cooldowns (values > 1000) to 0 (kill-based system)
+    const rawCooldowns = d.skill_cooldowns ?? {};
+    gs.skillCooldowns = Object.fromEntries(
+      Object.entries(rawCooldowns).map(([k, v]) => [k, v > 1000 ? 0 : v])
+    );
     gs.activeEffects = { ...(d.active_effects ?? {}) };
     gs.runId = d.run_id ?? crypto.randomUUID();
 

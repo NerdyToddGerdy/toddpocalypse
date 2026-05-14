@@ -2237,10 +2237,9 @@ describe("guild hall", () => {
     const gs = withGuildGold();
     gs.guildUpgrades["skill_battle_cry"] = 1;
     gs.party.team[0] = new Character("Hero", "fighter", 1);
-    const before = Date.now();
     gs.activateSkill("skill_battle_cry");
     const def = SKILL_DEFS["skill_battle_cry"];
-    expect(gs.skillCooldowns["skill_battle_cry"]).toBeGreaterThanOrEqual(before);
+    expect(gs.skillCooldowns["skill_battle_cry"]).toBe(def.cooldownKills);
     expect(gs.activeEffects["skill_battle_cry"]).toBe(def.durationKills);
   });
 
@@ -2295,6 +2294,41 @@ describe("guild hall", () => {
     const firstActivation = gs.skillCooldowns["skill_battle_cry"];
     gs.activateSkill("skill_battle_cry");
     expect(gs.skillCooldowns["skill_battle_cry"]).toBe(firstActivation); // unchanged
+  });
+
+  it("skill cooldown decrements by 1 on each enemy kill", () => {
+    const gs = withGuildGold();
+    gs.guildUpgrades["skill_battle_cry"] = 1;
+    gs.party.team[0] = new Character("Hero", "fighter", 1);
+    gs.activateSkill("skill_battle_cry");
+    const def = SKILL_DEFS["skill_battle_cry"];
+    expect(gs.skillCooldowns["skill_battle_cry"]).toBe(def.cooldownKills);
+    // Kill enough enemies to exhaust the active effect first
+    for (let i = 0; i < def.durationKills; i++) {
+      gs.enemy.hp = 0;
+      gs.tick(0.1);
+    }
+    // Now the skill is off (active expired), cooldown should have decremented durationKills times
+    expect(gs.skillCooldowns["skill_battle_cry"]).toBe(def.cooldownKills - def.durationKills);
+  });
+
+  it("skill cooldown clears after enough kills", () => {
+    const gs = make();
+    gs.skillCooldowns["skill_battle_cry"] = 2;
+    gs.enemy.hp = 0;
+    gs.tick(0.1);
+    expect(gs.skillCooldowns["skill_battle_cry"]).toBe(1);
+    gs.enemy.hp = 0;
+    gs.tick(0.1);
+    expect(gs.skillCooldowns["skill_battle_cry"]).toBeUndefined();
+  });
+
+  it("fromDict migrates old timestamp cooldowns to 0", () => {
+    const gs = make();
+    const dict = JSON.parse(gs.respond());
+    dict.skill_cooldowns = { skill_battle_cry: Date.now() }; // old timestamp format
+    const restored = GameState.fromDict(dict);
+    expect(restored.skillCooldowns["skill_battle_cry"]).toBe(0);
   });
 
   it("skill_battle_cry doubles party DPS during active window", () => {

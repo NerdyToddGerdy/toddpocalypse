@@ -607,11 +607,6 @@ const SKILL_NAMES: Record<string, string> = {
   skill_shadow_strike: "🌑 Shadow Strike",
   skill_arcane_surge: "⚡ Arcane Surge",
 };
-const SKILL_COOLDOWNS: Record<string, number> = {
-  skill_battle_cry: 120_000,
-  skill_shadow_strike: 45_000,
-  skill_arcane_surge: 90_000,
-};
 const SKILL_DESCS: Record<string, string> = {
   skill_battle_cry: "Doubles party damage for 5 kills.",
   skill_shadow_strike: "Multiplies click damage by 5× for 3 kills.",
@@ -636,13 +631,11 @@ function renderSkillButton(state: GameStateDict): void {
   }
 
   btn.hidden = false;
-  const now = Date.now();
-  const lastUsed = state.skill_cooldowns[skillId] ?? 0;
+  const remaining = state.skill_cooldowns[skillId] ?? 0;
   const expiry = state.active_effects[skillId] ?? 0;
-  const cooldownMs = SKILL_COOLDOWNS[skillId] ?? 60_000;
+  const totalCooldown = SKILL_DEFS[skillId]?.cooldownKills ?? 30;
   const isActive = expiry > 0;
-  const elapsed = now - lastUsed;
-  const onCooldown = lastUsed > 0 && elapsed < cooldownMs && !isActive;
+  const onCooldown = remaining > 0 && !isActive;
 
   btn.textContent = SKILL_NAMES[skillId] ?? skillId;
   btn.dataset.activeSkill = skillId;
@@ -650,7 +643,7 @@ function renderSkillButton(state: GameStateDict): void {
   btn.className = isActive ? "active" : "";
 
   if (onCooldown) {
-    const pct = Math.min(100, (elapsed / cooldownMs) * 100);
+    const pct = Math.min(100, ((totalCooldown - remaining) / totalCooldown) * 100);
     fill.style.width = pct + "%";
     bar.hidden = false;
   } else {
@@ -670,15 +663,13 @@ function renderCompanionSkills(state: GameStateDict): void {
   const container = document.getElementById("companion-skills")!;
   if (!skills.length) { container.innerHTML = ""; return; }
 
-  const now = Date.now();
   container.innerHTML = skills.map(skillId => {
-    const lastUsed = state.skill_cooldowns[skillId] ?? 0;
+    const remaining = state.skill_cooldowns[skillId] ?? 0;
     const expiry = state.active_effects[skillId] ?? 0;
-    const cooldownMs = SKILL_COOLDOWNS[skillId] ?? 60_000;
+    const totalCooldown = SKILL_DEFS[skillId]?.cooldownKills ?? 30;
     const isActive = expiry > 0;
-    const elapsed = now - lastUsed;
-    const onCooldown = lastUsed > 0 && elapsed < cooldownMs && !isActive;
-    const pct = onCooldown ? Math.min(100, (elapsed / cooldownMs) * 100) : 0;
+    const onCooldown = remaining > 0 && !isActive;
+    const pct = onCooldown ? Math.min(100, ((totalCooldown - remaining) / totalCooldown) * 100) : 0;
     const label = SKILL_NAMES[skillId] ?? skillId;
     return `
       <button class="companion-skill-btn${isActive ? " active" : ""}" data-action="activate-companion-skill" data-skill="${skillId}" data-active-skill="${skillId}"${onCooldown ? " disabled" : ""}>${label}</button>
@@ -984,9 +975,8 @@ const TOOLTIP_SELECTORS = ".gear-row.filled[data-item], .loot-item[data-item], .
 function buildActiveSkillTooltipHTML(skillId: string): string {
   const name = SKILL_NAMES[skillId] ?? skillId;
   const desc = SKILL_DESCS[skillId] ?? "";
-  const cooldownSec = Math.round((SKILL_COOLDOWNS[skillId] ?? 60_000) / 1000);
-  const cooldownLabel = cooldownSec >= 60 ? `${cooldownSec / 60} min` : `${cooldownSec} sec`;
-  return `<div class="skill-tooltip"><div class="skill-tooltip-name">${name}</div><div class="skill-tooltip-desc">${desc}</div><div class="skill-tooltip-cd">Cooldown: ${cooldownLabel}</div></div>`;
+  const cooldownKills = SKILL_DEFS[skillId]?.cooldownKills ?? 30;
+  return `<div class="skill-tooltip"><div class="skill-tooltip-name">${name}</div><div class="skill-tooltip-desc">${desc}</div><div class="skill-tooltip-cd">Cooldown: ${cooldownKills} kills</div></div>`;
 }
 
 function getTooltipContent(el: HTMLElement): string | null {
