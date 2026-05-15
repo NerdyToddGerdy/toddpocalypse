@@ -1451,6 +1451,58 @@ function initPartyGearToggle(): void {
   });
 }
 
+function initSaveBackup(): void {
+  const exportBtn  = document.getElementById("export-save-btn")!;
+  const importBtn  = document.getElementById("import-save-btn")!;
+  const fileInput  = document.getElementById("import-save-input") as HTMLInputElement;
+  const statusEl   = document.getElementById("import-save-msg")!;
+
+  function showImportStatus(msg: string, isError: boolean): void {
+    statusEl.textContent = msg;
+    statusEl.className = `cloud-status ${isError ? "cloud-status-error" : "cloud-status-ok"}`;
+    statusEl.hidden = false;
+    setTimeout(() => { statusEl.hidden = true; }, 4000);
+  }
+
+  exportBtn.addEventListener("click", () => {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) { showImportStatus("No save found to export.", true); return; }
+    const blob = new Blob([raw], { type: "application/json" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = `toddpocalypse-save-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  importBtn.addEventListener("click", () => fileInput.click());
+
+  fileInput.addEventListener("change", () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const raw = reader.result as string;
+        const parsed = JSON.parse(raw) as Record<string, unknown>;
+        if (typeof parsed.dungeon_level !== "number" || !Array.isArray(parsed.party)) {
+          showImportStatus("Invalid save file.", true);
+          return;
+        }
+        localStorage.setItem(SAVE_KEY, raw);
+        showImportStatus("Save imported — reloading…", false);
+        setTimeout(() => window.location.reload(), 1200);
+      } catch {
+        showImportStatus("Could not read file.", true);
+      } finally {
+        fileInput.value = "";
+      }
+    };
+    reader.readAsText(file);
+  });
+}
+
 function initHeaderHeightVar(): void {
   const hdr = document.querySelector("header") as HTMLElement;
   const update = () => document.documentElement.style.setProperty("--header-h", hdr.offsetHeight + "px");
@@ -1461,6 +1513,7 @@ function initHeaderHeightVar(): void {
 document.addEventListener("DOMContentLoaded", () => {
   initTheme();
   initHeaderHeightVar();
+  initSaveBackup();
   initMobileTabs();
   initSidebarTabs();
   initItemTooltip();

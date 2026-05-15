@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.79";
+export const VERSION = "v2.6.80";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.80",
+    date: "2026-05-15",
+    changes: [
+      "Settings: Export Save downloads your save as a JSON file; Import Save restores from a backup",
+    ],
+  },
   {
     version: "v2.6.79",
     date: "2026-05-15",

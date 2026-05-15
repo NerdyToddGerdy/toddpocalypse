@@ -199,6 +199,16 @@
           </div>
         </div>
         <div class="settings-row">
+          <div class="settings-label">Save Backup</div>
+          <div class="settings-desc">Export your save to a file or restore from a previous backup.</div>
+          <div class="cloud-action-row">
+            <button id="export-save-btn" class="secondary-btn">Export Save</button>
+            <button id="import-save-btn" class="secondary-btn">Import Save</button>
+          </div>
+          <input id="import-save-input" type="file" accept=".json" hidden>
+          <div id="import-save-msg" class="cloud-status" hidden></div>
+        </div>
+        <div class="settings-row">
           <div class="settings-label">Visual Theme</div>
           <div class="settings-desc">Choose your fantasy aesthetic.</div>
           <div id="theme-picker">
