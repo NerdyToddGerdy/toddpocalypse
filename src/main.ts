@@ -1675,18 +1675,13 @@ async function initAuth(): Promise<GameStateDict | null> {
   }
 }
 
-let gamePaused = false;
-/** Pauses/resumes the tick. Callable from the browser console: pause() / resume() */
-(window as any).pause  = () => { gamePaused = true;  console.log("⏸ paused"); };
-(window as any).resume = () => { gamePaused = false; console.log("▶ resumed"); };
-
 /** Creates a fresh GameState, clears any existing save, and starts the 100ms game loop. */
 function startGame(name: string, characterClass: string): void {
   $("creation-overlay").style.display = "none";
   deleteSave();
   game = new GameState(name, characterClass);
   render(JSON.parse(game.respond()));
-  setInterval(() => { if (!gamePaused) { call("tick", 0.1); saveGame(); } }, 100);
+  setInterval(() => { call("tick", 0.1); saveGame(); }, 100);
 }
 
 /** Restores a GameState from a saved snapshot, hides the creation overlay, and starts the game loop. */
@@ -1707,7 +1702,7 @@ function continueGame(saved: GameStateDict): void {
   }
 
   render(JSON.parse(game.respond()));
-  setInterval(() => { if (!gamePaused) { call("tick", 0.1); saveGame(); } }, 100);
+  setInterval(() => { call("tick", 0.1); saveGame(); }, 100);
 }
 
 function initPartyGearToggle(): void {
@@ -2025,10 +2020,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.key === " " || e.key === "Enter") { e.preventDefault(); call("click"); }
     else if (e.key === "e" || e.key === "E") call("equipAll");
     else if (e.key === "x" || e.key === "X") call("sellAll");
-    else if (e.key === "p" || e.key === "P") {
-      gamePaused = !gamePaused;
-      console.log(gamePaused ? "⏸ paused" : "▶ resumed");
-    }
     else if (e.key === "s" || e.key === "S") {
       const state = JSON.parse(game.respond()) as GameStateDict;
       if (state.skill_available) call("activateSkill", state.skill_available);
