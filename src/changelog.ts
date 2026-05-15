@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.7.1";
+export const VERSION = "v2.7.2";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -14,11 +14,11 @@ export interface ChangelogEntry {
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "v2.7.1",
+    version: "v2.7.2",
     date: "2026-05-15",
     changes: [
       "Elite enemies: 15% chance to spawn a rare elite variant with 2.5× HP, 1.5× attack, 2× XP/gold, and a guaranteed loot drop",
-      "Elites display with purple name, glowing border, and ⚡ ELITE ENEMY ⚡ floor indicator",
+      "Elites display with purple name, glowing border, ⚡ ELITE ENEMY ⚡ floor indicator, and monster portrait with purple CSS frame",
       "New boss border art for all 10 boss types (cleaner style from Jeremy)",
     ],
   },
