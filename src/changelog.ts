@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.85";
+export const VERSION = "v2.7.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -14,14 +14,22 @@ export interface ChangelogEntry {
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "v2.6.85",
+    version: "v2.7.0",
     date: "2026-05-15",
     changes: [
-      "Defense upgrade: 5th stat upgrade (+1% damage reduction per level) for each character",
+      "Major update — significant new content and UI overhaul across the board",
+      "Rune Forge: socket runes into gear for flat stat bonuses; 12 rune types (Lesser/Greater); boss drops; Tier 2 rune recovery; Tier 3 combining",
+      "Achievements (Feats): 25 achievements across 6 categories with Bronze/Silver/Gold tiers, rewards, and earned titles",
+      "Prestige-locked visual themes: 8 themes unlocked by prestige count",
+      "Defense upgrade: 5th per-character stat (+1% damage reduction per level)",
       "Title selector: pick any earned achievement title from the Feats panel",
-      "Loot filter: 🔍 button dims non-upgrade items in the loot chest",
-      "Combat log history: 📜 button opens a scrollable log of the last 200 combat events",
+      "Loot filter: dim non-upgrade items in the loot chest with one click",
+      "Combat log history: scrollable 200-entry log modal",
       "Keyboard shortcuts: Space/Enter = Attack, E = Equip All, X = Sell All, S = Skill",
+      "Settings moved to a header gear button (⚙) opening a full-page modal",
+      "Guild Hall sorted by price ascending, owned items at the bottom",
+      "Tooltip item names no longer include quality prefix",
+      "Credits section added to Settings",
     ],
   },
   {
