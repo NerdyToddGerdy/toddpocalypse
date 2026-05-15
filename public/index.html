@@ -145,12 +145,15 @@
 
     <section id="loot-panel">
       <div id="loot-header">
-        <h2>Loot <span id="loot-count"></span></h2>
-        <button id="drop-chart-btn" title="Drop rate chart">📊</button>
-        <button id="loot-filter-btn" title="Dim non-upgrades">🔍</button>
-        <div class="loot-spacer"></div>
-        <button class="equip-all-btn" data-action="equip-all" disabled>Equip All</button>
-        <button class="sell-all-btn" data-action="sell-all" disabled>Sell All</button>
+        <div id="loot-header-top">
+          <h2>Loot <span id="loot-count"></span></h2>
+          <button id="drop-chart-btn" title="Drop rate chart">📊</button>
+          <button id="loot-filter-btn" title="Dim non-upgrades">🔍</button>
+        </div>
+        <div id="loot-header-actions">
+          <button class="equip-all-btn" data-action="equip-all" disabled>Equip All</button>
+          <button class="sell-all-btn" data-action="sell-all" disabled>Sell All</button>
+        </div>
       </div>
       <div id="auto-seller-section" hidden>
         <div id="auto-seller-label">Auto-sell tiers</div>
