@@ -1269,8 +1269,21 @@ export class GameState {
   }
 
   /** Greedily buys the cheapest affordable stat upgrade for any party member until gold runs out. */
+  /** Returns the cost of the next available guild hall upgrade, or 0 if all are owned. */
+  private nextGuildHallCost(): number {
+    let cheapest = Infinity;
+    for (const [type, costs] of Object.entries(GUILD_HALL_COSTS)) {
+      const owned = this.guildUpgrades[type] ?? 0;
+      if (owned < costs.length && this.dungeonIndex >= (GUILD_HALL_DUNGEON_REQ[type] ?? 0)) {
+        cheapest = Math.min(cheapest, costs[owned]);
+      }
+    }
+    return cheapest === Infinity ? 0 : cheapest;
+  }
+
   private runAutoUpgrade(): void {
     if (!(this.prestigeUpgrades["auto_upgrade"] > 0)) return;
+    const guildFloor = this.nextGuildHallCost();
     const upgradeTypes: UpgradeType[] = ["dps", "xp", "click", "hp"];
     let bought = true;
     while (bought) {
@@ -1279,7 +1292,7 @@ export class GameState {
       for (const c of this.party.team) {
         for (const type of upgradeTypes) {
           const cost = this.upgradeCost(c.name, type);
-          if (this.gold >= cost && (!cheapest || cost < cheapest.cost)) {
+          if (this.gold - cost >= guildFloor && (!cheapest || cost < cheapest.cost)) {
             cheapest = { char: c, type, cost };
           }
         }

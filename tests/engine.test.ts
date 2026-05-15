@@ -1955,12 +1955,13 @@ describe("auto-upgrade prestige upgrade", () => {
 
   it("auto_upgrade — buys cheapest affordable upgrade after kill", () => {
     const gs = withAutoUpgrade();
-    gs.gold = 50; // enough for click (40g), cheapest tier-0 upgrade
+    // Need gold above guild floor (1,000g) + upgrade cost (40g) to trigger a purchase
+    gs.gold = 1_050;
     const c = gs.party.team[0];
     gs.onEnemyDeath();
     const totalLevels = Object.values(gs.upgrades[c.name]).reduce((s, v) => s + v, 0);
     expect(totalLevels).toBeGreaterThan(0);
-    expect(gs.gold).toBeLessThan(50);
+    expect(gs.gold).toBeLessThan(1_050);
   });
 
   it("auto_upgrade — does not buy when gold insufficient", () => {
@@ -3197,6 +3198,30 @@ describe("defense upgrade", () => {
     gs.gold = 100_000;
     (gs as any).runAutoUpgrade();
     expect(gs.party.team[0].damageReduction).toBe(0);
+  });
+
+  it("auto_upgrade reserves gold equal to next guild hall upgrade cost", () => {
+    const gs = make();
+    gs.prestigeUpgrades["auto_upgrade"] = 1;
+    // No guild upgrades owned; cheapest guild upgrade is 1,000g (expanded_armory)
+    const guildFloor = (gs as any).nextGuildHallCost();
+    expect(guildFloor).toBeGreaterThan(0);
+    gs.gold = guildFloor + 49; // just under floor + cheapest upgrade (50g dps)
+    (gs as any).runAutoUpgrade();
+    expect(gs.gold).toBeGreaterThanOrEqual(guildFloor); // gold never dips below guild floor
+  });
+
+  it("auto_upgrade spends freely when all guild upgrades owned", () => {
+    const gs = make();
+    gs.prestigeUpgrades["auto_upgrade"] = 1;
+    // Own everything in the guild hall
+    for (const [type, costs] of Object.entries(GUILD_HALL_COSTS)) {
+      gs.guildUpgrades[type] = costs.length;
+    }
+    expect((gs as any).nextGuildHallCost()).toBe(0);
+    gs.gold = 500;
+    (gs as any).runAutoUpgrade();
+    expect(gs.gold).toBeLessThan(500); // spends freely with no floor
   });
 });
 
