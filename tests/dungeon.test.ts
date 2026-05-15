@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateEnemy, generateBoss } from "../src/dungeon.js";
+import { generateEnemy, generateBoss, generateEliteEnemy, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT } from "../src/dungeon.js";
 
 describe("generateEnemy", () => {
   it("returns required keys", () => {
@@ -163,6 +163,67 @@ describe("generateBoss", () => {
 
   it("dungeonIndex=0 is backward compatible", () => {
     expect(generateBoss(5, 0).max_hp).toBe(generateBoss(5).max_hp);
+  });
+});
+
+describe("generateEliteEnemy", () => {
+  it("isElite is true", () => {
+    expect(generateEliteEnemy(5).isElite).toBe(true);
+  });
+
+  it("isBoss is false", () => {
+    expect(generateEliteEnemy(5).isBoss).toBe(false);
+  });
+
+  it("level matches input", () => {
+    for (const lvl of [1, 5, 10]) {
+      expect(generateEliteEnemy(lvl).level).toBe(lvl);
+    }
+  });
+
+  it("name contains 'Elite'", () => {
+    expect(generateEliteEnemy(5).name).toContain("Elite");
+  });
+
+  it("attack_dps is ELITE_ATTACK_MULT × base (deterministic)", () => {
+    const base = generateEnemy(10, 0).attack_dps;
+    const elite = generateEliteEnemy(10, 0).attack_dps;
+    expect(elite).toBeCloseTo(base * ELITE_ATTACK_MULT, 5);
+  });
+
+  it("max_hp is greater than base at same level", () => {
+    for (let lvl = 1; lvl <= 10; lvl++) {
+      expect(generateEliteEnemy(lvl).max_hp).toBeGreaterThan(generateEnemy(lvl).max_hp);
+    }
+  });
+
+  it("xp_reward is at least ELITE_REWARD_MULT × minimum base xp_reward", () => {
+    // base xp = max(1, level*3 + randInt(1,4)); min at level 10 = 31
+    const minBase = 10 * 3 + 1;
+    expect(generateEliteEnemy(10, 0).xp_reward).toBeGreaterThanOrEqual(Math.floor(minBase * ELITE_REWARD_MULT));
+  });
+
+  it("gold_reward is greater than base gold_reward", () => {
+    for (let lvl = 1; lvl <= 10; lvl++) {
+      expect(generateEliteEnemy(lvl, 0).gold_reward).toBeGreaterThan(generateEnemy(lvl, 0).gold_reward);
+    }
+  });
+
+  it("hp == max_hp on spawn", () => {
+    const e = generateEliteEnemy(5);
+    expect(e.hp).toBe(e.max_hp);
+  });
+
+  it("dungeonIndex scales elite the same as regular enemies", () => {
+    const a0 = generateEliteEnemy(10, 0).attack_dps;
+    const a1 = generateEliteEnemy(10, 1).attack_dps;
+    expect(a1).toBeCloseTo(a0 * (1.4 / 1.0), 4);
+  });
+
+  it("ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT are exported and > 1", () => {
+    expect(ELITE_HP_MULT).toBeGreaterThan(1);
+    expect(ELITE_ATTACK_MULT).toBeGreaterThan(1);
+    expect(ELITE_REWARD_MULT).toBeGreaterThan(1);
   });
 });
 

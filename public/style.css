@@ -1318,6 +1318,27 @@ main {
     animation: boss-pulse 0.8s ease-in-out infinite alternate;
 }
 
+.elite-text {
+    color: #a78bfa;
+    font-weight: 700;
+    letter-spacing: 1px;
+    animation: elite-pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes elite-pulse {
+    from { opacity: 0.75; }
+    to   { opacity: 1; text-shadow: 0 0 8px #a78bfa; }
+}
+
+#enemy-panel.elite-enemy {
+    box-shadow: 0 0 12px 3px rgba(167, 139, 250, 0.45);
+    border-color: #a78bfa !important;
+}
+
+#enemy-panel.elite-enemy #enemy-name {
+    color: #a78bfa;
+}
+
 /* ── Depth gauge ── */
 #depth-gauge {
     grid-column: 1;

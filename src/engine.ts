@@ -1,7 +1,10 @@
 import { Character, type Rune } from "./character.js";
 import { Party } from "./party.js";
 import { GearItem, getItem, gearPower, QUAL, SLOTS, autoSellThreshold, type GearItemDict } from "./gear.js";
-import { generateEnemy, generateBoss, ENEMY_NOUNS, type Enemy } from "./dungeon.js";
+import { generateEnemy, generateBoss, generateEliteEnemy, ENEMY_NOUNS, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT, type Enemy } from "./dungeon.js";
+
+export { ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT };
+export const ELITE_SPAWN_CHANCE = 0.15;
 
 /** Base number of kills required to reach the boss on floor 1. */
 export const KILLS_PER_LEVEL = 5;
@@ -233,7 +236,7 @@ export interface GameStateDict {
   deaths: number;
   highest_level: number;
   monsters_left: number;
-  enemy: { name: string; level: number; hp: number; max_hp: number; xp_reward: number; gold_reward: number; attack_dps: number; is_boss: boolean };
+  enemy: { name: string; level: number; hp: number; max_hp: number; xp_reward: number; gold_reward: number; attack_dps: number; is_boss: boolean; is_elite?: boolean };
   party: ReturnType<Character["toDict"]>[];
   loot_pool: GearItemDict[];
   upgrades: Record<string, Record<UpgradeType, { level: number; cost: number; effect: number }>>;
@@ -881,6 +884,7 @@ export class GameState {
         gold_reward: this.enemy.gold_reward,
         attack_dps: this.enemy.attack_dps,
         is_boss: this.enemy.isBoss,
+        is_elite: this.enemy.isElite,
       },
       party: this.party.team.map((c) => c.toDict()),
       loot_pool: this.lootPool.map((i) => i.toDict()),
@@ -1046,6 +1050,15 @@ export class GameState {
     }, lead);
   }
 
+  private spawnNextEnemy(): Enemy {
+    if (Math.random() < ELITE_SPAWN_CHANCE) {
+      const elite = generateEliteEnemy(this.dungeonLevel, this.dungeonIndex);
+      this.addLog(`⚡ An Elite ${elite.name.replace("Elite ", "")} appears!`);
+      return elite;
+    }
+    return generateEnemy(this.dungeonLevel, this.dungeonIndex);
+  }
+
   /** Handles enemy defeat: awards XP/gold/loot, applies pending party abilities, and advances the floor. */
   onEnemyDeath(): void {
     for (const key of Object.keys(this.activeEffects)) {
@@ -1124,11 +1137,11 @@ export class GameState {
         this.addLog(`⚑ Checkpoint! Respawn set to floor ${this.checkpointLevel}.`);
       }
       this.addLog(`Descending to level ${this.dungeonLevel}!`);
-      this.enemy = generateEnemy(this.dungeonLevel, this.dungeonIndex);
+      this.enemy = this.spawnNextEnemy();
     } else {
       const gearLuckBonus = 0.05 * (this.prestigeUpgrades["gear_luck"] ?? 0);
       const dropChance = Math.min(0.75, DROP_CHANCE + this.dungeonIndex * 0.05 + gearLuckBonus);
-      if (Math.random() < dropChance && this.lootPool.length < this.lootMax) {
+      if ((this.enemy.isElite || Math.random() < dropChance) && this.lootPool.length < this.lootMax) {
         const effectiveLevel = this.dungeonLevel + this.dungeonIndex * 5;
         const drop = getItem(undefined, effectiveLevel);
         this.lootPool.push(drop);
@@ -1143,7 +1156,7 @@ export class GameState {
         this.addLog(`Floor ${this.dungeonLevel} cleared! Boss incoming!`);
         this.enemy = generateBoss(this.dungeonLevel, this.dungeonIndex);
       } else {
-        this.enemy = generateEnemy(this.dungeonLevel, this.dungeonIndex);
+        this.enemy = this.spawnNextEnemy();
       }
     }
     this.runAutoUpgrade();
@@ -1379,6 +1392,7 @@ export class GameState {
       gold_reward: d.enemy.gold_reward,
       attack_dps: d.enemy.attack_dps,
       isBoss: d.enemy.is_boss ?? false,
+      isElite: d.enemy.is_elite ?? false,
     };
 
     return gs;

@@ -50,6 +50,10 @@ export const ENEMY_NOUNS = [
   "Witch",
 ];
 
+export const ELITE_HP_MULT = 2.5;
+export const ELITE_ATTACK_MULT = 1.5;
+export const ELITE_REWARD_MULT = 2.0;
+
 /** Live state of an enemy currently being fought. */
 export interface Enemy {
   /** Display name shown in the enemy panel. */
@@ -68,6 +72,8 @@ export interface Enemy {
   attack_dps: number;
   /** True for floor bosses; false for regular enemies. */
   isBoss: boolean;
+  /** True for rare elite variants with boosted stats and guaranteed loot. */
+  isElite?: boolean;
 }
 
 /** Returns a uniformly random element from an array. */
@@ -120,5 +126,21 @@ export function generateBoss(dungeonLevel: number, dungeonIndex = 0): Enemy {
     gold_reward: goldReward,
     attack_dps: attackDps,
     isBoss: true,
+  };
+}
+
+/** Generates a rare elite variant of a regular enemy with boosted stats and guaranteed loot. */
+export function generateEliteEnemy(dungeonLevel: number, dungeonIndex = 0): Enemy {
+  const base = generateEnemy(dungeonLevel, dungeonIndex);
+  const hp = Math.floor(base.max_hp * ELITE_HP_MULT);
+  return {
+    ...base,
+    name: `Elite ${base.name}`,
+    max_hp: hp,
+    hp,
+    xp_reward: Math.floor(base.xp_reward * ELITE_REWARD_MULT),
+    gold_reward: Math.floor(base.gold_reward * ELITE_REWARD_MULT),
+    attack_dps: Math.round(base.attack_dps * ELITE_ATTACK_MULT * 10) / 10,
+    isElite: true,
   };
 }

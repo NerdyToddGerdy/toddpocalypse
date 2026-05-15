@@ -117,6 +117,8 @@ function render(state: GameStateDict): void {
   const enemy = state.enemy;
   $("enemy-name").textContent = enemy.name;
   $("enemy-level").textContent = `Level ${enemy.level}`;
+  const enemyPanel = document.getElementById("enemy-panel")!;
+  enemyPanel.classList.toggle("elite-enemy", !!enemy.is_elite);
   const portraitWrap = document.getElementById("monster-portrait-wrap")!;
   if (enemy.is_boss && !bossPortraitShowing) {
     bossPortraitShowing = true;
@@ -217,9 +219,13 @@ function renderFloorProgress(state: GameStateDict): void {
   const total = killsForFloor(state.dungeon_level);
   const done = total - left;
 
+  const isElite = state.enemy.is_elite;
   if (isBoss) {
     $("monsters-left-text").textContent = "★ BOSS FIGHT ★";
     $("monsters-left-text").className = "boss-text";
+  } else if (isElite) {
+    $("monsters-left-text").textContent = "⚡ ELITE ENEMY ⚡";
+    $("monsters-left-text").className = "elite-text";
   } else {
     $("monsters-left-text").textContent =
       left === 1 ? "1 monster until boss" : `${left} monsters until boss`;

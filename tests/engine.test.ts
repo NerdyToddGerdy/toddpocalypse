@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   GameState, KILLS_PER_LEVEL, LOOT_MAX, UPGRADE_BASES, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT, DEFENSE_UPGRADE_EFFECT,
   PRESTIGE_UNLOCK_LEVEL, PRESTIGE_SHOP_COSTS, STARTING_GOLD_PER_LEVEL, XP_BONUS_PER_LEVEL,
@@ -7,10 +7,12 @@ import {
   VENTURE_UNLOCK_LEVEL, IDLE_GOLD_RATE, OFFLINE_GOLD_CAP_SECONDS,
   GUILD_HALL_COSTS, SKILL_DEFS, COMBAT_HEAL_FRACTION,
   THEME_UNLOCKS,
+  ELITE_SPAWN_CHANCE, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT,
   killsForFloor, prestigeUpgradeCost, ventureUnlockLevel,
 } from "../src/engine.js";
 import { Character } from "../src/character.js";
 import { GearItem, getItem, type Slot } from "../src/gear.js";
+import { generateEliteEnemy } from "../src/dungeon.js";
 
 function make(): GameState {
   return new GameState();
@@ -3170,5 +3172,70 @@ describe("setEarnedTitle", () => {
     const gs = make();
     const state = JSON.parse(gs.respond());
     expect(state.earned_titles).toHaveLength(0);
+  });
+});
+
+describe("elite enemy constants", () => {
+  it("ELITE_SPAWN_CHANCE is between 0 and 1 exclusive", () => {
+    expect(ELITE_SPAWN_CHANCE).toBeGreaterThan(0);
+    expect(ELITE_SPAWN_CHANCE).toBeLessThan(1);
+  });
+
+  it("ELITE_HP_MULT > 1", () => {
+    expect(ELITE_HP_MULT).toBeGreaterThan(1);
+  });
+
+  it("ELITE_ATTACK_MULT > 1", () => {
+    expect(ELITE_ATTACK_MULT).toBeGreaterThan(1);
+  });
+
+  it("ELITE_REWARD_MULT > 1", () => {
+    expect(ELITE_REWARD_MULT).toBeGreaterThan(1);
+  });
+});
+
+describe("elite enemy death", () => {
+  it("killing an elite guarantees a loot drop even when random would miss", () => {
+    const spy = vi.spyOn(Math, "random").mockReturnValue(0.99);
+    try {
+      const gs = make();
+      gs.lootPool = [];
+      gs.enemy = generateEliteEnemy(gs.dungeonLevel, gs.dungeonIndex);
+      gs.enemy.hp = 0;
+      gs.onEnemyDeath();
+      expect(gs.lootPool.length).toBe(1);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("elite loot drop does not exceed lootMax", () => {
+    const spy = vi.spyOn(Math, "random").mockReturnValue(0.99);
+    try {
+      const gs = make();
+      gs.lootPool = [];
+      for (let i = 0; i < gs.lootMax; i++) gs.lootPool.push(getItem());
+      gs.enemy = generateEliteEnemy(gs.dungeonLevel, gs.dungeonIndex);
+      gs.enemy.hp = 0;
+      const before = gs.lootPool.length;
+      gs.onEnemyDeath();
+      expect(gs.lootPool.length).toBe(before);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("regular enemy does not guarantee drop when random is high", () => {
+    const spy = vi.spyOn(Math, "random").mockReturnValue(0.99);
+    try {
+      const gs = make();
+      gs.lootPool = [];
+      expect(gs.enemy.isElite).toBeFalsy();
+      gs.enemy.hp = 0;
+      gs.onEnemyDeath();
+      expect(gs.lootPool.length).toBe(0);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
