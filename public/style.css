@@ -3008,3 +3008,117 @@ footer {
         margin: 10px 0;
     }
 }
+
+/* ── Rune Inventory (Guild Hall) ── */
+.rune-inv-section {
+    margin-top: 16px;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+}
+.rune-inv-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--accent2);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.rune-inv-items { display: flex; flex-direction: column; gap: 6px; }
+.rune-empty {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-style: italic;
+}
+.rune-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 8px;
+    flex-wrap: wrap;
+}
+.rune-tier-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    border-radius: 3px;
+    padding: 1px 4px;
+    flex-shrink: 0;
+}
+.rune-tier-badge.lesser  { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+.rune-tier-badge.greater { background: #3b1d6e; color: #d8b4fe; border: 1px solid #6d28d9; }
+.rune-icon { font-size: 1rem; flex-shrink: 0; }
+.rune-name {
+    flex: 1;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text);
+    min-width: 120px;
+}
+.rune-stat {
+    font-size: 0.72rem;
+    color: var(--hp-green);
+    white-space: nowrap;
+}
+.rune-char-select, .rune-slot-select {
+    font-size: 0.72rem;
+    padding: 2px 4px;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    max-width: 90px;
+}
+.rune-brand-btn {
+    font-size: 0.72rem;
+    padding: 3px 8px;
+    background: var(--accent2);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    font-weight: 600;
+}
+.rune-brand-btn:hover { filter: brightness(1.15); }
+.rune-combine-section {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.rune-combine-label {
+    font-size: 0.73rem;
+    color: var(--muted);
+    white-space: nowrap;
+}
+.rune-combine-select {
+    font-size: 0.73rem;
+    flex: 1;
+    min-width: 180px;
+    padding: 3px 6px;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+.rune-combine-btn {
+    font-size: 0.73rem;
+    padding: 3px 10px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.rune-combine-btn:hover { filter: brightness(1.15); }
+.rune-combine-hint {
+    margin-top: 8px;
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-style: italic;
+}

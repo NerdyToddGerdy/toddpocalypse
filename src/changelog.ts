@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.82";
+export const VERSION = "v2.6.83";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,18 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.83",
+    date: "2026-05-15",
+    changes: [
+      "Rune Forge: Guild Hall upgrade (3 tiers) — socket runes into gear slots for flat stat bonuses",
+      "12 runes: 6 types × 2 tiers (Lesser/Greater) — Striking (DPS), Warding (HP), Swiftness (Haste), Greed (Gold), Fortune (XP), Wrath (Crit)",
+      "Boss kills (20% chance) drop random lesser runes when Rune Forge is purchased",
+      "Branding: Tier 1 destroys old rune; Tier 2 returns it to inventory",
+      "Combining: Tier 3 lets you combine two matching lesser runes into a greater",
+      "Rune inventory rendered in Guild Hall tab with Brand / Combine controls",
+    ],
+  },
   {
     version: "v2.6.82",
     date: "2026-05-15",

@@ -1,5 +1,15 @@
 import { Inventory, type InventoryDict } from "./inventory.js";
-import { GearItem } from "./gear.js";
+import { GearItem, type Slot } from "./gear.js";
+
+/** A socketed rune that grants a flat stat bonus to the wearer. */
+export interface Rune {
+  id: string;
+  name: string;
+  type: string;
+  tier: "lesser" | "greater";
+  statKey: string;
+  value: number;
+}
 
 /** Maps job-number codes (used by legacy Python save format) to class name strings. */
 const SWITCHER: Record<number, string> = {
@@ -109,6 +119,7 @@ export interface CharacterDict {
   gold_bonus: number;
   lifesteal: number;
   haste: number;
+  runes?: Partial<Record<Slot, Rune>>;
 }
 
 /** A player character or companion with class stats, equipment, and abilities. */
@@ -147,6 +158,8 @@ export class Character {
   lifesteal = 0;
   /** Additive multiplier on passive DPS tick rate (0 = no bonus). */
   haste = 0;
+  /** Rune socketed into each gear slot (null if empty). */
+  runes: Partial<Record<Slot, Rune>> = {};
   /** Seconds accumulated toward the next Mana Surge burst. */
   surgeTimer = 0;
   /** Party-wide ability effects queued to apply after the current enemy dies. */
@@ -177,6 +190,47 @@ export class Character {
     if (old) this.removeStats(old.stats);
     this.applyStats(item.stats);
     return old;
+  }
+
+  /** Sockets a rune into the given slot, applying its stat. Returns the old rune (or null). */
+  applyRune(slot: Slot, rune: Rune): Rune | null {
+    const old = this.runes[slot] ?? null;
+    if (old) this.subtractRune(old);
+    this.runes[slot] = rune;
+    this.addRune(rune);
+    return old;
+  }
+
+  /** Removes the rune from the given slot, reversing its stat. Returns the removed rune (or null). */
+  removeRune(slot: Slot): Rune | null {
+    const old = this.runes[slot] ?? null;
+    if (old) {
+      this.subtractRune(old);
+      delete this.runes[slot];
+    }
+    return old;
+  }
+
+  private addRune(rune: Rune): void {
+    switch (rune.statKey) {
+      case "dps":       this.dps += rune.value; break;
+      case "maxHp":     this.maxHealth += rune.value; this.health = Math.min(this.health + rune.value, this.maxHealth); break;
+      case "haste":     this.haste += rune.value; break;
+      case "goldBonus": this.goldBonus += rune.value; break;
+      case "xpMultiplier": this.xpMultiplier += rune.value; break;
+      case "critChance": this.critChance += rune.value; break;
+    }
+  }
+
+  private subtractRune(rune: Rune): void {
+    switch (rune.statKey) {
+      case "dps":       this.dps -= rune.value; break;
+      case "maxHp":     this.maxHealth -= rune.value; this.health = Math.min(this.health, this.maxHealth); break;
+      case "haste":     this.haste -= rune.value; break;
+      case "goldBonus": this.goldBonus -= rune.value; break;
+      case "xpMultiplier": this.xpMultiplier -= rune.value; break;
+      case "critChance": this.critChance -= rune.value; break;
+    }
   }
 
   /** Adds all stat bonuses from a GearStats object to this character. */
@@ -271,6 +325,7 @@ export class Character {
       gold_bonus: Math.round(this.goldBonus * 10000) / 10000,
       lifesteal: Math.round(this.lifesteal * 10000) / 10000,
       haste: Math.round(this.haste * 10000) / 10000,
+      runes: Object.keys(this.runes).length > 0 ? { ...this.runes } : undefined,
     };
   }
 
@@ -293,6 +348,12 @@ export class Character {
     for (const [slot, item] of Object.entries(d.equipment)) {
       if (item) {
         c.inventory.slots[slot as keyof typeof c.inventory.slots] = GearItem.fromDict(item);
+      }
+    }
+    // Restore rune map without re-applying stats (stats are already baked into serialized values)
+    if (d.runes) {
+      for (const [slot, rune] of Object.entries(d.runes)) {
+        if (rune) c.runes[slot as Slot] = rune;
       }
     }
     return c;

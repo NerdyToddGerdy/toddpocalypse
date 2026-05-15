@@ -1,4 +1,4 @@
-import { Character } from "./character.js";
+import { Character, type Rune } from "./character.js";
 import { Party } from "./party.js";
 import { GearItem, getItem, gearPower, QUAL, SLOTS, autoSellThreshold, type GearItemDict } from "./gear.js";
 import { generateEnemy, generateBoss, ENEMY_NOUNS, type Enemy } from "./dungeon.js";
@@ -123,6 +123,23 @@ export const GUILD_HALL_COSTS: Record<string, number[]> = {
   skill_arcane_surge:  [2_500],
   skill_consecrate:    [8_000],
   skill_volley:        [8_000],
+  rune_forge:          [8_000, 20_000, 50_000],
+};
+
+/** All rune definitions: 6 lesser and 6 greater (2× value of lesser). */
+export const RUNE_DEFS: Record<string, Rune> = {
+  striking_lesser:  { id: "striking_lesser",  name: "Lesser Striking Rune",  type: "striking",  tier: "lesser",  statKey: "dps",          value: 8 },
+  striking_greater: { id: "striking_greater", name: "Greater Striking Rune", type: "striking",  tier: "greater", statKey: "dps",          value: 16 },
+  warding_lesser:   { id: "warding_lesser",   name: "Lesser Warding Rune",   type: "warding",   tier: "lesser",  statKey: "maxHp",        value: 25 },
+  warding_greater:  { id: "warding_greater",  name: "Greater Warding Rune",  type: "warding",   tier: "greater", statKey: "maxHp",        value: 50 },
+  swiftness_lesser: { id: "swiftness_lesser", name: "Lesser Swiftness Rune", type: "swiftness", tier: "lesser",  statKey: "haste",        value: 0.04 },
+  swiftness_greater:{ id: "swiftness_greater",name: "Greater Swiftness Rune",type: "swiftness", tier: "greater", statKey: "haste",        value: 0.08 },
+  greed_lesser:     { id: "greed_lesser",     name: "Lesser Greed Rune",     type: "greed",     tier: "lesser",  statKey: "goldBonus",    value: 0.04 },
+  greed_greater:    { id: "greed_greater",    name: "Greater Greed Rune",    type: "greed",     tier: "greater", statKey: "goldBonus",    value: 0.08 },
+  fortune_lesser:   { id: "fortune_lesser",   name: "Lesser Fortune Rune",   type: "fortune",   tier: "lesser",  statKey: "xpMultiplier", value: 0.04 },
+  fortune_greater:  { id: "fortune_greater",  name: "Greater Fortune Rune",  type: "fortune",   tier: "greater", statKey: "xpMultiplier", value: 0.08 },
+  wrath_lesser:     { id: "wrath_lesser",     name: "Lesser Wrath Rune",     type: "wrath",     tier: "lesser",  statKey: "critChance",   value: 0.03 },
+  wrath_greater:    { id: "wrath_greater",    name: "Greater Wrath Rune",    type: "wrath",     tier: "greater", statKey: "critChance",   value: 0.06 },
 };
 
 /** Minimum dungeonIndex required to purchase each Guild Hall upgrade. */
@@ -251,6 +268,7 @@ export interface GameStateDict {
   lifetime_divine: number;
   lifetime_divine_sold: number;
   pending_achievements: AchievementUnlock[];
+  rune_inventory: Rune[];
 }
 
 /** Central game loop: owns all mutable state and exposes action methods that return serialized JSON. */
@@ -333,6 +351,8 @@ export class GameState {
   earnedTitle = "";
   /** Achievement unlocks queued for toast notifications; cleared after each respond(). */
   pendingAchievements: AchievementUnlock[] = [];
+  /** Runes held in the player's rune inventory, awaiting branding. */
+  runeInventory: Rune[] = [];
 
   /** Current loot chest capacity, expanding with Expanded Armory guild upgrades. */
   get lootMax(): number { return 8 + 2 * (this.guildUpgrades["expanded_armory"] ?? 0); }
@@ -753,6 +773,43 @@ export class GameState {
     return this.respond();
   }
 
+  /** Sockets a rune from the inventory into a character's gear slot. Requires Rune Forge ≥ 1.
+   *  Tier 1: old rune is destroyed. Tier 2+: old rune is returned to inventory. Returns serialized JSON. */
+  brandRune(charIdx: number, slot: import("./gear.js").Slot, runeId: string): string {
+    if ((this.guildUpgrades["rune_forge"] ?? 0) < 1) return this.respond();
+    const inventoryIdx = this.runeInventory.findIndex(r => r.id === runeId);
+    if (inventoryIdx === -1) return this.respond();
+    const char = this.party.team[charIdx];
+    if (!char) return this.respond();
+    const rune = this.runeInventory.splice(inventoryIdx, 1)[0];
+    const old = char.applyRune(slot, rune);
+    if (old && (this.guildUpgrades["rune_forge"] ?? 0) >= 2) {
+      this.runeInventory.push(old);
+    }
+    return this.respond();
+  }
+
+  /** Combines two lesser runes of the same type into a greater rune. Requires Rune Forge Tier 3. Returns serialized JSON. */
+  combineRunes(runeId1: string, runeId2: string): string {
+    if ((this.guildUpgrades["rune_forge"] ?? 0) < 3) return this.respond();
+    const def1 = RUNE_DEFS[runeId1];
+    const def2 = RUNE_DEFS[runeId2];
+    if (!def1 || !def2 || def1.type !== def2.type) return this.respond();
+    const idx1 = this.runeInventory.findIndex(r => r.id === runeId1);
+    if (idx1 === -1) return this.respond();
+    const remaining = [...this.runeInventory];
+    remaining.splice(idx1, 1);
+    const idx2 = remaining.findIndex(r => r.id === runeId2);
+    if (idx2 === -1) return this.respond();
+    remaining.splice(idx2, 1);
+    const greaterId = `${def1.type}_greater`;
+    const greater = RUNE_DEFS[greaterId];
+    if (!greater) return this.respond();
+    this.runeInventory = remaining;
+    this.runeInventory.push(greater);
+    return this.respond();
+  }
+
   /** Activates a purchased combat skill for the lead character if off cooldown. Returns serialized JSON. */
   activateSkill(skillId: string): string {
     if (!((this.guildUpgrades[skillId] ?? 0) > 0)) return this.respond();
@@ -873,6 +930,7 @@ export class GameState {
       lifetime_divine: this.lifetimeDivine,
       lifetime_divine_sold: this.lifetimeDivineSold,
       pending_achievements: [...this.pendingAchievements],
+      rune_inventory: [...this.runeInventory],
     };
   }
 
@@ -1014,6 +1072,12 @@ export class GameState {
         if (drop.quality === "divine") this.lifetimeDivine = 1;
         else if (QUAL.indexOf(drop.quality as typeof QUAL[number]) >= QUAL.indexOf("legendary")) this.lifetimeLegendary = 1;
         this.addLog(`Dropped: ${drop.getName()}!`);
+      }
+      if ((this.guildUpgrades["rune_forge"] ?? 0) >= 1 && Math.random() < 0.20) {
+        const lesserIds = Object.keys(RUNE_DEFS).filter(id => id.endsWith("_lesser"));
+        const runeId = lesserIds[Math.floor(Math.random() * lesserIds.length)];
+        this.runeInventory.push(RUNE_DEFS[runeId]);
+        this.addLog(`Boss dropped a ${RUNE_DEFS[runeId].name}!`);
       }
       this.dungeonLevel += 1;
       this.floorKills = 0;
@@ -1258,6 +1322,7 @@ export class GameState {
     gs.lifetimeLegendary = d.lifetime_legendary ?? 0;
     gs.lifetimeDivine = d.lifetime_divine ?? 0;
     gs.lifetimeDivineSold = d.lifetime_divine_sold ?? 0;
+    gs.runeInventory = [...(d.rune_inventory ?? [])];
 
     // Migrate old checkpoint_1/2/3 one-time upgrades to single leveled checkpoint
     if (!("checkpoint" in gs.prestigeUpgrades)) {

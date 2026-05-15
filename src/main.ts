@@ -1,4 +1,4 @@
-import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, type AchievementUnlock } from "./engine.js";
+import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock } from "./engine.js";
 import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, type GearStats, type GearItemDict } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
@@ -30,6 +30,7 @@ const GUILD_HALL_META: Record<string, { icon: string; name: string; desc: string
   skill_arcane_surge:  { icon: "⚡", name: "Arcane Surge",     desc: "Mage: ×3 DPS for 5 kills. 25-kill cooldown." },
   skill_consecrate:    { icon: "✝", name: "Consecrate",       desc: "Paladin: heals party 25% max HP per kill for 5 kills. 20-kill cooldown.", dungeonReq: 1 },
   skill_volley:        { icon: "🏹", name: "Volley",           desc: "Ranger: ×4 party DPS for 4 kills. 20-kill cooldown.", dungeonReq: 1 },
+  rune_forge:          { icon: "🔮", name: "Rune Forge",       desc: "Socket runes into gear slots for flat stat bonuses. Tier 2: recover replaced runes. Tier 3: combine 2 lessers into a greater." },
 };
 
 const SLOT_ICONS: Record<string, string> = {
@@ -639,11 +640,12 @@ function renderGuildHall(state: GameStateDict): void {
     if (stacks >= costs.length) return "max";
     return state.gold >= costs[stacks] ? "yes" : "no";
   }).join(",");
-  const newKey = JSON.stringify(state.guild_upgrades) + "|" + affordKey + "|" + state.dungeon_index;
+  const runeInvKey = JSON.stringify(state.rune_inventory ?? []);
+  const newKey = JSON.stringify(state.guild_upgrades) + "|" + affordKey + "|" + state.dungeon_index + "|" + runeInvKey + "|" + JSON.stringify(state.party.map(c => c.runes));
   if (newKey === guildKey) return;
   guildKey = newKey;
 
-  $("guild-hall-items").innerHTML = Object.entries(GUILD_HALL_META).filter(([, meta]) => {
+  const upgradesHtml = Object.entries(GUILD_HALL_META).filter(([, meta]) => {
     return state.dungeon_index >= (meta.dungeonReq ?? 0);
   }).map(([type, meta]) => {
     const stacks = owned[type] ?? 0;
@@ -663,6 +665,85 @@ function renderGuildHall(state: GameStateDict): void {
       <button class="guild-buy-btn" data-action="buy-guild" data-type="${type}" ${disabled ? "disabled" : ""}>${atMax ? "Owned" : nextCost.toLocaleString() + "g"}</button>
     </div>`;
   }).join("");
+
+  const runeForge = owned["rune_forge"] ?? 0;
+  const runeInv: any[] = state.rune_inventory ?? [];
+  const runeSection = runeForge >= 1 ? renderRuneSection(runeInv, state.party, runeForge) : "";
+
+  $("guild-hall-items").innerHTML = upgradesHtml + runeSection;
+}
+
+const RUNE_STAT_LABELS: Record<string, string> = {
+  dps: "DPS", maxHp: "Max HP", haste: "Haste", goldBonus: "Gold Bonus", xpMultiplier: "XP Mult", critChance: "Crit Chance",
+};
+const RUNE_ICONS: Record<string, string> = {
+  striking: "⚔", warding: "🛡", swiftness: "💨", greed: "💰", fortune: "🍀", wrath: "💢",
+};
+const ALL_SLOTS = ["main_hand","off_hand","helmet","chest","gloves","legs","shoes","ring1","ring2"] as const;
+const SLOT_LABELS: Record<string, string> = {
+  main_hand: "Main Hand", off_hand: "Off Hand", helmet: "Helmet", chest: "Chest",
+  gloves: "Gloves", legs: "Legs", shoes: "Shoes", ring1: "Ring 1", ring2: "Ring 2",
+};
+
+function renderRuneSection(runeInv: any[], party: any[], runeForge: number): string {
+  const charOptions = party.map((c, i) =>
+    `<option value="${i}">${c.name}</option>`
+  ).join("");
+  const slotOptions = ALL_SLOTS.map(s =>
+    `<option value="${s}">${SLOT_LABELS[s]}</option>`
+  ).join("");
+
+  const runeItems = runeInv.length === 0
+    ? `<div class="rune-empty">No runes — boss kills have a 20% chance to drop one.</div>`
+    : runeInv.map((rune, i) => {
+        const icon = RUNE_ICONS[rune.type] ?? "🔮";
+        const statLabel = RUNE_STAT_LABELS[rune.statKey] ?? rune.statKey;
+        return `<div class="rune-item" data-rune-idx="${i}">
+          <span class="rune-tier-badge ${rune.tier}">${rune.tier === "greater" ? "★" : "◆"}</span>
+          <span class="rune-icon">${icon}</span>
+          <span class="rune-name">${rune.name}</span>
+          <span class="rune-stat">+${rune.value} ${statLabel}</span>
+          <select class="rune-char-select">${charOptions}</select>
+          <select class="rune-slot-select">${slotOptions}</select>
+          <button class="rune-brand-btn" data-action="brand-rune" data-rune-id="${rune.id}" data-rune-idx="${i}">Brand</button>
+        </div>`;
+      }).join("");
+
+  const combinePairs = findCombinePairs(runeInv);
+  const combineHtml = runeForge >= 3 && combinePairs.length > 0
+    ? `<div class="rune-combine-section">
+        <span class="rune-combine-label">Combine:</span>
+        <select class="rune-combine-select">${combinePairs.map(p =>
+          `<option value="${p.id1}|${p.id2}">${RUNE_ICONS[p.type] ?? "🔮"} 2× ${p.name} → Greater</option>`
+        ).join("")}</select>
+        <button class="rune-combine-btn" data-action="combine-runes">Combine</button>
+      </div>`
+    : runeForge < 3
+      ? `<div class="rune-combine-hint">Rune Forge Tier 3 unlocks combining two matching lesser runes into a greater.</div>`
+      : "";
+
+  return `<div class="rune-inv-section">
+    <div class="rune-inv-title">🔮 Rune Inventory (${runeInv.length})</div>
+    <div class="rune-inv-items">${runeItems}</div>
+    ${combineHtml}
+  </div>`;
+}
+
+function findCombinePairs(runeInv: any[]): { id1: string; id2: string; type: string; name: string }[] {
+  const counts: Record<string, number> = {};
+  for (const r of runeInv) {
+    if (r.tier === "lesser") counts[r.id] = (counts[r.id] ?? 0) + 1;
+  }
+  const pairs: { id1: string; id2: string; type: string; name: string }[] = [];
+  const seen = new Set<string>();
+  for (const [id, count] of Object.entries(counts)) {
+    if (count >= 2 && !seen.has(id)) {
+      seen.add(id);
+      const def = RUNE_DEFS[id];
+      if (def) pairs.push({ id1: id, id2: id, type: def.type, name: def.name });
+    }
+  }
+  return pairs;
 }
 
 const SKILL_NAMES: Record<string, string> = {
@@ -1850,6 +1931,19 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     else if (action === "toggle-auto-sell") {
       call("toggleAutoSellQuality", btn.dataset.quality!);
+    }
+    else if (action === "brand-rune") {
+      const runeId = btn.dataset.runeId!;
+      const row = btn.closest(".rune-item")!;
+      const charIdx = parseInt((row.querySelector(".rune-char-select") as HTMLSelectElement).value, 10);
+      const slot = (row.querySelector(".rune-slot-select") as HTMLSelectElement).value;
+      call("brandRune", charIdx, slot, runeId);
+    }
+    else if (action === "combine-runes") {
+      const row = btn.closest(".rune-combine-section")!;
+      const sel = row.querySelector(".rune-combine-select") as HTMLSelectElement;
+      const [id1, id2] = sel.value.split("|");
+      call("combineRunes", id1, id2);
     }
   });
 });
