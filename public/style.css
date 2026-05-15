@@ -1997,6 +1997,7 @@ main {
     position: fixed;
     inset: 0;
     background: rgba(14,14,20,0.85);
+    z-index: 400 !important;
     align-items: center;
     justify-content: center;
     z-index: 200;
@@ -2211,6 +2212,7 @@ footer {
     display: none;
     position: fixed;
     inset: 0;
+    z-index: 400;
     background: rgba(14,14,20,0.85);
     align-items: center;
     justify-content: center;
