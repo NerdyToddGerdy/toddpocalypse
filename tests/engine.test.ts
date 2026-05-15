@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   GameState, KILLS_PER_LEVEL, LOOT_MAX, UPGRADE_BASES, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT, DEFENSE_UPGRADE_EFFECT,
-  PRESTIGE_UNLOCK_LEVEL, PRESTIGE_SHOP_COSTS, STARTING_GOLD_PER_LEVEL, XP_BONUS_PER_LEVEL, GOLD_BONUS_PER_LEVEL,
+  PRESTIGE_UNLOCK_LEVEL, PRESTIGE_SHOP_COSTS, STARTING_GOLD_PER_LEVEL, XP_BONUS_PER_LEVEL, GOLD_BONUS_PER_LEVEL, PARTY_GOLD_BONUS_PER_MEMBER,
   BLOODLUST_MULTIPLIER, EXPOSE_WEAKNESS_MULT, MANA_SURGE_INTERVAL, MANA_SURGE_MULTIPLIER,
   LUCKY_STRIKE_CHANCE, LUCKY_STRIKE_MULTIPLIER, EMPOWER_MULTIPLIER,
   VENTURE_UNLOCK_LEVEL, IDLE_GOLD_RATE, OFFLINE_GOLD_CAP_SECONDS,
@@ -1548,6 +1548,42 @@ describe("prestige — gold_bonus", () => {
     gs.buyPrestigeUpgrade("gold_bonus"); // costs 2
     expect(gs.prestigePoints).toBe(2);
     expect(gs.prestigeUpgrades["gold_bonus"]).toBe(2);
+  });
+});
+
+describe("party size gold bonus", () => {
+  function atBoss(partySize = 1): GameState {
+    const gs = make();
+    for (let i = 1; i < partySize; i++) {
+      gs.party.addPlayer(new Character(`Member${i}`, "fighter", 1));
+    }
+    for (let i = 0; i < killsForFloor(1); i++) gs.onEnemyDeath();
+    return gs;
+  }
+
+  it("PARTY_GOLD_BONUS_PER_MEMBER equals 0.20", () => {
+    expect(PARTY_GOLD_BONUS_PER_MEMBER).toBeCloseTo(0.20);
+  });
+
+  it("solo party gets no size bonus (1.0×)", () => {
+    const gs = atBoss(1);
+    const base = gs.enemy.gold_reward;
+    gs.onEnemyDeath();
+    expect(gs.gold).toBeCloseTo(base);
+  });
+
+  it("2-member party gets 1.2× gold from boss", () => {
+    const gs = atBoss(2);
+    const base = gs.enemy.gold_reward;
+    gs.onEnemyDeath();
+    expect(gs.gold).toBeCloseTo(base * (1 + PARTY_GOLD_BONUS_PER_MEMBER));
+  });
+
+  it("5-member party gets 1.8× gold from boss", () => {
+    const gs = atBoss(5);
+    const base = gs.enemy.gold_reward;
+    gs.onEnemyDeath();
+    expect(gs.gold).toBeCloseTo(base * (1 + 4 * PARTY_GOLD_BONUS_PER_MEMBER));
   });
 });
 

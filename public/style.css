@@ -1844,6 +1844,7 @@ main {
 #venture-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
 #stat-idle-gold { color: var(--accent2, #a78bfa); font-weight: 600; }
+#stat-party-gold-bonus { color: #fcd34d; font-weight: 600; font-size: 0.8em; }
 
 /* ── Guild Hall panel ── */
 #guild-hall-panel {

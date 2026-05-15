@@ -152,6 +152,12 @@ function render(state: GameStateDict): void {
   $("enemy-hp-text").textContent = `${Math.ceil(enemy.hp)} / ${enemy.max_hp}`;
 
   $("stat-gold").textContent = String(Math.floor(state.gold));
+  const partyGoldEl = $("stat-party-gold-bonus");
+  if (partyGoldEl) {
+    const bonus = (state.party.length - 1) * 20;
+    partyGoldEl.textContent = bonus > 0 ? `+${bonus}% Gold` : "";
+    partyGoldEl.hidden = bonus === 0;
+  }
   $("stat-dungeon-num").textContent = String(state.dungeon_index + 1);
   $("stat-level").textContent = String(state.dungeon_level);
   $("stat-best").textContent = String(state.highest_level);

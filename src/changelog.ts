@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.8.3";
+export const VERSION = "v2.8.4";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.8.4",
+    date: "2026-05-15",
+    changes: [
+      "Party size gold bonus: +20% boss gold per additional party member (2 members = +20%, 5 members = +80%)",
+      "Stats bar shows the active bonus when party size > 1",
+    ],
+  },
   {
     version: "v2.8.3",
     date: "2026-05-15",

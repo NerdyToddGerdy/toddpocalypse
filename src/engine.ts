@@ -197,6 +197,9 @@ export const XP_BONUS_PER_LEVEL = 0.10;
 /** Gold earn multiplier bonus added per gold_bonus prestige upgrade level. */
 export const GOLD_BONUS_PER_LEVEL = 0.10;
 
+/** Gold multiplier bonus per additional party member beyond the first. */
+export const PARTY_GOLD_BONUS_PER_MEMBER = 0.20;
+
 /** All visual themes with their prestige unlock requirements. */
 export const THEME_UNLOCKS: { theme: string; icon: string; label: string; prestiges: number }[] = [
   { theme: "grimdark",    icon: "⚔",  label: "Grimdark",    prestiges: 0 },
@@ -1142,8 +1145,9 @@ export class GameState {
     const partyGoldBonus = this.party.team.reduce((s, c) => s + c.goldBonus, 0);
     const goldMasteryMult = 1 + 0.20 * (this.prestigeUpgrades["gold_mastery"] ?? 0);
     const prestigeGoldMult = 1 + GOLD_BONUS_PER_LEVEL * (this.prestigeUpgrades["gold_bonus"] ?? 0);
+    const partySizeMult = 1 + PARTY_GOLD_BONUS_PER_MEMBER * (this.party.team.length - 1);
     if (this.enemy.isBoss) {
-      this.earnGold(this.enemy.gold_reward * (1 + partyGoldBonus) * goldMasteryMult * prestigeGoldMult);
+      this.earnGold(this.enemy.gold_reward * (1 + partyGoldBonus) * goldMasteryMult * prestigeGoldMult * partySizeMult);
       this.lifetimeBossKills += 1;
       if (this.lootPool.length < this.lootMax) {
         const effectiveLevel = this.dungeonLevel + this.dungeonIndex * 5;
