@@ -3191,12 +3191,12 @@ describe("defense upgrade", () => {
     expect(restored.upgrades["Hero"]["defense"]).toBe(2);
   });
 
-  it("defense is included in auto_upgrade purchases", () => {
+  it("defense is NOT included in auto_upgrade purchases (manual-only stat)", () => {
     const gs = make();
     gs.prestigeUpgrades["auto_upgrade"] = 1;
-    gs.gold = 100_000; // enough to buy many upgrades; defense will be purchased
+    gs.gold = 100_000;
     (gs as any).runAutoUpgrade();
-    expect(gs.party.team[0].damageReduction).toBeGreaterThan(0);
+    expect(gs.party.team[0].damageReduction).toBe(0);
   });
 });
 

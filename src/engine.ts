@@ -32,7 +32,7 @@ export const UPGRADE_BASES: Record<string, number> = {
   xp: 75,
   click: 40,
   hp: 60,
-  defense: 55,
+  defense: 150,
 };
 
 /** Stat delta applied per upgrade level for DPS, XP-rate, and click-damage upgrades. */
@@ -1271,7 +1271,7 @@ export class GameState {
   /** Greedily buys the cheapest affordable stat upgrade for any party member until gold runs out. */
   private runAutoUpgrade(): void {
     if (!(this.prestigeUpgrades["auto_upgrade"] > 0)) return;
-    const upgradeTypes: UpgradeType[] = ["dps", "xp", "click", "hp", "defense"];
+    const upgradeTypes: UpgradeType[] = ["dps", "xp", "click", "hp"];
     let bought = true;
     while (bought) {
       bought = false;
