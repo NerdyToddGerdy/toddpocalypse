@@ -120,8 +120,7 @@ function render(state: GameStateDict): void {
   const enemyPanel = document.getElementById("enemy-panel")!;
   enemyPanel.classList.toggle("elite-enemy", !!enemy.is_elite);
   const portraitWrap = document.getElementById("monster-portrait-wrap")!;
-  const wantsPortrait = enemy.is_boss || !!enemy.is_elite;
-  if (wantsPortrait && !bossPortraitShowing) {
+  if (enemy.is_boss && !bossPortraitShowing) {
     bossPortraitShowing = true;
     const eWords = enemy.name.split(" ");
     ($("monster-portrait") as HTMLImageElement).src = `monster_${eWords[2].toLowerCase()}.png`;
@@ -130,7 +129,7 @@ function render(state: GameStateDict): void {
     void portraitWrap.offsetWidth;
     portraitWrap.classList.add("boss-visible", "boss-entering");
     setTimeout(() => portraitWrap.classList.remove("boss-entering"), 750);
-  } else if (!wantsPortrait && bossPortraitShowing) {
+  } else if (!enemy.is_boss && bossPortraitShowing) {
     bossPortraitShowing = false;
     portraitWrap.classList.add("boss-exiting");
     setTimeout(() => {
