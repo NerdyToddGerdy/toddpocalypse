@@ -1138,7 +1138,7 @@ function buildTooltipHTML(item: GearItemDict): string {
     .join("");
   const rarity = item.quality.charAt(0).toUpperCase() + item.quality.slice(1);
   return `
-    <span class="tt-name ${qc}">${item.name}</span>
+    <span class="tt-name ${qc}">${item.short_name ?? item.name}</span>
     <div class="tt-rarity ${qc}">${rarity}</div>
     <div class="tt-subtitle">${item.slot_display} · Floor ${item.dungeon_level}</div>
     <div class="tt-divider"></div>
