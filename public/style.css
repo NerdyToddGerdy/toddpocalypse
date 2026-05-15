@@ -1060,6 +1060,29 @@ main {
 }
 
 .about-row { border-color: var(--accent); border-style: dashed; }
+.credits-row { border-color: var(--accent2); border-style: dashed; }
+
+.credits-list { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
+.credit-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+}
+.credit-entry:last-child { border-bottom: none; }
+.credit-name {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text);
+}
+.credit-role {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-style: italic;
+    text-align: right;
+}
 
 .about-text {
     font-size: 0.8rem;
