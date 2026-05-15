@@ -721,9 +721,8 @@ function renderGuildHall(state: GameStateDict): void {
 
   const runeForge = owned["rune_forge"] ?? 0;
   const runeInv: any[] = state.rune_inventory ?? [];
-  const runeSection = runeForge >= 1 ? renderRuneSection(runeInv, state.party, runeForge) : "";
 
-  $("guild-hall-items").innerHTML = upgradesHtml + runeSection;
+  $("guild-hall-items").innerHTML = upgradesHtml;
   renderPartyRunePanel(runeInv, state.party, runeForge);
   renderLootRuneInventory(runeInv, state.party, runeForge);
 }
@@ -740,34 +739,6 @@ const SLOT_LABELS: Record<string, string> = {
   gloves: "Gloves", legs: "Legs", shoes: "Shoes", ring1: "Ring 1", ring2: "Ring 2",
 };
 
-function renderRuneSection(runeInv: any[], party: any[], runeForge: number): string {
-  // Rune inventory + branding now lives in the loot panel; Guild Hall shows combine only.
-  const runeItems = "";
-
-  const maxCombineTier = runeForge >= 4 ? "flawless" : runeForge >= 3 ? "greater" : "lesser";
-  const combinePairs = runeForge >= 2 ? findCombinePairs(runeInv, maxCombineTier as any) : [];
-  const combineHtml = runeForge >= 2 && combinePairs.length > 0
-    ? `<div class="rune-combine-section">
-        <span class="rune-combine-label">Combine:</span>
-        <select class="rune-combine-select">${combinePairs.map(p =>
-          `<option value="${p.id1}|${p.id2}">${RUNE_ICONS[p.type] ?? "🔮"} 2× ${p.name} → ${p.result}</option>`
-        ).join("")}</select>
-        <button class="rune-combine-btn" data-action="combine-runes">Combine</button>
-      </div>`
-    : runeForge < 2
-      ? `<div class="rune-combine-hint">Rune Forge Tier 2 unlocks combining two matching lesser runes into a greater.</div>`
-      : runeForge < 3
-        ? `<div class="rune-combine-hint">Rune Forge Tier 3 unlocks combining greater runes into flawless.</div>`
-        : runeForge < 4
-          ? `<div class="rune-combine-hint">Rune Forge Tier 4 unlocks combining flawless runes into ancient.</div>`
-          : "";
-
-  return `<div class="rune-inv-section">
-    <div class="rune-inv-title">🔮 Rune Inventory (${runeInv.length})</div>
-    <div class="rune-inv-items">${runeItems}</div>
-    ${combineHtml}
-  </div>`;
-}
 
 function renderPartyRunePanel(runeInv: any[], party: any[], runeForge: number): void {
   const el = $("party-rune-panel");
@@ -865,12 +836,32 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
       }).join("");
 
   const sellAllVal = runeInv.reduce((s: number, r: any) => s + (SELL_VALUES[r.tier] ?? 10), 0);
+
+  const maxCombineTier = runeForge >= 4 ? "flawless" : runeForge >= 3 ? "greater" : "lesser";
+  const combinePairs = runeForge >= 2 ? findCombinePairs(runeInv, maxCombineTier as any) : [];
+  const combineHtml = runeForge >= 2 && combinePairs.length > 0
+    ? `<div class="rune-combine-section">
+        <span class="rune-combine-label">Combine:</span>
+        <select class="rune-combine-select">${combinePairs.map(p =>
+          `<option value="${p.id1}|${p.id2}">${RUNE_ICONS[p.type] ?? "🔮"} 2× ${p.name} → ${p.result}</option>`
+        ).join("")}</select>
+        <button class="rune-combine-btn" data-action="combine-runes">Combine</button>
+      </div>`
+    : runeForge < 2
+      ? `<div class="rune-combine-hint">Rune Forge Tier 2 unlocks combining two matching lesser runes into a greater.</div>`
+      : runeForge < 3
+        ? `<div class="rune-combine-hint">Rune Forge Tier 3 unlocks combining greater runes into flawless.</div>`
+        : runeForge < 4
+          ? `<div class="rune-combine-hint">Rune Forge Tier 4 unlocks combining flawless runes into ancient.</div>`
+          : "";
+
   el.innerHTML = `<div class="rune-inv-section" style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">
     <div class="rune-inv-title">
       <span>🔮 Runes (${runeInv.length})</span>
       ${runeInv.length > 0 ? `<button class="rune-sell-all-btn" data-action="sell-all-runes">Sell All (${sellAllVal}g)</button>` : ""}
     </div>
     <div class="rune-inv-items">${items}</div>
+    ${combineHtml}
   </div>`;
 
   // Update slot options when character selection changes
