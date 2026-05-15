@@ -262,6 +262,7 @@ export interface GearItemDict {
   slot: Slot;
   slot_display: string;
   name: string;
+  short_name: string;
   quality: string;
   item_type: string;
   adjective: string;
@@ -336,6 +337,7 @@ export class GearItem {
       slot: this.slot,
       slot_display: SLOT_DISPLAY[this.slot],
       name: this.getName(),
+      short_name: `${this.itemType} of ${this.adjective}`,
       quality: this.quality,
       item_type: this.itemType,
       adjective: this.adjective,

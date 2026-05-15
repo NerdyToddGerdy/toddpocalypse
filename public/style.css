@@ -784,6 +784,7 @@ main {
     align-items: center;
     justify-content: space-between;
     gap: 6px;
+    min-height: 0;
 }
 
 .loot-meta { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
@@ -798,9 +799,7 @@ main {
 .loot-name {
     font-size: 0.78rem;
     font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    line-height: 1.25;
 }
 
 .loot-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }

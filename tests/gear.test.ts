@@ -239,7 +239,7 @@ describe("GearItem", () => {
   it("toDict has the expected keys including dungeon_level and stats", () => {
     const item = new GearItem("legs", "greaves", "fine", "gentleness");
     expect(new Set(Object.keys(item.toDict()))).toEqual(
-      new Set(["slot", "slot_display", "name", "quality", "item_type", "adjective", "stats", "damage", "cost", "sell_value", "dungeon_level"]),
+      new Set(["slot", "slot_display", "name", "short_name", "quality", "item_type", "adjective", "stats", "damage", "cost", "sell_value", "dungeon_level"]),
     );
   });
 
