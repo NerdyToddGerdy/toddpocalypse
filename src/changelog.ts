@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.7.3";
+export const VERSION = "v2.7.4";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,18 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.7.4",
+    date: "2026-05-15",
+    changes: [
+      "Skill tooltip descriptions updated to reflect balanced cooldown/duration values",
+      "Loot header restructured into 2 rows — title/icons on top, Equip All/Sell All buttons below (fixes overlap)",
+      "Elite enemy portrait now shows monster sprite with purple CSS glow frame (no border PNG distortion)",
+      "Boss border art cropped to bounding box — transparent padding removed for correct framing",
+      "Defense upgrade removed from auto-upgrade rotation; base cost raised to 150g (buy manually)",
+      "Auto-upgrade now reserves gold equal to the next available Guild Hall purchase before spending",
+    ],
+  },
   {
     version: "v2.7.3",
     date: "2026-05-15",
