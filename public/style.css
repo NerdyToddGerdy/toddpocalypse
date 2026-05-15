@@ -922,6 +922,15 @@ main {
 /* ── Loot ── */
 .loot-empty { font-size: 0.8rem; color: var(--border); font-style: italic; }
 
+#loot-items {
+    max-height: 340px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+    padding-right: 2px;
+}
+
 .loot-item {
     background: var(--surface2);
     border: 1px solid var(--border);
@@ -3227,7 +3236,17 @@ footer {
     align-items: center;
     justify-content: space-between;
 }
-.rune-inv-items { display: flex; flex-direction: column; gap: 6px; }
+.rune-inv-items {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 440px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+    padding-right: 2px;
+}
 .rune-empty {
     font-size: 0.75rem;
     color: var(--muted);

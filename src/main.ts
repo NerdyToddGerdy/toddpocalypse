@@ -488,9 +488,13 @@ function renderLoot(state: GameStateDict): void {
     const filterBtn = document.getElementById("loot-filter-btn");
     if (filterBtn) filterBtn.classList.toggle("active", lootFilterActive);
 
-    lootEl.innerHTML = loot.length === 0
+    const sortedLoot = [...loot].sort((a, b) =>
+      (QUAL as readonly string[]).indexOf(b.quality) - (QUAL as readonly string[]).indexOf(a.quality)
+    );
+    lootEl.innerHTML = sortedLoot.length === 0
       ? `<div class="loot-empty">No drops yet…</div>`
-      : loot.map((item, i) => {
+      : sortedLoot.map((item) => {
+          const i = loot.indexOf(item);
           const [tri, triCls] = lootTier(item, state.party);
           const qc = qualityClass(item.quality);
           const itemJson = encodeURIComponent(JSON.stringify(item));
@@ -820,10 +824,16 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
 
   const TIER_ICONS: Record<string, string> = { lesser: "◆", greater: "★", flawless: "✦", ancient: "✸" };
   const SELL_VALUES: Record<string, number> = { lesser: 10, greater: 30, flawless: 90, ancient: 250 };
+  const TIER_ORDER = ["lesser", "greater", "flawless", "ancient"];
 
-  const items = runeInv.length === 0
+  const sortedRuneInv = [...runeInv].sort((a: any, b: any) =>
+    TIER_ORDER.indexOf(b.tier) - TIER_ORDER.indexOf(a.tier)
+  );
+
+  const items = sortedRuneInv.length === 0
     ? `<div class="prune-empty">No runes — bosses have a 20% chance to drop one, elites have a 10% chance.</div>`
-    : runeInv.map((rune: any, i: number) => {
+    : sortedRuneInv.map((rune: any, _: number) => {
+        const i = runeInv.indexOf(rune);
         const runeIcon = RUNE_ICONS[rune.type] ?? "🔮";
         const statLabel = RUNE_STAT_LABELS[rune.statKey] ?? rune.statKey;
         const slotOpts = buildSlotOptions(party[0]);
