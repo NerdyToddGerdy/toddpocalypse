@@ -652,6 +652,11 @@ function renderGuildHall(state: GameStateDict): void {
     const costs = GUILD_HALL_COSTS[type];
     const atMax = stacks >= costs.length;
     const nextCost = atMax ? 0 : costs[stacks];
+    return { type, meta, stacks, costs, atMax, nextCost };
+  }).sort((a, b) => {
+    if (a.atMax !== b.atMax) return a.atMax ? 1 : -1;
+    return a.nextCost - b.nextCost;
+  }).map(({ type, meta, stacks, costs, atMax, nextCost }) => {
     const canAfford = !atMax && state.gold >= nextCost;
     const disabled = atMax || !canAfford;
     const stackLabel = costs.length > 1 ? (atMax ? ` (${stacks}/${costs.length})` : stacks > 0 ? ` (${stacks}/${costs.length})` : "") : atMax ? " ✓" : "";
