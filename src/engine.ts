@@ -627,6 +627,9 @@ export class GameState {
     const leadName = this.party.team[0].name;
     const leadClass = this.party.team[0].characterClass;
 
+    // Preserve socketed runes — re-applied after new characters are created
+    const savedRunes = new Map(this.party.team.map(c => [c.name, { ...c.runes }]));
+
     this.dungeonLevel = 1;
     this.kills = 0;
     this.floorKills = 0;
@@ -675,6 +678,10 @@ export class GameState {
     const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
     for (const c of this.party.team) {
       c.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
+      const runes = savedRunes.get(c.name) ?? {};
+      for (const [slot, rune] of Object.entries(runes)) {
+        if (rune) c.applyRune(slot as import("./gear.js").Slot, rune);
+      }
     }
 
     this.gold = (this.prestigeUpgrades["starting_gold"] ?? 0) * STARTING_GOLD_PER_LEVEL;

@@ -13,6 +13,7 @@ import {
 } from "../src/engine.js";
 import { Character } from "../src/character.js";
 import { GearItem, getItem, type Slot } from "../src/gear.js";
+import { RUNE_DEFS } from "../src/engine.js";
 import { generateEliteEnemy } from "../src/dungeon.js";
 
 function make(): GameState {
@@ -1063,6 +1064,18 @@ describe("prestige gate", () => {
   it("prestige() succeeds when highestLevel > 20", () => {
     const gs = withHighLevel(25); gs.prestige();
     expect(gs.totalPrestiges).toBe(1);
+  });
+
+  it("socketed runes survive prestige", () => {
+    const gs = withHighLevel(20);
+    const rune = RUNE_DEFS["striking_lesser"];
+    gs.party.team[0].applyRune("main_hand", rune);
+    const dpsBefore = gs.party.team[0].dps;
+    gs.prestige();
+    const lead = gs.party.team[0];
+    expect(lead.runes["main_hand"]).toMatchObject({ id: "striking_lesser" });
+    expect(lead.dps).toBeCloseTo(dpsBefore - rune.value + rune.value); // stat re-applied on fresh char
+    expect(lead.dps).toBeGreaterThan(1); // base DPS + rune value
   });
 });
 

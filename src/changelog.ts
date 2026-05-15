@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.7.8";
+export const VERSION = "v2.7.9";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.7.9",
+    date: "2026-05-15",
+    changes: [
+      "Socketed runes now survive prestige — rune stats are re-applied to the fresh party after each reset",
+    ],
+  },
   {
     version: "v2.7.8",
     date: "2026-05-15",
