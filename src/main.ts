@@ -30,7 +30,7 @@ const GUILD_HALL_META: Record<string, { icon: string; name: string; desc: string
   skill_arcane_surge:  { icon: "⚡", name: "Arcane Surge",     desc: "Mage: ×3 DPS for 6 kills. 25-kill cooldown." },
   skill_consecrate:    { icon: "✝", name: "Consecrate",       desc: "Paladin: heals party 25% max HP per kill for 5 kills. 15-kill cooldown.", dungeonReq: 1 },
   skill_volley:        { icon: "🏹", name: "Volley",           desc: "Ranger: ×2.5 party DPS for 6 kills. 15-kill cooldown.", dungeonReq: 1 },
-  rune_forge:          { icon: "🔮", name: "Rune Forge",       desc: "Socket runes into gear slots for flat stat bonuses. Tier 2: recover replaced runes. Tier 3: combine 2 lessers into a greater." },
+  rune_forge:          { icon: "🔮", name: "Rune Forge",       desc: "Socket runes into gear slots for flat stat bonuses. Bosses drop runes at 20%, elites at 10%. Tier 2: recover replaced runes. Tier 3: combine 2 lessers into a greater." },
 };
 
 const SLOT_ICONS: Record<string, string> = {
@@ -809,7 +809,7 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
   ).join("");
 
   const items = runeInv.length === 0
-    ? `<div class="prune-empty">No runes — boss kills have a 20% chance to drop one.</div>`
+    ? `<div class="prune-empty">No runes — bosses have a 20% chance to drop one, elites have a 10% chance.</div>`
     : runeInv.map((rune: any, i: number) => {
         const runeIcon = RUNE_ICONS[rune.type] ?? "🔮";
         const statLabel = RUNE_STAT_LABELS[rune.statKey] ?? rune.statKey;

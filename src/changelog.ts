@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.7.9";
+export const VERSION = "v2.8.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.8.0",
+    date: "2026-05-15",
+    changes: [
+      "Elite enemies now drop runes at 10% chance (bosses remain at 20%) when Rune Forge is owned",
+      "Rune inventory empty message and Rune Forge description updated to mention both drop sources",
+    ],
+  },
   {
     version: "v2.7.9",
     date: "2026-05-15",

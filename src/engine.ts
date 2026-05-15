@@ -1162,6 +1162,12 @@ export class GameState {
         else if (QUAL.indexOf(drop.quality as typeof QUAL[number]) >= QUAL.indexOf("legendary")) this.lifetimeLegendary = 1;
         this.addLog(`Dropped: ${drop.getName()}!`);
       }
+      if (this.enemy.isElite && (this.guildUpgrades["rune_forge"] ?? 0) >= 1 && Math.random() < 0.10) {
+        const lesserIds = Object.keys(RUNE_DEFS).filter(id => id.endsWith("_lesser"));
+        const runeId = lesserIds[Math.floor(Math.random() * lesserIds.length)];
+        this.runeInventory.push(RUNE_DEFS[runeId]);
+        this.addLog(`Elite dropped a ${RUNE_DEFS[runeId].name}!`);
+      }
       this.kills += 1;
       this.floorKills += 1;
       if (this.floorKills >= killsForFloor(this.dungeonLevel)) {

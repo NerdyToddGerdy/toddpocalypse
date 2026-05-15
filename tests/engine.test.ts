@@ -3338,4 +3338,48 @@ describe("elite enemy death", () => {
       spy.mockRestore();
     }
   });
+
+  it("elite drops a rune when rune forge is owned and random < 0.10", () => {
+    const spy = vi.spyOn(Math, "random").mockReturnValue(0.05);
+    try {
+      const gs = make();
+      gs.guildUpgrades["rune_forge"] = 1;
+      gs.runeInventory = [];
+      gs.enemy = generateEliteEnemy(gs.dungeonLevel, gs.dungeonIndex);
+      gs.enemy.hp = 0;
+      gs.onEnemyDeath();
+      expect(gs.runeInventory.length).toBe(1);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("elite does not drop a rune when random >= 0.10", () => {
+    const spy = vi.spyOn(Math, "random").mockReturnValue(0.15);
+    try {
+      const gs = make();
+      gs.guildUpgrades["rune_forge"] = 1;
+      gs.runeInventory = [];
+      gs.enemy = generateEliteEnemy(gs.dungeonLevel, gs.dungeonIndex);
+      gs.enemy.hp = 0;
+      gs.onEnemyDeath();
+      expect(gs.runeInventory.length).toBe(0);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("elite does not drop a rune without rune forge", () => {
+    const spy = vi.spyOn(Math, "random").mockReturnValue(0.01);
+    try {
+      const gs = make();
+      gs.runeInventory = [];
+      gs.enemy = generateEliteEnemy(gs.dungeonLevel, gs.dungeonIndex);
+      gs.enemy.hp = 0;
+      gs.onEnemyDeath();
+      expect(gs.runeInventory.length).toBe(0);
+    } finally {
+      spy.mockRestore();
+    }
+  });
 });
