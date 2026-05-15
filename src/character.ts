@@ -6,7 +6,7 @@ export interface Rune {
   id: string;
   name: string;
   type: string;
-  tier: "lesser" | "greater";
+  tier: "lesser" | "greater" | "flawless" | "ancient";
   statKey: string;
   value: number;
 }

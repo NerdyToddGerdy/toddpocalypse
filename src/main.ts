@@ -30,7 +30,7 @@ const GUILD_HALL_META: Record<string, { icon: string; name: string; desc: string
   skill_arcane_surge:  { icon: "⚡", name: "Arcane Surge",     desc: "Mage: ×3 DPS for 6 kills. 25-kill cooldown." },
   skill_consecrate:    { icon: "✝", name: "Consecrate",       desc: "Paladin: heals party 25% max HP per kill for 5 kills. 15-kill cooldown.", dungeonReq: 1 },
   skill_volley:        { icon: "🏹", name: "Volley",           desc: "Ranger: ×2.5 party DPS for 6 kills. 15-kill cooldown.", dungeonReq: 1 },
-  rune_forge:          { icon: "🔮", name: "Rune Forge",       desc: "Socket runes into gear slots for flat stat bonuses. Bosses drop runes at 20%, elites at 10%. Tier 2: recover replaced runes. Tier 3: combine 2 lessers into a greater." },
+  rune_forge:          { icon: "🔮", name: "Rune Forge",       desc: "Socket runes into gear slots for flat stat bonuses. Bosses drop runes at 20%, elites at 10%. Tier 2: recover replaced runes. Tier 3: combine 2 lessers → greater. Tier 4: combine greater → flawless → ancient." },
 };
 
 const SLOT_ICONS: Record<string, string> = {
@@ -394,7 +394,7 @@ function renderParty(state: GameStateDict): void {
       const runeRowHtml = ALL_SLOTS.map(slot => {
         const rune = (c.runes ?? {})[slot as keyof typeof c.runes];
         if (!rune) return `<span class="tt-rune-slot empty"></span>`;
-        const tierClass = (rune as any).tier === "greater" ? "greater" : "lesser";
+        const tierClass = (rune as any).tier ?? "lesser";
         const runeJson = encodeURIComponent(JSON.stringify({ ...(rune as object), slotLabel: SLOT_LABELS[slot] ?? slot }));
         return `<span class="tt-rune-slot ${tierClass}" data-rune="${runeJson}"></span>`;
       }).join("");
@@ -730,18 +730,21 @@ function renderRuneSection(runeInv: any[], party: any[], runeForge: number): str
   // Rune inventory + branding now lives in the loot panel; Guild Hall shows combine only.
   const runeItems = "";
 
-  const combinePairs = findCombinePairs(runeInv);
+  const maxCombineTier = runeForge >= 4 ? "flawless" : "lesser";
+  const combinePairs = runeForge >= 3 ? findCombinePairs(runeInv, maxCombineTier as any) : [];
   const combineHtml = runeForge >= 3 && combinePairs.length > 0
     ? `<div class="rune-combine-section">
         <span class="rune-combine-label">Combine:</span>
         <select class="rune-combine-select">${combinePairs.map(p =>
-          `<option value="${p.id1}|${p.id2}">${RUNE_ICONS[p.type] ?? "🔮"} 2× ${p.name} → Greater</option>`
+          `<option value="${p.id1}|${p.id2}">${RUNE_ICONS[p.type] ?? "🔮"} 2× ${p.name} → ${p.result}</option>`
         ).join("")}</select>
         <button class="rune-combine-btn" data-action="combine-runes">Combine</button>
       </div>`
     : runeForge < 3
       ? `<div class="rune-combine-hint">Rune Forge Tier 3 unlocks combining two matching lesser runes into a greater.</div>`
-      : "";
+      : runeForge < 4
+        ? `<div class="rune-combine-hint">Rune Forge Tier 4 unlocks combining greater and flawless runes further.</div>`
+        : "";
 
   return `<div class="rune-inv-section">
     <div class="rune-inv-title">🔮 Rune Inventory (${runeInv.length})</div>
@@ -765,12 +768,12 @@ function renderPartyRunePanel(runeInv: any[], party: any[], runeForge: number): 
       if (rune) {
         const runeIcon = RUNE_ICONS[rune.type] ?? "🔮";
         const statLabel = RUNE_STAT_LABELS[rune.statKey] ?? rune.statKey;
-        const greaterClass = rune.tier === "greater" ? " greater" : "";
+        const TIER_ICONS: Record<string, string> = { lesser: "◆", greater: "★", flawless: "✦", ancient: "✸" };
         return `<div class="prune-slot-row">
           <span class="prune-slot-icon">${icon}</span>
           <span class="prune-slot-name">${label}</span>
-          <div class="prune-rune-badge filled${greaterClass}">
-            <span class="rune-tier-badge ${rune.tier}">${rune.tier === "greater" ? "★" : "◆"}</span>
+          <div class="prune-rune-badge filled ${rune.tier}">
+            <span class="rune-tier-badge ${rune.tier}">${TIER_ICONS[rune.tier] ?? "◆"}</span>
             <span>${runeIcon} ${rune.name}</span>
             <span class="prune-rune-stat">+${rune.value} ${statLabel}</span>
           </div>
@@ -817,7 +820,7 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
         const slotOpts = buildSlotOptions(party[0]);
         return `<div class="rune-item" data-rune-idx="${i}">
           <div class="rune-item-top">
-            <span class="rune-tier-badge ${rune.tier}">${rune.tier === "greater" ? "★" : "◆"}</span>
+            <span class="rune-tier-badge ${rune.tier}">${({ lesser: "◆", greater: "★", flawless: "✦", ancient: "✸" } as Record<string,string>)[rune.tier] ?? "◆"}</span>
             <span class="rune-icon">${runeIcon}</span>
             <span class="rune-name">${rune.name}</span>
           </div>
@@ -850,18 +853,23 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
   });
 }
 
-function findCombinePairs(runeInv: any[]): { id1: string; id2: string; type: string; name: string }[] {
+function findCombinePairs(runeInv: any[], maxTier: "lesser" | "greater" | "flawless" | "ancient" = "lesser"): { id1: string; id2: string; type: string; tier: string; name: string; result: string }[] {
+  const TIER_ORDER = ["lesser", "greater", "flawless", "ancient"];
+  const maxIdx = TIER_ORDER.indexOf(maxTier);
+  const combinableTiers = TIER_ORDER.slice(0, maxIdx + 1);
+  const TIER_UP: Record<string, string> = { lesser: "greater", greater: "flawless", flawless: "ancient" };
+  const TIER_LABELS: Record<string, string> = { lesser: "Lesser", greater: "Greater", flawless: "Flawless", ancient: "Ancient" };
   const counts: Record<string, number> = {};
   for (const r of runeInv) {
-    if (r.tier === "lesser") counts[r.id] = (counts[r.id] ?? 0) + 1;
+    if (combinableTiers.includes(r.tier) && TIER_UP[r.tier]) counts[r.id] = (counts[r.id] ?? 0) + 1;
   }
-  const pairs: { id1: string; id2: string; type: string; name: string }[] = [];
+  const pairs: { id1: string; id2: string; type: string; tier: string; name: string; result: string }[] = [];
   const seen = new Set<string>();
   for (const [id, count] of Object.entries(counts)) {
     if (count >= 2 && !seen.has(id)) {
       seen.add(id);
       const def = RUNE_DEFS[id];
-      if (def) pairs.push({ id1: id, id2: id, type: def.type, name: def.name });
+      if (def) pairs.push({ id1: id, id2: id, type: def.type, tier: def.tier, name: `${TIER_LABELS[def.tier]} ${def.type}`, result: TIER_LABELS[TIER_UP[def.tier]] ?? "?" });
     }
   }
   return pairs;
@@ -1224,8 +1232,10 @@ function appendLog(msg: string): void {
 function buildRuneTooltipHTML(rune: any): string {
   const icon = RUNE_ICONS[rune.type] ?? "🔮";
   const statLabel = RUNE_STAT_LABELS[rune.statKey] ?? rune.statKey;
-  const tierLabel = rune.tier === "greater" ? "Greater" : "Lesser";
-  const tierCls = rune.tier === "greater" ? "tt-rarity quality-legendary" : "tt-rarity quality-common";
+  const TIER_LABELS: Record<string, string> = { lesser: "Lesser", greater: "Greater", flawless: "Flawless", ancient: "Ancient" };
+  const TIER_CLS: Record<string, string> = { lesser: "tt-rarity quality-common", greater: "tt-rarity quality-legendary", flawless: "tt-rarity quality-epic", ancient: "tt-rarity quality-divine" };
+  const tierLabel = TIER_LABELS[rune.tier] ?? rune.tier;
+  const tierCls = TIER_CLS[rune.tier] ?? "tt-rarity quality-common";
   return `
     <span class="tt-name">${icon} ${rune.name}</span>
     <div class="${tierCls}">${tierLabel}</div>
@@ -1293,7 +1303,7 @@ function buildCharTooltipHTML(c: CharDict): string {
   const runeSquares = ALL_SLOTS.map(slot => {
     const rune = (c.runes ?? {})[slot as keyof typeof c.runes];
     if (!rune) return `<span class="tt-rune-slot empty" title="${SLOT_LABELS[slot] ?? slot}: empty"></span>`;
-    const tierClass = (rune as any).tier === "greater" ? "greater" : "lesser";
+    const tierClass = (rune as any).tier ?? "lesser";
     const icon = RUNE_ICONS[(rune as any).type] ?? "🔮";
     const statLabel = RUNE_STAT_LABELS[(rune as any).statKey] ?? (rune as any).statKey;
     return `<span class="tt-rune-slot ${tierClass}" title="${SLOT_LABELS[slot] ?? slot}: ${icon} +${(rune as any).value} ${statLabel}"></span>`;

@@ -3094,8 +3094,10 @@ footer {
     flex-shrink: 0;
     cursor: default;
 }
-.tt-rune-slot.lesser  { background: rgba(200,180,120,0.35); border-color: rgba(200,180,120,0.7); }
-.tt-rune-slot.greater { background: #6d28d9; border-color: #a78bfa; }
+.tt-rune-slot.lesser   { background: rgba(200,180,120,0.35); border-color: rgba(200,180,120,0.7); }
+.tt-rune-slot.greater  { background: #6d28d9; border-color: #a78bfa; }
+.tt-rune-slot.flawless { background: #0ea5e9; border-color: #7dd3fc; }
+.tt-rune-slot.ancient  { background: #f59e0b; border-color: #fcd34d; }
 
 .tt-abilities {
     display: flex;
@@ -3266,8 +3268,10 @@ footer {
     padding: 1px 4px;
     flex-shrink: 0;
 }
-.rune-tier-badge.lesser  { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
-.rune-tier-badge.greater { background: #3b1d6e; color: #d8b4fe; border: 1px solid #6d28d9; }
+.rune-tier-badge.lesser   { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+.rune-tier-badge.greater  { background: #3b1d6e; color: #d8b4fe; border: 1px solid #6d28d9; }
+.rune-tier-badge.flawless { background: #0c4a6e; color: #7dd3fc; border: 1px solid #0ea5e9; }
+.rune-tier-badge.ancient  { background: #78350f; color: #fcd34d; border: 1px solid #f59e0b; }
 .rune-icon { font-size: 1rem; flex-shrink: 0; }
 .rune-name {
     flex: 1;
@@ -3406,8 +3410,10 @@ footer {
     border-style: dashed;
 }
 
-.prune-rune-badge.filled { border-color: var(--accent2); }
-.prune-rune-badge.filled.greater { border-color: #6d28d9; background: #1e0a3c; }
+.prune-rune-badge.filled          { border-color: var(--accent2); }
+.prune-rune-badge.filled.greater  { border-color: #6d28d9; background: #1e0a3c; }
+.prune-rune-badge.filled.flawless { border-color: #0ea5e9; background: #082f49; }
+.prune-rune-badge.filled.ancient  { border-color: #f59e0b; background: #3b1a00; }
 
 .prune-rune-stat { color: var(--hp-green); margin-left: auto; }
 

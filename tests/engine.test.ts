@@ -3469,3 +3469,77 @@ describe("elite enemy death", () => {
     }
   });
 });
+
+describe("4-tier runes", () => {
+  const TYPES = ["striking", "warding", "swiftness", "greed", "fortune", "wrath"];
+  const TIERS = ["lesser", "greater", "flawless", "ancient"];
+
+  it("RUNE_DEFS contains all 24 rune entries (6 types × 4 tiers)", () => {
+    expect(Object.keys(RUNE_DEFS).length).toBe(24);
+  });
+
+  it.each(TYPES.flatMap(t => TIERS.map(r => [t, r])))(
+    "RUNE_DEFS has %s_%s",
+    (type, tier) => {
+      expect(RUNE_DEFS[`${type}_${tier}`]).toBeDefined();
+    }
+  );
+
+  it("flawless striking value is 2× greater", () => {
+    expect(RUNE_DEFS["striking_flawless"].value).toBe(RUNE_DEFS["striking_greater"].value * 2);
+  });
+
+  it("ancient striking value is 2× flawless", () => {
+    expect(RUNE_DEFS["ancient_striking"] ?? RUNE_DEFS["striking_ancient"]).toBeDefined();
+    expect(RUNE_DEFS["striking_ancient"].value).toBe(RUNE_DEFS["striking_flawless"].value * 2);
+  });
+
+  it("rune_forge has 4 tiers with tier 4 costing 40,000", () => {
+    expect(GUILD_HALL_COSTS["rune_forge"].length).toBe(4);
+    expect(GUILD_HALL_COSTS["rune_forge"][3]).toBe(40_000);
+  });
+
+  it("combineRunes at forge 3: 2× lesser → 1 greater", () => {
+    const gs = make();
+    gs.guildUpgrades["rune_forge"] = 3;
+    gs.runeInventory = [RUNE_DEFS["striking_lesser"], RUNE_DEFS["striking_lesser"]];
+    gs.combineRunes("striking_lesser", "striking_lesser");
+    expect(gs.runeInventory.length).toBe(1);
+    expect(gs.runeInventory[0].tier).toBe("greater");
+    expect(gs.runeInventory[0].type).toBe("striking");
+  });
+
+  it("combineRunes at forge 3: greater→flawless is blocked", () => {
+    const gs = make();
+    gs.guildUpgrades["rune_forge"] = 3;
+    gs.runeInventory = [RUNE_DEFS["striking_greater"], RUNE_DEFS["striking_greater"]];
+    gs.combineRunes("striking_greater", "striking_greater");
+    expect(gs.runeInventory.length).toBe(2); // unchanged
+  });
+
+  it("combineRunes at forge 4: 2× greater → 1 flawless", () => {
+    const gs = make();
+    gs.guildUpgrades["rune_forge"] = 4;
+    gs.runeInventory = [RUNE_DEFS["striking_greater"], RUNE_DEFS["striking_greater"]];
+    gs.combineRunes("striking_greater", "striking_greater");
+    expect(gs.runeInventory.length).toBe(1);
+    expect(gs.runeInventory[0].tier).toBe("flawless");
+  });
+
+  it("combineRunes at forge 4: 2× flawless → 1 ancient", () => {
+    const gs = make();
+    gs.guildUpgrades["rune_forge"] = 4;
+    gs.runeInventory = [RUNE_DEFS["striking_flawless"], RUNE_DEFS["striking_flawless"]];
+    gs.combineRunes("striking_flawless", "striking_flawless");
+    expect(gs.runeInventory.length).toBe(1);
+    expect(gs.runeInventory[0].tier).toBe("ancient");
+  });
+
+  it("combineRunes at forge 4: ancient cannot be combined further", () => {
+    const gs = make();
+    gs.guildUpgrades["rune_forge"] = 4;
+    gs.runeInventory = [RUNE_DEFS["striking_ancient"], RUNE_DEFS["striking_ancient"]];
+    gs.combineRunes("striking_ancient", "striking_ancient");
+    expect(gs.runeInventory.length).toBe(2); // unchanged
+  });
+});

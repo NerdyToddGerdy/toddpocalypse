@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.8.2";
+export const VERSION = "v2.8.3";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.8.3",
+    date: "2026-05-15",
+    changes: [
+      "4-tier rune system: Lesser → Greater → Flawless → Ancient (each 2× the previous)",
+      "Rune Forge Tier 4 (40k) unlocks: combine 2× Greater → Flawless, 2× Flawless → Ancient",
+      "New rune colors: Flawless (blue), Ancient (gold) on char cards, party panel, and tooltips",
+    ],
+  },
   {
     version: "v2.8.2",
     date: "2026-05-15",

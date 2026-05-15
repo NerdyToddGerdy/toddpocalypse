@@ -131,23 +131,35 @@ export const GUILD_HALL_COSTS: Record<string, number[]> = {
   skill_arcane_surge:  [2_500],
   skill_consecrate:    [5_000],
   skill_volley:        [5_000],
-  rune_forge:          [5_000, 10_000, 20_000],
+  rune_forge:          [5_000, 10_000, 20_000, 40_000],
 };
 
-/** All rune definitions: 6 lesser and 6 greater (2× value of lesser). */
+/** All rune definitions: 6 types × 4 tiers (Lesser → Greater → Flawless → Ancient, each 2× the previous). */
 export const RUNE_DEFS: Record<string, Rune> = {
-  striking_lesser:  { id: "striking_lesser",  name: "Lesser Striking Rune",  type: "striking",  tier: "lesser",  statKey: "dps",          value: 8 },
-  striking_greater: { id: "striking_greater", name: "Greater Striking Rune", type: "striking",  tier: "greater", statKey: "dps",          value: 16 },
-  warding_lesser:   { id: "warding_lesser",   name: "Lesser Warding Rune",   type: "warding",   tier: "lesser",  statKey: "maxHp",        value: 25 },
-  warding_greater:  { id: "warding_greater",  name: "Greater Warding Rune",  type: "warding",   tier: "greater", statKey: "maxHp",        value: 50 },
-  swiftness_lesser: { id: "swiftness_lesser", name: "Lesser Swiftness Rune", type: "swiftness", tier: "lesser",  statKey: "haste",        value: 0.04 },
-  swiftness_greater:{ id: "swiftness_greater",name: "Greater Swiftness Rune",type: "swiftness", tier: "greater", statKey: "haste",        value: 0.08 },
-  greed_lesser:     { id: "greed_lesser",     name: "Lesser Greed Rune",     type: "greed",     tier: "lesser",  statKey: "goldBonus",    value: 0.04 },
-  greed_greater:    { id: "greed_greater",    name: "Greater Greed Rune",    type: "greed",     tier: "greater", statKey: "goldBonus",    value: 0.08 },
-  fortune_lesser:   { id: "fortune_lesser",   name: "Lesser Fortune Rune",   type: "fortune",   tier: "lesser",  statKey: "xpMultiplier", value: 0.04 },
-  fortune_greater:  { id: "fortune_greater",  name: "Greater Fortune Rune",  type: "fortune",   tier: "greater", statKey: "xpMultiplier", value: 0.08 },
-  wrath_lesser:     { id: "wrath_lesser",     name: "Lesser Wrath Rune",     type: "wrath",     tier: "lesser",  statKey: "critChance",   value: 0.03 },
-  wrath_greater:    { id: "wrath_greater",    name: "Greater Wrath Rune",    type: "wrath",     tier: "greater", statKey: "critChance",   value: 0.06 },
+  striking_lesser:   { id: "striking_lesser",   name: "Lesser Striking Rune",   type: "striking",  tier: "lesser",   statKey: "dps",          value: 8 },
+  striking_greater:  { id: "striking_greater",  name: "Greater Striking Rune",  type: "striking",  tier: "greater",  statKey: "dps",          value: 16 },
+  striking_flawless: { id: "striking_flawless", name: "Flawless Striking Rune", type: "striking",  tier: "flawless", statKey: "dps",          value: 32 },
+  striking_ancient:  { id: "striking_ancient",  name: "Ancient Striking Rune",  type: "striking",  tier: "ancient",  statKey: "dps",          value: 64 },
+  warding_lesser:    { id: "warding_lesser",    name: "Lesser Warding Rune",    type: "warding",   tier: "lesser",   statKey: "maxHp",        value: 25 },
+  warding_greater:   { id: "warding_greater",   name: "Greater Warding Rune",   type: "warding",   tier: "greater",  statKey: "maxHp",        value: 50 },
+  warding_flawless:  { id: "warding_flawless",  name: "Flawless Warding Rune",  type: "warding",   tier: "flawless", statKey: "maxHp",        value: 100 },
+  warding_ancient:   { id: "warding_ancient",   name: "Ancient Warding Rune",   type: "warding",   tier: "ancient",  statKey: "maxHp",        value: 200 },
+  swiftness_lesser:  { id: "swiftness_lesser",  name: "Lesser Swiftness Rune",  type: "swiftness", tier: "lesser",   statKey: "haste",        value: 0.04 },
+  swiftness_greater: { id: "swiftness_greater", name: "Greater Swiftness Rune", type: "swiftness", tier: "greater",  statKey: "haste",        value: 0.08 },
+  swiftness_flawless:{ id: "swiftness_flawless",name: "Flawless Swiftness Rune",type: "swiftness", tier: "flawless", statKey: "haste",        value: 0.16 },
+  swiftness_ancient: { id: "swiftness_ancient", name: "Ancient Swiftness Rune", type: "swiftness", tier: "ancient",  statKey: "haste",        value: 0.32 },
+  greed_lesser:      { id: "greed_lesser",      name: "Lesser Greed Rune",      type: "greed",     tier: "lesser",   statKey: "goldBonus",    value: 0.04 },
+  greed_greater:     { id: "greed_greater",     name: "Greater Greed Rune",     type: "greed",     tier: "greater",  statKey: "goldBonus",    value: 0.08 },
+  greed_flawless:    { id: "greed_flawless",    name: "Flawless Greed Rune",    type: "greed",     tier: "flawless", statKey: "goldBonus",    value: 0.16 },
+  greed_ancient:     { id: "greed_ancient",     name: "Ancient Greed Rune",     type: "greed",     tier: "ancient",  statKey: "goldBonus",    value: 0.32 },
+  fortune_lesser:    { id: "fortune_lesser",    name: "Lesser Fortune Rune",    type: "fortune",   tier: "lesser",   statKey: "xpMultiplier", value: 0.04 },
+  fortune_greater:   { id: "fortune_greater",   name: "Greater Fortune Rune",   type: "fortune",   tier: "greater",  statKey: "xpMultiplier", value: 0.08 },
+  fortune_flawless:  { id: "fortune_flawless",  name: "Flawless Fortune Rune",  type: "fortune",   tier: "flawless", statKey: "xpMultiplier", value: 0.16 },
+  fortune_ancient:   { id: "fortune_ancient",   name: "Ancient Fortune Rune",   type: "fortune",   tier: "ancient",  statKey: "xpMultiplier", value: 0.32 },
+  wrath_lesser:      { id: "wrath_lesser",      name: "Lesser Wrath Rune",      type: "wrath",     tier: "lesser",   statKey: "critChance",   value: 0.03 },
+  wrath_greater:     { id: "wrath_greater",     name: "Greater Wrath Rune",     type: "wrath",     tier: "greater",  statKey: "critChance",   value: 0.06 },
+  wrath_flawless:    { id: "wrath_flawless",    name: "Flawless Wrath Rune",    type: "wrath",     tier: "flawless", statKey: "critChance",   value: 0.12 },
+  wrath_ancient:     { id: "wrath_ancient",     name: "Ancient Wrath Rune",     type: "wrath",     tier: "ancient",  statKey: "critChance",   value: 0.24 },
 };
 
 /** Minimum dungeonIndex required to purchase each Guild Hall upgrade. */
@@ -818,10 +830,15 @@ export class GameState {
 
   /** Combines two lesser runes of the same type into a greater rune. Requires Rune Forge Tier 3. Returns serialized JSON. */
   combineRunes(runeId1: string, runeId2: string): string {
-    if ((this.guildUpgrades["rune_forge"] ?? 0) < 3) return this.respond();
+    const forge = this.guildUpgrades["rune_forge"] ?? 0;
+    if (forge < 3) return this.respond();
     const def1 = RUNE_DEFS[runeId1];
     const def2 = RUNE_DEFS[runeId2];
-    if (!def1 || !def2 || def1.type !== def2.type) return this.respond();
+    if (!def1 || !def2 || def1.type !== def2.type || def1.tier !== def2.tier) return this.respond();
+    const TIER_UP: Record<string, string> = { lesser: "greater", greater: "flawless", flawless: "ancient" };
+    const nextTier = TIER_UP[def1.tier];
+    if (!nextTier) return this.respond(); // ancient cannot be combined
+    if (def1.tier !== "lesser" && forge < 4) return this.respond(); // only lesser→greater at forge 3
     const idx1 = this.runeInventory.findIndex(r => r.id === runeId1);
     if (idx1 === -1) return this.respond();
     const remaining = [...this.runeInventory];
@@ -829,11 +846,11 @@ export class GameState {
     const idx2 = remaining.findIndex(r => r.id === runeId2);
     if (idx2 === -1) return this.respond();
     remaining.splice(idx2, 1);
-    const greaterId = `${def1.type}_greater`;
-    const greater = RUNE_DEFS[greaterId];
-    if (!greater) return this.respond();
+    const nextId = `${def1.type}_${nextTier}`;
+    const next = RUNE_DEFS[nextId];
+    if (!next) return this.respond();
     this.runeInventory = remaining;
-    this.runeInventory.push(greater);
+    this.runeInventory.push(next);
     return this.respond();
   }
 

@@ -17,16 +17,17 @@ function withRuneForge(tier: number): GameState {
 // RUNE_DEFS data integrity
 // ──────────────────────────────────────────
 describe("RUNE_DEFS", () => {
-  it("has 12 runes (6 lesser + 6 greater)", () => {
-    expect(Object.keys(RUNE_DEFS)).toHaveLength(12);
+  it("has 24 runes (6 types × 4 tiers)", () => {
+    expect(Object.keys(RUNE_DEFS)).toHaveLength(24);
   });
 
   it("every rune has required fields", () => {
+    const validTiers = new Set(["lesser", "greater", "flawless", "ancient"]);
     for (const rune of Object.values(RUNE_DEFS)) {
       expect(typeof rune.id).toBe("string");
       expect(typeof rune.name).toBe("string");
       expect(typeof rune.type).toBe("string");
-      expect(rune.tier === "lesser" || rune.tier === "greater").toBe(true);
+      expect(validTiers.has(rune.tier)).toBe(true);
       expect(typeof rune.statKey).toBe("string");
       expect(typeof rune.value).toBe("number");
       expect(rune.value).toBeGreaterThan(0);
@@ -63,8 +64,8 @@ describe("rune_forge in GUILD_HALL_COSTS", () => {
     expect(GUILD_HALL_COSTS["rune_forge"]).toBeTruthy();
   });
 
-  it("has 3 tiers", () => {
-    expect(GUILD_HALL_COSTS["rune_forge"]).toHaveLength(3);
+  it("has 4 tiers", () => {
+    expect(GUILD_HALL_COSTS["rune_forge"]).toHaveLength(4);
   });
 
   it("costs are ascending", () => {
