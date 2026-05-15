@@ -25,11 +25,11 @@ const GUILD_HALL_META: Record<string, { icon: string; name: string; desc: string
   expanded_armory:     { icon: "🗄", name: "Expanded Armory",  desc: "+2 loot chest capacity per stack (max 14)." },
   class_paladin:       { icon: "🛡", name: "Recruit: Paladin", desc: "Unlock Paladin as a recruitable class for companions." },
   class_ranger:        { icon: "🏹", name: "Recruit: Ranger",  desc: "Unlock Ranger as a recruitable class for companions." },
-  skill_battle_cry:    { icon: "📯", name: "Battle Cry",       desc: "Fighter: ×2 party DPS for 5 kills. 30-kill cooldown." },
-  skill_shadow_strike: { icon: "🌑", name: "Shadow Strike",    desc: "Rogue: ×5 click damage for 3 kills. 15-kill cooldown." },
-  skill_arcane_surge:  { icon: "⚡", name: "Arcane Surge",     desc: "Mage: ×3 DPS for 5 kills. 25-kill cooldown." },
-  skill_consecrate:    { icon: "✝", name: "Consecrate",       desc: "Paladin: heals party 25% max HP per kill for 5 kills. 20-kill cooldown.", dungeonReq: 1 },
-  skill_volley:        { icon: "🏹", name: "Volley",           desc: "Ranger: ×4 party DPS for 4 kills. 20-kill cooldown.", dungeonReq: 1 },
+  skill_battle_cry:    { icon: "📯", name: "Battle Cry",       desc: "Fighter: ×2 party DPS for 8 kills. 20-kill cooldown." },
+  skill_shadow_strike: { icon: "🌑", name: "Shadow Strike",    desc: "Rogue: ×3 all damage (tick + click) for 5 kills. 20-kill cooldown." },
+  skill_arcane_surge:  { icon: "⚡", name: "Arcane Surge",     desc: "Mage: ×3 DPS for 6 kills. 25-kill cooldown." },
+  skill_consecrate:    { icon: "✝", name: "Consecrate",       desc: "Paladin: heals party 25% max HP per kill for 5 kills. 15-kill cooldown.", dungeonReq: 1 },
+  skill_volley:        { icon: "🏹", name: "Volley",           desc: "Ranger: ×2.5 party DPS for 6 kills. 15-kill cooldown.", dungeonReq: 1 },
   rune_forge:          { icon: "🔮", name: "Rune Forge",       desc: "Socket runes into gear slots for flat stat bonuses. Tier 2: recover replaced runes. Tier 3: combine 2 lessers into a greater." },
 };
 
@@ -781,11 +781,11 @@ const SKILL_NAMES: Record<string, string> = {
   skill_volley:        "🏹 Volley",
 };
 const SKILL_DESCS: Record<string, string> = {
-  skill_battle_cry:    "Doubles party damage for 5 kills.",
-  skill_shadow_strike: "Multiplies click damage by 5× for 3 kills.",
-  skill_arcane_surge:  "Triples party damage for 5 kills.",
+  skill_battle_cry:    "Doubles party damage for 8 kills.",
+  skill_shadow_strike: "Triples all damage (tick + click) for 5 kills.",
+  skill_arcane_surge:  "Triples party damage for 6 kills.",
   skill_consecrate:    "Heals party 25% max HP per kill for 5 kills.",
-  skill_volley:        "Quadruples party DPS for 4 kills.",
+  skill_volley:        "×2.5 party DPS for 6 kills.",
 };
 
 /** Shows/hides the active skill button and updates its cooldown drain bar. */
