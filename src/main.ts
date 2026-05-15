@@ -1259,7 +1259,6 @@ const TAB_PANELS: Record<string, string[]> = {
   combat:   ["enemy-panel", "party-panel", "loot-panel"],
   shop:     ["upgrades-panel", "prestige-panel", "guild-hall-panel"],
   log:      ["log-panel"],
-  settings: ["settings-panel"],
 };
 
 const SIDEBAR_TAB_PANELS: Record<string, string[]> = {
@@ -1269,7 +1268,6 @@ const SIDEBAR_TAB_PANELS: Record<string, string[]> = {
   guild:    ["guild-hall-panel"],
   feats:    ["feats-panel"],
   log:      ["log-panel"],
-  settings: ["settings-panel"],
 };
 
 function initMobileTabs(): void {
@@ -1980,6 +1978,14 @@ document.addEventListener("DOMContentLoaded", () => {
       call("setEarnedTitle", btn.dataset.title ?? "");
     }
   });
+
+  // Settings modal
+  function openSettings(): void { $("settings-modal").classList.add("open"); }
+  function closeSettings(): void { $("settings-modal").classList.remove("open"); }
+  $("settings-open-btn").addEventListener("click", openSettings);
+  $("settings-modal-close").addEventListener("click", closeSettings);
+  $("settings-modal").addEventListener("click", (e) => { if (e.target === $("settings-modal")) closeSettings(); });
+  document.getElementById("mobile-settings-tab-btn")?.addEventListener("click", openSettings);
 
   // Loot filter toggle
   document.getElementById("loot-filter-btn")?.addEventListener("click", () => {

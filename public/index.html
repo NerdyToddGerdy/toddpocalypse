@@ -66,6 +66,7 @@
       <button id="venture-btn" data-action="venture" disabled>⚔ Venture</button>
     </div>
   </div>
+  <button id="settings-open-btn" title="Settings" aria-label="Settings">⚙</button>
 </header>
 
 <main>
@@ -135,7 +136,6 @@
       <button class="stab-btn" data-stab="prestige">Prestige<span id="stab-prestige-badge" class="stab-badge" hidden></span></button>
       <button class="stab-btn" data-stab="guild">Guild<span id="stab-guild-badge" class="stab-badge" hidden></span></button>
       <button class="stab-btn" data-stab="feats">Feats<span id="stab-feats-badge" class="stab-badge" hidden></span></button>
-      <button class="stab-btn" data-stab="settings">⚙</button>
     </nav>
 
     <section id="upgrades-panel">
@@ -180,93 +180,6 @@
         <button id="log-history-btn" title="Full log history">📜</button>
       </div>
       <div id="combat-log"></div>
-    </section>
-
-    <section id="settings-panel">
-      <h2>Settings</h2>
-      <div id="settings-content">
-        <div class="settings-row">
-          <div class="settings-label">Lifetime Stats</div>
-          <div class="settings-desc">View your total kills, deaths, and other cumulative records.</div>
-          <button id="mobile-stats-btn" class="secondary-btn">View Stats</button>
-        </div>
-        <div class="settings-row">
-          <div class="settings-label">Changelog</div>
-          <div class="settings-desc">See what's new in this version.</div>
-          <button id="mobile-changelog-btn" class="secondary-btn">View Changelog</button>
-        </div>
-        <div class="settings-row">
-          <div class="settings-label">Cloud Save</div>
-          <div class="settings-desc">Sign in to sync your save across devices.</div>
-          <button id="cloud-signin-btn" class="google-signin-btn">☁ Sign in with Google</button>
-          <div id="cloud-signout-row" hidden>
-            <span class="settings-warn">Signed in — saves sync automatically.</span>
-            <div class="cloud-action-row">
-              <button id="pull-save-btn" class="secondary-btn">Load Cloud Save</button>
-              <button id="claim-device-btn" class="secondary-btn">Set Active Device</button>
-              <button id="cloud-signout-btn" class="secondary-btn">Sign out</button>
-            </div>
-            <div id="cloud-status-msg" class="cloud-status" hidden></div>
-          </div>
-        </div>
-        <div class="settings-row">
-          <div class="settings-label">Save Backup</div>
-          <div class="settings-desc">Export your save to a file or restore from a previous backup.</div>
-          <div class="cloud-action-row">
-            <button id="export-save-btn" class="secondary-btn">Export Save</button>
-            <button id="import-save-btn" class="secondary-btn">Import Save</button>
-          </div>
-          <input id="import-save-input" type="file" accept=".json" hidden>
-          <div id="import-save-msg" class="cloud-status" hidden></div>
-        </div>
-        <div class="settings-row">
-          <div class="settings-label">Visual Theme</div>
-          <div class="settings-desc">Choose your fantasy aesthetic.</div>
-          <div id="theme-picker"></div>
-        </div>
-        <div class="settings-row">
-          <div class="settings-label">Hard Reset</div>
-          <div class="settings-desc">Permanently deletes all save data and restarts the game.</div>
-          <button id="hard-reset-btn" class="danger-btn">Reset Game</button>
-          <div id="hard-reset-confirm" hidden>
-            <span class="settings-warn">This cannot be undone.</span>
-            <button id="hard-reset-yes" class="danger-btn">Yes, reset everything</button>
-            <button id="hard-reset-no" class="secondary-btn">Cancel</button>
-          </div>
-        </div>
-        <div class="settings-row credits-row">
-          <div class="settings-label">Credits</div>
-          <div class="credits-list">
-            <div class="credit-entry">
-              <span class="credit-name">Todd Gerdy</span>
-              <span class="credit-role">Design, Development</span>
-            </div>
-            <div class="credit-entry">
-              <span class="credit-name">Claude (Anthropic)</span>
-              <span class="credit-role">AI Pair Programmer</span>
-            </div>
-            <div class="credit-entry">
-              <span class="credit-name">Jeremy</span>
-              <span class="credit-role">Testing, Art</span>
-            </div>
-          </div>
-        </div>
-        <div class="settings-row about-row">
-          <div class="settings-label">About</div>
-          <p class="about-text">
-            Toddpocalypse started as a personal experiment: I wanted to learn what it actually takes
-            to collaborate with AI to build something real. Rather than just chatting with it, I used
-            Claude as a pair programmer — writing tests, designing systems, debugging, and shipping
-            features — to see how far AI-assisted development could go on a project I genuinely cared about.
-          </p>
-          <p class="about-text">
-            The game itself is a browser-based idle RPG with cloud saves, a prestige system, and a
-            full dungeon loop — built entirely through that process. It's been a crash course in
-            knowing what to ask, when to push back, and how to stay in the driver's seat while letting
-            AI handle the heavy lifting.
-          </p>
-        </div>
-      </div>
     </section>
 
   </aside>
@@ -356,7 +269,7 @@
   <button class="mobile-tab-btn active" data-tab="combat">⚔<span>Combat</span></button>
   <button class="mobile-tab-btn" data-tab="shop">🛒<span>Shop</span><span id="shop-tab-badge" class="tab-badge" hidden></span></button>
   <button class="mobile-tab-btn" data-tab="guild">⚔<span>Guild</span><span id="guild-tab-badge" class="tab-badge" hidden></span></button>
-  <button class="mobile-tab-btn" data-tab="settings">⚙<span>Settings</span></button>
+  <button class="mobile-tab-btn" id="mobile-settings-tab-btn">⚙<span>Settings</span></button>
 </nav>
 
 <div id="item-tooltip" class="item-tooltip" aria-hidden="true"></div>
@@ -367,6 +280,98 @@
     <div class="mic-handle"></div>
     <button class="mic-close" aria-label="Close">✕</button>
     <div class="mic-content"></div>
+  </div>
+</div>
+
+<div id="settings-modal" aria-modal="true" role="dialog" aria-labelledby="settings-modal-title">
+  <div id="settings-modal-box">
+    <div id="settings-modal-header">
+      <h2 id="settings-modal-title">⚙ Settings</h2>
+      <button id="settings-modal-close" aria-label="Close">✕</button>
+    </div>
+    <div id="settings-modal-body">
+      <div class="settings-row">
+        <div class="settings-label">Lifetime Stats</div>
+        <div class="settings-desc">View your total kills, deaths, and other cumulative records.</div>
+        <button id="mobile-stats-btn" class="secondary-btn">View Stats</button>
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Changelog</div>
+        <div class="settings-desc">See what's new in this version.</div>
+        <button id="mobile-changelog-btn" class="secondary-btn">View Changelog</button>
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Cloud Save</div>
+        <div class="settings-desc">Sign in to sync your save across devices.</div>
+        <button id="cloud-signin-btn" class="google-signin-btn">☁ Sign in with Google</button>
+        <div id="cloud-signout-row" hidden>
+          <span class="settings-warn">Signed in — saves sync automatically.</span>
+          <div class="cloud-action-row">
+            <button id="pull-save-btn" class="secondary-btn">Load Cloud Save</button>
+            <button id="claim-device-btn" class="secondary-btn">Set Active Device</button>
+            <button id="cloud-signout-btn" class="secondary-btn">Sign out</button>
+          </div>
+          <div id="cloud-status-msg" class="cloud-status" hidden></div>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Save Backup</div>
+        <div class="settings-desc">Export your save to a file or restore from a previous backup.</div>
+        <div class="cloud-action-row">
+          <button id="export-save-btn" class="secondary-btn">Export Save</button>
+          <button id="import-save-btn" class="secondary-btn">Import Save</button>
+        </div>
+        <input id="import-save-input" type="file" accept=".json" hidden>
+        <div id="import-save-msg" class="cloud-status" hidden></div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Visual Theme</div>
+        <div class="settings-desc">Choose your fantasy aesthetic.</div>
+        <div id="theme-picker"></div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Hard Reset</div>
+        <div class="settings-desc">Permanently deletes all save data and restarts the game.</div>
+        <button id="hard-reset-btn" class="danger-btn">Reset Game</button>
+        <div id="hard-reset-confirm" hidden>
+          <span class="settings-warn">This cannot be undone.</span>
+          <button id="hard-reset-yes" class="danger-btn">Yes, reset everything</button>
+          <button id="hard-reset-no" class="secondary-btn">Cancel</button>
+        </div>
+      </div>
+      <div class="settings-row credits-row">
+        <div class="settings-label">Credits</div>
+        <div class="credits-list">
+          <div class="credit-entry">
+            <span class="credit-name">Todd Gerdy</span>
+            <span class="credit-role">Design, Development</span>
+          </div>
+          <div class="credit-entry">
+            <span class="credit-name">Claude (Anthropic)</span>
+            <span class="credit-role">AI Pair Programmer</span>
+          </div>
+          <div class="credit-entry">
+            <span class="credit-name">Jeremy</span>
+            <span class="credit-role">Testing, Art</span>
+          </div>
+        </div>
+      </div>
+      <div class="settings-row about-row">
+        <div class="settings-label">About</div>
+        <p class="about-text">
+          Toddpocalypse started as a personal experiment: I wanted to learn what it actually takes
+          to collaborate with AI to build something real. Rather than just chatting with it, I used
+          Claude as a pair programmer — writing tests, designing systems, debugging, and shipping
+          features — to see how far AI-assisted development could go on a project I genuinely cared about.
+        </p>
+        <p class="about-text">
+          The game itself is a browser-based idle RPG with cloud saves, a prestige system, and a
+          full dungeon loop — built entirely through that process. It's been a crash course in
+          knowing what to ask, when to push back, and how to stay in the driver's seat while letting
+          AI handle the heavy lifting.
+        </p>
+      </div>
+    </div>
   </div>
 </div>
 
