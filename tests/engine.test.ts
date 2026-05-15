@@ -6,6 +6,7 @@ import {
   LUCKY_STRIKE_CHANCE, LUCKY_STRIKE_MULTIPLIER, EMPOWER_MULTIPLIER,
   VENTURE_UNLOCK_LEVEL, IDLE_GOLD_RATE, OFFLINE_GOLD_CAP_SECONDS,
   GUILD_HALL_COSTS, SKILL_DEFS, COMBAT_HEAL_FRACTION,
+  THEME_UNLOCKS,
   killsForFloor, prestigeUpgradeCost, ventureUnlockLevel,
 } from "../src/engine.js";
 import { Character } from "../src/character.js";
@@ -3024,5 +3025,46 @@ describe("offline progress catch-up", () => {
     delete (dict as unknown as Record<string, unknown>).saved_at;
     const restored = GameState.fromDict(dict);
     expect(restored.savedAt).toBe(0);
+  });
+});
+
+describe("THEME_UNLOCKS", () => {
+  it("has exactly 8 themes", () => {
+    expect(THEME_UNLOCKS).toHaveLength(8);
+  });
+
+  it("prestige requirements are non-decreasing", () => {
+    for (let i = 1; i < THEME_UNLOCKS.length; i++) {
+      expect(THEME_UNLOCKS[i].prestiges).toBeGreaterThanOrEqual(THEME_UNLOCKS[i - 1].prestiges);
+    }
+  });
+
+  it("first two themes require 0 prestiges (free)", () => {
+    expect(THEME_UNLOCKS[0].prestiges).toBe(0);
+    expect(THEME_UNLOCKS[1].prestiges).toBe(0);
+  });
+
+  it("last theme requires 17 prestiges", () => {
+    expect(THEME_UNLOCKS[THEME_UNLOCKS.length - 1].prestiges).toBe(17);
+  });
+
+  it("each entry has theme, icon, label, and prestiges fields", () => {
+    for (const entry of THEME_UNLOCKS) {
+      expect(typeof entry.theme).toBe("string");
+      expect(typeof entry.icon).toBe("string");
+      expect(typeof entry.label).toBe("string");
+      expect(typeof entry.prestiges).toBe("number");
+    }
+  });
+
+  it("theme strings contain no spaces (safe as CSS data-theme attribute)", () => {
+    for (const entry of THEME_UNLOCKS) {
+      expect(entry.theme).not.toContain(" ");
+    }
+  });
+
+  it("all theme slugs are unique", () => {
+    const slugs = THEME_UNLOCKS.map(t => t.theme);
+    expect(new Set(slugs).size).toBe(slugs.length);
   });
 });

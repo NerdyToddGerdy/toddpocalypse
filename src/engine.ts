@@ -152,6 +152,18 @@ export const STARTING_GOLD_PER_LEVEL = 250;
 /** XP multiplier bonus added per xp_bonus prestige upgrade level. */
 export const XP_BONUS_PER_LEVEL = 0.10;
 
+/** All visual themes with their prestige unlock requirements. */
+export const THEME_UNLOCKS: { theme: string; icon: string; label: string; prestiges: number }[] = [
+  { theme: "grimdark",    icon: "⚔",  label: "Grimdark",    prestiges: 0 },
+  { theme: "arcane",      icon: "🔮", label: "Arcane",       prestiges: 0 },
+  { theme: "tavern",      icon: "🍺", label: "Tavern",       prestiges: 1 },
+  { theme: "inferno",     icon: "🔥", label: "Inferno",      prestiges: 3 },
+  { theme: "void-rift",   icon: "🌀", label: "Void Rift",    prestiges: 5 },
+  { theme: "bloodmoon",   icon: "🩸", label: "Bloodmoon",    prestiges: 8 },
+  { theme: "frost-crypt", icon: "❄",  label: "Frost Crypt",  prestiges: 12 },
+  { theme: "necropolis",  icon: "💀", label: "Necropolis",   prestiges: 17 },
+];
+
 /** The four stat categories that can be upgraded per character. */
 type UpgradeType = "dps" | "xp" | "click" | "hp";
 

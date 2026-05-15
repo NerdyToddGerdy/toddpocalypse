@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.80";
+export const VERSION = "v2.6.81";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.81",
+    date: "2026-05-15",
+    changes: [
+      "Prestige-locked themes: 4 new themes (Void Rift, Bloodmoon, Frost Crypt, Necropolis) and existing themes (Tavern, Inferno) now require prestiges to unlock",
+      "Theme picker dynamically renders locked/unlocked buttons with prestige requirements shown on locked themes",
+    ],
+  },
   {
     version: "v2.6.80",
     date: "2026-05-15",

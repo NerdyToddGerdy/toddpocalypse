@@ -1,4 +1,4 @@
-import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, SKILL_DEFS, prestigeUpgradeCost } from "./engine.js";
+import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS } from "./engine.js";
 import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, type GearStats, type GearItemDict } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
@@ -53,7 +53,7 @@ const UPGRADE_LABELS: Record<string, { icon: string; label: string }> = {
 
 const SAVE_KEY = "toddpocalypse-save";
 const THEME_KEY = "toddpocalypse-theme";
-const THEMES = ["grimdark", "arcane", "tavern", "inferno"] as const;
+const THEMES = ["grimdark", "arcane", "tavern", "inferno", "void-rift", "bloodmoon", "frost-crypt", "necropolis"] as const;
 type Theme = typeof THEMES[number];
 
 /** Sets the active visual theme on the root element, persists it, and updates picker button states. */
@@ -168,6 +168,7 @@ function render(state: GameStateDict): void {
   renderSkillButton(state);
   renderCompanionSkills(state);
   renderLog(state);
+  renderThemePicker(state);
   updatePrestigeButton(state);
   updateVentureButton(state);
   updateLifetimeStats(state);
@@ -837,6 +838,27 @@ function renderDropChart(dungeonLevel: number): void {
 }
 
 /** Renders the combat log panel from the state snapshot. */
+let themePickerKey = "";
+function renderThemePicker(state: GameStateDict): void {
+  const prestiges = state.total_prestiges ?? 0;
+  const current = (document.documentElement.dataset.theme ?? "arcane") as Theme;
+  const newKey = `${prestiges}|${current}`;
+  if (newKey === themePickerKey) return;
+  themePickerKey = newKey;
+
+  const picker = document.getElementById("theme-picker");
+  if (!picker) return;
+  picker.innerHTML = THEME_UNLOCKS.map(({ theme, icon, label, prestiges: req }) => {
+    const unlocked = prestiges >= req;
+    const isActive = theme === current;
+    const lockedAttr = unlocked ? "" : ' tabindex="-1" aria-disabled="true"';
+    const activeCls = isActive ? " active" : "";
+    const lockCls = unlocked ? "" : " locked";
+    const lockSpan = unlocked ? "" : `<span class="theme-lock">${req}✦ prestiges</span>`;
+    return `<button class="theme-btn${activeCls}${lockCls}" data-theme="${theme}"${lockedAttr}>${icon} ${label}${lockSpan}</button>`;
+  }).join("");
+}
+
 function renderLog(state: GameStateDict): void {
   $("combat-log").innerHTML = [...state.log]
     .reverse()
@@ -1520,10 +1542,14 @@ document.addEventListener("DOMContentLoaded", () => {
   initMobileItemCard();
   initPartyGearToggle();
 
-  document.querySelectorAll<HTMLElement>(".theme-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      if (btn.dataset.theme) applyTheme(btn.dataset.theme as Theme);
-    });
+  document.getElementById("theme-picker")?.addEventListener("click", (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>(".theme-btn");
+    if (!btn || btn.classList.contains("locked")) return;
+    if (btn.dataset.theme) {
+      applyTheme(btn.dataset.theme as Theme);
+      themePickerKey = ""; // force re-render to update active state
+      if (game) render(game.toDict());
+    }
   });
 
   $("loot-items").addEventListener("mouseover", (e) => {
