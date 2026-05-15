@@ -1392,6 +1392,15 @@ main {
     color: #a78bfa;
 }
 
+#enemy-panel.boss-enemy {
+    box-shadow: 0 0 12px 3px rgba(239, 68, 68, 0.45);
+    border-color: #ef4444 !important;
+}
+
+#enemy-panel.boss-enemy #enemy-name {
+    color: #ef4444;
+}
+
 #portrait-inner.elite-portrait-frame {
     box-shadow: 0 0 0 3px #a78bfa, 0 0 16px 4px rgba(167, 139, 250, 0.6);
     border-radius: 4px;

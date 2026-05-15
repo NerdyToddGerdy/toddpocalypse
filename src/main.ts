@@ -119,6 +119,7 @@ function render(state: GameStateDict): void {
   $("enemy-level").textContent = `Level ${enemy.level}`;
   const enemyPanel = document.getElementById("enemy-panel")!;
   enemyPanel.classList.toggle("elite-enemy", !!enemy.is_elite);
+  enemyPanel.classList.toggle("boss-enemy", !!enemy.is_boss);
   const portraitWrap = document.getElementById("monster-portrait-wrap")!;
   const portraitInner = document.getElementById("portrait-inner")!;
   const wantsPortrait = enemy.is_boss || !!enemy.is_elite;

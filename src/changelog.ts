@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.7.7";
+export const VERSION = "v2.7.8";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.7.8",
+    date: "2026-05-15",
+    changes: [
+      "Boss encounters now glow red — enemy panel border and name turn red during boss fights (mirrors the purple elite glow)",
+    ],
+  },
   {
     version: "v2.7.7",
     date: "2026-05-15",
