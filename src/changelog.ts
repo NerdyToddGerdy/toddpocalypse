@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.8.1";
+export const VERSION = "v2.8.2";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.8.2",
+    date: "2026-05-15",
+    changes: [
+      "Guild Hall price reductions: companion_hall II 15k→8k, paladin/ranger 6k→4k, consecrate/volley 8k→5k, rune_forge 8k/20k/50k→5k/10k/20k",
+    ],
+  },
   {
     version: "v2.8.1",
     date: "2026-05-15",

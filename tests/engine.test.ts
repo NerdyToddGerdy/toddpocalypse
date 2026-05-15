@@ -2615,6 +2615,39 @@ describe("guild hall", () => {
     expect(gs.toDict().guild_upgrades["class_paladin"]).toBe(1);
   });
 
+  // ── revised guild hall prices ───────────────────────────────────
+  it("companion_hall tier 2 costs 8,000", () => {
+    expect(GUILD_HALL_COSTS["companion_hall"][1]).toBe(8_000);
+  });
+
+  it("class_paladin costs 4,000", () => {
+    expect(GUILD_HALL_COSTS["class_paladin"][0]).toBe(4_000);
+  });
+
+  it("class_ranger costs 4,000", () => {
+    expect(GUILD_HALL_COSTS["class_ranger"][0]).toBe(4_000);
+  });
+
+  it("skill_consecrate costs 5,000", () => {
+    expect(GUILD_HALL_COSTS["skill_consecrate"][0]).toBe(5_000);
+  });
+
+  it("skill_volley costs 5,000", () => {
+    expect(GUILD_HALL_COSTS["skill_volley"][0]).toBe(5_000);
+  });
+
+  it("rune_forge tier 1 costs 5,000", () => {
+    expect(GUILD_HALL_COSTS["rune_forge"][0]).toBe(5_000);
+  });
+
+  it("rune_forge tier 2 costs 10,000", () => {
+    expect(GUILD_HALL_COSTS["rune_forge"][1]).toBe(10_000);
+  });
+
+  it("rune_forge tier 3 costs 20,000", () => {
+    expect(GUILD_HALL_COSTS["rune_forge"][2]).toBe(20_000);
+  });
+
   it("skillCooldowns reset on prestige", () => {
     const gs = withGuildGold();
     gs.guildUpgrades["skill_battle_cry"] = 1;

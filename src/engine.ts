@@ -122,16 +122,16 @@ export function prestigeUpgradeCost(type: string, currentStacks: number): number
 
 /** Gold cost for each stack of every Guild Hall upgrade. */
 export const GUILD_HALL_COSTS: Record<string, number[]> = {
-  companion_hall:      [5_000, 15_000],
+  companion_hall:      [5_000, 8_000],
   expanded_armory:     [1_000, 2_000, 3_000],
-  class_paladin:       [6_000],
-  class_ranger:        [6_000],
+  class_paladin:       [4_000],
+  class_ranger:        [4_000],
   skill_battle_cry:    [2_500],
   skill_shadow_strike: [2_500],
   skill_arcane_surge:  [2_500],
-  skill_consecrate:    [8_000],
-  skill_volley:        [8_000],
-  rune_forge:          [8_000, 20_000, 50_000],
+  skill_consecrate:    [5_000],
+  skill_volley:        [5_000],
+  rune_forge:          [5_000, 10_000, 20_000],
 };
 
 /** All rune definitions: 6 lesser and 6 greater (2× value of lesser). */
