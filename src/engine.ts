@@ -839,6 +839,15 @@ export class GameState {
     return this.respond();
   }
 
+  /** Removes the rune from the given slot and returns it to the inventory. */
+  unbrandRune(charIdx: number, slot: import("./gear.js").Slot): string {
+    const char = this.party.team[charIdx];
+    if (!char) return this.respond();
+    const old = char.removeRune(slot);
+    if (old) this.runeInventory.push(old);
+    return this.respond();
+  }
+
   /** Combines two lesser runes of the same type into a greater rune. Requires Rune Forge Tier 3. Returns serialized JSON. */
   combineRunes(runeId1: string, runeId2: string): string {
     const forge = this.guildUpgrades["rune_forge"] ?? 0;

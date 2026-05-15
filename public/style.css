@@ -3444,6 +3444,46 @@ footer {
 
 .prune-rune-stat { color: var(--hp-green); margin-left: auto; }
 
+.prune-remove-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.65rem;
+    padding: 0 2px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.prune-remove-btn:hover { color: #ef4444; }
+
+.prune-brand-row {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 4px;
+}
+.prune-rune-select {
+    flex: 1;
+    font-size: 0.68rem;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 3px;
+}
+.prune-brand-btn {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    background: var(--accent2);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.prune-brand-btn:hover { filter: brightness(1.15); }
+
 .prune-inv-section {
     margin-top: 4px;
     padding-top: 10px;

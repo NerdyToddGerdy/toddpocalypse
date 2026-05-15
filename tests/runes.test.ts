@@ -166,6 +166,50 @@ describe("brandRune", () => {
 });
 
 // ──────────────────────────────────────────
+// unbrandRune
+// ──────────────────────────────────────────
+describe("unbrandRune", () => {
+  it("removes the rune from the slot", () => {
+    const gs = withRuneForge(1);
+    gs.runeInventory.push(RUNE_DEFS["striking_lesser"]);
+    gs.brandRune(0, "main_hand", "striking_lesser");
+    gs.unbrandRune(0, "main_hand");
+    expect(gs.party.team[0].runes["main_hand"]).toBeFalsy();
+  });
+
+  it("returns the rune to inventory", () => {
+    const gs = withRuneForge(1);
+    gs.runeInventory.push(RUNE_DEFS["striking_lesser"]);
+    gs.brandRune(0, "main_hand", "striking_lesser");
+    expect(gs.runeInventory).toHaveLength(0);
+    gs.unbrandRune(0, "main_hand");
+    expect(gs.runeInventory).toHaveLength(1);
+    expect(gs.runeInventory[0].id).toBe("striking_lesser");
+  });
+
+  it("removes the rune's stat bonus from the character", () => {
+    const gs = withRuneForge(1);
+    const before = gs.party.team[0].dps;
+    gs.runeInventory.push(RUNE_DEFS["striking_lesser"]);
+    gs.brandRune(0, "main_hand", "striking_lesser");
+    gs.unbrandRune(0, "main_hand");
+    expect(gs.party.team[0].dps).toBeCloseTo(before);
+  });
+
+  it("is a no-op for an empty slot", () => {
+    const gs = withRuneForge(1);
+    gs.unbrandRune(0, "main_hand");
+    expect(gs.runeInventory).toHaveLength(0);
+  });
+
+  it("is a no-op for an invalid char index", () => {
+    const gs = withRuneForge(1);
+    gs.unbrandRune(99, "main_hand");
+    expect(gs.runeInventory).toHaveLength(0);
+  });
+});
+
+// ──────────────────────────────────────────
 // combineRunes
 // ──────────────────────────────────────────
 describe("combineRunes", () => {

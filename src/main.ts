@@ -747,7 +747,22 @@ function renderPartyRunePanel(runeInv: any[], party: any[], runeForge: number): 
     return;
   }
 
-  const charBlocks = party.map((c: any) => {
+  const TIER_ICONS: Record<string, string> = { lesser: "◆", greater: "★", flawless: "✦", ancient: "✸" };
+  const TIER_ORDER_PR = ["lesser", "greater", "flawless", "ancient"];
+  const runeOptions = runeInv.length === 0
+    ? `<option value="">— no runes —</option>`
+    : [...runeInv]
+        .sort((a: any, b: any) => {
+          const td = TIER_ORDER_PR.indexOf(b.tier) - TIER_ORDER_PR.indexOf(a.tier);
+          return td !== 0 ? td : a.type.localeCompare(b.type);
+        })
+        .map((r: any) => {
+          const icon = RUNE_ICONS[r.type] ?? "🔮";
+          return `<option value="${r.id}">${TIER_ICONS[r.tier] ?? "◆"} ${icon} ${r.name}</option>`;
+        }).join("");
+  const hasRunes = runeInv.length > 0;
+
+  const charBlocks = party.map((c: any, charIdx: number) => {
     const slots = ALL_SLOTS.map(slot => {
       const rune = c.runes?.[slot];
       const icon = SLOT_ICONS[slot] ?? "◻";
@@ -755,7 +770,6 @@ function renderPartyRunePanel(runeInv: any[], party: any[], runeForge: number): 
       if (rune) {
         const runeIcon = RUNE_ICONS[rune.type] ?? "🔮";
         const statLabel = RUNE_STAT_LABELS[rune.statKey] ?? rune.statKey;
-        const TIER_ICONS: Record<string, string> = { lesser: "◆", greater: "★", flawless: "✦", ancient: "✸" };
         return `<div class="prune-slot-row">
           <span class="prune-slot-icon">${icon}</span>
           <span class="prune-slot-name">${label}</span>
@@ -763,13 +777,19 @@ function renderPartyRunePanel(runeInv: any[], party: any[], runeForge: number): 
             <span class="rune-tier-badge ${rune.tier}">${TIER_ICONS[rune.tier] ?? "◆"}</span>
             <span>${runeIcon} ${rune.name}</span>
             <span class="prune-rune-stat">+${rune.value} ${statLabel}</span>
+            <button class="prune-remove-btn" data-action="unbrand-rune" data-char-idx="${charIdx}" data-slot="${slot}" title="Remove rune">✕</button>
           </div>
         </div>`;
       }
       return `<div class="prune-slot-row">
         <span class="prune-slot-icon">${icon}</span>
         <span class="prune-slot-name">${label}</span>
-        <div class="prune-rune-badge empty">empty</div>
+        ${hasRunes
+          ? `<div class="prune-rune-badge empty prune-brand-row">
+               <select class="prune-rune-select" data-char-idx="${charIdx}" data-slot="${slot}">${runeOptions}</select>
+               <button class="prune-brand-btn" data-action="prune-brand-rune" data-char-idx="${charIdx}" data-slot="${slot}">Brand</button>
+             </div>`
+          : `<div class="prune-rune-badge empty">empty</div>`}
       </div>`;
     }).join("");
 
@@ -2162,6 +2182,19 @@ document.addEventListener("DOMContentLoaded", () => {
       const charIdx = parseInt((row.querySelector(".rune-char-select") as HTMLSelectElement).value, 10);
       const slot = (row.querySelector(".rune-slot-select") as HTMLSelectElement).value;
       call("brandRune", charIdx, slot, runeId);
+    }
+    else if (action === "prune-brand-rune") {
+      const charIdx = parseInt(btn.dataset.charIdx!, 10);
+      const slot = btn.dataset.slot!;
+      const row = btn.closest(".prune-brand-row")!;
+      const sel = row.querySelector(".prune-rune-select") as HTMLSelectElement;
+      const runeId = sel.value;
+      if (runeId) call("brandRune", charIdx, slot, runeId);
+    }
+    else if (action === "unbrand-rune") {
+      const charIdx = parseInt(btn.dataset.charIdx!, 10);
+      const slot = btn.dataset.slot!;
+      call("unbrandRune", charIdx, slot);
     }
     else if (action === "combine-runes") {
       const row = btn.closest(".rune-combine-section")!;
