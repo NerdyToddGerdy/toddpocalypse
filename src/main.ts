@@ -50,6 +50,7 @@ const UPGRADE_LABELS: Record<string, { icon: string; label: string }> = {
   xp: { icon: "✨", label: "XP Rate" },
   click: { icon: "👆", label: "Click Dmg" },
   hp: { icon: "❤", label: "Max HP" },
+  defense: { icon: "🛡", label: "Defense" },
 };
 
 const SAVE_KEY = "toddpocalypse-save";
@@ -83,6 +84,8 @@ let guildKey: string | null = null;
 let skillKey: string | null = null;
 let companionSkillKey: string | null = null;
 let hoveredLootSlot: string | null = null;
+let lootFilterActive = false;
+const fullLog: string[] = []; // persistent combat log history (last 200 entries)
 const flashStartTimes = new Map<string, number>(); // "ci:slot" → ms timestamp when flash began
 let bossPortraitShowing = false;
 
@@ -440,7 +443,7 @@ function applySlotHighlight(): void {
 function renderLoot(state: GameStateDict): void {
   const loot = state.loot_pool;
   const autoSellOwned = ((state.prestige_upgrades as Record<string, number>)["auto_seller"] ?? 0) > 0;
-  const newKey = loot.map((i) => i.slot + i.name).join("|") + "|" + JSON.stringify(state.auto_sell_qualities) + "|" + state.highest_level;
+  const newKey = loot.map((i) => i.slot + i.name).join("|") + "|" + JSON.stringify(state.auto_sell_qualities) + "|" + state.highest_level + "|" + lootFilterActive;
   if (newKey !== lootKey) {
     lootKey = newKey;
 
@@ -451,14 +454,19 @@ function renderLoot(state: GameStateDict): void {
     const sellAllBtn = document.querySelector<HTMLButtonElement>(".sell-all-btn");
     if (sellAllBtn) sellAllBtn.disabled = loot.length === 0;
 
+    const filterBtn = document.getElementById("loot-filter-btn");
+    if (filterBtn) filterBtn.classList.toggle("active", lootFilterActive);
+
     lootEl.innerHTML = loot.length === 0
       ? `<div class="loot-empty">No drops yet…</div>`
       : loot.map((item, i) => {
           const [tri, triCls] = lootTier(item, state.party);
           const qc = qualityClass(item.quality);
           const itemJson = encodeURIComponent(JSON.stringify(item));
+          const isUpgrade = tri !== null;
+          const dimmed = lootFilterActive && !isUpgrade;
           return `
-<div class="loot-item" data-slot="${item.slot}" data-item="${itemJson}">
+<div class="loot-item${dimmed ? " loot-dim" : ""}" data-slot="${item.slot}" data-item="${itemJson}">
   <div class="loot-header">
     <span class="loot-name ${qc}">${item.short_name ?? item.name}</span>
     <span class="loot-slot-badge">${item.slot_display}</span>
@@ -1037,7 +1045,20 @@ function renderFeats(state: GameStateDict): void {
     </div>`;
   }).join("");
 
-  $("feats-content").innerHTML = html;
+  const earnedTitles: string[] = (state as any).earned_titles ?? [];
+  const titleHtml = earnedTitles.length > 0
+    ? `<div class="title-picker-section">
+        <div class="title-picker-label">Your Title</div>
+        <div class="title-picker-chips">
+          <button class="title-chip${state.earned_title === "" ? " active" : ""}" data-action="set-title" data-title="">None</button>
+          ${earnedTitles.map(t =>
+            `<button class="title-chip${state.earned_title === t ? " active" : ""}" data-action="set-title" data-title="${t}">${t}</button>`
+          ).join("")}
+        </div>
+      </div>`
+    : "";
+
+  $("feats-content").innerHTML = titleHtml + html;
 
   // Badge: show count of pending toasts as a brief notification
   const badge = document.getElementById("stab-feats-badge");
@@ -1073,10 +1094,15 @@ function showAchievementToasts(unlocks: AchievementUnlock[]): void {
 }
 
 function renderLog(state: GameStateDict): void {
-  $("combat-log").innerHTML = [...state.log]
-    .reverse()
-    .map((l) => `<div class="log-line">${l}</div>`)
-    .join("");
+  const lines = [...state.log].reverse();
+  $("combat-log").innerHTML = lines.map((l) => `<div class="log-line">${l}</div>`).join("");
+  // Accumulate new entries into fullLog (dedupe by checking against last entry)
+  for (const line of state.log) {
+    if (fullLog[fullLog.length - 1] !== line) {
+      fullLog.push(line);
+      if (fullLog.length > 200) fullLog.shift();
+    }
+  }
 }
 
 /** Prepends a message directly to the combat log DOM element (used for UI-layer error messages). */
@@ -1949,6 +1975,42 @@ document.addEventListener("DOMContentLoaded", () => {
       const sel = row.querySelector(".rune-combine-select") as HTMLSelectElement;
       const [id1, id2] = sel.value.split("|");
       call("combineRunes", id1, id2);
+    }
+    else if (action === "set-title") {
+      call("setEarnedTitle", btn.dataset.title ?? "");
+    }
+  });
+
+  // Loot filter toggle
+  document.getElementById("loot-filter-btn")?.addEventListener("click", () => {
+    lootFilterActive = !lootFilterActive;
+    lootKey = null; // force re-render
+    if (game) render(JSON.parse(game.respond()));
+  });
+
+  // Combat log history modal
+  document.getElementById("log-history-btn")?.addEventListener("click", () => {
+    const body = $("log-history-body");
+    body.innerHTML = [...fullLog].reverse().map(l => `<div class="log-line">${l}</div>`).join("") || `<div class="log-line" style="color:var(--muted)">No history yet.</div>`;
+    $("log-history-modal").classList.add("open");
+  });
+  document.getElementById("log-history-close")?.addEventListener("click", () => {
+    $("log-history-modal").classList.remove("open");
+  });
+  document.getElementById("log-history-modal")?.addEventListener("click", (e) => {
+    if (e.target === $("log-history-modal")) $("log-history-modal").classList.remove("open");
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener("keydown", (e) => {
+    if (!game) return;
+    if ((e.target as HTMLElement).closest("input, textarea, select")) return;
+    if (e.key === " " || e.key === "Enter") { e.preventDefault(); call("click"); }
+    else if (e.key === "e" || e.key === "E") call("equipAll");
+    else if (e.key === "x" || e.key === "X") call("sellAll");
+    else if (e.key === "s" || e.key === "S") {
+      const state = JSON.parse(game.respond()) as GameStateDict;
+      if (state.skill_available) call("activateSkill", state.skill_available);
     }
   });
 });

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
-  GameState, KILLS_PER_LEVEL, LOOT_MAX, UPGRADE_BASES, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT,
+  GameState, KILLS_PER_LEVEL, LOOT_MAX, UPGRADE_BASES, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT, DEFENSE_UPGRADE_EFFECT,
   PRESTIGE_UNLOCK_LEVEL, PRESTIGE_SHOP_COSTS, STARTING_GOLD_PER_LEVEL, XP_BONUS_PER_LEVEL,
   BLOODLUST_MULTIPLIER, EXPOSE_WEAKNESS_MULT, MANA_SURGE_INTERVAL, MANA_SURGE_MULTIPLIER,
   LUCKY_STRIKE_CHANCE, LUCKY_STRIKE_MULTIPLIER, EMPOWER_MULTIPLIER,
@@ -72,7 +72,7 @@ describe("init", () => {
     for (const c of gs.party.team) {
       expect(gs.upgrades).toHaveProperty(c.name);
       expect(new Set(Object.keys(gs.upgrades[c.name]))).toEqual(
-        new Set(["dps", "xp", "click", "hp"]),
+        new Set(["dps", "xp", "click", "hp", "defense"]),
       );
     }
   });
@@ -306,7 +306,7 @@ describe("party combat (multi-member HP)", () => {
     const gs = make();
     const rogue = new Character("Rogue", "rogue", 1);
     gs.party.addPlayer(rogue);
-    gs.upgrades["Rogue"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+    gs.upgrades["Rogue"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
     gs.enemy.hp = gs.enemy.max_hp = 999_999;
     gs.enemy.attack_dps = 5;
     return gs;
@@ -351,7 +351,7 @@ describe("party combat (multi-member HP)", () => {
     const rogue = new Character("Rogue", "rogue", 1);
     rogue.equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
     gs.party.addPlayer(rogue);
-    gs.upgrades["Rogue"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+    gs.upgrades["Rogue"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
     gs.enemy.hp = gs.enemy.max_hp = 999_999;
     gs.enemy.attack_dps = 0;
 
@@ -1675,7 +1675,7 @@ describe("class ability effects", () => {
     const gs = make();
     const rogue = new Character("Rogue", "rogue", 1);
     gs.party.addPlayer(rogue);
-    gs.upgrades["Rogue"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+    gs.upgrades["Rogue"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
     rogue.xpToNext = 999_999;
     const fighter = gs.party.team[0];
     fighter.level = 19; fighter.xpToNext = 1; fighter.xp = 0;
@@ -1761,7 +1761,7 @@ describe("class ability effects", () => {
     const gs = make();
     const mage = new Character("Mage", "mage", 1);
     gs.party.addPlayer(mage);
-    gs.upgrades["Mage"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+    gs.upgrades["Mage"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
     gs.party.team[0].xpToNext = 999_999; // fighter won't level up
     mage.level = 4; mage.xpToNext = 5; mage.xp = 0; // exactly one level-up (4→5)
 
@@ -2319,7 +2319,7 @@ describe("guild hall", () => {
     gs.party.team[0] = new Character("Hero", "rogue", 1);
     const fighter = new Character("Tank", "fighter", 1);
     gs.party.team.push(fighter);
-    gs.upgrades["Tank"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+    gs.upgrades["Tank"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
     gs.activateSkill("skill_battle_cry");
     expect(gs.activeEffects["skill_battle_cry"]).toBe(SKILL_DEFS["skill_battle_cry"].durationKills);
   });
@@ -2435,7 +2435,7 @@ describe("guild hall", () => {
     const paladin = new Character("Pal", "paladin", 10);
     while (paladin.level < 10) paladin.levelUp();
     gs.party.team.push(paladin);
-    gs.upgrades["Pal"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+    gs.upgrades["Pal"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
     // Damage lead so healing is observable
     gs.party.team[0].health = 50;
     gs.party.team[0].maxHealth = 100;
@@ -2453,7 +2453,7 @@ describe("guild hall", () => {
     const ranger = new Character("Ran", "ranger", 1); // start at 1, level up to unlock abilities
     while (ranger.level < 20) ranger.levelUp();
     gs.party.team.push(ranger);
-    gs.upgrades["Ran"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+    gs.upgrades["Ran"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
     gs.enemy.hp = 99_999;
     const dmgWith = 99_999 - JSON.parse(gs.tick(1)).enemy.hp;
 
@@ -3073,5 +3073,102 @@ describe("THEME_UNLOCKS", () => {
   it("all theme slugs are unique", () => {
     const slugs = THEME_UNLOCKS.map(t => t.theme);
     expect(new Set(slugs).size).toBe(slugs.length);
+  });
+});
+
+// ──────────────────────────────────────────
+// Defense upgrade (#16)
+// ──────────────────────────────────────────
+describe("defense upgrade", () => {
+  it("exists in UPGRADE_BASES", () => {
+    expect(UPGRADE_BASES["defense"]).toBeGreaterThan(0);
+  });
+
+  it("DEFENSE_UPGRADE_EFFECT is exported and positive", () => {
+    expect(DEFENSE_UPGRADE_EFFECT).toBeGreaterThan(0);
+  });
+
+  it("buyUpgrade defense increases damageReduction", () => {
+    const gs = make();
+    gs.gold = 10_000;
+    const before = gs.party.team[0].damageReduction;
+    gs.buyUpgrade("Hero", "defense");
+    expect(gs.party.team[0].damageReduction).toBeCloseTo(before + DEFENSE_UPGRADE_EFFECT);
+  });
+
+  it("defense level appears in upgrades dict", () => {
+    const gs = make();
+    gs.gold = 10_000;
+    gs.buyUpgrade("Hero", "defense");
+    const state = JSON.parse(gs.respond());
+    expect(state.upgrades["Hero"]["defense"].level).toBe(1);
+  });
+
+  it("defense upgrade cost doubles each level", () => {
+    const gs = make();
+    gs.gold = 10_000;
+    const cost1 = gs.upgradeCost("Hero", "defense");
+    gs.buyUpgrade("Hero", "defense");
+    const cost2 = gs.upgradeCost("Hero", "defense");
+    expect(cost2).toBe(cost1 * 2);
+  });
+
+  it("defense level persists through toDict/fromDict", () => {
+    const gs = make();
+    gs.gold = 10_000;
+    gs.buyUpgrade("Hero", "defense");
+    gs.buyUpgrade("Hero", "defense");
+    const restored = GameState.fromDict(JSON.parse(gs.respond()));
+    expect(restored.upgrades["Hero"]["defense"]).toBe(2);
+  });
+
+  it("defense is included in auto_upgrade purchases", () => {
+    const gs = make();
+    gs.prestigeUpgrades["auto_upgrade"] = 1;
+    gs.gold = 100_000; // enough to buy many upgrades; defense will be purchased
+    (gs as any).runAutoUpgrade();
+    expect(gs.party.team[0].damageReduction).toBeGreaterThan(0);
+  });
+});
+
+// ──────────────────────────────────────────
+// Title selector (#21)
+// ──────────────────────────────────────────
+describe("setEarnedTitle", () => {
+  it("setEarnedTitle with an earned title sets earnedTitle", () => {
+    const gs = make();
+    gs.achievementsUnlocked.add("kills_tiered_gold");
+    gs.earnedTitle = "Slayer";
+    gs.setEarnedTitle("Slayer");
+    expect(gs.earnedTitle).toBe("Slayer");
+  });
+
+  it("setEarnedTitle with empty string clears earnedTitle", () => {
+    const gs = make();
+    gs.earnedTitle = "Slayer";
+    gs.setEarnedTitle("");
+    expect(gs.earnedTitle).toBe("");
+  });
+
+  it("setEarnedTitle with unearned title does nothing", () => {
+    const gs = make();
+    gs.earnedTitle = "Slayer";
+    gs.setEarnedTitle("The Undying");
+    expect(gs.earnedTitle).toBe("Slayer");
+  });
+
+  it("earned_titles in toDict lists all earned title rewards", () => {
+    const gs = make();
+    gs.achievementsUnlocked.add("kills_tiered_gold");
+    gs.achievementsUnlocked.add("die_50");
+    const state = JSON.parse(gs.respond());
+    expect(state.earned_titles).toContain("Slayer");
+    expect(state.earned_titles).toContain("The Undying");
+  });
+
+  it("earned_titles is empty when no titles earned", () => {
+    const gs = make();
+    const state = JSON.parse(gs.respond());
+    expect(state.earned_titles).toHaveLength(0);
   });
 });

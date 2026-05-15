@@ -37,14 +37,22 @@ else
   fi
 fi
 
-# ── 3. Build + test + typecheck ───────────────────────────────────────────────
+# ── 3. Test + typecheck + build ───────────────────────────────────────────────
 echo ""
 echo "Running tests..."
-npm test
+if ! npm test; then
+  echo ""
+  echo "✗ Tests failed — deploy aborted. Fix the failures above before pushing." >&2
+  exit 1
+fi
 
 echo ""
 echo "Typechecking..."
-npm run typecheck
+if ! npm run typecheck; then
+  echo ""
+  echo "✗ Typecheck failed — deploy aborted." >&2
+  exit 1
+fi
 
 echo ""
 echo "Building..."

@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.84";
+export const VERSION = "v2.6.85";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,17 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.85",
+    date: "2026-05-15",
+    changes: [
+      "Defense upgrade: 5th stat upgrade (+1% damage reduction per level) for each character",
+      "Title selector: pick any earned achievement title from the Feats panel",
+      "Loot filter: 🔍 button dims non-upgrade items in the loot chest",
+      "Combat log history: 📜 button opens a scrollable log of the last 200 combat events",
+      "Keyboard shortcuts: Space/Enter = Attack, E = Equip All, X = Sell All, S = Skill",
+    ],
+  },
   {
     version: "v2.6.83",
     date: "2026-05-15",

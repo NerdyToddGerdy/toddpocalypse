@@ -147,6 +147,7 @@
       <div id="loot-header">
         <h2>Loot <span id="loot-count"></span></h2>
         <button id="drop-chart-btn" title="Drop rate chart">📊</button>
+        <button id="loot-filter-btn" title="Dim non-upgrades">🔍</button>
         <button class="equip-all-btn" data-action="equip-all" disabled>Equip All</button>
         <button class="sell-all-btn" data-action="sell-all" disabled>Sell All</button>
       </div>
@@ -174,7 +175,10 @@
     </section>
 
     <section id="log-panel">
-      <h2>Combat Log</h2>
+      <div id="log-panel-header">
+        <h2>Combat Log</h2>
+        <button id="log-history-btn" title="Full log history">📜</button>
+      </div>
       <div id="combat-log"></div>
     </section>
 
@@ -363,6 +367,16 @@
     <div class="mic-handle"></div>
     <button class="mic-close" aria-label="Close">✕</button>
     <div class="mic-content"></div>
+  </div>
+</div>
+
+<div id="log-history-modal" aria-modal="true" role="dialog" aria-labelledby="log-history-title">
+  <div id="log-history-box">
+    <div id="log-history-header">
+      <h2 id="log-history-title">Combat Log History</h2>
+      <button id="log-history-close" aria-label="Close">✕</button>
+    </div>
+    <div id="log-history-body"></div>
   </div>
 </div>
 

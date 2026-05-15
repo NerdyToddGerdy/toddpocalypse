@@ -29,6 +29,7 @@ export const UPGRADE_BASES: Record<string, number> = {
   xp: 75,
   click: 40,
   hp: 60,
+  defense: 55,
 };
 
 /** Stat delta applied per upgrade level for DPS, XP-rate, and click-damage upgrades. */
@@ -40,6 +41,9 @@ export const UPGRADE_EFFECTS: Record<string, number> = {
 
 /** HP added per HP-upgrade level. */
 export const HP_UPGRADE_EFFECT = 15;
+
+/** Damage reduction added per defense-upgrade level. */
+export const DEFENSE_UPGRADE_EFFECT = 0.01;
 
 /** DPS multiplier applied to a Fighter or Paladin while their HP is at or below 50%. */
 export const BLOODLUST_MULTIPLIER = 1.6;
@@ -214,8 +218,8 @@ export interface AchievementUnlock {
   reward?: AchievementReward;
 }
 
-/** The four stat categories that can be upgraded per character. */
-type UpgradeType = "dps" | "xp" | "click" | "hp";
+/** The five stat categories that can be upgraded per character. */
+type UpgradeType = "dps" | "xp" | "click" | "hp" | "defense";
 
 /** Current level for each upgrade type on a single character. */
 type UpgradeLevels = Record<UpgradeType, number>;
@@ -269,6 +273,7 @@ export interface GameStateDict {
   lifetime_divine_sold: number;
   pending_achievements: AchievementUnlock[];
   rune_inventory: Rune[];
+  earned_titles: string[];
 }
 
 /** Central game loop: owns all mutable state and exposes action methods that return serialized JSON. */
@@ -362,7 +367,7 @@ export class GameState {
     this.party.addPlayer(new Character(name, characterClass, 1));
     this.enemy = generateEnemy(this.dungeonLevel, this.dungeonIndex);
     for (const c of this.party.team) {
-      this.upgrades[c.name] = { dps: 0, xp: 0, click: 0, hp: 0 };
+      this.upgrades[c.name] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
     }
   }
 
@@ -541,6 +546,8 @@ export class GameState {
     else if (ut === "hp") {
       char.maxHealth += HP_UPGRADE_EFFECT;
       char.health += HP_UPGRADE_EFFECT;
+    } else if (ut === "defense") {
+      char.damageReduction = Math.min(0.95, char.damageReduction + DEFENSE_UPGRADE_EFFECT);
     }
     this.addLog(`${charName}: ${ut} upgraded!`);
     return this.respond();
@@ -579,7 +586,7 @@ export class GameState {
     const newLead = new Character(leadName, leadClass, 1);
 
     this.party.team = [newLead];
-    this.upgrades = { [leadName]: { dps: 0, xp: 0, click: 0, hp: 0 } };
+    this.upgrades = { [leadName]: { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 } };
     this.lifetimeBestLevel = Math.max(this.lifetimeBestLevel, this.highestLevel);
     this.gold = 0;
     this.dungeonLevel = 1;
@@ -629,31 +636,31 @@ export class GameState {
     this.upgrades = {};
     const lead = new Character(leadName, leadClass, 1);
     this.party.addPlayer(lead);
-    this.upgrades[leadName] = { dps: 0, xp: 0, click: 0, hp: 0 };
+    this.upgrades[leadName] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
 
     if ((this.prestigeUpgrades["party_slot_2"] ?? 0) > 0) {
       const cls2 = this.prestigePartyClasses["slot_2"] ?? "fighter";
       const comp = new Character("Companion", cls2, 1);
       this.party.addPlayer(comp);
-      this.upgrades["Companion"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+      this.upgrades["Companion"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
     }
     if ((this.prestigeUpgrades["party_slot_3"] ?? 0) > 0) {
       const cls3 = this.prestigePartyClasses["slot_3"] ?? "fighter";
       const ally = new Character("Ally", cls3, 1);
       this.party.addPlayer(ally);
-      this.upgrades["Ally"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+      this.upgrades["Ally"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
     }
     if ((this.prestigeUpgrades["party_slot_4"] ?? 0) > 0) {
       const cls4 = this.prestigePartyClasses["slot_4"] ?? "fighter";
       const vet = new Character("Veteran", cls4, 1);
       this.party.addPlayer(vet);
-      this.upgrades["Veteran"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+      this.upgrades["Veteran"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
     }
     if ((this.prestigeUpgrades["party_slot_5"] ?? 0) > 0) {
       const cls5 = this.prestigePartyClasses["slot_5"] ?? "fighter";
       const champ = new Character("Champion", cls5, 1);
       this.party.addPlayer(champ);
-      this.upgrades["Champion"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+      this.upgrades["Champion"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
     }
 
     const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
@@ -698,7 +705,7 @@ export class GameState {
       this.prestigePartyClasses["slot_2"] = cls;
       const comp = new Character("Companion", cls, 1);
       this.party.addPlayer(comp);
-      this.upgrades["Companion"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+      this.upgrades["Companion"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
       const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
       comp.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
     } else if (type === "party_slot_3") {
@@ -706,7 +713,7 @@ export class GameState {
       this.prestigePartyClasses["slot_3"] = cls;
       const ally = new Character("Ally", cls, 1);
       this.party.addPlayer(ally);
-      this.upgrades["Ally"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+      this.upgrades["Ally"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
       const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
       ally.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
     } else if (type === "party_slot_4") {
@@ -714,7 +721,7 @@ export class GameState {
       this.prestigePartyClasses["slot_4"] = cls;
       const vet = new Character("Veteran", cls, 1);
       this.party.addPlayer(vet);
-      this.upgrades["Veteran"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+      this.upgrades["Veteran"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
       const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
       vet.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
     } else if (type === "party_slot_5") {
@@ -722,7 +729,7 @@ export class GameState {
       this.prestigePartyClasses["slot_5"] = cls;
       const champ = new Character("Champion", cls, 1);
       this.party.addPlayer(champ);
-      this.upgrades["Champion"] = { dps: 0, xp: 0, click: 0, hp: 0 };
+      this.upgrades["Champion"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
       const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
       champ.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
     } else if (type === "xp_bonus") {
@@ -931,7 +938,32 @@ export class GameState {
       lifetime_divine_sold: this.lifetimeDivineSold,
       pending_achievements: [...this.pendingAchievements],
       rune_inventory: [...this.runeInventory],
+      earned_titles: this.computeEarnedTitles(),
     };
+  }
+
+  private computeEarnedTitles(): string[] {
+    const titles: string[] = [];
+    for (const def of ACHIEVEMENTS) {
+      if (def.tiers) {
+        for (const tier of def.tiers) {
+          if (tier.reward?.type === "title" && tier.reward.title && this.achievementsUnlocked.has(`${def.id}_${tier.label}`)) {
+            titles.push(tier.reward.title);
+          }
+        }
+      } else if (def.reward?.type === "title" && def.reward.title && this.achievementsUnlocked.has(def.id)) {
+        titles.push(def.reward.title);
+      }
+    }
+    return titles;
+  }
+
+  /** Sets the displayed title to any title the player has already earned, or clears it with "". */
+  setEarnedTitle(title: string): string {
+    if (title === "" || this.computeEarnedTitles().includes(title)) {
+      this.earnedTitle = title;
+    }
+    return this.respond();
   }
 
   /** Adds gold to balance and to the lifetime-gold counter. Use this everywhere gold is earned. */
@@ -1220,7 +1252,7 @@ export class GameState {
   /** Greedily buys the cheapest affordable stat upgrade for any party member until gold runs out. */
   private runAutoUpgrade(): void {
     if (!(this.prestigeUpgrades["auto_upgrade"] > 0)) return;
-    const upgradeTypes: UpgradeType[] = ["dps", "xp", "click", "hp"];
+    const upgradeTypes: UpgradeType[] = ["dps", "xp", "click", "hp", "defense"];
     let bought = true;
     while (bought) {
       bought = false;
@@ -1243,6 +1275,8 @@ export class GameState {
         else if (type === "hp") {
           char.maxHealth += HP_UPGRADE_EFFECT;
           char.health += HP_UPGRADE_EFFECT;
+        } else if (type === "defense") {
+          char.damageReduction = Math.min(0.95, char.damageReduction + DEFENSE_UPGRADE_EFFECT);
         }
         this.addLog(`Auto Upgrade: ${char.name} ${type} → Lv${this.upgrades[char.name][type]}`);
         bought = true;
@@ -1285,6 +1319,7 @@ export class GameState {
         xp: d.upgrades[c.name]?.xp?.level ?? 0,
         click: d.upgrades[c.name]?.click?.level ?? 0,
         hp: d.upgrades[c.name]?.hp?.level ?? 0,
+        defense: d.upgrades[c.name]?.defense?.level ?? 0,
       };
     }
 
