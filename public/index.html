@@ -120,8 +120,15 @@
       </section>
 
       <section id="party-panel">
-        <h2>Your Party <button id="party-gear-toggle" class="icon-btn" title="Toggle gear visibility">⚔</button></h2>
+        <div id="party-panel-header">
+          <h2>Your Party <button id="party-gear-toggle" class="icon-btn" title="Toggle gear visibility">⚔</button></h2>
+          <div id="party-panel-tabs">
+            <button class="ptab-btn active" data-ptab="party">Party</button>
+            <button class="ptab-btn" data-ptab="runes">🔮 Runes</button>
+          </div>
+        </div>
         <div id="party-cards"></div>
+        <div id="party-rune-panel" hidden></div>
       </section>
 
     </div>
@@ -161,6 +168,7 @@
       </div>
       <hr id="loot-divider" hidden>
       <div id="loot-items"><div class="loot-empty">No drops yet…</div></div>
+      <div id="loot-rune-inventory" hidden></div>
     </section>
 
     <section id="prestige-panel">

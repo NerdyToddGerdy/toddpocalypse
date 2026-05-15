@@ -377,7 +377,9 @@ function renderParty(state: GameStateDict): void {
       const gearDps = Object.values(c.equipment).reduce((sum, item) => {
         return sum + ((item as GearItemDict | null)?.stats?.dps ?? 0);
       }, 0);
-      const dpsData = encodeURIComponent(JSON.stringify({ total: c.dps, base: Math.max(0, c.dps - gearDps), gear: gearDps, upgLevel: (state.upgrades[c.name]?.dps as { level: number } | undefined)?.level ?? 0 }));
+      const runeDps = Object.values(c.runes ?? {}).reduce((sum, rune) =>
+        sum + (rune?.statKey === "dps" ? (rune?.value ?? 0) : 0), 0);
+      const dpsData = encodeURIComponent(JSON.stringify({ total: c.dps, base: Math.max(0, c.dps - gearDps - runeDps), gear: gearDps, runes: runeDps, upgLevel: (state.upgrades[c.name]?.dps as { level: number } | undefined)?.level ?? 0 }));
       const classAbilities = CLASS_ABILITIES[c.character_class] ?? [];
       const abilitiesHtml = classAbilities.map(a => {
         const unlocked = c.abilities.includes(a.id);
@@ -388,6 +390,13 @@ function renderParty(state: GameStateDict): void {
       }).join("");
       const charJson = encodeURIComponent(JSON.stringify(c));
       const heroImg = HERO_IMG[c.character_class] ?? HERO_IMG.fighter;
+      const runeRowHtml = ALL_SLOTS.map(slot => {
+        const rune = (c.runes ?? {})[slot as keyof typeof c.runes];
+        if (!rune) return `<span class="tt-rune-slot empty"></span>`;
+        const tierClass = (rune as any).tier === "greater" ? "greater" : "lesser";
+        const runeJson = encodeURIComponent(JSON.stringify({ ...(rune as object), slotLabel: SLOT_LABELS[slot] ?? slot }));
+        return `<span class="tt-rune-slot ${tierClass}" data-rune="${runeJson}"></span>`;
+      }).join("");
       return `
 <div class="char-card${leveledUp ? " levelup-flash" : ""}${isDead ? " is-dead" : ""}">
   <div class="char-header">
@@ -395,6 +404,7 @@ function renderParty(state: GameStateDict): void {
       <div class="char-name" data-char="${charJson}">${c.name}</div>
       <div class="char-class">${c.character_class}</div>${ci === 0 && state.earned_title ? `<div class="char-title">${state.earned_title}</div>` : ""}
       <div class="char-dps" data-dps="${dpsData}">${c.dps.toFixed(1)} DPS</div>
+      <div class="char-rune-row">${runeRowHtml}</div>
     </div>
     <img class="hero-sprite" src="${heroImg}" alt="${c.character_class}">
   </div>
@@ -698,6 +708,8 @@ function renderGuildHall(state: GameStateDict): void {
   const runeSection = runeForge >= 1 ? renderRuneSection(runeInv, state.party, runeForge) : "";
 
   $("guild-hall-items").innerHTML = upgradesHtml + runeSection;
+  renderPartyRunePanel(runeInv, state.party, runeForge);
+  renderLootRuneInventory(runeInv, state.party, runeForge);
 }
 
 const RUNE_STAT_LABELS: Record<string, string> = {
@@ -713,28 +725,8 @@ const SLOT_LABELS: Record<string, string> = {
 };
 
 function renderRuneSection(runeInv: any[], party: any[], runeForge: number): string {
-  const charOptions = party.map((c, i) =>
-    `<option value="${i}">${c.name}</option>`
-  ).join("");
-  const slotOptions = ALL_SLOTS.map(s =>
-    `<option value="${s}">${SLOT_LABELS[s]}</option>`
-  ).join("");
-
-  const runeItems = runeInv.length === 0
-    ? `<div class="rune-empty">No runes — boss kills have a 20% chance to drop one.</div>`
-    : runeInv.map((rune, i) => {
-        const icon = RUNE_ICONS[rune.type] ?? "🔮";
-        const statLabel = RUNE_STAT_LABELS[rune.statKey] ?? rune.statKey;
-        return `<div class="rune-item" data-rune-idx="${i}">
-          <span class="rune-tier-badge ${rune.tier}">${rune.tier === "greater" ? "★" : "◆"}</span>
-          <span class="rune-icon">${icon}</span>
-          <span class="rune-name">${rune.name}</span>
-          <span class="rune-stat">+${rune.value} ${statLabel}</span>
-          <select class="rune-char-select">${charOptions}</select>
-          <select class="rune-slot-select">${slotOptions}</select>
-          <button class="rune-brand-btn" data-action="brand-rune" data-rune-id="${rune.id}" data-rune-idx="${i}">Brand</button>
-        </div>`;
-      }).join("");
+  // Rune inventory + branding now lives in the loot panel; Guild Hall shows combine only.
+  const runeItems = "";
 
   const combinePairs = findCombinePairs(runeInv);
   const combineHtml = runeForge >= 3 && combinePairs.length > 0
@@ -754,6 +746,106 @@ function renderRuneSection(runeInv: any[], party: any[], runeForge: number): str
     <div class="rune-inv-items">${runeItems}</div>
     ${combineHtml}
   </div>`;
+}
+
+function renderPartyRunePanel(runeInv: any[], party: any[], runeForge: number): void {
+  const el = $("party-rune-panel");
+  if (runeForge < 1) {
+    el.innerHTML = `<div class="prune-empty">Unlock the Rune Forge in the Guild Hall to start socketing runes.</div>`;
+    return;
+  }
+
+  const charBlocks = party.map((c: any) => {
+    const slots = ALL_SLOTS.map(slot => {
+      const rune = c.runes?.[slot];
+      const icon = SLOT_ICONS[slot] ?? "◻";
+      const label = SLOT_LABELS[slot] ?? slot;
+      if (rune) {
+        const runeIcon = RUNE_ICONS[rune.type] ?? "🔮";
+        const statLabel = RUNE_STAT_LABELS[rune.statKey] ?? rune.statKey;
+        const greaterClass = rune.tier === "greater" ? " greater" : "";
+        return `<div class="prune-slot-row">
+          <span class="prune-slot-icon">${icon}</span>
+          <span class="prune-slot-name">${label}</span>
+          <div class="prune-rune-badge filled${greaterClass}">
+            <span class="rune-tier-badge ${rune.tier}">${rune.tier === "greater" ? "★" : "◆"}</span>
+            <span>${runeIcon} ${rune.name}</span>
+            <span class="prune-rune-stat">+${rune.value} ${statLabel}</span>
+          </div>
+        </div>`;
+      }
+      return `<div class="prune-slot-row">
+        <span class="prune-slot-icon">${icon}</span>
+        <span class="prune-slot-name">${label}</span>
+        <div class="prune-rune-badge empty">empty</div>
+      </div>`;
+    }).join("");
+
+    return `<div class="prune-char-block">
+      <div class="prune-char-name">${c.name} — ${c.character_class}</div>
+      <div class="prune-slots">${slots}</div>
+    </div>`;
+  }).join("");
+
+  el.innerHTML = charBlocks;
+}
+
+function buildSlotOptions(char: any): string {
+  return ALL_SLOTS.map(s => {
+    const existing = char.runes?.[s];
+    const label = SLOT_LABELS[s] + (existing ? ` (${existing.tier})` : "");
+    return `<option value="${s}">${label}</option>`;
+  }).join("");
+}
+
+function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number): void {
+  const el = $("loot-rune-inventory");
+  if (runeForge < 1) { el.hidden = true; return; }
+  el.hidden = false;
+
+  const charOptions = party.map((c: any, i: number) =>
+    `<option value="${i}">${c.name}</option>`
+  ).join("");
+
+  const items = runeInv.length === 0
+    ? `<div class="prune-empty">No runes — boss kills have a 20% chance to drop one.</div>`
+    : runeInv.map((rune: any, i: number) => {
+        const runeIcon = RUNE_ICONS[rune.type] ?? "🔮";
+        const statLabel = RUNE_STAT_LABELS[rune.statKey] ?? rune.statKey;
+        const slotOpts = buildSlotOptions(party[0]);
+        return `<div class="rune-item" data-rune-idx="${i}">
+          <div class="rune-item-top">
+            <span class="rune-tier-badge ${rune.tier}">${rune.tier === "greater" ? "★" : "◆"}</span>
+            <span class="rune-icon">${runeIcon}</span>
+            <span class="rune-name">${rune.name}</span>
+          </div>
+          <div class="rune-item-selects">
+            <select class="rune-char-select">${charOptions}</select>
+            <select class="rune-slot-select">${slotOpts}</select>
+          </div>
+          <div class="rune-item-bottom">
+            <span class="rune-stat">+${rune.value} ${statLabel}</span>
+            <button class="rune-brand-btn" data-action="brand-rune" data-rune-id="${rune.id}" data-rune-idx="${i}">Brand</button>
+          </div>
+        </div>`;
+      }).join("");
+
+  el.innerHTML = `<div class="rune-inv-section" style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">
+    <div class="rune-inv-title">🔮 Runes (${runeInv.length})</div>
+    <div class="rune-inv-items">${items}</div>
+  </div>`;
+
+  // Update slot options when character selection changes
+  el.querySelectorAll<HTMLSelectElement>(".rune-char-select").forEach(charSel => {
+    charSel.addEventListener("change", () => {
+      const charIdx = parseInt(charSel.value, 10);
+      const slotSel = charSel.closest(".rune-item")!.querySelector<HTMLSelectElement>(".rune-slot-select")!;
+      const prev = slotSel.value;
+      slotSel.innerHTML = buildSlotOptions(party[charIdx]);
+      // restore previous selection if still valid
+      if ([...slotSel.options].some(o => o.value === prev)) slotSel.value = prev;
+    });
+  });
 }
 
 function findCombinePairs(runeInv: any[]): { id1: string; id2: string; type: string; name: string }[] {
@@ -1127,6 +1219,20 @@ function appendLog(msg: string): void {
   );
 }
 
+function buildRuneTooltipHTML(rune: any): string {
+  const icon = RUNE_ICONS[rune.type] ?? "🔮";
+  const statLabel = RUNE_STAT_LABELS[rune.statKey] ?? rune.statKey;
+  const tierLabel = rune.tier === "greater" ? "Greater" : "Lesser";
+  const tierCls = rune.tier === "greater" ? "tt-rarity quality-legendary" : "tt-rarity quality-common";
+  return `
+    <span class="tt-name">${icon} ${rune.name}</span>
+    <div class="${tierCls}">${tierLabel}</div>
+    <div class="tt-subtitle">${rune.slotLabel}</div>
+    <div class="tt-divider"></div>
+    <div class="tt-stats"><div class="tt-stat-row"><span class="tt-stat-label">${statLabel}</span><span class="tt-stat-val tt-dps">+${rune.value}</span></div></div>
+  `;
+}
+
 /** Builds the inner HTML for the item tooltip given a serialized GearItemDict. */
 function buildTooltipHTML(item: GearItemDict): string {
   const qc = qualityClass(item.quality);
@@ -1182,6 +1288,15 @@ function buildCharTooltipHTML(c: CharDict): string {
     c.haste         > 0 ? statRow("Haste",        `+${(c.haste * 100).toFixed(0)}%`,        "tt-haste") : "",
     c.xp_multiplier > 1 ? statRow("XP Bonus",    `${(c.xp_multiplier * 100).toFixed(0)}%`, "tt-xp")   : "",
   ].filter(Boolean).join("");
+  const runeSquares = ALL_SLOTS.map(slot => {
+    const rune = (c.runes ?? {})[slot as keyof typeof c.runes];
+    if (!rune) return `<span class="tt-rune-slot empty" title="${SLOT_LABELS[slot] ?? slot}: empty"></span>`;
+    const tierClass = (rune as any).tier === "greater" ? "greater" : "lesser";
+    const icon = RUNE_ICONS[(rune as any).type] ?? "🔮";
+    const statLabel = RUNE_STAT_LABELS[(rune as any).statKey] ?? (rune as any).statKey;
+    return `<span class="tt-rune-slot ${tierClass}" title="${SLOT_LABELS[slot] ?? slot}: ${icon} +${(rune as any).value} ${statLabel}"></span>`;
+  }).join("");
+  const runeBadges = `<div class="tt-divider"></div><div class="tt-rune-row">${runeSquares}</div>`;
   const abilityBadges = unlocked.length
     ? `<div class="tt-divider"></div><div class="tt-abilities">${unlocked.map(a => `<span class="tt-ability">${a.icon} ${a.name}</span>`).join("")}</div>`
     : "";
@@ -1192,6 +1307,7 @@ function buildCharTooltipHTML(c: CharDict): string {
     <div class="tt-rarity" style="color:var(--muted);text-transform:none;font-weight:400">Lv${c.level} ${c.character_class}</div>
     <div class="tt-divider"></div>
     <div class="tt-stats">${rows}</div>
+    ${runeBadges}
     ${abilityBadges}
   `;
 }
@@ -1324,7 +1440,7 @@ function buildSkillTooltipHTML(a: AbilityCardData): string {
     <div class="tt-stat-row"><span class="tt-stat-label">${a.desc}</span></div>`;
 }
 
-const TOOLTIP_SELECTORS = ".gear-row.filled[data-item], .loot-item[data-item], .char-name[data-char], #party-panel h2[data-party], [data-active-skill], .char-dps[data-dps]";
+const TOOLTIP_SELECTORS = ".gear-row.filled[data-item], .loot-item[data-item], .char-name[data-char], #party-panel h2[data-party], [data-active-skill], .char-dps[data-dps], .tt-rune-slot[data-rune]";
 
 function buildActiveSkillTooltipHTML(skillId: string): string {
   const name = SKILL_NAMES[skillId] ?? skillId;
@@ -1333,13 +1449,14 @@ function buildActiveSkillTooltipHTML(skillId: string): string {
   return `<div class="skill-tooltip"><div class="skill-tooltip-name">${name}</div><div class="skill-tooltip-desc">${desc}</div><div class="skill-tooltip-cd">Cooldown: ${cooldownKills} kills</div></div>`;
 }
 
-function buildDpsTooltipHTML(d: { total: number; base: number; gear: number; upgLevel: number }): string {
+function buildDpsTooltipHTML(d: { total: number; base: number; gear: number; runes?: number; upgLevel: number }): string {
   return `
     <div class="tt-name">DPS Breakdown</div>
     <div class="tt-divider"></div>
     <div class="tt-stats">
       ${statRow("Base", d.base.toFixed(1), "tt-dps")}
       ${d.gear > 0 ? statRow("Gear", `+${d.gear.toFixed(1)}`, "tt-dps") : ""}
+      ${d.runes && d.runes > 0 ? statRow("Runes", `+${d.runes.toFixed(1)}`, "tt-dps") : ""}
       ${d.upgLevel > 0 ? statRow("Upgrades", `Lv${d.upgLevel}`, "tt-click") : ""}
     </div>
     <div class="tt-divider"></div>
@@ -1352,6 +1469,7 @@ function getTooltipContent(el: HTMLElement): string | null {
     if (el.dataset.activeSkill) return buildActiveSkillTooltipHTML(el.dataset.activeSkill);
     if (el.dataset.dps)   return buildDpsTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.dps)));
     if (el.dataset.item)  return buildTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.item)) as GearItemDict);
+    if (el.dataset.rune)  return buildRuneTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.rune)));
     if (el.dataset.char)  return buildCharTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.char)) as CharDict);
     if (el.dataset.party) return buildPartyTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.party)) as CharDict[]);
     if (el.dataset.skill) return buildSkillTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.skill)) as AbilityCardData);
@@ -1725,6 +1843,30 @@ function initPartyGearToggle(): void {
   });
 }
 
+function initPartyPanelTabs(): void {
+  const tabs = document.querySelectorAll<HTMLButtonElement>(".ptab-btn");
+  const cardsEl = $("party-cards");
+  const runeEl = $("party-rune-panel");
+  const gearToggle = $("party-gear-toggle");
+
+  tabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      tabs.forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      const which = tab.dataset.ptab;
+      if (which === "runes") {
+        cardsEl.hidden = true;
+        runeEl.hidden = false;
+        gearToggle.hidden = true;
+      } else {
+        cardsEl.hidden = false;
+        runeEl.hidden = true;
+        gearToggle.hidden = false;
+      }
+    });
+  });
+}
+
 function initSaveBackup(): void {
   const exportBtn  = document.getElementById("export-save-btn")!;
   const importBtn  = document.getElementById("import-save-btn")!;
@@ -1793,6 +1935,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initItemTooltip();
   initMobileItemCard();
   initPartyGearToggle();
+  initPartyPanelTabs();
 
   document.getElementById("theme-picker")?.addEventListener("click", (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLElement>(".theme-btn");
