@@ -1283,7 +1283,7 @@ export class GameState {
 
   private runAutoUpgrade(): void {
     if (!(this.prestigeUpgrades["auto_upgrade"] > 0)) return;
-    const upgradeTypes: UpgradeType[] = ["dps", "xp", "click", "hp"];
+    const upgradeTypes: UpgradeType[] = ["dps", "xp", "click", "hp", "defense"];
     let bought = true;
     while (bought) {
       bought = false;

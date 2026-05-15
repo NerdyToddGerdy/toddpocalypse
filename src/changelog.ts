@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.7.6";
+export const VERSION = "v2.7.7";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.7.7",
+    date: "2026-05-15",
+    changes: [
+      "Defense upgrade re-added to auto-upgrade rotation",
+    ],
+  },
   {
     version: "v2.7.6",
     date: "2026-05-15",

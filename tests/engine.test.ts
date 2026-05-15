@@ -3192,12 +3192,12 @@ describe("defense upgrade", () => {
     expect(restored.upgrades["Hero"]["defense"]).toBe(2);
   });
 
-  it("defense is NOT included in auto_upgrade purchases (manual-only stat)", () => {
+  it("defense IS included in auto_upgrade purchases", () => {
     const gs = make();
     gs.prestigeUpgrades["auto_upgrade"] = 1;
     gs.gold = 100_000;
     (gs as any).runAutoUpgrade();
-    expect(gs.party.team[0].damageReduction).toBe(0);
+    expect(gs.party.team[0].damageReduction).toBeGreaterThan(0);
   });
 
   it("auto_upgrade spends freely regardless of guild hall savings", () => {
