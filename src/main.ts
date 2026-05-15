@@ -565,6 +565,7 @@ const PRESTIGE_SHOP_META: Record<string, { icon: string; name: string; desc: str
   party_slot_5:  { icon: "👥", name: "Party Slot V",   desc: "Add a 5th member. Requires Slot IV + Companion Hall II.", max: 1, guildReq: 2 },
   starting_gold: { icon: "💰", name: "Starting Gold",  desc: "+250g at the start of each run.", max: Infinity },
   xp_bonus:      { icon: "✨", name: "XP Bonus",       desc: "+10% XP gain for all party members.", max: Infinity },
+  gold_bonus:    { icon: "🪙", name: "Gold Bonus",     desc: "+10% gold from kills per stack.", max: Infinity },
   checkpoint:    { icon: "⚑", name: "Checkpoint",     desc: "Each level adds a respawn checkpoint at the next multiple of 5 (lv1→floor 5, lv2→floor 10, lv3→floor 15…).", max: 20 },
   gold_mastery:  { icon: "💰", name: "Gold Mastery",   desc: "+20% gold from bosses per stack. Dungeon 2+.", max: Infinity, dungeonReq: 1 },
   gear_luck:     { icon: "🍀", name: "Gear Luck",      desc: "+5% item drop chance per stack (max 75%). Dungeon 2+.", max: 10, dungeonReq: 1 },

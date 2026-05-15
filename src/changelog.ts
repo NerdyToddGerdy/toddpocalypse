@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.8.0";
+export const VERSION = "v2.8.1";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.8.1",
+    date: "2026-05-15",
+    changes: [
+      "New prestige upgrade: Gold Bonus (+10% gold from kills per stack, 1pt base with scaling cost)",
+    ],
+  },
   {
     version: "v2.8.0",
     date: "2026-05-15",

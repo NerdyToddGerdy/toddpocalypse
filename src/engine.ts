@@ -97,6 +97,7 @@ export const PRESTIGE_SHOP_COSTS: Record<string, number> = {
   party_slot_5: 5,
   starting_gold: 1,
   xp_bonus: 1,
+  gold_bonus: 1,
   checkpoint: 1,
   gold_mastery: 2,
   gear_luck: 2,
@@ -109,7 +110,7 @@ export const PRESTIGE_DUNGEON_REQ: Record<string, number> = {
 };
 
 /** Stackable upgrades whose cost increases by 1 pt per stack already owned. */
-const SCALING_PRESTIGE_UPGRADES = new Set(["starting_gold", "xp_bonus", "checkpoint", "gold_mastery", "gear_luck"]);
+const SCALING_PRESTIGE_UPGRADES = new Set(["starting_gold", "xp_bonus", "gold_bonus", "checkpoint", "gold_mastery", "gear_luck"]);
 
 /** Returns the prestige point cost for the next purchase of a given upgrade type. */
 export function prestigeUpgradeCost(type: string, currentStacks: number): number {
@@ -180,6 +181,9 @@ export const STARTING_GOLD_PER_LEVEL = 250;
 
 /** XP multiplier bonus added per xp_bonus prestige upgrade level. */
 export const XP_BONUS_PER_LEVEL = 0.10;
+
+/** Gold earn multiplier bonus added per gold_bonus prestige upgrade level. */
+export const GOLD_BONUS_PER_LEVEL = 0.10;
 
 /** All visual themes with their prestige unlock requirements. */
 export const THEME_UNLOCKS: { theme: string; icon: string; label: string; prestiges: number }[] = [
@@ -1120,8 +1124,9 @@ export class GameState {
     this.runAutoEquip();  // equip existing loot before new drops land
     const partyGoldBonus = this.party.team.reduce((s, c) => s + c.goldBonus, 0);
     const goldMasteryMult = 1 + 0.20 * (this.prestigeUpgrades["gold_mastery"] ?? 0);
+    const prestigeGoldMult = 1 + GOLD_BONUS_PER_LEVEL * (this.prestigeUpgrades["gold_bonus"] ?? 0);
     if (this.enemy.isBoss) {
-      this.earnGold(this.enemy.gold_reward * (1 + partyGoldBonus) * goldMasteryMult);
+      this.earnGold(this.enemy.gold_reward * (1 + partyGoldBonus) * goldMasteryMult * prestigeGoldMult);
       this.lifetimeBossKills += 1;
       if (this.lootPool.length < this.lootMax) {
         const effectiveLevel = this.dungeonLevel + this.dungeonIndex * 5;

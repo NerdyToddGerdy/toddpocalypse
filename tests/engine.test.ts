@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   GameState, KILLS_PER_LEVEL, LOOT_MAX, UPGRADE_BASES, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT, DEFENSE_UPGRADE_EFFECT,
-  PRESTIGE_UNLOCK_LEVEL, PRESTIGE_SHOP_COSTS, STARTING_GOLD_PER_LEVEL, XP_BONUS_PER_LEVEL,
+  PRESTIGE_UNLOCK_LEVEL, PRESTIGE_SHOP_COSTS, STARTING_GOLD_PER_LEVEL, XP_BONUS_PER_LEVEL, GOLD_BONUS_PER_LEVEL,
   BLOODLUST_MULTIPLIER, EXPOSE_WEAKNESS_MULT, MANA_SURGE_INTERVAL, MANA_SURGE_MULTIPLIER,
   LUCKY_STRIKE_CHANCE, LUCKY_STRIKE_MULTIPLIER, EMPOWER_MULTIPLIER,
   VENTURE_UNLOCK_LEVEL, IDLE_GOLD_RATE, OFFLINE_GOLD_CAP_SECONDS,
@@ -1495,6 +1495,59 @@ describe("prestige — xp_bonus persists through prestige", () => {
     gs.buyPrestigeUpgrade("xp_bonus"); gs.buyPrestigeUpgrade("xp_bonus");
     gs.prestige();
     expect(gs.party.team[0].xpMultiplier).toBeCloseTo(1.20);
+  });
+});
+
+describe("prestige — gold_bonus", () => {
+  function atBoss(): GameState {
+    const gs = make();
+    for (let i = 0; i < killsForFloor(1); i++) gs.onEnemyDeath();
+    return gs;
+  }
+
+  it("GOLD_BONUS_PER_LEVEL is exported and equals 0.10", () => {
+    expect(GOLD_BONUS_PER_LEVEL).toBeCloseTo(0.10);
+  });
+
+  it("gold_bonus base cost is 1", () => {
+    expect(PRESTIGE_SHOP_COSTS["gold_bonus"]).toBe(1);
+  });
+
+  it("gold_bonus cost scales by stack count", () => {
+    for (let n = 0; n < 5; n++) {
+      expect(prestigeUpgradeCost("gold_bonus", n)).toBe(1 + n);
+    }
+  });
+
+  it("1 stack of gold_bonus increases boss gold by 10%", () => {
+    const gs = atBoss();
+    gs.prestigeUpgrades["gold_bonus"] = 1;
+    const base = gs.enemy.gold_reward;
+    gs.onEnemyDeath();
+    expect(gs.gold).toBeCloseTo(base * (1 + GOLD_BONUS_PER_LEVEL));
+  });
+
+  it("2 stacks of gold_bonus increase boss gold by 20%", () => {
+    const gs = atBoss();
+    gs.prestigeUpgrades["gold_bonus"] = 2;
+    const base = gs.enemy.gold_reward;
+    gs.onEnemyDeath();
+    expect(gs.gold).toBeCloseTo(base * (1 + 2 * GOLD_BONUS_PER_LEVEL));
+  });
+
+  it("buying gold_bonus deducts prestige points", () => {
+    const gs = withPrestige(5);
+    gs.buyPrestigeUpgrade("gold_bonus");
+    expect(gs.prestigePoints).toBe(4);
+    expect(gs.prestigeUpgrades["gold_bonus"]).toBe(1);
+  });
+
+  it("gold_bonus stacks on second purchase with scaling cost", () => {
+    const gs = withPrestige(5);
+    gs.buyPrestigeUpgrade("gold_bonus"); // costs 1
+    gs.buyPrestigeUpgrade("gold_bonus"); // costs 2
+    expect(gs.prestigePoints).toBe(2);
+    expect(gs.prestigeUpgrades["gold_bonus"]).toBe(2);
   });
 });
 
