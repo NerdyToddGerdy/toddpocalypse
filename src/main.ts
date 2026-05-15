@@ -120,19 +120,19 @@ function render(state: GameStateDict): void {
   const enemyPanel = document.getElementById("enemy-panel")!;
   enemyPanel.classList.toggle("elite-enemy", !!enemy.is_elite);
   const portraitWrap = document.getElementById("monster-portrait-wrap")!;
-  if (enemy.is_boss && !bossPortraitShowing) {
+  const wantsPortrait = enemy.is_boss || !!enemy.is_elite;
+  if (wantsPortrait && !bossPortraitShowing) {
     bossPortraitShowing = true;
     const eWords = enemy.name.split(" ");
     ($("monster-portrait") as HTMLImageElement).src = `monster_${eWords[2].toLowerCase()}.png`;
     ($("monster-border") as HTMLImageElement).src   = `border_${eWords[1].toLowerCase()}.png`;
     portraitWrap.classList.remove("boss-exiting");
-    void portraitWrap.offsetWidth; // flush pending transitions
+    void portraitWrap.offsetWidth;
     portraitWrap.classList.add("boss-visible", "boss-entering");
     setTimeout(() => portraitWrap.classList.remove("boss-entering"), 750);
-  } else if (!enemy.is_boss && bossPortraitShowing) {
+  } else if (!wantsPortrait && bossPortraitShowing) {
     bossPortraitShowing = false;
     portraitWrap.classList.add("boss-exiting");
-    // wait for collapse animation, then shrink the width
     setTimeout(() => {
       portraitWrap.classList.remove("boss-visible");
       setTimeout(() => portraitWrap.classList.remove("boss-exiting"), 600);
