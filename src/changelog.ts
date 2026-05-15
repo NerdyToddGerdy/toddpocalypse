@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.83";
+export const VERSION = "v2.6.84";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
