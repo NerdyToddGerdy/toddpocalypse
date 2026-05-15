@@ -842,14 +842,16 @@ export class GameState {
   /** Combines two lesser runes of the same type into a greater rune. Requires Rune Forge Tier 3. Returns serialized JSON. */
   combineRunes(runeId1: string, runeId2: string): string {
     const forge = this.guildUpgrades["rune_forge"] ?? 0;
-    if (forge < 3) return this.respond();
+    if (forge < 2) return this.respond();
     const def1 = RUNE_DEFS[runeId1];
     const def2 = RUNE_DEFS[runeId2];
     if (!def1 || !def2 || def1.type !== def2.type || def1.tier !== def2.tier) return this.respond();
     const TIER_UP: Record<string, string> = { lesser: "greater", greater: "flawless", flawless: "ancient" };
     const nextTier = TIER_UP[def1.tier];
     if (!nextTier) return this.respond(); // ancient cannot be combined
-    if (def1.tier !== "lesser" && forge < 4) return this.respond(); // only lesser→greater at forge 3
+    // Forge 2: lesser→greater. Forge 3: greater→flawless. Forge 4: flawless→ancient.
+    if (def1.tier === "flawless" && forge < 4) return this.respond();
+    if (def1.tier === "greater"  && forge < 3) return this.respond();
     const idx1 = this.runeInventory.findIndex(r => r.id === runeId1);
     if (idx1 === -1) return this.respond();
     const remaining = [...this.runeInventory];

@@ -169,16 +169,16 @@ describe("brandRune", () => {
 // combineRunes
 // ──────────────────────────────────────────
 describe("combineRunes", () => {
-  it("fails without Tier 3", () => {
-    const gs = withRuneForge(2);
+  it("fails without Tier 2", () => {
+    const gs = withRuneForge(1);
     gs.runeInventory.push(RUNE_DEFS["striking_lesser"]);
     gs.runeInventory.push(RUNE_DEFS["striking_lesser"]);
     gs.combineRunes("striking_lesser", "striking_lesser");
     expect(gs.runeInventory).toHaveLength(2); // unchanged
   });
 
-  it("produces a greater rune from 2 matching lessers", () => {
-    const gs = withRuneForge(3);
+  it("produces a greater rune from 2 matching lessers at forge 2", () => {
+    const gs = withRuneForge(2);
     gs.runeInventory.push(RUNE_DEFS["striking_lesser"]);
     gs.runeInventory.push(RUNE_DEFS["striking_lesser"]);
     gs.combineRunes("striking_lesser", "striking_lesser");
@@ -188,7 +188,7 @@ describe("combineRunes", () => {
   });
 
   it("removes both lesser runes on combine", () => {
-    const gs = withRuneForge(3);
+    const gs = withRuneForge(2);
     gs.runeInventory.push(RUNE_DEFS["warding_lesser"]);
     gs.runeInventory.push(RUNE_DEFS["warding_lesser"]);
     gs.combineRunes("warding_lesser", "warding_lesser");
@@ -197,7 +197,7 @@ describe("combineRunes", () => {
   });
 
   it("rejects mismatched types", () => {
-    const gs = withRuneForge(3);
+    const gs = withRuneForge(2);
     gs.runeInventory.push(RUNE_DEFS["striking_lesser"]);
     gs.runeInventory.push(RUNE_DEFS["warding_lesser"]);
     gs.combineRunes("striking_lesser", "warding_lesser");
@@ -205,7 +205,7 @@ describe("combineRunes", () => {
   });
 
   it("rejects combining only one rune", () => {
-    const gs = withRuneForge(3);
+    const gs = withRuneForge(2);
     gs.runeInventory.push(RUNE_DEFS["striking_lesser"]);
     gs.combineRunes("striking_lesser", "striking_lesser");
     expect(gs.runeInventory).toHaveLength(1); // unchanged

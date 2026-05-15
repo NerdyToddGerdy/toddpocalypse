@@ -30,7 +30,7 @@ const GUILD_HALL_META: Record<string, { icon: string; name: string; desc: string
   skill_arcane_surge:  { icon: "⚡", name: "Arcane Surge",     desc: "Mage: ×3 DPS for 6 kills. 25-kill cooldown." },
   skill_consecrate:    { icon: "✝", name: "Consecrate",       desc: "Paladin: heals party 25% max HP per kill for 5 kills. 15-kill cooldown.", dungeonReq: 1 },
   skill_volley:        { icon: "🏹", name: "Volley",           desc: "Ranger: ×2.5 party DPS for 6 kills. 15-kill cooldown.", dungeonReq: 1 },
-  rune_forge:          { icon: "🔮", name: "Rune Forge",       desc: "Socket runes into gear slots for flat stat bonuses. Bosses drop runes at 20%, elites at 10%. Tier 2: recover replaced runes. Tier 3: combine 2 lessers → greater. Tier 4: combine greater → flawless → ancient." },
+  rune_forge:          { icon: "🔮", name: "Rune Forge",       desc: "Socket runes into gear slots for flat stat bonuses. Bosses drop runes at 20%, elites at 10%. Tier 2: recover replaced runes + combine 2 lessers → greater. Tier 3: combine 2 greaters → flawless. Tier 4: combine 2 flawless → ancient." },
 };
 
 const SLOT_ICONS: Record<string, string> = {
@@ -744,9 +744,9 @@ function renderRuneSection(runeInv: any[], party: any[], runeForge: number): str
   // Rune inventory + branding now lives in the loot panel; Guild Hall shows combine only.
   const runeItems = "";
 
-  const maxCombineTier = runeForge >= 4 ? "flawless" : "lesser";
-  const combinePairs = runeForge >= 3 ? findCombinePairs(runeInv, maxCombineTier as any) : [];
-  const combineHtml = runeForge >= 3 && combinePairs.length > 0
+  const maxCombineTier = runeForge >= 4 ? "flawless" : runeForge >= 3 ? "greater" : "lesser";
+  const combinePairs = runeForge >= 2 ? findCombinePairs(runeInv, maxCombineTier as any) : [];
+  const combineHtml = runeForge >= 2 && combinePairs.length > 0
     ? `<div class="rune-combine-section">
         <span class="rune-combine-label">Combine:</span>
         <select class="rune-combine-select">${combinePairs.map(p =>
@@ -754,11 +754,13 @@ function renderRuneSection(runeInv: any[], party: any[], runeForge: number): str
         ).join("")}</select>
         <button class="rune-combine-btn" data-action="combine-runes">Combine</button>
       </div>`
-    : runeForge < 3
-      ? `<div class="rune-combine-hint">Rune Forge Tier 3 unlocks combining two matching lesser runes into a greater.</div>`
-      : runeForge < 4
-        ? `<div class="rune-combine-hint">Rune Forge Tier 4 unlocks combining greater and flawless runes further.</div>`
-        : "";
+    : runeForge < 2
+      ? `<div class="rune-combine-hint">Rune Forge Tier 2 unlocks combining two matching lesser runes into a greater.</div>`
+      : runeForge < 3
+        ? `<div class="rune-combine-hint">Rune Forge Tier 3 unlocks combining greater runes into flawless.</div>`
+        : runeForge < 4
+          ? `<div class="rune-combine-hint">Rune Forge Tier 4 unlocks combining flawless runes into ancient.</div>`
+          : "";
 
   return `<div class="rune-inv-section">
     <div class="rune-inv-title">🔮 Rune Inventory (${runeInv.length})</div>
