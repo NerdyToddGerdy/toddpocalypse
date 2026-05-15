@@ -352,6 +352,11 @@ function renderParty(state: GameStateDict): void {
         .join("");
       const hpPct = Math.max(0, Math.round((c.health / c.max_health) * 100));
       const hpLow = hpPct <= 25;
+      const isDead = c.health <= 0;
+      const gearDps = Object.values(c.equipment).reduce((sum, item) => {
+        return sum + ((item as GearItemDict | null)?.stats?.dps ?? 0);
+      }, 0);
+      const dpsData = encodeURIComponent(JSON.stringify({ total: c.dps, base: Math.max(0, c.dps - gearDps), gear: gearDps, upgLevel: (state.upgrades[c.name]?.dps as { level: number } | undefined)?.level ?? 0 }));
       const classAbilities = CLASS_ABILITIES[c.character_class] ?? [];
       const abilitiesHtml = classAbilities.map(a => {
         const unlocked = c.abilities.includes(a.id);
@@ -363,12 +368,12 @@ function renderParty(state: GameStateDict): void {
       const charJson = encodeURIComponent(JSON.stringify(c));
       const heroImg = HERO_IMG[c.character_class] ?? HERO_IMG.fighter;
       return `
-<div class="char-card${leveledUp ? " levelup-flash" : ""}">
+<div class="char-card${leveledUp ? " levelup-flash" : ""}${isDead ? " is-dead" : ""}">
   <div class="char-header">
     <div class="char-header-left">
       <div class="char-name" data-char="${charJson}">${c.name}</div>
       <div class="char-class">${c.character_class}</div>
-      <div class="char-dps">${c.dps.toFixed(1)} DPS</div>
+      <div class="char-dps" data-dps="${dpsData}">${c.dps.toFixed(1)} DPS</div>
     </div>
     <img class="hero-sprite" src="${heroImg}" alt="${c.character_class}">
   </div>
@@ -612,6 +617,17 @@ function updateVentureButton(state: GameStateDict): void {
 }
 
 /** Renders Guild Hall upgrade cards with current stack count, gold cost, and description. */
+function guildUpgradePreview(type: string, stacks: number, lootMax: number): string {
+  if (type === "expanded_armory") {
+    const cur = lootMax;
+    return `Loot chest: ${cur} → ${cur + 2} slots`;
+  }
+  if (type === "companion_hall") {
+    return stacks === 0 ? "Unlocks: Party Slot IV" : "Unlocks: Party Slot V";
+  }
+  return "";
+}
+
 function renderGuildHall(state: GameStateDict): void {
   const owned = state.guild_upgrades as Record<string, number>;
   const affordKey = Object.keys(GUILD_HALL_META).map(type => {
@@ -634,10 +650,12 @@ function renderGuildHall(state: GameStateDict): void {
     const canAfford = !atMax && state.gold >= nextCost;
     const disabled = atMax || !canAfford;
     const stackLabel = costs.length > 1 ? (atMax ? ` (${stacks}/${costs.length})` : stacks > 0 ? ` (${stacks}/${costs.length})` : "") : atMax ? " ✓" : "";
+    const preview = atMax ? "" : guildUpgradePreview(type, stacks, state.loot_max);
     return `<div class="prestige-item">
       <div class="prestige-item-meta">
         <div class="prestige-item-name">${meta.icon} ${meta.name}${stackLabel}</div>
         <div class="prestige-item-desc">${meta.desc}</div>
+        ${preview ? `<div class="guild-preview">→ ${preview}</div>` : ""}
       </div>
       <button class="guild-buy-btn" data-action="buy-guild" data-type="${type}" ${disabled ? "disabled" : ""}>${atMax ? "Owned" : nextCost.toLocaleString() + "g"}</button>
     </div>`;
@@ -1032,7 +1050,7 @@ function buildSkillTooltipHTML(a: AbilityCardData): string {
     <div class="tt-stat-row"><span class="tt-stat-label">${a.desc}</span></div>`;
 }
 
-const TOOLTIP_SELECTORS = ".gear-row.filled[data-item], .loot-item[data-item], .char-name[data-char], #party-panel h2[data-party], [data-active-skill]";
+const TOOLTIP_SELECTORS = ".gear-row.filled[data-item], .loot-item[data-item], .char-name[data-char], #party-panel h2[data-party], [data-active-skill], .char-dps[data-dps]";
 
 function buildActiveSkillTooltipHTML(skillId: string): string {
   const name = SKILL_NAMES[skillId] ?? skillId;
@@ -1041,9 +1059,24 @@ function buildActiveSkillTooltipHTML(skillId: string): string {
   return `<div class="skill-tooltip"><div class="skill-tooltip-name">${name}</div><div class="skill-tooltip-desc">${desc}</div><div class="skill-tooltip-cd">Cooldown: ${cooldownKills} kills</div></div>`;
 }
 
+function buildDpsTooltipHTML(d: { total: number; base: number; gear: number; upgLevel: number }): string {
+  return `
+    <div class="tt-name">DPS Breakdown</div>
+    <div class="tt-divider"></div>
+    <div class="tt-stats">
+      ${statRow("Base", d.base.toFixed(1), "tt-dps")}
+      ${d.gear > 0 ? statRow("Gear", `+${d.gear.toFixed(1)}`, "tt-dps") : ""}
+      ${d.upgLevel > 0 ? statRow("Upgrades", `Lv${d.upgLevel}`, "tt-click") : ""}
+    </div>
+    <div class="tt-divider"></div>
+    ${statRow("Total", d.total.toFixed(1), "tt-dps")}
+  `;
+}
+
 function getTooltipContent(el: HTMLElement): string | null {
   try {
     if (el.dataset.activeSkill) return buildActiveSkillTooltipHTML(el.dataset.activeSkill);
+    if (el.dataset.dps)   return buildDpsTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.dps)));
     if (el.dataset.item)  return buildTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.item)) as GearItemDict);
     if (el.dataset.char)  return buildCharTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.char)) as CharDict);
     if (el.dataset.party) return buildPartyTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.party)) as CharDict[]);

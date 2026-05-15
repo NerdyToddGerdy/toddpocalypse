@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.78";
+export const VERSION = "v2.6.79";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.79",
+    date: "2026-05-15",
+    changes: [
+      "Dead party members now show greyed out with a skull prefix on their DPS",
+      "DPS hover tooltip shows Base / Gear / Upgrade Level breakdown",
+      "Guild Hall cards show a preview of the next purchase's concrete effect",
+    ],
+  },
   {
     version: "v2.6.78",
     date: "2026-05-14",

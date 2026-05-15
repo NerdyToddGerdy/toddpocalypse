@@ -410,6 +410,18 @@ main {
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 12px 14px;
+    transition: opacity 0.3s, filter 0.3s;
+}
+
+.char-card.is-dead {
+    opacity: 0.45;
+    filter: grayscale(0.85);
+    border-color: var(--danger);
+    position: relative;
+}
+
+.char-card.is-dead .char-dps::before {
+    content: "💀 ";
 }
 
 .hero-sprite {
@@ -439,7 +451,14 @@ main {
     min-width: 0;
 }
 
-.char-dps { font-size: 0.95rem; color: var(--accent); font-weight: 700; }
+.char-dps { font-size: 0.95rem; color: var(--accent); font-weight: 700; cursor: help; }
+
+.guild-preview {
+    font-size: 0.68rem;
+    color: var(--accent2);
+    margin-top: 2px;
+    font-style: italic;
+}
 
 .char-gear { margin-bottom: 6px; }
 
