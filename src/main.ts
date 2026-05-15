@@ -803,9 +803,11 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
   const SELL_VALUES: Record<string, number> = { lesser: 10, greater: 30, flawless: 90, ancient: 250 };
   const TIER_ORDER = ["lesser", "greater", "flawless", "ancient"];
 
-  const sortedRuneInv = [...runeInv].sort((a: any, b: any) =>
-    TIER_ORDER.indexOf(b.tier) - TIER_ORDER.indexOf(a.tier)
-  );
+  const sortedRuneInv = [...runeInv].sort((a: any, b: any) => {
+    const tierDiff = TIER_ORDER.indexOf(b.tier) - TIER_ORDER.indexOf(a.tier);
+    if (tierDiff !== 0) return tierDiff;
+    return a.type.localeCompare(b.type);
+  });
 
   const items = sortedRuneInv.length === 0
     ? `<div class="prune-empty">No runes — bosses have a 20% chance to drop one, elites have a 10% chance.</div>`
