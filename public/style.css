@@ -816,13 +816,13 @@ main {
 
 #loot-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     gap: 6px;
     margin-bottom: 10px;
 }
 
-#loot-header h2 { margin-bottom: 0; flex: 1; min-width: 0; }
+#loot-header h2 { margin-bottom: 0; flex-shrink: 0; }
+#loot-header .loot-spacer { flex: 1; }
 
 .equip-all-btn {
     padding: 5px 10px;
