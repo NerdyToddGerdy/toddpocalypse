@@ -1339,6 +1339,15 @@ main {
     color: #a78bfa;
 }
 
+#portrait-inner.elite-portrait-frame {
+    box-shadow: 0 0 0 3px #a78bfa, 0 0 16px 4px rgba(167, 139, 250, 0.6);
+    border-radius: 4px;
+}
+
+#portrait-inner.elite-portrait-frame #monster-portrait {
+    inset: 0;
+}
+
 /* ── Depth gauge ── */
 #depth-gauge {
     grid-column: 1;
