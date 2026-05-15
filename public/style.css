@@ -445,6 +445,37 @@ main {
     padding: 16px;
 }
 
+#party-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    gap: 8px;
+}
+
+#party-panel-header h2 {
+    margin-bottom: 0;
+}
+
+#party-panel-tabs {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.ptab-btn {
+    font-size: 0.7rem;
+    padding: 3px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+.ptab-btn:hover { background: var(--border); color: var(--text); }
+.ptab-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+
 #party-panel h2 {
     font-size: 0.75rem;
     text-transform: uppercase;
@@ -467,7 +498,8 @@ main {
 #party-gear-toggle.active { opacity: 1; color: var(--accent); }
 
 #party-panel.gear-hidden .char-gear,
-#party-panel.gear-hidden .char-abilities {
+#party-panel.gear-hidden .char-abilities,
+#party-panel.gear-hidden .char-rune-row {
     display: none;
 }
 
@@ -571,6 +603,13 @@ main {
   gap: 4px;
   margin: 6px 0 2px;
 }
+
+.char-rune-row {
+  display: flex;
+  gap: 4px;
+  margin: 3px 0 0;
+}
+.tt-rune-slot[data-rune] { cursor: help; }
 
 .ability-badge {
   font-size: 0.62rem;
@@ -3032,6 +3071,23 @@ footer {
     color: var(--muted);
 }
 
+.tt-rune-row {
+    display: flex;
+    gap: 4px;
+    padding: 4px 0 2px;
+}
+.tt-rune-slot {
+    width: 11px;
+    height: 11px;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    background: transparent;
+    flex-shrink: 0;
+    cursor: default;
+}
+.tt-rune-slot.lesser  { background: rgba(200,180,120,0.35); border-color: rgba(200,180,120,0.7); }
+.tt-rune-slot.greater { background: #6d28d9; border-color: #a78bfa; }
+
 .tt-abilities {
     display: flex;
     flex-wrap: wrap;
@@ -3164,13 +3220,35 @@ footer {
 }
 .rune-item {
     display: flex;
-    align-items: center;
-    gap: 6px;
+    flex-direction: column;
+    gap: 5px;
     background: var(--surface2);
     border: 1px solid var(--border);
     border-radius: 6px;
-    padding: 6px 8px;
-    flex-wrap: wrap;
+    padding: 7px 9px;
+}
+
+.rune-item-top {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.rune-item-selects {
+    display: flex;
+    gap: 6px;
+}
+
+.rune-item-selects .rune-char-select,
+.rune-item-selects .rune-slot-select {
+    flex: 1;
+}
+
+.rune-item-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
 }
 .rune-tier-badge {
     font-size: 0.65rem;
@@ -3252,6 +3330,97 @@ footer {
 .rune-combine-hint {
     margin-top: 8px;
     font-size: 0.7rem;
+    color: var(--muted);
+    font-style: italic;
+}
+
+/* ── Party rune panel ── */
+#party-rune-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.prune-char-block {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+
+.prune-char-name {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 8px;
+}
+
+.prune-slots {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.prune-slot-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+}
+
+.prune-slot-icon { flex-shrink: 0; width: 18px; text-align: center; }
+
+.prune-slot-name {
+    width: 60px;
+    flex-shrink: 0;
+    color: var(--muted);
+    font-size: 0.7rem;
+}
+
+.prune-rune-badge {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 3px 7px;
+    font-size: 0.72rem;
+}
+
+.prune-rune-badge.empty {
+    color: var(--muted);
+    font-style: italic;
+    border-style: dashed;
+}
+
+.prune-rune-badge.filled { border-color: var(--accent2); }
+.prune-rune-badge.filled.greater { border-color: #6d28d9; background: #1e0a3c; }
+
+.prune-rune-stat { color: var(--hp-green); margin-left: auto; }
+
+.prune-inv-section {
+    margin-top: 4px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+}
+
+.prune-inv-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--accent2);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+}
+
+.prune-inv-items { display: flex; flex-direction: column; gap: 5px; }
+
+.prune-empty {
+    font-size: 0.73rem;
     color: var(--muted);
     font-style: italic;
 }
