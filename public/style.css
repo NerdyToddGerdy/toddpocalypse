@@ -3238,8 +3238,8 @@ footer {
     justify-content: space-between;
 }
 .rune-inv-items {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 6px;
     min-height: 440px;
     max-height: 440px;
@@ -3465,6 +3465,7 @@ footer {
     font-size: 0.73rem;
     color: var(--muted);
     font-style: italic;
+    grid-column: 1 / -1;
 }
 
 /* ── Loot filter ── */
