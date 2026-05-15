@@ -455,7 +455,7 @@ function renderLoot(state: GameStateDict): void {
     <span class="loot-name ${qc}">${item.name}</span>
   </div>
   <div class="loot-actions">
-    <span class="loot-dmg ${triCls || qc}">${tri}${formatStats(item.stats ?? { dps: item.damage })}</span>
+    <div class="loot-dmg ${triCls || qc}">${formatLootStats(tri, item.stats ?? { dps: item.damage })}</div>
     <button class="equip-btn" data-action="equip" data-idx="${i}">Equip</button>
     <button class="sell-btn"  data-action="sell"  data-idx="${i}">${item.sell_value}g</button>
   </div>
@@ -932,6 +932,22 @@ function formatStats(stats: GearStats): string {
   if (stats.haste)      parts.push(`+${(stats.haste * 100).toFixed(0)}% Haste`);
   if (stats.xpBonus)    parts.push(`+${(stats.xpBonus * 100).toFixed(0)}% XP`);
   return parts.join("  ") || "+0";
+}
+
+/** Renders loot chest stats as individual <span> elements for grid layout, with tri indicator on first stat. */
+function formatLootStats(tri: string, stats: GearStats): string {
+  const parts: string[] = [];
+  if (stats.dps)        parts.push(`+${stats.dps.toFixed(1)} DPS`);
+  if (stats.maxHp)      parts.push(`+${stats.maxHp} HP`);
+  if (stats.clickBonus) parts.push(`+${stats.clickBonus.toFixed(1)} Click`);
+  if (stats.defense)    parts.push(`+${(stats.defense * 100).toFixed(0)}% Def`);
+  if (stats.critChance) parts.push(`+${(stats.critChance * 100).toFixed(0)}% Crit`);
+  if (stats.goldBonus)  parts.push(`+${(stats.goldBonus * 100).toFixed(0)}% Gold`);
+  if (stats.lifesteal)  parts.push(`+${(stats.lifesteal * 100).toFixed(0)}% Life`);
+  if (stats.haste)      parts.push(`+${(stats.haste * 100).toFixed(0)}% Haste`);
+  if (stats.xpBonus)    parts.push(`+${(stats.xpBonus * 100).toFixed(0)}% XP`);
+  if (parts.length === 0) return '<span class="loot-stat">+0</span>';
+  return parts.map((p, i) => `<span class="loot-stat">${i === 0 && tri ? tri : ""}${p}</span>`).join("");
 }
 
 // ▲ green: beats every party member's equip in this slot
