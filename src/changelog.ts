@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.7.5";
+export const VERSION = "v2.7.6";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,18 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.7.6",
+    date: "2026-05-15",
+    changes: [
+      "Party panel: Party / 🔮 Runes tab switcher — Runes tab shows each character's socketed slots at a glance",
+      "Rune inventory moved to the Loot panel — brand runes directly alongside loot with per-character slot selectors",
+      "Slot selector shows existing rune tier in parentheses (e.g. 'Main Hand (lesser)'); updates when character changes",
+      "Character cards show a row of 9 rune slot squares below DPS — empty outlines, tan for lesser, purple for greater",
+      "Hovering a filled rune square shows a stat tooltip (name, tier, slot, bonus) matching the gear tooltip style",
+      "Rune squares also appear in the hero stat card tooltip; DPS breakdown shows a Runes row when Striking runes are socketed",
+    ],
+  },
   {
     version: "v2.7.5",
     date: "2026-05-15",
