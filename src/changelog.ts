@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.76";
+export const VERSION = "v2.6.77";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.77",
+    date: "2026-05-14",
+    changes: [
+      "Loot chest: item name top-left, slot badge top-right above buttons",
+    ],
+  },
   {
     version: "v2.6.76",
     date: "2026-05-14",

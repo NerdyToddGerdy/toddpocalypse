@@ -450,12 +450,12 @@ function renderLoot(state: GameStateDict): void {
           const itemJson = encodeURIComponent(JSON.stringify(item));
           return `
 <div class="loot-item" data-slot="${item.slot}" data-item="${itemJson}">
-  <div class="loot-meta">
-    <span class="loot-slot-badge">${item.slot_display}</span>
+  <div class="loot-left">
     <span class="loot-name ${qc}">${item.short_name ?? item.name}</span>
-  </div>
-  <div class="loot-actions">
     <div class="loot-dmg ${triCls || qc}">${formatLootStats(tri, item.stats ?? { dps: item.damage })}</div>
+  </div>
+  <div class="loot-right">
+    <span class="loot-slot-badge">${item.slot_display}</span>
     <button class="equip-btn" data-action="equip" data-idx="${i}">Equip</button>
     <button class="sell-btn"  data-action="sell"  data-idx="${i}">${item.sell_value}g</button>
   </div>
