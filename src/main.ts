@@ -532,35 +532,39 @@ function renderLoot(state: GameStateDict): void {
 
 /** Renders per-character stat upgrade cards with current level, cost, and effect. */
 function renderUpgrades(state: GameStateDict): void {
-  const newKey = JSON.stringify(state.upgrades) + "|" + state.gold;
-  if (newKey === upgradeKey) return;
-  upgradeKey = newKey;
+  const structureKey = JSON.stringify(state.upgrades);
+  if (structureKey !== upgradeKey) {
+    upgradeKey = structureKey;
+    $("upgrade-cards").innerHTML = state.party
+      .map((c) => {
+        const ups = state.upgrades[c.name];
+        const rows = Object.entries(ups)
+          .map(([utype, u]) => {
+            const meta = UPGRADE_LABELS[utype];
+            return `<div class="upgrade-row">
+              <span class="upgrade-icon">${meta.icon}</span>
+              <span class="upgrade-label">${meta.label}</span>
+              <span class="upgrade-level">Lv ${u.level}</span>
+              <button class="upgrade-btn"
+                  data-action="upgrade"
+                  data-char="${c.name}"
+                  data-type="${utype}"
+                  data-cost="${u.cost}">${u.cost}g</button>
+            </div>`;
+          })
+          .join("");
+        return `<div class="upgrade-card">
+          <div class="upgrade-char-name">${c.name}</div>
+          ${rows}
+        </div>`;
+      })
+      .join("");
+  }
 
-  $("upgrade-cards").innerHTML = state.party
-    .map((c) => {
-      const ups = state.upgrades[c.name];
-      const rows = Object.entries(ups)
-        .map(([utype, u]) => {
-          const meta = UPGRADE_LABELS[utype];
-          const canAfford = state.gold >= u.cost;
-          return `<div class="upgrade-row">
-            <span class="upgrade-icon">${meta.icon}</span>
-            <span class="upgrade-label">${meta.label}</span>
-            <span class="upgrade-level">Lv ${u.level}</span>
-            <button class="upgrade-btn"
-                data-action="upgrade"
-                data-char="${c.name}"
-                data-type="${utype}"
-                ${canAfford ? "" : "disabled"}>${u.cost}g</button>
-          </div>`;
-        })
-        .join("");
-      return `<div class="upgrade-card">
-        <div class="upgrade-char-name">${c.name}</div>
-        ${rows}
-      </div>`;
-    })
-    .join("");
+  // Update only disabled state in-place so gold changes never destroy the DOM
+  $("upgrade-cards").querySelectorAll<HTMLButtonElement>(".upgrade-btn").forEach(btn => {
+    btn.disabled = state.gold < parseInt(btn.dataset.cost!, 10);
+  });
 }
 
 const PRESTIGE_SHOP_META: Record<string, { icon: string; name: string; desc: string; max: number; guildReq?: number; dungeonReq?: number }> = {
