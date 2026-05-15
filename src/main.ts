@@ -467,6 +467,8 @@ function renderLoot(state: GameStateDict): void {
 
   const section = document.getElementById("auto-seller-section")!;
   section.hidden = !autoSellOwned;
+  const divider = document.getElementById("loot-divider");
+  if (divider) divider.hidden = !autoSellOwned;
   if (autoSellOwned) {
     const newAutoSellKey = JSON.stringify(state.auto_sell_qualities) + "|" + state.highest_level;
     if (newAutoSellKey !== autoSellKey) {

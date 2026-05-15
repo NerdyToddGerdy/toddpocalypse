@@ -2196,6 +2196,12 @@ footer {
     border-top: 1px solid var(--border);
 }
 
+#loot-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 10px 0 6px;
+}
+
 #auto-seller-label {
     font-size: 0.7rem;
     text-transform: uppercase;
