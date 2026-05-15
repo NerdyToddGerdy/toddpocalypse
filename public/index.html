@@ -13,6 +13,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 </head>
 <body>
+<div id="achievement-toast-container"></div>
 
 <div id="creation-overlay">
   <div id="creation-box">
@@ -133,6 +134,7 @@
       <button class="stab-btn" data-stab="loot">Loot</button>
       <button class="stab-btn" data-stab="prestige">Prestige<span id="stab-prestige-badge" class="stab-badge" hidden></span></button>
       <button class="stab-btn" data-stab="guild">Guild<span id="stab-guild-badge" class="stab-badge" hidden></span></button>
+      <button class="stab-btn" data-stab="feats">Feats<span id="stab-feats-badge" class="stab-badge" hidden></span></button>
       <button class="stab-btn" data-stab="settings">⚙</button>
     </nav>
 
@@ -164,6 +166,11 @@
     <section id="guild-hall-panel">
       <h2>Guild Hall</h2>
       <div id="guild-hall-items"></div>
+    </section>
+
+    <section id="feats-panel">
+      <h2>Feats</h2>
+      <div id="feats-content"></div>
     </section>
 
     <section id="log-panel">

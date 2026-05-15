@@ -32,7 +32,7 @@ const ENEMY_ADJECTIVES = [
 ];
 
 /** Nouns used as enemy creature type names. */
-const ENEMY_NOUNS = [
+export const ENEMY_NOUNS = [
   "Goblin",
   "Troll",
   "Skeleton",

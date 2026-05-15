@@ -17,7 +17,14 @@ function make(): GameState {
 }
 
 function withHighLevel(level: number): GameState {
-  const gs = make(); gs.highestLevel = level; return gs;
+  const gs = make();
+  gs.highestLevel = level;
+  // Pre-mark achievements that would fire during prestige to isolate prestige formula tests
+  gs.achievementsUnlocked.add("first_prestige");
+  gs.achievementsUnlocked.add("depth_tiered_bronze");
+  gs.achievementsUnlocked.add("depth_tiered_silver");
+  gs.achievementsUnlocked.add("depth_tiered_gold");
+  return gs;
 }
 
 function withPrestige(pts: number): GameState {

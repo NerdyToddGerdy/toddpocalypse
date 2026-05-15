@@ -1,7 +1,7 @@
 import { Character } from "./character.js";
 import { Party } from "./party.js";
-import { GearItem, getItem, gearPower, QUAL, autoSellThreshold, type GearItemDict } from "./gear.js";
-import { generateEnemy, generateBoss, type Enemy } from "./dungeon.js";
+import { GearItem, getItem, gearPower, QUAL, SLOTS, autoSellThreshold, type GearItemDict } from "./gear.js";
+import { generateEnemy, generateBoss, ENEMY_NOUNS, type Enemy } from "./dungeon.js";
 
 /** Base number of kills required to reach the boss on floor 1. */
 export const KILLS_PER_LEVEL = 5;
@@ -164,6 +164,39 @@ export const THEME_UNLOCKS: { theme: string; icon: string; label: string; presti
   { theme: "necropolis",  icon: "💀", label: "Necropolis",   prestiges: 17 },
 ];
 
+export type AchievementCategory = "combat" | "explorer" | "collector" | "wealth" | "prestige" | "guild";
+export type AchievementTierLabel = "bronze" | "silver" | "gold";
+
+export interface AchievementReward {
+  type: "gold" | "prestige_points" | "title";
+  value?: number;
+  title?: string;
+}
+
+export interface AchievementTier {
+  label: AchievementTierLabel;
+  threshold: number;
+  reward?: AchievementReward;
+}
+
+export interface AchievementDef {
+  id: string;
+  name: string;
+  description: string;
+  category: AchievementCategory;
+  hidden: boolean;
+  tiers?: AchievementTier[];
+  reward?: AchievementReward;
+  getValue: (gs: GameState) => number;
+}
+
+export interface AchievementUnlock {
+  id: string;
+  tier?: AchievementTierLabel;
+  name: string;
+  reward?: AchievementReward;
+}
+
 /** The four stat categories that can be upgraded per character. */
 type UpgradeType = "dps" | "xp" | "click" | "hp";
 
@@ -208,6 +241,16 @@ export interface GameStateDict {
   active_effects: Record<string, number>;
   loot_max: number;
   saved_at: number;
+  achievements_unlocked: string[];
+  earned_title: string;
+  lifetime_gold: number;
+  lifetime_loot: number;
+  lifetime_sold: number;
+  lifetime_boss_kills: number;
+  lifetime_legendary: number;
+  lifetime_divine: number;
+  lifetime_divine_sold: number;
+  pending_achievements: AchievementUnlock[];
 }
 
 /** Central game loop: owns all mutable state and exposes action methods that return serialized JSON. */
@@ -270,6 +313,26 @@ export class GameState {
   runId: string = crypto.randomUUID();
   /** Unix-ms timestamp when the state was last serialized (used for offline catch-up). */
   savedAt = 0;
+  /** Total gold ever earned across all runs (never resets). */
+  lifetimeGold = 0;
+  /** Total items ever looted across all runs (never resets). */
+  lifetimeLoot = 0;
+  /** Total items ever sold across all runs (never resets). */
+  lifetimeSold = 0;
+  /** Total boss kills across all runs (never resets). */
+  lifetimeBossKills = 0;
+  /** 1 once the player has ever obtained a legendary item; never resets. */
+  lifetimeLegendary = 0;
+  /** 1 once the player has ever obtained a divine item; never resets. */
+  lifetimeDivine = 0;
+  /** 1 once the player has ever sold a divine item; never resets. */
+  lifetimeDivineSold = 0;
+  /** Set of achievement/tier IDs that have been awarded. */
+  achievementsUnlocked: Set<string> = new Set();
+  /** Active cosmetic title earned from an achievement. */
+  earnedTitle = "";
+  /** Achievement unlocks queued for toast notifications; cleared after each respond(). */
+  pendingAchievements: AchievementUnlock[] = [];
 
   /** Current loot chest capacity, expanding with Expanded Armory guild upgrades. */
   get lootMax(): number { return 8 + 2 * (this.guildUpgrades["expanded_armory"] ?? 0); }
@@ -289,7 +352,7 @@ export class GameState {
    * Returns serialized JSON state.
    */
   tick(dt: number): string {
-    if (this.idleGoldRate > 0) this.gold += this.idleGoldRate * dt;
+    if (this.idleGoldRate > 0) this.earnGold(this.idleGoldRate * dt);
     // Mana Surge — fires before regular DPS so we can early-return if enemy dies
     for (const c of this.party.team) {
       if (!c.isAlive()) continue;
@@ -384,8 +447,10 @@ export class GameState {
     const item = this.lootPool.splice(idx, 1)[0];
     const target = this.bestRecipient(item);
     const old = target.equipItem(item);
+    this.lifetimeLoot += 1;
     this.addLog(`${target.name} equips ${item.getName()}!`);
     if (old) this.disposeItem(old);
+    this.checkAchievements();
     return this.respond();
   }
 
@@ -397,24 +462,30 @@ export class GameState {
       const netGain = gearPower(item.stats) - (current ? gearPower(current.stats) : 0);
       if (netGain > 0) {
         const old = target.equipItem(item);
+        this.lifetimeLoot += 1;
         this.addLog(`${target.name} equips ${item.getName()}!`);
         if (old) this.disposeItem(old);
       } else {
-        this.gold += item.sellValue;
+        this.earnGold(item.sellValue);
+        this.lifetimeSold += 1;
         this.addLog(`Sold ${item.getName()} for ${item.sellValue}g.`);
       }
     }
     this.lootPool = [];
+    this.checkAchievements();
     return this.respond();
   }
 
   /** Sells every item in the loot pool. Returns serialized JSON. */
   sellAll(): string {
+    const count = this.lootPool.length;
     for (const item of this.lootPool) {
-      this.gold += item.sellValue;
+      this.earnGold(item.sellValue);
       this.addLog(`Sold ${item.getName()} for ${item.sellValue}g.`);
     }
     this.lootPool = [];
+    this.lifetimeSold += count;
+    this.checkAchievements();
     return this.respond();
   }
 
@@ -422,8 +493,12 @@ export class GameState {
   sellLoot(idx: number): string {
     if (idx < 0 || idx >= this.lootPool.length) return this.respond();
     const item = this.lootPool.splice(idx, 1)[0];
-    this.gold += item.sellValue;
+    const isDivine = item.quality === "divine";
+    this.earnGold(item.sellValue);
+    this.lifetimeSold += 1;
     this.addLog(`Sold ${item.getName()} for ${item.sellValue}g.`);
+    if (isDivine) this.lifetimeDivineSold = 1;
+    this.checkAchievements();
     return this.respond();
   }
 
@@ -569,6 +644,7 @@ export class GameState {
     this.gold = (this.prestigeUpgrades["starting_gold"] ?? 0) * STARTING_GOLD_PER_LEVEL;
 
     this.addLog(`Prestige ${this.totalPrestiges}! Earned ${earned}pt.`);
+    this.checkAchievements();
     return this.respond();
   }
 
@@ -642,6 +718,7 @@ export class GameState {
     if (type === "auto_equip") this.runAutoEquip();
     if (type === "auto_upgrade") this.runAutoUpgrade();
     if (type === "smart_seller") this.syncSmartSeller();
+    this.checkAchievements();
     return this.respond();
   }
 
@@ -672,6 +749,7 @@ export class GameState {
     this.gold -= cost;
     this.guildUpgrades[type] = owned + 1;
     this.addLog(`Guild Hall: ${type.replace(/_/g, " ")} upgraded!`);
+    this.checkAchievements();
     return this.respond();
   }
 
@@ -716,7 +794,9 @@ export class GameState {
 
   /** Serializes the current game state to a JSON string for the renderer. */
   respond(): string {
-    return JSON.stringify(this.toDict());
+    const json = JSON.stringify(this.toDict());
+    this.pendingAchievements = [];
+    return json;
   }
 
   /** Returns a plain-object snapshot of all game state, used by respond() and fromDict(). */
@@ -783,7 +863,60 @@ export class GameState {
       run_id: this.runId,
       loot_max: this.lootMax,
       saved_at: Date.now(),
+      achievements_unlocked: [...this.achievementsUnlocked],
+      earned_title: this.earnedTitle,
+      lifetime_gold: this.lifetimeGold,
+      lifetime_loot: this.lifetimeLoot,
+      lifetime_sold: this.lifetimeSold,
+      lifetime_boss_kills: this.lifetimeBossKills,
+      lifetime_legendary: this.lifetimeLegendary,
+      lifetime_divine: this.lifetimeDivine,
+      lifetime_divine_sold: this.lifetimeDivineSold,
+      pending_achievements: [...this.pendingAchievements],
     };
+  }
+
+  /** Adds gold to balance and to the lifetime-gold counter. Use this everywhere gold is earned. */
+  earnGold(amount: number): void {
+    this.gold += amount;
+    this.lifetimeGold += amount;
+  }
+
+  /** Applies a single achievement reward to this game state. */
+  private applyReward(reward?: AchievementReward): void {
+    if (!reward) return;
+    if (reward.type === "gold" && reward.value) this.earnGold(reward.value);
+    else if (reward.type === "prestige_points" && reward.value) this.prestigePoints += reward.value;
+    else if (reward.type === "title" && reward.title) this.earnedTitle = reward.title;
+  }
+
+  /** Checks all achievements against current state; awards any newly crossed thresholds. Returns newly unlocked achievements (also queued to pendingAchievements for toast display). */
+  checkAchievements(): AchievementUnlock[] {
+    const newly: AchievementUnlock[] = [];
+    for (const def of ACHIEVEMENTS) {
+      const val = def.getValue(this);
+      if (def.tiers) {
+        for (const tier of def.tiers) {
+          const key = `${def.id}_${tier.label}`;
+          if (!this.achievementsUnlocked.has(key) && val >= tier.threshold) {
+            this.achievementsUnlocked.add(key);
+            this.applyReward(tier.reward);
+            const unlock: AchievementUnlock = { id: def.id, tier: tier.label, name: def.name, reward: tier.reward };
+            newly.push(unlock);
+            this.pendingAchievements.push(unlock);
+          }
+        }
+      } else {
+        if (!this.achievementsUnlocked.has(def.id) && val >= 1) {
+          this.achievementsUnlocked.add(def.id);
+          this.applyReward(def.reward);
+          const unlock: AchievementUnlock = { id: def.id, name: def.name, reward: def.reward };
+          newly.push(unlock);
+          this.pendingAchievements.push(unlock);
+        }
+      }
+    }
+    return newly;
   }
 
   /** Awards idle gold for time spent offline, capped at OFFLINE_GOLD_CAP_SECONDS. Returns gold earned. */
@@ -872,11 +1005,14 @@ export class GameState {
     const partyGoldBonus = this.party.team.reduce((s, c) => s + c.goldBonus, 0);
     const goldMasteryMult = 1 + 0.20 * (this.prestigeUpgrades["gold_mastery"] ?? 0);
     if (this.enemy.isBoss) {
-      this.gold += this.enemy.gold_reward * (1 + partyGoldBonus) * goldMasteryMult;
+      this.earnGold(this.enemy.gold_reward * (1 + partyGoldBonus) * goldMasteryMult);
+      this.lifetimeBossKills += 1;
       if (this.lootPool.length < this.lootMax) {
         const effectiveLevel = this.dungeonLevel + this.dungeonIndex * 5;
         const drop = getItem(undefined, effectiveLevel);
         this.lootPool.push(drop);
+        if (drop.quality === "divine") this.lifetimeDivine = 1;
+        else if (QUAL.indexOf(drop.quality as typeof QUAL[number]) >= QUAL.indexOf("legendary")) this.lifetimeLegendary = 1;
         this.addLog(`Dropped: ${drop.getName()}!`);
       }
       this.dungeonLevel += 1;
@@ -900,6 +1036,8 @@ export class GameState {
         const effectiveLevel = this.dungeonLevel + this.dungeonIndex * 5;
         const drop = getItem(undefined, effectiveLevel);
         this.lootPool.push(drop);
+        if (drop.quality === "divine") this.lifetimeDivine = 1;
+        else if (QUAL.indexOf(drop.quality as typeof QUAL[number]) >= QUAL.indexOf("legendary")) this.lifetimeLegendary = 1;
         this.addLog(`Dropped: ${drop.getName()}!`);
       }
       this.kills += 1;
@@ -913,6 +1051,7 @@ export class GameState {
       }
     }
     this.runAutoUpgrade();
+    this.checkAchievements();
   }
 
   /** Handles party wipe: increments deaths, resets to checkpoint, and fully restores all HP. */
@@ -940,11 +1079,13 @@ export class GameState {
       const further = recipient.equipItem(old);
       this.addLog(`${recipient.name} equips ${old.getName()}!`);
       if (further) {
-        this.gold += further.sellValue;
+        this.earnGold(further.sellValue);
+        this.lifetimeSold += 1;
         this.addLog(`Sold ${further.getName()} for ${further.sellValue}g.`);
       }
     } else {
-      this.gold += old.sellValue;
+      this.earnGold(old.sellValue);
+      this.lifetimeSold += 1;
       this.addLog(`Sold ${old.getName()} for ${old.sellValue}g.`);
     }
   }
@@ -973,7 +1114,8 @@ export class GameState {
     });
     if (toSell.length === 0) return;
     const gold = toSell.reduce((sum, item) => sum + item.sellValue, 0);
-    this.gold += gold;
+    this.earnGold(gold);
+    this.lifetimeSold += toSell.length;
     this.lootPool = this.lootPool.filter(item => !toSell.includes(item));
     this.addLog(`Auto Seller: sold ${toSell.length} item(s) for ${gold}g`);
   }
@@ -1107,6 +1249,15 @@ export class GameState {
     gs.activeEffects = { ...(d.active_effects ?? {}) };
     gs.runId = d.run_id ?? crypto.randomUUID();
     gs.savedAt = d.saved_at ?? 0;
+    gs.achievementsUnlocked = new Set(d.achievements_unlocked ?? []);
+    gs.earnedTitle = d.earned_title ?? "";
+    gs.lifetimeGold = d.lifetime_gold ?? 0;
+    gs.lifetimeLoot = d.lifetime_loot ?? 0;
+    gs.lifetimeSold = d.lifetime_sold ?? 0;
+    gs.lifetimeBossKills = d.lifetime_boss_kills ?? 0;
+    gs.lifetimeLegendary = d.lifetime_legendary ?? 0;
+    gs.lifetimeDivine = d.lifetime_divine ?? 0;
+    gs.lifetimeDivineSold = d.lifetime_divine_sold ?? 0;
 
     // Migrate old checkpoint_1/2/3 one-time upgrades to single leveled checkpoint
     if (!("checkpoint" in gs.prestigeUpgrades)) {
@@ -1133,3 +1284,210 @@ export class GameState {
     return gs;
   }
 }
+
+// ─── Total max stacks across all guild upgrades (used for Patron gold tier) ───
+const GUILD_MAX_STACKS = Object.values(GUILD_HALL_COSTS).reduce((s, costs) => s + costs.length, 0);
+
+/** All achievement definitions. Defined after GameState so getValue functions can reference it. */
+export const ACHIEVEMENTS: AchievementDef[] = [
+  // ── Combat ────────────────────────────────────────────────────────────────
+  {
+    id: "first_kill", name: "Drawing Blood",
+    description: "Score your first kill.",
+    category: "combat", hidden: false,
+    getValue: gs => gs.lifetimeKills + gs.kills,
+  },
+  {
+    id: "kills_tiered", name: "Slayer",
+    description: "Kill enemies across your journey.",
+    category: "combat", hidden: false,
+    tiers: [
+      { label: "bronze", threshold: 100,   reward: { type: "gold", value: 500 } },
+      { label: "silver", threshold: 1_000, reward: { type: "prestige_points", value: 2 } },
+      { label: "gold",   threshold: 10_000, reward: { type: "title", title: "Slayer" } },
+    ],
+    getValue: gs => gs.lifetimeKills + gs.kills,
+  },
+  {
+    id: "boss_kills_tiered", name: "Boss Hunter",
+    description: "Slay mighty bosses.",
+    category: "combat", hidden: false,
+    tiers: [
+      { label: "bronze", threshold: 10,  reward: { type: "prestige_points", value: 1 } },
+      { label: "silver", threshold: 50,  reward: { type: "prestige_points", value: 3 } },
+      { label: "gold",   threshold: 100, reward: { type: "prestige_points", value: 5 } },
+    ],
+    getValue: gs => gs.lifetimeBossKills,
+  },
+  {
+    id: "kill_all_types", name: "Bestiary",
+    description: "Kill every type of enemy.",
+    category: "combat", hidden: false,
+    reward: { type: "prestige_points", value: 2 },
+    getValue: gs => new Set(Object.keys(gs.lifetimeEnemyKills).map(n => n.split(" ").pop()!)).size >= ENEMY_NOUNS.length ? 1 : 0,
+  },
+  {
+    id: "deathless_depth", name: "Untouchable",
+    description: "???",
+    category: "combat", hidden: true,
+    reward: { type: "prestige_points", value: 1 },
+    getValue: gs => gs.deaths === 0 && gs.highestLevel >= 20 ? 1 : 0,
+  },
+  {
+    id: "die_50", name: "Veteran of Many Deaths",
+    description: "???",
+    category: "combat", hidden: true,
+    reward: { type: "title", title: "The Undying" },
+    getValue: gs => gs.lifetimeDeaths + gs.deaths >= 50 ? 1 : 0,
+  },
+  // ── Explorer ──────────────────────────────────────────────────────────────
+  {
+    id: "depth_tiered", name: "Spelunker",
+    description: "Descend ever deeper into the dungeon.",
+    category: "explorer", hidden: false,
+    tiers: [
+      { label: "bronze", threshold: 10, reward: { type: "gold", value: 250 } },
+      { label: "silver", threshold: 25, reward: { type: "prestige_points", value: 1 } },
+      { label: "gold",   threshold: 50, reward: { type: "prestige_points", value: 3 } },
+    ],
+    getValue: gs => gs.lifetimeBestLevel,
+  },
+  {
+    id: "depth_100", name: "Into the Abyss",
+    description: "Reach depth 100.",
+    category: "explorer", hidden: false,
+    reward: { type: "title", title: "Abyssal" },
+    getValue: gs => gs.lifetimeBestLevel >= 100 ? 1 : 0,
+  },
+  {
+    id: "dungeons_tiered", name: "Dungeon Crawler",
+    description: "Venture into multiple dungeons.",
+    category: "explorer", hidden: false,
+    tiers: [
+      { label: "bronze", threshold: 5,  reward: { type: "gold", value: 500 } },
+      { label: "silver", threshold: 10, reward: { type: "prestige_points", value: 1 } },
+      { label: "gold",   threshold: 25, reward: { type: "prestige_points", value: 2 } },
+    ],
+    getValue: gs => gs.dungeonIndex,
+  },
+  // ── Collector ─────────────────────────────────────────────────────────────
+  {
+    id: "first_loot", name: "Treasure Hunter",
+    description: "Loot your first item.",
+    category: "collector", hidden: false,
+    getValue: gs => gs.lifetimeLoot,
+  },
+  {
+    id: "first_legendary", name: "Legendary",
+    description: "???",
+    category: "collector", hidden: true,
+    reward: { type: "prestige_points", value: 1 },
+    getValue: gs => gs.lifetimeLegendary,
+  },
+  {
+    id: "first_divine", name: "Touched by the Gods",
+    description: "???",
+    category: "collector", hidden: true,
+    reward: { type: "prestige_points", value: 3 },
+    getValue: gs => gs.lifetimeDivine,
+  },
+  {
+    id: "full_kit", name: "Fully Loaded",
+    description: "Have every party member fully equipped.",
+    category: "collector", hidden: false,
+    reward: { type: "prestige_points", value: 1 },
+    getValue: gs => gs.party.team.every(c => SLOTS.every(slot => c.inventory.slots[slot] !== null)) ? 1 : 0,
+  },
+  {
+    id: "items_looted_tiered", name: "Hoarder",
+    description: "Accumulate items from the dungeon.",
+    category: "collector", hidden: false,
+    tiers: [
+      { label: "bronze", threshold: 50,  reward: { type: "gold", value: 250 } },
+      { label: "silver", threshold: 200, reward: { type: "gold", value: 500 } },
+      { label: "gold",   threshold: 500, reward: { type: "prestige_points", value: 1 } },
+    ],
+    getValue: gs => gs.lifetimeLoot,
+  },
+  {
+    id: "items_sold_tiered", name: "Merchant",
+    description: "Sell items to the vendor.",
+    category: "collector", hidden: false,
+    tiers: [
+      { label: "bronze", threshold: 25,  reward: { type: "gold", value: 250 } },
+      { label: "silver", threshold: 100, reward: { type: "gold", value: 500 } },
+      { label: "gold",   threshold: 500, reward: { type: "title", title: "The Gilded" } },
+    ],
+    getValue: gs => gs.lifetimeSold,
+  },
+  // ── Wealth ────────────────────────────────────────────────────────────────
+  {
+    id: "gold_tiered", name: "Gold Rush",
+    description: "Earn gold across your adventure.",
+    category: "wealth", hidden: false,
+    tiers: [
+      { label: "bronze", threshold: 10_000,    reward: { type: "gold", value: 500 } },
+      { label: "silver", threshold: 100_000,   reward: { type: "prestige_points", value: 1 } },
+      { label: "gold",   threshold: 1_000_000, reward: { type: "prestige_points", value: 2 } },
+    ],
+    getValue: gs => gs.lifetimeGold,
+  },
+  {
+    id: "sell_divine", name: "Letting Go",
+    description: "???",
+    category: "wealth", hidden: true,
+    reward: { type: "prestige_points", value: 3 },
+    getValue: gs => gs.lifetimeDivineSold,
+  },
+  // ── Prestige ──────────────────────────────────────────────────────────────
+  {
+    id: "first_prestige", name: "Reborn",
+    description: "Complete your first prestige.",
+    category: "prestige", hidden: false,
+    reward: { type: "prestige_points", value: 1 },
+    getValue: gs => gs.totalPrestiges,
+  },
+  {
+    id: "prestiges_tiered", name: "Phoenix",
+    description: "Rise from the ashes again and again.",
+    category: "prestige", hidden: false,
+    tiers: [
+      { label: "bronze", threshold: 5,  reward: { type: "prestige_points", value: 1 } },
+      { label: "silver", threshold: 10, reward: { type: "prestige_points", value: 2 } },
+      { label: "gold",   threshold: 25, reward: { type: "title", title: "The Eternal" } },
+    ],
+    getValue: gs => gs.totalPrestiges,
+  },
+  {
+    id: "prestige_shop_full", name: "The Complete Package",
+    description: "Purchase every item in the Prestige Shop.",
+    category: "prestige", hidden: false,
+    reward: { type: "prestige_points", value: 3 },
+    getValue: gs => Object.keys(PRESTIGE_SHOP_COSTS).every(k => (gs.prestigeUpgrades[k] ?? 0) > 0) ? 1 : 0,
+  },
+  // ── Guild ─────────────────────────────────────────────────────────────────
+  {
+    id: "guild_unlocked", name: "Founding Member",
+    description: "Unlock the Guild Hall.",
+    category: "guild", hidden: false,
+    getValue: gs => (gs.prestigeUpgrades["guild_hall_access"] ?? 0) > 0 || Object.values(gs.guildUpgrades).some(v => v > 0) ? 1 : 0,
+  },
+  {
+    id: "guild_max", name: "Guild Master",
+    description: "Max every Guild Hall upgrade.",
+    category: "guild", hidden: false,
+    reward: { type: "title", title: "Guild Master" },
+    getValue: gs => Object.keys(GUILD_HALL_COSTS).every(k => (gs.guildUpgrades[k] ?? 0) >= GUILD_HALL_COSTS[k].length) ? 1 : 0,
+  },
+  {
+    id: "guild_upgrades_tiered", name: "Patron",
+    description: "Invest in the Guild Hall.",
+    category: "guild", hidden: false,
+    tiers: [
+      { label: "bronze", threshold: 3,                reward: { type: "gold", value: 500 } },
+      { label: "silver", threshold: 6,                reward: { type: "prestige_points", value: 1 } },
+      { label: "gold",   threshold: GUILD_MAX_STACKS, reward: { type: "prestige_points", value: 2 } },
+    ],
+    getValue: gs => Object.values(gs.guildUpgrades).reduce((s: number, v) => s + (v as number), 0),
+  },
+];

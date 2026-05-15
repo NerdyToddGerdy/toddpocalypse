@@ -1,4 +1,4 @@
-import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS } from "./engine.js";
+import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, type AchievementUnlock } from "./engine.js";
 import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, type GearStats, type GearItemDict } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
@@ -169,6 +169,8 @@ function render(state: GameStateDict): void {
   renderCompanionSkills(state);
   renderLog(state);
   renderThemePicker(state);
+  renderFeats(state);
+  showAchievementToasts(state.pending_achievements ?? []);
   updatePrestigeButton(state);
   updateVentureButton(state);
   updateLifetimeStats(state);
@@ -373,7 +375,7 @@ function renderParty(state: GameStateDict): void {
   <div class="char-header">
     <div class="char-header-left">
       <div class="char-name" data-char="${charJson}">${c.name}</div>
-      <div class="char-class">${c.character_class}</div>
+      <div class="char-class">${c.character_class}</div>${ci === 0 && state.earned_title ? `<div class="char-title">${state.earned_title}</div>` : ""}
       <div class="char-dps" data-dps="${dpsData}">${c.dps.toFixed(1)} DPS</div>
     </div>
     <img class="hero-sprite" src="${heroImg}" alt="${c.character_class}">
@@ -859,6 +861,131 @@ function renderThemePicker(state: GameStateDict): void {
   }).join("");
 }
 
+const CATEGORY_LABELS: Record<string, string> = {
+  combat: "Combat", explorer: "Explorer", collector: "Collector",
+  wealth: "Wealth", prestige: "Prestige", guild: "Guild",
+};
+
+const CATEGORY_ICONS: Record<string, string> = {
+  combat: "⚔", explorer: "🗺", collector: "🎒", wealth: "💰", prestige: "✦", guild: "🏰",
+};
+
+let featsKey = "";
+function renderFeats(state: GameStateDict): void {
+  const unlocked = new Set(state.achievements_unlocked ?? []);
+  const newKey = `${state.achievements_unlocked?.length}|${state.earned_title}`;
+  if (newKey === featsKey) return;
+  featsKey = newKey;
+
+  const categories = ["combat", "explorer", "collector", "wealth", "prestige", "guild"];
+  const byCategory: Record<string, typeof ACHIEVEMENTS> = {};
+  for (const cat of categories) byCategory[cat] = [];
+  for (const def of ACHIEVEMENTS) byCategory[def.category]?.push(def);
+
+  const html = categories.map(cat => {
+    const defs = byCategory[cat];
+    const rows = defs.map(def => {
+      const isDone = def.tiers
+        ? unlocked.has(`${def.id}_gold`) || (!def.tiers.some(t => t.label === "gold") && unlocked.has(`${def.id}_${def.tiers[def.tiers.length-1].label}`))
+        : unlocked.has(def.id);
+      const isHidden = def.hidden && !isDone && !def.tiers?.some(t => unlocked.has(`${def.id}_${t.label}`));
+
+      const name = isHidden ? "???" : def.name;
+      const desc = isHidden ? "Unlock to reveal." : def.description;
+      const iconCls = isDone ? "" : " locked";
+
+      let tierHtml = "";
+      let progressHtml = "";
+      if (def.tiers && !isHidden) {
+        const labels = { bronze: "B", silver: "S", gold: "G" };
+        const pips = def.tiers.map(t => {
+          const key = `${def.id}_${t.label}`;
+          const done = unlocked.has(key);
+          const cls = done ? ` ${t.label}-done` : "";
+          return `<span class="feat-tier-pip${cls}" title="${t.label}: ${t.threshold.toLocaleString()}">${labels[t.label]}</span>`;
+        }).join("");
+        tierHtml = `<div class="feat-tiers">${pips}</div>`;
+
+        // Show progress toward next tier
+        const nextTier = def.tiers.find(t => !unlocked.has(`${def.id}_${t.label}`));
+        if (nextTier) {
+          const prevThreshold = def.tiers[def.tiers.indexOf(nextTier) - 1]?.threshold ?? 0;
+          const raw = 0; // We don't have current progress in state easily; skip for now
+          const pct = Math.min(100, raw);
+          progressHtml = `<div class="feat-progress-bar"><div class="feat-progress-fill" style="width:${pct}%"></div></div>`;
+        }
+      }
+
+      let rewardHtml = "";
+      if (!isHidden) {
+        const rewards = def.tiers ? def.tiers.filter(t => t.reward).map(t => {
+          const r = t.reward!;
+          if (r.type === "gold") return `${t.label}: +${r.value}g`;
+          if (r.type === "prestige_points") return `${t.label}: +${r.value}✦`;
+          if (r.type === "title") return `${t.label}: "${r.title}"`;
+          return "";
+        }) : def.reward ? [
+          def.reward.type === "gold" ? `+${def.reward.value}g` :
+          def.reward.type === "prestige_points" ? `+${def.reward.value}✦` :
+          def.reward.type === "title" ? `"${def.reward.title}"` : ""
+        ] : [];
+        if (rewards.filter(Boolean).length) {
+          rewardHtml = `<div class="feat-reward">${rewards.filter(Boolean).join(" · ")}</div>`;
+        }
+      }
+
+      const nameCls = isHidden ? " locked-hidden" : "";
+      return `<div class="feat-row">
+        <div class="feat-icon${iconCls}">${isDone ? "✅" : (isHidden ? "❓" : "🔲")}</div>
+        <div class="feat-info">
+          <div class="feat-name${nameCls}">${name}</div>
+          <div class="feat-desc">${desc}</div>
+          ${rewardHtml}${tierHtml}
+        </div>
+      </div>`;
+    }).join("");
+
+    return `<div class="feat-category">
+      <div class="feat-category-title">${CATEGORY_ICONS[cat]} ${CATEGORY_LABELS[cat]}</div>
+      ${rows}
+    </div>`;
+  }).join("");
+
+  $("feats-content").innerHTML = html;
+
+  // Badge: show count of pending toasts as a brief notification
+  const badge = document.getElementById("stab-feats-badge");
+  if (badge) {
+    const pending = (state.pending_achievements ?? []).length;
+    if (pending > 0) {
+      badge.textContent = String(pending);
+      badge.hidden = false;
+      setTimeout(() => { badge.hidden = true; }, 5000);
+    }
+  }
+}
+
+function showAchievementToasts(unlocks: AchievementUnlock[]): void {
+  if (!unlocks.length) return;
+  const container = document.getElementById("achievement-toast-container");
+  if (!container) return;
+  unlocks.forEach((u, i) => {
+    setTimeout(() => {
+      const r = u.reward;
+      const rewardText = !r ? "" :
+        r.type === "gold" ? `+${r.value}g` :
+        r.type === "prestige_points" ? `+${r.value} prestige point${(r.value ?? 1) > 1 ? "s" : ""}` :
+        r.type === "title" ? `Title unlocked: "${r.title}"` : "";
+      const tierTag = u.tier ? ` <span style="font-size:0.6rem;color:var(--muted)">(${u.tier})</span>` : "";
+      const el = document.createElement("div");
+      el.className = "achievement-toast";
+      el.innerHTML = `<div class="toast-title">Feat Unlocked!</div><div class="toast-name">${u.name}${tierTag}</div>${rewardText ? `<div class="toast-reward">${rewardText}</div>` : ""}`;
+      container.appendChild(el);
+      setTimeout(() => el.remove(), 3200);
+    }, i * 400);
+  });
+}
+
 function renderLog(state: GameStateDict): void {
   $("combat-log").innerHTML = [...state.log]
     .reverse()
@@ -1028,6 +1155,7 @@ const SIDEBAR_TAB_PANELS: Record<string, string[]> = {
   loot:     ["loot-panel"],
   prestige: ["prestige-panel"],
   guild:    ["guild-hall-panel"],
+  feats:    ["feats-panel"],
   log:      ["log-panel"],
   settings: ["settings-panel"],
 };

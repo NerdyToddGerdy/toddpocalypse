@@ -730,7 +730,7 @@ main {
 
 /* Desktop: panels live inside the sidebar card — no individual borders */
 @media (min-width: 769px) {
-    #upgrades-panel, #loot-panel, #prestige-panel, #guild-hall-panel, #log-panel, #settings-panel {
+    #upgrades-panel, #loot-panel, #prestige-panel, #guild-hall-panel, #feats-panel, #log-panel, #settings-panel {
         display: none;
         background: none;
         border: none;
@@ -1471,6 +1471,7 @@ main {
     #loot-panel,
     #prestige-panel,
     #guild-hall-panel,
+    #feats-panel,
     #log-panel,
     #settings-panel { display: none; }
 
@@ -1698,6 +1699,136 @@ main {
 }
 .guild-buy-btn:hover:not(:disabled) { background: var(--accent2, #a78bfa); color: #1a1005; }
 .guild-buy-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ── Feats panel ── */
+#feats-panel { overflow-y: auto; }
+
+#feats-panel h2 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    margin-bottom: 10px;
+}
+
+.feat-category { margin-bottom: 14px; }
+.feat-category-title {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 3px;
+    margin-bottom: 6px;
+}
+
+.feat-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+}
+.feat-row:last-child { border-bottom: none; }
+
+.feat-icon {
+    font-size: 1.1rem;
+    min-width: 22px;
+    text-align: center;
+    margin-top: 1px;
+}
+.feat-icon.locked { opacity: 0.35; filter: grayscale(1); }
+
+.feat-info { flex: 1; min-width: 0; }
+.feat-name {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text);
+}
+.feat-name.locked-hidden { color: var(--muted); font-style: italic; }
+.feat-desc { font-size: 0.68rem; color: var(--muted); margin-top: 1px; }
+.feat-reward { font-size: 0.65rem; color: var(--accent2); margin-top: 2px; font-style: italic; }
+
+.feat-tiers {
+    display: flex;
+    gap: 3px;
+    margin-top: 4px;
+    align-items: center;
+}
+.feat-tier-pip {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.55rem;
+    font-weight: 700;
+    color: var(--muted);
+    background: var(--bg);
+}
+.feat-tier-pip.bronze-done { background: #cd7f32; border-color: #cd7f32; color: #1a1005; }
+.feat-tier-pip.silver-done { background: #c0c0c0; border-color: #c0c0c0; color: #1a1005; }
+.feat-tier-pip.gold-done   { background: #ffd700; border-color: #ffd700; color: #1a1005; }
+
+.feat-progress-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 4px;
+    overflow: hidden;
+}
+.feat-progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+}
+
+/* ── Achievement toast notifications ── */
+#achievement-toast-container {
+    position: fixed;
+    top: 70px;
+    right: 16px;
+    z-index: 9000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+}
+
+.achievement-toast {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 8px 12px;
+    min-width: 220px;
+    max-width: 280px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    animation: toast-in 0.3s ease, toast-out 0.4s ease 2.6s forwards;
+    pointer-events: none;
+}
+.toast-title { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); margin-bottom: 2px; }
+.toast-name { font-size: 0.85rem; font-weight: 700; color: var(--text); }
+.toast-reward { font-size: 0.68rem; color: var(--accent2); margin-top: 2px; font-style: italic; }
+
+@keyframes toast-in {
+    from { opacity: 0; transform: translateX(20px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes toast-out {
+    from { opacity: 1; }
+    to   { opacity: 0; transform: translateY(-6px); }
+}
+
+/* earned title on character card */
+.char-title {
+    font-size: 0.62rem;
+    color: var(--accent2);
+    font-style: italic;
+    margin-top: 1px;
+}
 
 /* ── Active skill button ── */
 #skill-btn {
@@ -2395,6 +2526,170 @@ footer {
 [data-theme="inferno"] #settings-panel {
     border-color: #6e2e08;
     box-shadow: 0 0 18px rgba(255,80,0,0.1), inset 0 0 32px rgba(0,0,0,0.5);
+}
+
+/* ── Void Rift ── */
+[data-theme="void-rift"] {
+    --bg: #030308;
+    --surface: #08080f;
+    --surface2: #0d0d1a;
+    --border: #2a1060;
+    --accent: #7c3aed;
+    --accent2: #06b6d4;
+    --danger: #c026d3;
+    --text: #e4e0ff;
+    --muted: #5a4a8a;
+    --hp-green: #10b981;
+    --xp-blue: #3b82f6;
+    --font-display: 'Cinzel Decorative', serif;
+    --font-body: 'Cinzel', serif;
+}
+[data-theme="void-rift"] h1 {
+    text-shadow: 0 0 16px #7c3aed, 0 0 40px rgba(6,182,212,0.4), 0 0 80px rgba(124,58,237,0.2);
+}
+[data-theme="void-rift"] body {
+    background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E"),
+        radial-gradient(ellipse 80% 50% at 50% 100%, rgba(124,58,237,0.1) 0%, transparent 70%);
+}
+[data-theme="void-rift"] #enemy-panel,
+[data-theme="void-rift"] #party-panel,
+[data-theme="void-rift"] #upgrades-panel,
+[data-theme="void-rift"] #loot-panel,
+[data-theme="void-rift"] #prestige-panel,
+[data-theme="void-rift"] #guild-hall-panel,
+[data-theme="void-rift"] #settings-panel {
+    border-color: #2a1060;
+    box-shadow: 0 0 20px rgba(124,58,237,0.12), inset 0 0 30px rgba(0,0,0,0.6);
+}
+
+/* ── Bloodmoon ── */
+[data-theme="bloodmoon"] {
+    --bg: #060102;
+    --surface: #100205;
+    --surface2: #1a040a;
+    --border: #5a0f1e;
+    --accent: #dc143c;
+    --accent2: #b45309;
+    --danger: #ff0033;
+    --text: #f4d0d8;
+    --muted: #8a3a48;
+    --hp-green: #16a34a;
+    --xp-blue: #1d4ed8;
+    --font-display: 'Pirata One', serif;
+    --font-body: 'Crimson Pro', Georgia, serif;
+}
+[data-theme="bloodmoon"] h1 {
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.18em;
+    text-shadow: 0 0 16px #dc143c, 0 0 40px rgba(220,20,60,0.4), 0 0 80px rgba(180,10,30,0.2);
+}
+[data-theme="bloodmoon"] body {
+    background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"),
+        radial-gradient(ellipse 70% 40% at 50% 0%, rgba(220,20,60,0.12) 0%, transparent 70%);
+}
+[data-theme="bloodmoon"] header {
+    background: linear-gradient(180deg, #1a0308 0%, #100205 100%);
+    border-bottom: 1px solid #5a0f1e;
+    box-shadow: 0 2px 24px rgba(220,20,60,0.2);
+}
+[data-theme="bloodmoon"] #enemy-panel,
+[data-theme="bloodmoon"] #party-panel,
+[data-theme="bloodmoon"] #upgrades-panel,
+[data-theme="bloodmoon"] #loot-panel,
+[data-theme="bloodmoon"] #prestige-panel,
+[data-theme="bloodmoon"] #guild-hall-panel,
+[data-theme="bloodmoon"] #settings-panel {
+    border-color: #5a0f1e;
+    box-shadow: 0 0 18px rgba(220,20,60,0.1), inset 0 0 32px rgba(0,0,0,0.5);
+}
+
+/* ── Frost Crypt ── */
+[data-theme="frost-crypt"] {
+    --bg: #010308;
+    --surface: #040a14;
+    --surface2: #081220;
+    --border: #1e3a60;
+    --accent: #38bdf8;
+    --accent2: #818cf8;
+    --danger: #fb7185;
+    --text: #e0f2fe;
+    --muted: #4a7a9a;
+    --hp-green: #2dd4bf;
+    --xp-blue: #60a5fa;
+    --font-display: 'Cinzel', serif;
+    --font-body: 'Crimson Pro', Georgia, serif;
+}
+[data-theme="frost-crypt"] h1 {
+    letter-spacing: 0.15em;
+    text-shadow: 0 0 14px #38bdf8, 0 0 36px rgba(56,189,248,0.35), 0 0 70px rgba(129,140,248,0.2);
+}
+[data-theme="frost-crypt"] body {
+    background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"),
+        radial-gradient(ellipse 90% 55% at 50% 105%, rgba(56,189,248,0.08) 0%, transparent 65%);
+}
+[data-theme="frost-crypt"] #enemy-panel,
+[data-theme="frost-crypt"] #party-panel,
+[data-theme="frost-crypt"] #upgrades-panel,
+[data-theme="frost-crypt"] #loot-panel,
+[data-theme="frost-crypt"] #prestige-panel,
+[data-theme="frost-crypt"] #guild-hall-panel,
+[data-theme="frost-crypt"] #settings-panel {
+    border-color: #1e3a60;
+    box-shadow: 0 0 18px rgba(56,189,248,0.08), inset 0 0 32px rgba(0,0,0,0.55);
+}
+
+/* ── Necropolis ── */
+[data-theme="necropolis"] {
+    --bg: #010601;
+    --surface: #030d04;
+    --surface2: #061508;
+    --border: #1a3a1a;
+    --accent: #4ade80;
+    --accent2: #a3e635;
+    --danger: #dc2626;
+    --text: #d4f0d4;
+    --muted: #4a7a4a;
+    --hp-green: #22c55e;
+    --xp-blue: #60a5fa;
+    --font-display: 'Pirata One', serif;
+    --font-body: 'Crimson Pro', Georgia, serif;
+}
+[data-theme="necropolis"] h1 {
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.18em;
+    text-shadow: 0 0 16px #4ade80, 0 0 40px rgba(74,222,128,0.35), 0 0 80px rgba(163,230,53,0.15);
+}
+[data-theme="necropolis"] body {
+    background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"),
+        radial-gradient(ellipse 80% 50% at 50% 110%, rgba(74,222,128,0.08) 0%, transparent 65%);
+}
+[data-theme="necropolis"] #enemy-panel,
+[data-theme="necropolis"] #party-panel,
+[data-theme="necropolis"] #upgrades-panel,
+[data-theme="necropolis"] #loot-panel,
+[data-theme="necropolis"] #prestige-panel,
+[data-theme="necropolis"] #guild-hall-panel,
+[data-theme="necropolis"] #settings-panel {
+    border-color: #1a3a1a;
+    box-shadow: 0 0 18px rgba(74,222,128,0.08), inset 0 0 32px rgba(0,0,0,0.6);
+}
+
+/* ── Locked theme button ── */
+.theme-btn.locked {
+    opacity: 0.4;
+    cursor: not-allowed;
+    flex-direction: column;
+    gap: 2px;
+}
+.theme-btn.locked .theme-lock {
+    font-size: 0.6rem;
+    color: var(--muted);
+    font-weight: 400;
+    letter-spacing: 0;
 }
 
 /* ── Shared fantasy decorations (active on any theme) ── */

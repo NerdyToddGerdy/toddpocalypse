@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.6.81";
+export const VERSION = "v2.6.82";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,18 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.6.82",
+    date: "2026-05-15",
+    changes: [
+      "Achievements (Feats): 25 achievements across 6 categories (Combat, Explorer, Collector, Wealth, Prestige, Guild) with Bronze/Silver/Gold tiers",
+      "Achievement rewards: gold, prestige points, and cosmetic titles displayed on the lead character card",
+      "Hidden achievements show ??? until unlocked",
+      "Toast notifications on achievement unlock",
+      "Feats sidebar panel with category grouping, tier pip indicators, and locked/unlocked state",
+      "Lifetime stat tracking: gold earned, items looted/sold, boss kills, legendary/divine finds",
+    ],
+  },
   {
     version: "v2.6.81",
     date: "2026-05-15",
