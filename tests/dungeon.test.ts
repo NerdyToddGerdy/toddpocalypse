@@ -1,5 +1,31 @@
 import { describe, expect, it } from "vitest";
-import { generateEnemy, generateBoss, generateEliteEnemy, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT } from "../src/dungeon.js";
+import { generateEnemy, generateBoss, generateEliteEnemy, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT, GOLD_LEVEL_MULT } from "../src/dungeon.js";
+
+describe("GOLD_LEVEL_MULT", () => {
+  it("is 0.01", () => {
+    expect(GOLD_LEVEL_MULT).toBe(0.01);
+  });
+
+  it("gold_reward at level 20 reflects the level multiplier vs level 10", () => {
+    // avg gold at lv20 = 20*5 + 20*1.5 = 130, * (1 + 20*0.01) = 130 * 1.2 = 156
+    // avg gold at lv10 = 10*5 + 10*1.5 = 65,  * (1 + 10*0.01) = 65  * 1.1 = 71.5
+    // ratio should be > 2.0 (pure level scaling alone would give exactly 2.0)
+    let sum10 = 0, sum20 = 0;
+    for (let i = 0; i < 200; i++) {
+      sum10 += generateEnemy(10, 0).gold_reward;
+      sum20 += generateEnemy(20, 0).gold_reward;
+    }
+    expect(sum20 / sum10).toBeGreaterThan(2.0);
+  });
+
+  it("boss gold_reward at level 20 is higher than without multiplier would predict", () => {
+    // boss gold = dungeonLevel * 15 * (1 + level*0.01)
+    // at lv20: 20*15*1.2 = 360; at lv10: 10*15*1.1 = 165; ratio > 2.0
+    const boss10 = generateBoss(10).gold_reward;
+    const boss20 = generateBoss(20).gold_reward;
+    expect(boss20 / boss10).toBeGreaterThan(2.0);
+  });
+});
 
 describe("generateEnemy", () => {
   it("returns required keys", () => {

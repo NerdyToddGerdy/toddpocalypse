@@ -54,6 +54,9 @@ export const ELITE_HP_MULT = 2.5;
 export const ELITE_ATTACK_MULT = 1.5;
 export const ELITE_REWARD_MULT = 2.0;
 
+/** Gold reward multiplier applied per dungeon level: gold *= (1 + level * GOLD_LEVEL_MULT). */
+export const GOLD_LEVEL_MULT = 0.01;
+
 /** Live state of an enemy currently being fought. */
 export interface Enemy {
   /** Display name shown in the enemy panel. */
@@ -94,7 +97,7 @@ export function generateEnemy(dungeonLevel: number, dungeonIndex = 0): Enemy {
   const baseHp = Math.floor(10 * Math.pow(1.3, dungeonLevel) + randInt(0, dungeonLevel * 2));
   const hp = Math.floor(baseHp * mult);
   const xpReward = Math.max(1, dungeonLevel * 3 + randInt(1, 4));
-  const goldReward = Math.max(1, Math.floor((dungeonLevel * 5 + randInt(0, dungeonLevel * 3)) * (1 + dungeonIndex * 0.15)));
+  const goldReward = Math.max(1, Math.floor((dungeonLevel * 5 + randInt(0, dungeonLevel * 3)) * (1 + dungeonIndex * 0.15) * (1 + dungeonLevel * GOLD_LEVEL_MULT)));
   const attackDps = Math.round(dungeonLevel * 4.0 * mult * 10) / 10;
   return {
     name,
@@ -115,7 +118,7 @@ export function generateBoss(dungeonLevel: number, dungeonIndex = 0): Enemy {
   const name = `The ${pick(BOSS_TITLES)} ${pick(ENEMY_NOUNS)} Lord`;
   const hp = Math.floor(100 * Math.pow(1.3, dungeonLevel) * mult);
   const xpReward = Math.max(5, dungeonLevel * 9 + 5);
-  const goldReward = Math.max(5, Math.floor(dungeonLevel * 15 * (1 + dungeonIndex * 0.15)));
+  const goldReward = Math.max(5, Math.floor(dungeonLevel * 15 * (1 + dungeonIndex * 0.15) * (1 + dungeonLevel * GOLD_LEVEL_MULT)));
   const attackDps = Math.round(dungeonLevel * 6.5 * mult * 10) / 10;
   return {
     name,

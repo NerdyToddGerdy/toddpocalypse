@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.7.4";
+export const VERSION = "v2.7.5";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.7.5",
+    date: "2026-05-15",
+    changes: [
+      "Gold rewards now scale +1% per dungeon level — floor 20 yields ~20% more gold, easing mid-game slowdown",
+      "Auto-upgrade no longer reserves gold for Guild Hall purchases — spends freely again",
+    ],
+  },
   {
     version: "v2.7.4",
     date: "2026-05-15",

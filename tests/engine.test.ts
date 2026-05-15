@@ -3200,28 +3200,23 @@ describe("defense upgrade", () => {
     expect(gs.party.team[0].damageReduction).toBe(0);
   });
 
-  it("auto_upgrade reserves gold equal to next guild hall upgrade cost", () => {
+  it("auto_upgrade spends freely regardless of guild hall savings", () => {
     const gs = make();
     gs.prestigeUpgrades["auto_upgrade"] = 1;
-    // No guild upgrades owned; cheapest guild upgrade is 1,000g (expanded_armory)
-    const guildFloor = (gs as any).nextGuildHallCost();
-    expect(guildFloor).toBeGreaterThan(0);
-    gs.gold = guildFloor + 49; // just under floor + cheapest upgrade (50g dps)
+    gs.gold = 100;
     (gs as any).runAutoUpgrade();
-    expect(gs.gold).toBeGreaterThanOrEqual(guildFloor); // gold never dips below guild floor
+    expect(gs.gold).toBeLessThan(100);
   });
 
   it("auto_upgrade spends freely when all guild upgrades owned", () => {
     const gs = make();
     gs.prestigeUpgrades["auto_upgrade"] = 1;
-    // Own everything in the guild hall
     for (const [type, costs] of Object.entries(GUILD_HALL_COSTS)) {
       gs.guildUpgrades[type] = costs.length;
     }
-    expect((gs as any).nextGuildHallCost()).toBe(0);
     gs.gold = 500;
     (gs as any).runAutoUpgrade();
-    expect(gs.gold).toBeLessThan(500); // spends freely with no floor
+    expect(gs.gold).toBeLessThan(500);
   });
 });
 

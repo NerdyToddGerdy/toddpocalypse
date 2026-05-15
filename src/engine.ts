@@ -1283,7 +1283,6 @@ export class GameState {
 
   private runAutoUpgrade(): void {
     if (!(this.prestigeUpgrades["auto_upgrade"] > 0)) return;
-    const guildFloor = this.nextGuildHallCost();
     const upgradeTypes: UpgradeType[] = ["dps", "xp", "click", "hp"];
     let bought = true;
     while (bought) {
@@ -1292,7 +1291,7 @@ export class GameState {
       for (const c of this.party.team) {
         for (const type of upgradeTypes) {
           const cost = this.upgradeCost(c.name, type);
-          if (this.gold - cost >= guildFloor && (!cheapest || cost < cheapest.cost)) {
+          if (this.gold >= cost && (!cheapest || cost < cheapest.cost)) {
             cheapest = { char: c, type, cost };
           }
         }
