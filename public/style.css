@@ -923,6 +923,7 @@ main {
 .loot-empty { font-size: 0.8rem; color: var(--border); font-style: italic; }
 
 #loot-items {
+    min-height: 340px;
     max-height: 340px;
     overflow-y: auto;
     overflow-x: hidden;
@@ -3240,6 +3241,7 @@ footer {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    min-height: 440px;
     max-height: 440px;
     overflow-y: auto;
     overflow-x: hidden;
