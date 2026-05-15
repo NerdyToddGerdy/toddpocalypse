@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  GameState, RUNE_DEFS, GUILD_HALL_COSTS,
+  GameState, RUNE_DEFS, GUILD_HALL_COSTS, RUNE_SELL_VALUES,
 } from "../src/engine.js";
 import { Character, type Rune } from "../src/character.js";
 import { type Slot } from "../src/gear.js";
@@ -278,5 +278,75 @@ describe("rune serialization", () => {
     const once = GameState.fromDict(gs.toDict());
     const twice = GameState.fromDict(once.toDict());
     expect(twice.party.team[0].dps).toBeCloseTo(dpsAfterBrand);
+  });
+});
+
+// ──────────────────────────────────────────
+// Rune selling
+// ──────────────────────────────────────────
+describe("RUNE_SELL_VALUES", () => {
+  it("lesser sell value is defined and > 0", () => {
+    expect(RUNE_SELL_VALUES["lesser"]).toBeGreaterThan(0);
+  });
+
+  it("each tier is worth more than the previous", () => {
+    expect(RUNE_SELL_VALUES["greater"]).toBeGreaterThan(RUNE_SELL_VALUES["lesser"]);
+    expect(RUNE_SELL_VALUES["flawless"]).toBeGreaterThan(RUNE_SELL_VALUES["greater"]);
+    expect(RUNE_SELL_VALUES["ancient"]).toBeGreaterThan(RUNE_SELL_VALUES["flawless"]);
+  });
+});
+
+describe("sellRune", () => {
+  it("removes the rune from inventory and awards gold", () => {
+    const gs = make();
+    gs.runeInventory = [RUNE_DEFS["striking_lesser"], RUNE_DEFS["warding_lesser"]];
+    gs.sellRune(0);
+    expect(gs.runeInventory.length).toBe(1);
+    expect(gs.runeInventory[0].id).toBe("warding_lesser");
+    expect(gs.gold).toBe(RUNE_SELL_VALUES["lesser"]);
+  });
+
+  it("awards the correct gold for a greater rune", () => {
+    const gs = make();
+    gs.runeInventory = [RUNE_DEFS["striking_greater"]];
+    gs.sellRune(0);
+    expect(gs.gold).toBe(RUNE_SELL_VALUES["greater"]);
+  });
+
+  it("awards the correct gold for ancient rune", () => {
+    const gs = make();
+    gs.runeInventory = [RUNE_DEFS["striking_ancient"]];
+    gs.sellRune(0);
+    expect(gs.gold).toBe(RUNE_SELL_VALUES["ancient"]);
+  });
+
+  it("is a no-op for out-of-range index", () => {
+    const gs = make();
+    gs.runeInventory = [RUNE_DEFS["striking_lesser"]];
+    gs.sellRune(5);
+    expect(gs.runeInventory.length).toBe(1);
+    expect(gs.gold).toBe(0);
+  });
+});
+
+describe("sellAllRunes", () => {
+  it("clears the rune inventory and awards total gold", () => {
+    const gs = make();
+    gs.runeInventory = [
+      RUNE_DEFS["striking_lesser"],
+      RUNE_DEFS["warding_greater"],
+      RUNE_DEFS["fortune_lesser"],
+    ];
+    gs.sellAllRunes();
+    expect(gs.runeInventory.length).toBe(0);
+    expect(gs.gold).toBe(
+      RUNE_SELL_VALUES["lesser"] * 2 + RUNE_SELL_VALUES["greater"]
+    );
+  });
+
+  it("is a no-op when inventory is empty", () => {
+    const gs = make();
+    gs.sellAllRunes();
+    expect(gs.gold).toBe(0);
   });
 });

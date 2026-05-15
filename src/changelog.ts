@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.8.4";
+export const VERSION = "v2.8.5";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.8.5",
+    date: "2026-05-15",
+    changes: [
+      "Rune inventory: Sell button on each rune, Sell All button at top of rune list",
+      "Sell values: Lesser 10g, Greater 30g, Flawless 90g, Ancient 250g",
+    ],
+  },
   {
     version: "v2.8.4",
     date: "2026-05-15",

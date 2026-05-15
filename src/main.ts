@@ -818,15 +818,19 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
     `<option value="${i}">${c.name}</option>`
   ).join("");
 
+  const TIER_ICONS: Record<string, string> = { lesser: "◆", greater: "★", flawless: "✦", ancient: "✸" };
+  const SELL_VALUES: Record<string, number> = { lesser: 10, greater: 30, flawless: 90, ancient: 250 };
+
   const items = runeInv.length === 0
     ? `<div class="prune-empty">No runes — bosses have a 20% chance to drop one, elites have a 10% chance.</div>`
     : runeInv.map((rune: any, i: number) => {
         const runeIcon = RUNE_ICONS[rune.type] ?? "🔮";
         const statLabel = RUNE_STAT_LABELS[rune.statKey] ?? rune.statKey;
         const slotOpts = buildSlotOptions(party[0]);
+        const sellVal = SELL_VALUES[rune.tier] ?? 10;
         return `<div class="rune-item" data-rune-idx="${i}">
           <div class="rune-item-top">
-            <span class="rune-tier-badge ${rune.tier}">${({ lesser: "◆", greater: "★", flawless: "✦", ancient: "✸" } as Record<string,string>)[rune.tier] ?? "◆"}</span>
+            <span class="rune-tier-badge ${rune.tier}">${TIER_ICONS[rune.tier] ?? "◆"}</span>
             <span class="rune-icon">${runeIcon}</span>
             <span class="rune-name">${rune.name}</span>
           </div>
@@ -836,13 +840,20 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
           </div>
           <div class="rune-item-bottom">
             <span class="rune-stat">+${rune.value} ${statLabel}</span>
-            <button class="rune-brand-btn" data-action="brand-rune" data-rune-id="${rune.id}" data-rune-idx="${i}">Brand</button>
+            <div class="rune-item-btns">
+              <button class="rune-brand-btn" data-action="brand-rune" data-rune-id="${rune.id}" data-rune-idx="${i}">Brand</button>
+              <button class="rune-sell-btn" data-action="sell-rune" data-rune-idx="${i}">${sellVal}g</button>
+            </div>
           </div>
         </div>`;
       }).join("");
 
+  const sellAllVal = runeInv.reduce((s: number, r: any) => s + (SELL_VALUES[r.tier] ?? 10), 0);
   el.innerHTML = `<div class="rune-inv-section" style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">
-    <div class="rune-inv-title">🔮 Runes (${runeInv.length})</div>
+    <div class="rune-inv-title">
+      <span>🔮 Runes (${runeInv.length})</span>
+      ${runeInv.length > 0 ? `<button class="rune-sell-all-btn" data-action="sell-all-runes">Sell All (${sellAllVal}g)</button>` : ""}
+    </div>
     <div class="rune-inv-items">${items}</div>
   </div>`;
 
@@ -2148,6 +2159,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const sel = row.querySelector(".rune-combine-select") as HTMLSelectElement;
       const [id1, id2] = sel.value.split("|");
       call("combineRunes", id1, id2);
+    }
+    else if (action === "sell-rune") {
+      call("sellRune", parseInt(btn.dataset.runeIdx!, 10));
+    }
+    else if (action === "sell-all-runes") {
+      call("sellAllRunes");
     }
     else if (action === "set-title") {
       call("setEarnedTitle", btn.dataset.title ?? "");

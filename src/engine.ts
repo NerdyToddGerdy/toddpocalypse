@@ -200,6 +200,14 @@ export const GOLD_BONUS_PER_LEVEL = 0.10;
 /** Gold multiplier bonus per additional party member beyond the first. */
 export const PARTY_GOLD_BONUS_PER_MEMBER = 0.20;
 
+/** Gold received when selling a rune, keyed by tier. */
+export const RUNE_SELL_VALUES: Record<string, number> = {
+  lesser:   10,
+  greater:  30,
+  flawless: 90,
+  ancient:  250,
+};
+
 /** All visual themes with their prestige unlock requirements. */
 export const THEME_UNLOCKS: { theme: string; icon: string; label: string; prestiges: number }[] = [
   { theme: "grimdark",    icon: "⚔",  label: "Grimdark",    prestiges: 0 },
@@ -854,6 +862,27 @@ export class GameState {
     if (!next) return this.respond();
     this.runeInventory = remaining;
     this.runeInventory.push(next);
+    return this.respond();
+  }
+
+  /** Sells the rune at the given inventory index for its tier's gold value. Returns serialized JSON. */
+  sellRune(idx: number): string {
+    if (idx < 0 || idx >= this.runeInventory.length) return this.respond();
+    const rune = this.runeInventory.splice(idx, 1)[0];
+    const gold = RUNE_SELL_VALUES[rune.tier] ?? 0;
+    this.earnGold(gold);
+    this.addLog(`Sold ${rune.name} for ${gold}g.`);
+    return this.respond();
+  }
+
+  /** Sells all runes in the inventory. Returns serialized JSON. */
+  sellAllRunes(): string {
+    if (this.runeInventory.length === 0) return this.respond();
+    let total = 0;
+    for (const rune of this.runeInventory) total += RUNE_SELL_VALUES[rune.tier] ?? 0;
+    this.runeInventory = [];
+    this.earnGold(total);
+    this.addLog(`Sold all runes for ${total}g.`);
     return this.respond();
   }
 
