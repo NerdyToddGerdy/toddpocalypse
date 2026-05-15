@@ -781,23 +781,25 @@ main {
     padding: 7px 10px;
     margin-bottom: 6px;
     display: flex;
-    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.loot-header {
+    display: flex;
     justify-content: space-between;
+    align-items: baseline;
     gap: 6px;
 }
 
-.loot-left {
+.loot-body {
     display: flex;
-    flex-direction: column;
-    gap: 3px;
-    flex: 1;
-    min-width: 0;
+    align-items: center;
+    gap: 6px;
 }
 
-.loot-right {
+.loot-btns {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
     gap: 4px;
     flex-shrink: 0;
 }
@@ -807,23 +809,26 @@ main {
     text-transform: uppercase;
     letter-spacing: 1px;
     color: var(--accent2);
+    flex-shrink: 0;
 }
 
 .loot-name {
     font-size: 0.78rem;
     font-weight: 600;
     line-height: 1.25;
+    min-width: 0;
 }
 
 .loot-dmg {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: flex-start;
     gap: 1px;
     font-size: 0.72rem;
     font-weight: 700;
     color: var(--accent);
-    flex-shrink: 0;
+    flex: 1;
+    min-width: 0;
 }
 .loot-stat { white-space: nowrap; }
 .ind-up   { color: #4ade80; }
