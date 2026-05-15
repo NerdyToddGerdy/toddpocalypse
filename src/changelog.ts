@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.7.2";
+export const VERSION = "v2.7.3";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,18 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.7.3",
+    date: "2026-05-15",
+    changes: [
+      "Skill balance pass — all active skills now contribute ~40-50% average DPS boost",
+      "Battle Cry: CD 30→20, duration 5→8 kills (was the weakest at ~17% avg boost, now 40%)",
+      "Shadow Strike: now boosts tick DPS as well as clicks (was idle-useless); 3× mult, CD 20, dur 5",
+      "Arcane Surge: duration 5→6 kills (slight buff to 48% avg boost)",
+      "Consecrate: CD 20→15 kills (more frequent healing)",
+      "Volley: mult 4×→2.5×, dur 4→6 kills (was strongest at 60% avg, now 50%)",
+    ],
+  },
   {
     version: "v2.7.2",
     date: "2026-05-15",

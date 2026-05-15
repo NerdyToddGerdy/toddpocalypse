@@ -8,6 +8,7 @@ import {
   GUILD_HALL_COSTS, SKILL_DEFS, COMBAT_HEAL_FRACTION,
   THEME_UNLOCKS,
   ELITE_SPAWN_CHANCE, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT,
+  BATTLE_CRY_MULT, SHADOW_STRIKE_MULT, ARCANE_SURGE_MULT, VOLLEY_MULT,
   killsForFloor, prestigeUpgradeCost, ventureUnlockLevel,
 } from "../src/engine.js";
 import { Character } from "../src/character.js";
@@ -2431,6 +2432,72 @@ describe("guild hall", () => {
     expect(dmgDealt).toBeGreaterThan(0);
   });
 
+  it("skill_shadow_strike multiplies tick DPS (not just clicks)", () => {
+    const sword = new GearItem("main_hand" as Slot, "sword", "common", "valor");
+    const gs = make();
+    gs.party.team[0].equipItem(sword);
+    gs.activeEffects["skill_shadow_strike"] = 5;
+    gs.enemy.hp = 99_999;
+    const dmgWith = 99_999 - JSON.parse(gs.tick(1)).enemy.hp;
+
+    const gs2 = make();
+    gs2.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "common", "valor"));
+    gs2.enemy.hp = 99_999;
+    const dmgWithout = 99_999 - JSON.parse(gs2.tick(1)).enemy.hp;
+
+    expect(dmgWith).toBeGreaterThan(dmgWithout * (SHADOW_STRIKE_MULT - 0.5));
+  });
+
+  it("SKILL_DEFS battle_cry cooldown is 20 and duration is 8", () => {
+    expect(SKILL_DEFS["skill_battle_cry"].cooldownKills).toBe(20);
+    expect(SKILL_DEFS["skill_battle_cry"].durationKills).toBe(8);
+  });
+
+  it("SKILL_DEFS shadow_strike cooldown is 20 and duration is 5", () => {
+    expect(SKILL_DEFS["skill_shadow_strike"].cooldownKills).toBe(20);
+    expect(SKILL_DEFS["skill_shadow_strike"].durationKills).toBe(5);
+  });
+
+  it("SKILL_DEFS arcane_surge duration is 6", () => {
+    expect(SKILL_DEFS["skill_arcane_surge"].durationKills).toBe(6);
+  });
+
+  it("SKILL_DEFS consecrate cooldown is 15", () => {
+    expect(SKILL_DEFS["skill_consecrate"].cooldownKills).toBe(15);
+  });
+
+  it("SKILL_DEFS volley cooldown is 15 and duration is 6", () => {
+    expect(SKILL_DEFS["skill_volley"].cooldownKills).toBe(15);
+    expect(SKILL_DEFS["skill_volley"].durationKills).toBe(6);
+  });
+
+  it("VOLLEY_MULT is 2.5 (rebalanced from 4)", () => {
+    expect(VOLLEY_MULT).toBe(2.5);
+  });
+
+  it("BATTLE_CRY_MULT is 2.0", () => {
+    expect(BATTLE_CRY_MULT).toBe(2.0);
+  });
+
+  it("SHADOW_STRIKE_MULT is 3.0", () => {
+    expect(SHADOW_STRIKE_MULT).toBe(3.0);
+  });
+
+  it("ARCANE_SURGE_MULT is 3.0", () => {
+    expect(ARCANE_SURGE_MULT).toBe(3.0);
+  });
+
+  it("average boost per kill is comparable across offensive skills (within 2×)", () => {
+    const avgBoost = (mult: number, dur: number, cd: number) => (mult - 1) * dur / cd;
+    const bc = avgBoost(BATTLE_CRY_MULT, SKILL_DEFS["skill_battle_cry"].durationKills, SKILL_DEFS["skill_battle_cry"].cooldownKills);
+    const ss = avgBoost(SHADOW_STRIKE_MULT, SKILL_DEFS["skill_shadow_strike"].durationKills, SKILL_DEFS["skill_shadow_strike"].cooldownKills);
+    const as = avgBoost(ARCANE_SURGE_MULT, SKILL_DEFS["skill_arcane_surge"].durationKills, SKILL_DEFS["skill_arcane_surge"].cooldownKills);
+    const vo = avgBoost(VOLLEY_MULT, SKILL_DEFS["skill_volley"].durationKills, SKILL_DEFS["skill_volley"].cooldownKills);
+    const max = Math.max(bc, ss, as, vo);
+    const min = Math.min(bc, ss, as, vo);
+    expect(max / min).toBeLessThan(2); // no skill more than 2× better than the weakest
+  });
+
   it("holy_light heals party on kill", () => {
     const gs = make();
     // Add a paladin companion with holy_light
@@ -2938,7 +3005,7 @@ describe("dungeon 2 content", () => {
 
   // ── skill_volley effect ──────────────────────────────────────────
 
-  it("skill_volley quadruples party DPS during active window", () => {
+  it("skill_volley multiplies party DPS by VOLLEY_MULT during active window", () => {
     const sword = new GearItem("main_hand" as Slot, "sword", "common", "valor");
 
     const gs = make();
@@ -2952,7 +3019,7 @@ describe("dungeon 2 content", () => {
     gs2.enemy.hp = 99_999;
     const dmgWithout = 99_999 - JSON.parse(gs2.tick(1)).enemy.hp;
 
-    expect(dmgWith).toBeCloseTo(dmgWithout * 4, 0);
+    expect(dmgWith).toBeCloseTo(dmgWithout * VOLLEY_MULT, 0);
   });
 
   // ── skill_consecrate effect ──────────────────────────────────────

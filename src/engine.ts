@@ -156,12 +156,17 @@ export const GUILD_HALL_DUNGEON_REQ: Record<string, number> = {
 };
 
 /** Cooldown (ms) and duration (kills) and class requirement for each active combat skill. */
+export const BATTLE_CRY_MULT    = 2.0;
+export const SHADOW_STRIKE_MULT = 3.0;
+export const ARCANE_SURGE_MULT  = 3.0;
+export const VOLLEY_MULT        = 2.5;
+
 export const SKILL_DEFS: Record<string, { cooldownKills: number; durationKills: number; class: string }> = {
-  skill_battle_cry:    { cooldownKills: 30, durationKills: 5, class: "fighter" },
-  skill_shadow_strike: { cooldownKills: 15, durationKills: 3, class: "rogue" },
-  skill_arcane_surge:  { cooldownKills: 25, durationKills: 5, class: "mage" },
-  skill_consecrate:    { cooldownKills: 20, durationKills: 5, class: "paladin" },
-  skill_volley:        { cooldownKills: 20, durationKills: 4, class: "ranger" },
+  skill_battle_cry:    { cooldownKills: 20, durationKills: 8, class: "fighter" },
+  skill_shadow_strike: { cooldownKills: 20, durationKills: 5, class: "rogue" },
+  skill_arcane_surge:  { cooldownKills: 25, durationKills: 6, class: "mage" },
+  skill_consecrate:    { cooldownKills: 15, durationKills: 5, class: "paladin" },
+  skill_volley:        { cooldownKills: 15, durationKills: 6, class: "ranger" },
 };
 
 /** Fraction of missing HP restored after each enemy kill. */
@@ -400,9 +405,10 @@ export class GameState {
     const hasMark = this.party.team.some(c => c.isAlive() && c.abilities.includes("hunters_mark"));
     const hasDead = this.party.team.some(c => !c.isAlive());
     const divineWrathActive = hasDead && this.party.team.some(c => c.isAlive() && c.abilities.includes("divine_wrath"));
-    const battleCryMult = (this.activeEffects["skill_battle_cry"] ?? 0) > 0 ? 2.0 : 1.0;
-    const arcaneSurgeMult = (this.activeEffects["skill_arcane_surge"] ?? 0) > 0 ? 3.0 : 1.0;
-    const volleyMult = (this.activeEffects["skill_volley"] ?? 0) > 0 ? 4.0 : 1.0;
+    const shadowStrikeTick = (this.activeEffects["skill_shadow_strike"] ?? 0) > 0 ? SHADOW_STRIKE_MULT : 1.0;
+    const battleCryMult = (this.activeEffects["skill_battle_cry"] ?? 0) > 0 ? BATTLE_CRY_MULT : 1.0;
+    const arcaneSurgeMult = (this.activeEffects["skill_arcane_surge"] ?? 0) > 0 ? ARCANE_SURGE_MULT : 1.0;
+    const volleyMult = (this.activeEffects["skill_volley"] ?? 0) > 0 ? VOLLEY_MULT : 1.0;
 
     let baseDps = 0;
     const partyHaste = this.party.team.reduce((s, c) => c.isAlive() ? s + c.haste : s, 0);
@@ -415,7 +421,7 @@ export class GameState {
       baseDps += dps;
     }
     const totalDps = baseDps * (1 + partyHaste);
-    const dmgMult = (hasExpose ? EXPOSE_WEAKNESS_MULT : 1.0) * (hasMark ? 1.20 : 1.0) * battleCryMult * arcaneSurgeMult * volleyMult * (divineWrathActive ? 1.15 : 1.0);
+    const dmgMult = (hasExpose ? EXPOSE_WEAKNESS_MULT : 1.0) * (hasMark ? 1.20 : 1.0) * battleCryMult * shadowStrikeTick * arcaneSurgeMult * volleyMult * (divineWrathActive ? 1.15 : 1.0);
     const damageDealt = totalDps * dmgMult * dt;
     this.enemy.hp -= damageDealt;
     if (this.enemy.hp <= 0) {
@@ -452,7 +458,7 @@ export class GameState {
     let damage = Math.max(1.0, totalDps * CLICK_DAMAGE_MULTIPLIER * 0.1 + clickBonus);
     if (this.party.team.some(c => c.isAlive() && c.abilities.includes("empower"))) damage *= EMPOWER_MULTIPLIER;
     const shadowStrikeActive = (this.activeEffects["skill_shadow_strike"] ?? 0) > 0;
-    if (shadowStrikeActive) damage *= 5;
+    if (shadowStrikeActive) damage *= SHADOW_STRIKE_MULT;
     const hasLuckyStrike = this.party.team.some(c => c.isAlive() && c.abilities.includes("lucky_strike"));
     const hasEagleEye = this.party.team.some(c => c.isAlive() && c.abilities.includes("eagle_eye"));
     if (hasLuckyStrike && Math.random() < LUCKY_STRIKE_CHANCE) {
