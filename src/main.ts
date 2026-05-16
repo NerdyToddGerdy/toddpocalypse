@@ -94,6 +94,8 @@ let lootFilterActive = false;
 const fullLog: string[] = []; // persistent combat log history (last 200 entries)
 const flashStartTimes = new Map<string, number>(); // "ci:slot" → ms timestamp when flash began
 let bossPortraitShowing = false;
+let lastTickSaveTime = 0;
+const TICK_SAVE_INTERVAL_MS = 5000;
 
 /** Typed getElementById helper — throws if the element is missing rather than returning null. */
 function $(id: string): HTMLElement {
@@ -102,14 +104,19 @@ function $(id: string): HTMLElement {
   return el;
 }
 
-/** Invokes a GameState method, re-renders with the returned JSON, and auto-saves. */
+/** Invokes a GameState method, re-renders with the returned JSON, and auto-saves.
+ *  Tick calls are throttled to one save per TICK_SAVE_INTERVAL_MS; all other actions save immediately. */
 function call<K extends keyof GameState>(method: K, ...args: any[]): void {
   if (!game) return;
   try {
     const fn = game[method] as unknown as (...a: any[]) => string;
     const json = fn.apply(game, args);
     render(JSON.parse(json) as GameStateDict);
-    saveGame();
+    const now = Date.now();
+    if (method !== "tick" || now - lastTickSaveTime >= TICK_SAVE_INTERVAL_MS) {
+      lastTickSaveTime = now;
+      saveGame();
+    }
   } catch (e: any) {
     appendLog("⚠ " + (e?.message ?? String(e)));
     console.error(method, e);
@@ -133,11 +140,13 @@ function render(state: GameStateDict): void {
     bossPortraitShowing = true;
     const eWords = enemy.name.split(" ");
     ($("monster-portrait") as HTMLImageElement).src = `monster_${eWords[2].toLowerCase()}.png`;
+    const borderEl = $("monster-border") as HTMLImageElement;
     if (enemy.is_boss) {
-      ($("monster-border") as HTMLImageElement).src = `border_${eWords[1].toLowerCase()}.png`;
+      borderEl.src = `border_${eWords[1].toLowerCase()}.png`;
+      borderEl.removeAttribute("hidden");
       portraitInner.classList.remove("elite-portrait-frame");
     } else {
-      ($("monster-border") as HTMLImageElement).src = "";
+      borderEl.removeAttribute("src");
       portraitInner.classList.add("elite-portrait-frame");
     }
     portraitWrap.classList.remove("boss-exiting");
@@ -2057,7 +2066,7 @@ function startGame(name: string, characterClass: string): void {
   deleteSave();
   game = new GameState(name, characterClass);
   render(JSON.parse(game.respond()));
-  setInterval(() => { call("tick", 0.1); saveGame(); }, 100);
+  setInterval(() => { call("tick", 0.1); }, 100);
 }
 
 /** Restores a GameState from a saved snapshot, hides the creation overlay, and starts the game loop. */
@@ -2078,7 +2087,7 @@ function continueGame(saved: GameStateDict): void {
   }
 
   render(JSON.parse(game.respond()));
-  setInterval(() => { call("tick", 0.1); saveGame(); }, 100);
+  setInterval(() => { call("tick", 0.1); }, 100);
 }
 
 function initPartyGearToggle(): void {

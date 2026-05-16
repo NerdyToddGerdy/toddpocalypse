@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.13.2";
+export const VERSION = "v2.13.3";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.13.3",
+    date: "2026-05-16",
+    changes: [
+      "Fixed: Chrome broken-image icon on elite enemy portrait (border `<img>` now uses removeAttribute('src') instead of src='')",
+      "Performance: eliminated redundant game-state serializations — tick saves now throttled to every 5 s (was every 100 ms), cutting localStorage writes from 20/s to 0.2/s and reducing GC pressure that caused high memory usage in long sessions",
+    ],
+  },
   {
     version: "v2.13.2",
     date: "2026-05-16",
