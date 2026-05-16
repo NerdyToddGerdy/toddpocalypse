@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.13.1";
+export const VERSION = "v2.13.2";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.13.2",
+    date: "2026-05-16",
+    changes: [
+      "Fixed: boss portrait no longer overflows panel in Firefox — replaced non-standard `width: stretch` with `width: auto` on the absolutely-positioned portrait and border images, which are already sized by their `inset` property",
+    ],
+  },
   {
     version: "v2.13.1",
     date: "2026-05-16",
