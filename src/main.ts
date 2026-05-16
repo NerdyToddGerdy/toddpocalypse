@@ -96,6 +96,10 @@ const flashStartTimes = new Map<string, number>(); // "ci:slot" → ms timestamp
 let bossPortraitShowing = false;
 let lastTickSaveTime = 0;
 const TICK_SAVE_INTERVAL_MS = 5000;
+let gameLoopId: number | undefined;
+let portraitEnterTimer: number | undefined;
+let portraitExitTimer: number | undefined;
+let featsBadgeTimer: number | undefined;
 
 /** Typed getElementById helper — throws if the element is missing rather than returning null. */
 function $(id: string): HTMLElement {
@@ -153,12 +157,14 @@ function render(state: GameStateDict): void {
     portraitWrap.classList.remove("boss-exiting");
     void portraitWrap.offsetWidth;
     portraitWrap.classList.add("boss-visible", "boss-entering");
-    setTimeout(() => portraitWrap.classList.remove("boss-entering"), 750);
+    clearTimeout(portraitEnterTimer);
+    portraitEnterTimer = setTimeout(() => portraitWrap.classList.remove("boss-entering"), 750);
   } else if (!wantsPortrait && bossPortraitShowing) {
     bossPortraitShowing = false;
     portraitInner.classList.remove("elite-portrait-frame");
     portraitWrap.classList.add("boss-exiting");
-    setTimeout(() => {
+    clearTimeout(portraitExitTimer);
+    portraitExitTimer = setTimeout(() => {
       portraitWrap.classList.remove("boss-visible");
       setTimeout(() => portraitWrap.classList.remove("boss-exiting"), 600);
     }, 380);
@@ -1427,7 +1433,8 @@ function renderFeats(state: GameStateDict): void {
     if (pending > 0) {
       badge.textContent = String(pending);
       badge.hidden = false;
-      setTimeout(() => { badge.hidden = true; }, 5000);
+      clearTimeout(featsBadgeTimer);
+      featsBadgeTimer = setTimeout(() => { badge.hidden = true; }, 5000);
     }
   }
 }
@@ -1471,10 +1478,12 @@ function renderLog(state: GameStateDict): void {
 
 /** Prepends a message directly to the combat log DOM element (used for UI-layer error messages). */
 function appendLog(msg: string): void {
-  $("combat-log").insertAdjacentHTML(
+  const log = $("combat-log");
+  log.insertAdjacentHTML(
     "afterbegin",
     `<div class="log-line" style="color:var(--danger)">${msg}</div>`,
   );
+  while (log.children.length > 50) log.lastElementChild!.remove();
 }
 
 function buildRuneTooltipHTML(rune: any): string {
@@ -2067,7 +2076,8 @@ function startGame(name: string, characterClass: string): void {
   deleteSave();
   game = new GameState(name, characterClass);
   render(JSON.parse(game.respond()));
-  setInterval(() => { call("tick", 0.1); }, 100);
+  clearInterval(gameLoopId);
+  gameLoopId = setInterval(() => { call("tick", 0.1); }, 100);
 }
 
 /** Restores a GameState from a saved snapshot, hides the creation overlay, and starts the game loop. */
@@ -2088,7 +2098,8 @@ function continueGame(saved: GameStateDict): void {
   }
 
   render(JSON.parse(game.respond()));
-  setInterval(() => { call("tick", 0.1); }, 100);
+  clearInterval(gameLoopId);
+  gameLoopId = setInterval(() => { call("tick", 0.1); }, 100);
 }
 
 function initPartyGearToggle(): void {

@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.13.6";
+export const VERSION = "v2.13.7";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,16 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.13.7",
+    date: "2026-05-16",
+    changes: [
+      "Memory: game loop interval now stored and cleared before re-init — prevents duplicate loops on re-initialization",
+      "Memory: portrait animation timeouts (750ms/380ms) now cancelled before re-scheduling — prevents stacking on rapid boss/elite transitions",
+      "Memory: feats badge hide-timeout now cancelled before re-scheduling — prevents stacking when multiple achievements unlock in sequence",
+      "Memory: appendLog now trims the combat-log DOM to 50 entries — prevents unbounded node growth from repeated error messages",
+    ],
+  },
   {
     version: "v2.13.6",
     date: "2026-05-16",
