@@ -343,7 +343,7 @@ function renderParty(state: GameStateDict): void {
   // Structure key: things that require a full DOM rebuild.
   // Health and XP are intentionally excluded — they are updated in-place below.
   const newStructKey = JSON.stringify(
-    state.party.map((c) => [c.level, c.dps, JSON.stringify(c.equipment), c.abilities.join(","), JSON.stringify(c.runes ?? {}), JSON.stringify((c as any).applied_set_bonuses ?? {})])
+    state.party.map((c) => [c.level, c.dps, JSON.stringify(c.equipment), c.abilities.join(","), JSON.stringify(c.runes ?? {}), JSON.stringify((c as any).applied_set_bonuses ?? {}), JSON.stringify((c as any).locked_slots ?? [])])
   ) + "|" + state.loot_pool.map(i => i.slot + i.name).join("|")
     + "|" + (state.earned_title ?? "");
 
@@ -374,16 +374,20 @@ function renderParty(state: GameStateDict): void {
           .map((item, idx) => ({ item, idx }))
           .filter(({ item }) => item.slot === matchSlot);
       };
+      const lockedSlots = new Set<string>((c as any).locked_slots ?? []);
       const gearRows = Object.entries(c.equipment)
         .map(([slot, item]) => {
+          const locked = lockedSlots.has(slot);
+          const lockBtn = `<button class="gear-lock-btn${locked ? " locked" : ""}" data-action="toggle-gear-lock" data-char="${ci}" data-slot="${slot}" title="${locked ? "Locked — click to unlock" : "Click to lock"}">${locked ? "🔒" : "🔓"}</button>`;
           if (item) {
             const qc = qualityClass(item.quality);
             const itemJson = encodeURIComponent(JSON.stringify(item));
             const isSetPiece = !!(item as any).set_name;
-            return `<div class="gear-row filled${isSetPiece ? " set-piece" : ""}" data-slot="${slot}" data-item="${itemJson}">
+            return `<div class="gear-row filled${isSetPiece ? " set-piece" : ""}${locked ? " gear-locked" : ""}" data-slot="${slot}" data-item="${itemJson}">
               <span class="gear-icon">${SLOT_ICONS[slot]}</span>
               <span class="gear-name ${qc}">${item.name}</span>
               <span class="gear-bonus ${qc}">${formatStats(item.stats ?? { dps: item.damage })}</span>
+              ${lockBtn}
               <button class="gear-unequip-btn" data-action="unequip-gear" data-char="${ci}" data-slot="${slot}" title="Unequip">✕</button>
             </div>`;
           }
@@ -393,15 +397,17 @@ function renderParty(state: GameStateDict): void {
               const qc = qualityClass(li.quality);
               return `<option value="${idx}" class="${qc}">${li.short_name ?? li.name} (${formatStats(li.stats ?? { dps: li.damage })})</option>`;
             }).join("");
-            return `<div class="gear-row empty gear-row-equip" data-slot="${slot}">
+            return `<div class="gear-row empty gear-row-equip${locked ? " gear-locked" : ""}" data-slot="${slot}">
               <span class="gear-icon">${SLOT_ICONS[slot]}</span>
               <select class="gear-loot-select">${optHtml}</select>
               <button class="gear-equip-from-slot-btn" data-action="equip-loot-on-char" data-char="${ci}" data-slot="${slot}">Equip</button>
+              ${lockBtn}
             </div>`;
           }
-          return `<div class="gear-row empty" data-slot="${slot}">
+          return `<div class="gear-row empty${locked ? " gear-locked" : ""}" data-slot="${slot}">
             <span class="gear-icon">${SLOT_ICONS[slot]}</span>
             <span class="gear-slot-label">${slotLabel(slot)}</span>
+            ${lockBtn}
           </div>`;
         })
         .join("");
@@ -2330,6 +2336,7 @@ document.addEventListener("DOMContentLoaded", () => {
       call("equipLootOnChar", parseInt(btn.dataset.char!, 10), parseInt(sel.value, 10));
     }
     else if (action === "unequip-gear") call("unequipGear", parseInt(btn.dataset.char!, 10), btn.dataset.slot!);
+    else if (action === "toggle-gear-lock") call("toggleGearLock", parseInt(btn.dataset.char!, 10), btn.dataset.slot!);
     else if (action === "equip-from-stash") {
       const row = btn.closest(".stash-item")!;
       const sel = row.querySelector(".stash-char-select") as HTMLSelectElement | HTMLInputElement;

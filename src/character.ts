@@ -121,6 +121,7 @@ export interface CharacterDict {
   haste: number;
   runes?: Partial<Record<Slot, Rune>>;
   applied_set_bonuses?: Record<string, GearStats>;
+  locked_slots?: string[];
 }
 
 /** A player character or companion with class stats, equipment, and abilities. */
@@ -163,6 +164,8 @@ export class Character {
   runes: Partial<Record<Slot, Rune>> = {};
   /** Currently applied named-set stat bonuses, keyed by set id. Used for reversal on recompute. */
   appliedSetBonuses: Record<string, GearStats> = {};
+  /** Gear slots the player has locked against automatic replacement. */
+  lockedSlots: Set<Slot> = new Set();
   /** Seconds accumulated toward the next Mana Surge burst. */
   surgeTimer = 0;
   /** Party-wide ability effects queued to apply after the current enemy dies. */
@@ -362,6 +365,7 @@ export class Character {
       haste: Math.round(this.haste * 10000) / 10000,
       runes: Object.keys(this.runes).length > 0 ? { ...this.runes } : undefined,
       applied_set_bonuses: Object.keys(this.appliedSetBonuses).length > 0 ? { ...this.appliedSetBonuses } : undefined,
+      locked_slots: this.lockedSlots.size > 0 ? [...this.lockedSlots] : undefined,
     };
   }
 
@@ -395,6 +399,9 @@ export class Character {
     // Restore applied set bonuses without re-applying (baked into serialized stat fields)
     if (d.applied_set_bonuses) {
       c.appliedSetBonuses = { ...d.applied_set_bonuses };
+    }
+    if (d.locked_slots) {
+      c.lockedSlots = new Set(d.locked_slots as Slot[]);
     }
     return c;
   }

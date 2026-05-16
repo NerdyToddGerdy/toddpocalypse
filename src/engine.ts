@@ -775,8 +775,9 @@ export class GameState {
     const leadName = this.party.team[0].name;
     const leadClass = this.party.team[0].characterClass;
 
-    // Preserve socketed runes — re-applied after new characters are created
+    // Preserve socketed runes and locked slots — re-applied after new characters are created
     const savedRunes = new Map(this.party.team.map(c => [c.name, { ...c.runes }]));
+    const savedLockedSlots = new Map(this.party.team.map(c => [c.name, new Set(c.lockedSlots)]));
 
     this.dungeonLevel = 1;
     this.kills = 0;
@@ -830,6 +831,8 @@ export class GameState {
       for (const [slot, rune] of Object.entries(runes)) {
         if (rune) c.applyRune(slot as import("./gear.js").Slot, rune);
       }
+      const locked = savedLockedSlots.get(c.name);
+      if (locked) c.lockedSlots = locked;
     }
 
     this.gold = (this.prestigeUpgrades["starting_gold"] ?? 0) * STARTING_GOLD_PER_LEVEL;
@@ -1435,12 +1438,44 @@ export class GameState {
    * Returns the equipped item that would be displaced if this item were equipped.
    * For rings, returns the weaker ring (the one that will be replaced).
    */
+  /** Sentinel returned by slotToCompare when a slot is locked. Its enormous power prevents displacement. */
+  private static readonly LOCKED: GearItem = new GearItem("main_hand", "sword", "divine", "valor", { dps: 1e12 }, 1);
+
+  /** Returns the item that would be displaced if the new item were auto-equipped, respecting gear locks.
+   *  Returns LOCKED sentinel (enormous power) when displacement is blocked by a lock. */
   private slotToCompare(c: Character, item: GearItem): GearItem | null {
-    if (item.slot !== "ring1") return c.inventory.slots[item.slot];
+    if (item.slot !== "ring1") {
+      const existing = c.inventory.slots[item.slot];
+      // Locked slot: block replacement if occupied; block filling if empty and locked
+      if (c.lockedSlots.has(item.slot)) return GameState.LOCKED;
+      return existing;
+    }
+    // Ring logic
     const r1 = c.inventory.slots.ring1;
     const r2 = c.inventory.slots.ring2;
-    if (!r1 || !r2) return null; // fills empty ring slot
-    return gearPower(r1.stats) <= gearPower(r2.stats) ? r1 : r2; // weaker ring will be displaced
+    const r1Locked = c.lockedSlots.has("ring1");
+    const r2Locked = c.lockedSlots.has("ring2");
+    if (!r1 || !r2) {
+      // At least one ring slot is empty — block filling if that empty slot is locked
+      if (!r1 && r1Locked && !r2 && r2Locked) return GameState.LOCKED;
+      if (!r1 && r1Locked) return r1 ?? null; // r1 locked and empty → try r2
+      if (!r2 && r2Locked) return r2 ?? null; // r2 locked and empty → try r1
+      return null; // fill empty slot
+    }
+    if (r1Locked && r2Locked) return GameState.LOCKED; // both occupied and locked
+    if (r1Locked) return r2; // only r2 can be displaced
+    if (r2Locked) return r1; // only r1 can be displaced
+    return gearPower(r1.stats) <= gearPower(r2.stats) ? r1 : r2; // weaker ring displaced
+  }
+
+  /** Toggles the lock state of a gear slot on a character. Locked slots are skipped by auto systems. */
+  toggleGearLock(charIdx: number, slot: string): string {
+    const char = this.party.team[charIdx];
+    if (!char) return this.respond();
+    const s = slot as import("./gear.js").Slot;
+    if (char.lockedSlots.has(s)) char.lockedSlots.delete(s);
+    else char.lockedSlots.add(s);
+    return this.respond();
   }
 
   /** Sells all loot items matching the auto-sell quality list, skipping items that are upgrades. */

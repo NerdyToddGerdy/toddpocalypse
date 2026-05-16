@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.13.0";
+export const VERSION = "v2.13.1";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.13.1",
+    date: "2026-05-16",
+    changes: [
+      "Gear locking: click the 🔓 button on any gear slot to lock it — auto-equip and Equip All will not replace locked items; manual equip still works as override",
+      "Lock state survives prestige and saves/loads correctly; locked slots show a gold left-border",
+      "Ring slots can be locked independently; both rings locked prevents any auto ring replacement",
+    ],
+  },
   {
     version: "v2.13.0",
     date: "2026-05-16",

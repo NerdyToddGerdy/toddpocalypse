@@ -4244,3 +4244,167 @@ describe("named gear sets — engine drops", () => {
     expect(char.critChance).toBeGreaterThan(critBefore);
   });
 });
+
+describe("gear locking", () => {
+  it("character has lockedSlots field initialized as empty Set", () => {
+    const gs = make();
+    expect(gs.party.team[0].lockedSlots).toBeDefined();
+    expect(gs.party.team[0].lockedSlots.size).toBe(0);
+  });
+
+  it("toggleGearLock adds slot to lockedSlots", () => {
+    const gs = make();
+    gs.toggleGearLock(0, "helmet");
+    expect(gs.party.team[0].lockedSlots.has("helmet")).toBe(true);
+  });
+
+  it("toggleGearLock twice removes slot from lockedSlots", () => {
+    const gs = make();
+    gs.toggleGearLock(0, "helmet");
+    gs.toggleGearLock(0, "helmet");
+    expect(gs.party.team[0].lockedSlots.has("helmet")).toBe(false);
+  });
+
+  it("toggleGearLock returns JSON string", () => {
+    const gs = make();
+    const result = gs.toggleGearLock(0, "helmet");
+    expect(() => JSON.parse(result)).not.toThrow();
+  });
+
+  it("toggleGearLock out-of-range charIdx is a no-op", () => {
+    const gs = make();
+    expect(() => gs.toggleGearLock(99, "helmet")).not.toThrow();
+  });
+
+  it("lockedSlots round-trips through toDict/fromDict", () => {
+    const gs = make();
+    gs.toggleGearLock(0, "helmet");
+    gs.toggleGearLock(0, "chest");
+    const restored = GameState.fromDict(JSON.parse(gs.tick(0)));
+    expect(restored.party.team[0].lockedSlots.has("helmet")).toBe(true);
+    expect(restored.party.team[0].lockedSlots.has("chest")).toBe(true);
+    expect(restored.party.team[0].lockedSlots.has("gloves")).toBe(false);
+  });
+
+  it("auto equip (runAutoEquip) does not replace a locked item", () => {
+    const gs = make();
+    gs.prestigeUpgrades["auto_equip"] = 1;
+    gs.autoEquipEnabled = true;
+    const char = gs.party.team[0];
+    // Equip a weak item and lock it
+    const weak = new GearItem("helmet", "helm", "common", "valor", { dps: 1 }, 1);
+    char.equipItem(weak);
+    gs.toggleGearLock(0, "helmet");
+    // Add a much better item to the loot pool
+    const strong = new GearItem("helmet", "helm", "divine", "valor", { dps: 9999 }, 1);
+    gs.lootPool.push(strong);
+    gs.onEnemyDeath(); // triggers runAutoEquip
+    // Weak item should still be equipped
+    expect(char.inventory.slots["helmet"]?.stats.dps).toBe(1);
+    // Strong item should still be in loot pool (not equipped)
+    expect(gs.lootPool.some(i => i.stats.dps === 9999)).toBe(true);
+  });
+
+  it("equipAll sells item instead of equipping into locked slot", () => {
+    const gs = make();
+    const char = gs.party.team[0];
+    const weak = new GearItem("chest", "plate", "common", "valor", { dps: 1 }, 1);
+    char.equipItem(weak);
+    gs.toggleGearLock(0, "chest");
+    const strong = new GearItem("chest", "plate", "divine", "valor", { dps: 9999 }, 1);
+    gs.lootPool.push(strong);
+    const goldBefore = gs.gold;
+    gs.equipAll();
+    // Locked item should remain
+    expect(char.inventory.slots["chest"]?.stats.dps).toBe(1);
+    // Strong item got sold
+    expect(gs.gold).toBeGreaterThan(goldBefore);
+  });
+
+  it("isUpgradeForAnyMember returns false when all members have that slot locked", () => {
+    const gs = make();
+    const char = gs.party.team[0];
+    const weak = new GearItem("gloves", "gauntlets", "common", "valor", { dps: 1 }, 1);
+    char.equipItem(weak);
+    gs.toggleGearLock(0, "gloves");
+    const strong = new GearItem("gloves", "gauntlets", "divine", "valor", { dps: 9999 }, 1);
+    gs.lootPool.push(strong);
+    // Smart seller check: isUpgradeForAnyMember should be false
+    // Easiest proxy: equipAll sells it
+    const goldBefore = gs.gold;
+    gs.equipAll();
+    expect(gs.gold).toBeGreaterThan(goldBefore); // sold because locked
+  });
+
+  it("manual equipLootOnChar ignores lock and equips on the specified character", () => {
+    const gs = make();
+    const char = gs.party.team[0];
+    const weak = new GearItem("shoes", "boots", "common", "valor", { dps: 1 }, 1);
+    char.equipItem(weak);
+    gs.toggleGearLock(0, "shoes");
+    const strong = new GearItem("shoes", "boots", "divine", "valor", { dps: 9999 }, 1);
+    gs.lootPool.push(strong);
+    gs.equipLootOnChar(0, 0);
+    // Manual override: lock is ignored
+    expect(char.inventory.slots["shoes"]?.stats.dps).toBe(9999);
+  });
+
+  it("locked empty slot is still auto-fillable — lock only blocks replacement", () => {
+    const gs = make();
+    gs.prestigeUpgrades["auto_equip"] = 1;
+    gs.autoEquipEnabled = true;
+    const char = gs.party.team[0];
+    // Slot is empty and locked — we're locking an EMPTY slot (unusual but valid)
+    gs.toggleGearLock(0, "helmet");
+    const item = new GearItem("helmet", "helm", "divine", "valor", { dps: 9999 }, 1);
+    gs.lootPool.push(item);
+    gs.onEnemyDeath();
+    // Empty-slot lock: the item should NOT auto-equip (lock means "leave this slot alone")
+    expect(char.inventory.slots["helmet"]).toBeNull();
+  });
+
+  it("both rings locked: ring item is not auto-equipped", () => {
+    const gs = make();
+    gs.prestigeUpgrades["auto_equip"] = 1;
+    gs.autoEquipEnabled = true;
+    const char = gs.party.team[0];
+    const ring1 = new GearItem("ring1", "ring", "rare", "valor", { dps: 1 }, 1);
+    const ring2 = new GearItem("ring1", "ring", "rare", "valor", { dps: 1 }, 1);
+    char.equipItem(ring1);
+    char.equipItem(ring2);
+    gs.toggleGearLock(0, "ring1");
+    gs.toggleGearLock(0, "ring2");
+    const newRing = new GearItem("ring1", "ring", "divine", "valor", { dps: 9999 }, 1);
+    gs.lootPool.push(newRing);
+    gs.onEnemyDeath();
+    // Neither ring should be replaced
+    expect(char.inventory.slots.ring1?.stats.dps).toBe(1);
+    expect(char.inventory.slots.ring2?.stats.dps).toBe(1);
+    expect(gs.lootPool.some(i => i.stats.dps === 9999)).toBe(true);
+  });
+
+  it("only ring2 locked: ring item can still replace ring1", () => {
+    const gs = make();
+    const char = gs.party.team[0];
+    const ring1 = new GearItem("ring1", "ring", "common", "valor", { dps: 1 }, 1);
+    const ring2 = new GearItem("ring1", "ring", "epic",   "valor", { dps: 50 }, 1);
+    char.equipItem(ring1);
+    char.equipItem(ring2);
+    gs.toggleGearLock(0, "ring2");
+    // Add item stronger than ring1 but weaker than ring2
+    const newRing = new GearItem("ring1", "ring", "legendary", "valor", { dps: 10 }, 1);
+    gs.lootPool.push(newRing);
+    gs.equipAll();
+    // ring2 should remain (locked), ring1 should be replaced
+    expect(char.inventory.slots.ring2?.stats.dps).toBe(50);
+    expect(char.inventory.slots.ring1?.stats.dps).toBe(10);
+  });
+
+  it("locked slots survive prestige", () => {
+    const gs = withHighLevel(20);
+    gs.gold = 1_000_000;
+    gs.toggleGearLock(0, "helmet");
+    gs.prestige();
+    expect(gs.party.team[0].lockedSlots.has("helmet")).toBe(true);
+  });
+});

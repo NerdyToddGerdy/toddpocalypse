@@ -3876,3 +3876,24 @@ footer {
     color: #f0c040;
     background: rgba(240,192,64,0.12);
 }
+
+/* ── Gear Locking ────────────────────────────────────────── */
+.gear-lock-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.75rem;
+    opacity: 0.35;
+    padding: 0 2px;
+    line-height: 1;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+}
+.gear-lock-btn:hover,
+.gear-lock-btn.locked {
+    opacity: 1;
+}
+.gear-row.gear-locked {
+    border-left: 2px solid #c9a227;
+    background: rgba(201,162,39,0.04);
+}
