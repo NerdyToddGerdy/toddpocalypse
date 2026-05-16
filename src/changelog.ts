@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.12.0";
+export const VERSION = "v2.12.1";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,16 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.12.1",
+    date: "2026-05-16",
+    changes: [
+      "Fixed: 'Warlord' boss title now reads 'Ravager' to avoid 'Warlord … Lord' repetition",
+      "Fixed: Shop badge no longer shows when guild hall upgrades are locked or unaffordable (checks guild_hall_access + dungeon requirement)",
+      "Fixed: Header gold number now reserves stable width to prevent layout shift as gold grows",
+      "Added: 📦 button on each loot item lets you send it directly to the stash (disabled when stash is full)",
+    ],
+  },
   {
     version: "v2.12.0",
     date: "2026-05-16",

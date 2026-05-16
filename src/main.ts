@@ -1,4 +1,4 @@
-import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock } from "./engine.js";
+import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock } from "./engine.js";
 import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, type GearStats, type GearItemDict } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
@@ -523,6 +523,12 @@ function renderLoot(state: GameStateDict): void {
   const ups = state.prestige_upgrades as Record<string, number>;
   const autoSellOwned = (ups["auto_seller"] ?? 0) > 0;
   const autoEquipOwned = (ups["auto_equip"] ?? 0) > 0;
+  const stashUnlocked = (ups["stash"] ?? 0) > 0;
+  const stash: GameStateDict["loot_pool"] = (state as any).gear_stash ?? [];
+  const stashSizes = [3, 6, 10, 15];
+  const stashLevel = ups["stash"] ?? 0;
+  const stashMax = stashSizes[stashLevel - 1] ?? 15;
+  const stashFull = stash.length >= stashMax;
 
   // Auto-action toggles
   const togglesSection = document.getElementById("auto-toggles-section")!;
@@ -540,7 +546,7 @@ function renderLoot(state: GameStateDict): void {
     }
   }
 
-  const newKey = loot.map((i) => i.slot + i.name).join("|") + "|" + JSON.stringify(state.auto_sell_qualities) + "|" + state.highest_level + "|" + lootFilterActive;
+  const newKey = loot.map((i) => i.slot + i.name).join("|") + "|" + JSON.stringify(state.auto_sell_qualities) + "|" + state.highest_level + "|" + lootFilterActive + "|" + stashUnlocked + "|" + stashFull;
   if (newKey !== lootKey) {
     lootKey = newKey;
 
@@ -577,6 +583,7 @@ function renderLoot(state: GameStateDict): void {
     <div class="loot-btns">
       <button class="equip-btn" data-action="equip" data-idx="${i}">Equip</button>
       <button class="sell-btn"  data-action="sell"  data-idx="${i}">${item.sell_value}g</button>
+      ${stashUnlocked ? `<button class="stash-loot-btn" data-action="stash-loot" data-idx="${i}" ${stashFull ? "disabled" : ""}>📦</button>` : ""}
     </div>
   </div>
 </div>`;
@@ -1207,9 +1214,11 @@ function updateShopBadge(state: GameStateDict): void {
     return !atMax && !prereqMissing && state.prestige_points >= cost;
   });
   const guildUpgrades = state.guild_upgrades as Record<string, number>;
-  const canBuyGuild = Object.entries(GUILD_HALL_COSTS).some(([type, costs]) => {
+  const guildUnlocked = (ups["guild_hall_access"] ?? 0) > 0;
+  const canBuyGuild = guildUnlocked && Object.entries(GUILD_HALL_COSTS).some(([type, costs]) => {
     const owned = guildUpgrades[type] ?? 0;
-    return owned < costs.length && state.gold >= costs[owned];
+    const dungeonReq = (GUILD_HALL_DUNGEON_REQ as Record<string, number>)[type] ?? 0;
+    return owned < costs.length && state.dungeon_index >= dungeonReq && state.gold >= costs[owned];
   });
   badge.hidden = !(canBuyUpgrade || canBuyPrestige || canBuyGuild);
   const stabPrestigeBadge = document.getElementById("stab-prestige-badge");
@@ -2302,6 +2311,7 @@ document.addEventListener("DOMContentLoaded", () => {
       call("equipFromStash", parseInt(sel.value, 10), parseInt(btn.dataset.stashIdx!, 10));
     }
     else if (action === "sell-from-stash") call("sellFromStash", parseInt(btn.dataset.stashIdx!, 10));
+    else if (action === "stash-loot") call("stashLoot", idx);
     else if (action === "sell") call("sellLoot", idx);
     else if (action === "upgrade") call("buyUpgrade", btn.dataset.char!, btn.dataset.type!);
     else if (action === "attack") call("click");

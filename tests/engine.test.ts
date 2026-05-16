@@ -4038,3 +4038,43 @@ describe("stash persistence", () => {
     expect(gs.gearStash.length).toBe(0);
   });
 });
+
+describe("stashLoot", () => {
+  it("moves loot pool item to stash", () => {
+    const gs = make();
+    gs.dungeonIndex = 2;
+    gs.buyPrestigeUpgrade("stash");
+    const item = getItem();
+    gs.lootPool.push(item);
+    gs.stashLoot(0);
+    expect(gs.lootPool.length).toBe(0);
+    expect(gs.gearStash).toContain(item);
+  });
+
+  it("does nothing when stash not unlocked", () => {
+    const gs = make();
+    gs.lootPool.push(getItem());
+    gs.stashLoot(0);
+    expect(gs.lootPool.length).toBe(1);
+    expect(gs.gearStash.length).toBe(0);
+  });
+
+  it("does nothing when stash is full", () => {
+    const gs = make();
+    gs.dungeonIndex = 2;
+    gs.buyPrestigeUpgrade("stash"); // 3 slots
+    for (let i = 0; i < 3; i++) gs.gearStash.push(getItem());
+    gs.lootPool.push(getItem());
+    gs.stashLoot(0);
+    expect(gs.lootPool.length).toBe(1); // unchanged
+    expect(gs.gearStash.length).toBe(3); // unchanged
+  });
+
+  it("does nothing with out-of-range idx", () => {
+    const gs = make();
+    gs.dungeonIndex = 2;
+    gs.buyPrestigeUpgrade("stash");
+    gs.stashLoot(5);
+    expect(gs.gearStash.length).toBe(0);
+  });
+});

@@ -608,6 +608,16 @@ export class GameState {
     return this.respond();
   }
 
+  /** Moves a loot pool item into the stash. No-op if stash is full or not unlocked. Returns serialized JSON. */
+  stashLoot(lootIdx: number): string {
+    if (lootIdx < 0 || lootIdx >= this.lootPool.length) return this.respond();
+    if (this.gearStash.length >= this.stashMax) return this.respond();
+    const item = this.lootPool.splice(lootIdx, 1)[0];
+    this.gearStash.push(item);
+    this.addLog(`${item.getName()} moved to stash.`);
+    return this.respond();
+  }
+
   /** Sells a stash item at the given index for its sell value. Returns serialized JSON. */
   sellFromStash(stashIdx: number): string {
     if (stashIdx < 0 || stashIdx >= this.gearStash.length) return this.respond();

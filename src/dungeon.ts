@@ -8,7 +8,7 @@ const BOSS_TITLES = [
   "Shadow",
   "Titan",
   "Undying",
-  "Warlord",
+  "Ravager",
   "Ancient",
 ];
 

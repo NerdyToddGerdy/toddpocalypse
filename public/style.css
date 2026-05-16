@@ -159,7 +159,9 @@ header h1 {
     align-items: center;
 }
 
-#stats-bar span { color: var(--text); font-weight: 600; }
+#stats-bar span { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+#stats-bar > div { white-space: nowrap; }
+#stat-gold { min-width: 6ch; display: inline-block; text-align: right; }
 
 #stat-party-hp-wrap { display: none; }
 #stat-party-dps-wrap { display: none; }
@@ -1065,6 +1067,17 @@ main {
 .equip-btn { background: var(--accent2); color: #fff; }
 .sell-btn  { background: var(--accent);  color: #1a1005; }
 .equip-btn:hover, .sell-btn:hover { opacity: 0.8; }
+.stash-loot-btn {
+    padding: 4px 6px;
+    font-size: 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: rgba(255,255,255,0.05);
+    cursor: pointer;
+    transition: opacity 0.1s;
+}
+.stash-loot-btn:hover:not(:disabled) { border-color: var(--accent2); }
+.stash-loot-btn:disabled { opacity: 0.3; cursor: default; }
 
 /* ── Upgrades ── */
 .upgrade-card {
