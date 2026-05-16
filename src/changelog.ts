@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.11.3";
+export const VERSION = "v2.11.4";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.11.4",
+    date: "2026-05-16",
+    changes: [
+      "Fix: Consecrate now correctly heals on all 5 kills of its duration (was healing only 4 due to decrement-before-check off-by-one)",
+    ],
+  },
   {
     version: "v2.11.3",
     date: "2026-05-16",

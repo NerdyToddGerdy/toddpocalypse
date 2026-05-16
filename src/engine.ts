@@ -1197,6 +1197,7 @@ export class GameState {
 
   /** Handles enemy defeat: awards XP/gold/loot, applies pending party abilities, and advances the floor. */
   onEnemyDeath(): void {
+    const consecrate = (this.activeEffects["skill_consecrate"] ?? 0) > 0;
     for (const key of Object.keys(this.activeEffects)) {
       this.activeEffects[key] -= 1;
       if (this.activeEffects[key] <= 0) delete this.activeEffects[key];
@@ -1234,7 +1235,7 @@ export class GameState {
       }
     }
 
-    if ((this.activeEffects["skill_consecrate"] ?? 0) > 0) {
+    if (consecrate) {
       for (const c of this.party.team) {
         c.health = Math.min(c.maxHealth, c.health + c.maxHealth * 0.25);
       }

@@ -3371,6 +3371,22 @@ describe("dungeon 2 content", () => {
     // Only the 12% missing-HP heal (99 missing × 0.12 ≈ 12.88)
     expect(player.health).toBeLessThan(15);
   });
+
+  it("skill_consecrate heals on all 5 kills of its duration", () => {
+    const gs = make();
+    const player = gs.party.team[0];
+    player.maxHealth = 100;
+    gs.enemy = { name: "Mob", level: 1, hp: 0, max_hp: 1, xp_reward: 0, gold_reward: 0, attack_dps: 0, isBoss: false };
+    gs.activeEffects["skill_consecrate"] = 5;
+    let healCount = 0;
+    for (let i = 0; i < 5; i++) {
+      const before = player.health;
+      player.health = 1; // reset to near-dead so the consecrate heal is detectable
+      gs.onEnemyDeath();
+      if (player.health > 25) healCount++;
+    }
+    expect(healCount).toBe(5);
+  });
 });
 
 describe("offline progress catch-up", () => {
