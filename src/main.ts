@@ -425,7 +425,6 @@ function renderParty(state: GameStateDict): void {
     </div>
   </div>
   <div class="char-gear">${gearRows}</div>
-  <div class="char-abilities">${abilitiesHtml}</div>
   <div class="xp-section">
     <div class="xp-header">
       <span class="xp-level-label">Level ${c.level}</span>
