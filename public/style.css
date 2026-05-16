@@ -69,6 +69,7 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 [hidden] { display: none !important; }
+button, select { touch-action: manipulation; }
 
 /* Fantasy display font applied to all headers and key UI labels */
 h1, h2, .stab-btn, .mobile-tab-btn span, #attack-btn, #skill-btn, .companion-skill-btn,
