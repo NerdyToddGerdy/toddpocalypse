@@ -79,6 +79,7 @@ let lifetimeStatsKey: string | null = null;
 let logKey: string | null = null;
 let lootKey: string | null = null;
 let autoSellKey: string | null = null;
+let stashKey: string | null = null;
 let upgradeKey: string | null = null;
 let partyStructKey: string | null = null;
 let prevEquipJsonByChar: string[] = [];
@@ -188,6 +189,7 @@ function render(state: GameStateDict): void {
   renderDepthGauge(state);
   renderParty(state);
   renderLoot(state);
+  renderStash(state);
   renderUpgrades(state);
   renderPrestigeShop(state);
   renderGuildHall(state);
@@ -594,6 +596,51 @@ function renderLoot(state: GameStateDict): void {
   }
 }
 
+/** Renders the gear stash panel if the stash upgrade is purchased. */
+function renderStash(state: GameStateDict): void {
+  const ups = state.prestige_upgrades as Record<string, number>;
+  const stashLevel = ups["stash"] ?? 0;
+  const section = document.getElementById("stash-section")!;
+  section.hidden = stashLevel === 0;
+  if (stashLevel === 0) return;
+
+  const stash: GameStateDict["loot_pool"] = (state as any).gear_stash ?? [];
+  const stashSizes = [3, 6, 10, 15];
+  const stashMax = stashSizes[stashLevel - 1] ?? 15;
+  const partyNames = state.party.map(c => c.name);
+  const newKey = stash.map(i => i.slot + i.name + i.quality).join("|") + "|" + stashMax + "|" + partyNames.join(",");
+  if (newKey === stashKey) return;
+  stashKey = newKey;
+
+  document.getElementById("stash-count")!.textContent = `(${stash.length}/${stashMax})`;
+  const container = document.getElementById("stash-items")!;
+  if (stash.length === 0) {
+    container.innerHTML = `<div class="stash-empty">Stash is empty</div>`;
+    return;
+  }
+  const multiChar = partyNames.length > 1;
+  const charOptions = partyNames.map((name, ci) => `<option value="${ci}">${name}</option>`).join("");
+  container.innerHTML = stash.map((item, idx) => {
+    const qc = qualityClass(item.quality);
+    const statsText = formatLootStats("", item.stats ?? {});
+    const charSel = multiChar
+      ? `<select class="stash-char-select">${charOptions}</select>`
+      : `<input type="hidden" class="stash-char-select" value="0">`;
+    return `<div class="stash-item">
+  <div class="stash-item-header">
+    <span class="stash-item-name ${qc}">${item.short_name ?? item.name}</span>
+    <span class="stash-item-slot">${item.slot_display}</span>
+  </div>
+  ${statsText ? `<div class="stash-item-stats">${statsText}</div>` : ""}
+  <div class="stash-item-btns">
+    ${charSel}
+    <button class="stash-equip-btn" data-action="equip-from-stash" data-stash-idx="${idx}">Equip</button>
+    <button class="stash-sell-btn" data-action="sell-from-stash" data-stash-idx="${idx}">${item.sell_value}g</button>
+  </div>
+</div>`;
+  }).join("");
+}
+
 /** Renders per-character stat upgrade cards with current level, cost, and effect. */
 function renderUpgrades(state: GameStateDict): void {
   const structureKey = JSON.stringify(state.upgrades);
@@ -647,6 +694,7 @@ const PRESTIGE_SHOP_META: Record<string, { icon: string; name: string; desc: str
   checkpoint:    { icon: "⚑", name: "Checkpoint",     desc: "Each level adds a respawn checkpoint at the next multiple of 5 (lv1→floor 5, lv2→floor 10, lv3→floor 15…).", max: 20 },
   gold_mastery:  { icon: "💰", name: "Gold Mastery",   desc: "+20% gold from bosses per stack. Dungeon 2+.", max: Infinity, dungeonReq: 1 },
   gear_luck:     { icon: "🍀", name: "Gear Luck",      desc: "+5% item drop chance per stack (max 75%). Dungeon 2+.", max: 10, dungeonReq: 1 },
+  stash:         { icon: "📦", name: "Gear Stash",     desc: "Persistent stash that survives prestige. Lv1: 3 slots (free), Lv2: 6 slots, Lv3: 10 slots, Lv4: 15 slots. Dungeon 3+.", max: 4, dungeonReq: 2 },
 };
 
 /** Builds the HTML for quality-tier auto-sell checkboxes shown beneath the loot chest. */
@@ -744,6 +792,7 @@ function prestigeCurrentStat(type: string, owned: number): string {
     case "gold_mastery":   return `Current: +${owned * 20}% boss gold`;
     case "gear_luck":      return `Current: +${Math.min(owned * 5, 75)}% drop chance`;
     case "checkpoint":     return `Current: respawn at floor ${owned * 5}`;
+    case "stash":          return `Current: ${[3, 6, 10, 15][owned - 1] ?? 15} stash slots`;
     default: return "";
   }
 }
@@ -2247,6 +2296,12 @@ document.addEventListener("DOMContentLoaded", () => {
       call("equipLootOnChar", parseInt(btn.dataset.char!, 10), parseInt(sel.value, 10));
     }
     else if (action === "unequip-gear") call("unequipGear", parseInt(btn.dataset.char!, 10), btn.dataset.slot!);
+    else if (action === "equip-from-stash") {
+      const row = btn.closest(".stash-item")!;
+      const sel = row.querySelector(".stash-char-select") as HTMLSelectElement | HTMLInputElement;
+      call("equipFromStash", parseInt(sel.value, 10), parseInt(btn.dataset.stashIdx!, 10));
+    }
+    else if (action === "sell-from-stash") call("sellFromStash", parseInt(btn.dataset.stashIdx!, 10));
     else if (action === "sell") call("sellLoot", idx);
     else if (action === "upgrade") call("buyUpgrade", btn.dataset.char!, btn.dataset.type!);
     else if (action === "attack") call("click");

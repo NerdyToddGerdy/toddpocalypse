@@ -3728,3 +3728,100 @@ footer {
     color: #fff;
     font-weight: 600;
 }
+
+/* ── Gear Stash ─────────────────────────────────────────────── */
+#stash-section {
+    margin-top: 4px;
+}
+#stash-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+#stash-header h3 {
+    margin: 0;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+}
+#stash-count {
+    font-size: 0.75rem;
+    color: var(--muted);
+}
+#stash-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 6px;
+}
+.stash-item {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 0.78rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.stash-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+.stash-item-name {
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+.stash-item-slot {
+    font-size: 0.68rem;
+    color: var(--muted);
+    white-space: nowrap;
+}
+.stash-item-stats {
+    color: var(--muted);
+    font-size: 0.72rem;
+}
+.stash-item-btns {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+    flex-wrap: wrap;
+}
+.stash-char-select {
+    font-size: 0.72rem;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 3px;
+    padding: 1px 3px;
+    flex: 1;
+    min-width: 0;
+}
+.stash-equip-btn, .stash-sell-btn {
+    font-size: 0.72rem;
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.05);
+    color: var(--text);
+    cursor: pointer;
+    white-space: nowrap;
+}
+.stash-equip-btn:hover {
+    border-color: var(--accent2);
+    color: var(--accent2);
+}
+.stash-sell-btn:hover {
+    border-color: var(--hp-green);
+    color: var(--hp-green);
+}
+.stash-empty {
+    font-size: 0.8rem;
+    color: var(--border);
+    font-style: italic;
+}

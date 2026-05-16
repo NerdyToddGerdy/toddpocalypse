@@ -101,19 +101,28 @@ export const PRESTIGE_SHOP_COSTS: Record<string, number> = {
   checkpoint: 1,
   gold_mastery: 2,
   gear_luck: 2,
+  stash: 0,
 };
 
 /** Minimum dungeonIndex required to purchase each prestige upgrade. */
 export const PRESTIGE_DUNGEON_REQ: Record<string, number> = {
   gold_mastery: 1,
   gear_luck: 1,
+  stash: 2,
 };
 
 /** Stackable upgrades whose cost increases by 1 pt per stack already owned. */
 const SCALING_PRESTIGE_UPGRADES = new Set(["starting_gold", "xp_bonus", "gold_bonus", "checkpoint", "gold_mastery", "gear_luck"]);
 
+/** Prestige point costs for each tier of the gear stash upgrade (levels 1–4). */
+export const STASH_TIER_COSTS = [0, 2, 5, 10];
+
+/** Number of stash slots unlocked at each stash tier (index = tier - 1). */
+export const STASH_SIZES = [3, 6, 10, 15];
+
 /** Returns the prestige point cost for the next purchase of a given upgrade type. */
 export function prestigeUpgradeCost(type: string, currentStacks: number): number {
+  if (type === "stash") return STASH_TIER_COSTS[currentStacks] ?? Infinity;
   if (SCALING_PRESTIGE_UPGRADES.has(type)) {
     return PRESTIGE_SHOP_COSTS[type] + currentStacks;
   }
@@ -316,6 +325,7 @@ export interface GameStateDict {
   pending_achievements: AchievementUnlock[];
   rune_inventory: Rune[];
   earned_titles: string[];
+  gear_stash: GearItemDict[];
 }
 
 /** Central game loop: owns all mutable state and exposes action methods that return serialized JSON. */
@@ -414,9 +424,17 @@ export class GameState {
   pendingAchievements: AchievementUnlock[] = [];
   /** Runes held in the player's rune inventory, awaiting branding. */
   runeInventory: Rune[] = [];
+  /** Items saved in the cross-prestige gear stash. */
+  gearStash: GearItem[] = [];
 
   /** Current loot chest capacity, expanding with Expanded Armory guild upgrades. */
   get lootMax(): number { return 8 + 2 * (this.guildUpgrades["expanded_armory"] ?? 0); }
+  /** Maximum stash capacity based on the stash prestige upgrade level (0 if not unlocked). */
+  get stashMax(): number {
+    const level = this.prestigeUpgrades["stash"] ?? 0;
+    if (level === 0) return 0;
+    return STASH_SIZES[level - 1] ?? 15;
+  }
 
   constructor(name = "Hero", characterClass = "fighter") {
     this.party = new Party();
@@ -550,15 +568,54 @@ export class GameState {
     return this.respond();
   }
 
-  /** Removes a gear item from a character's slot and returns it to the loot chest. Returns serialized JSON. */
+  /** Removes a gear item from a character's slot. Prefers the stash; falls back to loot pool. Returns serialized JSON. */
   unequipGear(charIdx: number, slot: string): string {
     const char = this.party.team[charIdx];
     if (!char) return this.respond();
-    if (this.lootPool.length >= this.lootMax) return this.respond();
+    const canStash = this.gearStash.length < this.stashMax;
+    const canLoot = this.lootPool.length < this.lootMax;
+    if (!canStash && !canLoot) return this.respond();
     const item = char.inventory.remove(slot as any);
     if (!item) return this.respond();
-    this.lootPool.push(item);
+    if (canStash) {
+      this.gearStash.push(item);
+    } else {
+      this.lootPool.push(item);
+    }
     this.addLog(`${char.name} unequips ${item.getName()}.`);
+    return this.respond();
+  }
+
+  /** Equips a stash item onto a character; the displaced item returns to the stash (or loot pool as fallback). Returns serialized JSON. */
+  equipFromStash(charIdx: number, stashIdx: number): string {
+    const char = this.party.team[charIdx];
+    if (!char) return this.respond();
+    if (stashIdx < 0 || stashIdx >= this.gearStash.length) return this.respond();
+    const item = this.gearStash.splice(stashIdx, 1)[0];
+    const old = char.equipItem(item);
+    this.addLog(`${char.name} equips ${item.getName()} from stash!`);
+    if (old) {
+      if (this.gearStash.length < this.stashMax) {
+        this.gearStash.push(old);
+      } else if (this.lootPool.length < this.lootMax) {
+        this.lootPool.push(old);
+      } else {
+        this.earnGold(old.sellValue);
+        this.lifetimeSold += 1;
+        this.addLog(`Sold ${old.getName()} for ${old.sellValue}g.`);
+      }
+    }
+    return this.respond();
+  }
+
+  /** Sells a stash item at the given index for its sell value. Returns serialized JSON. */
+  sellFromStash(stashIdx: number): string {
+    if (stashIdx < 0 || stashIdx >= this.gearStash.length) return this.respond();
+    const item = this.gearStash.splice(stashIdx, 1)[0];
+    this.earnGold(item.sellValue);
+    this.lifetimeSold += 1;
+    this.addLog(`Sold ${item.getName()} for ${item.sellValue}g.`);
+    this.checkAchievements();
     return this.respond();
   }
 
@@ -681,6 +738,7 @@ export class GameState {
     this.checkpointLevel = 1;
     this.deathFloors = {};
     this.lootPool = [];
+    this.gearStash = [];
     this.log = [];
     this.enemy = generateEnemy(1, this.dungeonIndex);
 
@@ -782,6 +840,7 @@ export class GameState {
     }
     const oneTime = ["guild_hall_access", "auto_seller", "auto_equip", "auto_upgrade", "smart_seller", "party_slot_2", "party_slot_3", "party_slot_4", "party_slot_5"];
     if (oneTime.includes(type) && (this.prestigeUpgrades[type] ?? 0) >= 1) return this.respond();
+    if (type === "stash" && (this.prestigeUpgrades["stash"] ?? 0) >= STASH_TIER_COSTS.length) return this.respond();
     const currentStacks = this.prestigeUpgrades[type] ?? 0;
     const cost = prestigeUpgradeCost(type, currentStacks);
     if (this.prestigePoints < cost) {
@@ -1079,6 +1138,7 @@ export class GameState {
       pending_achievements: [...this.pendingAchievements],
       rune_inventory: [...this.runeInventory],
       earned_titles: this.computeEarnedTitles(),
+      gear_stash: this.gearStash.map(i => i.toDict()),
     };
   }
 
@@ -1544,6 +1604,7 @@ export class GameState {
     gs.lifetimeSkillActivations = d.lifetime_skill_activations ?? 0;
     gs.lifetimeUpgradesBought = d.lifetime_upgrades_bought ?? 0;
     gs.runeInventory = [...(d.rune_inventory ?? [])];
+    gs.gearStash = (d.gear_stash ?? []).map(item => GearItem.fromDict(item));
 
     // Migrate old checkpoint_1/2/3 one-time upgrades to single leveled checkpoint
     if (!("checkpoint" in gs.prestigeUpgrades)) {

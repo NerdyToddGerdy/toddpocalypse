@@ -10,6 +10,7 @@ import {
   ELITE_SPAWN_CHANCE, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT,
   BATTLE_CRY_MULT, SHADOW_STRIKE_MULT, ARCANE_SURGE_MULT, VOLLEY_MULT,
   killsForFloor, prestigeUpgradeCost, ventureUnlockLevel,
+  STASH_TIER_COSTS, STASH_SIZES,
 } from "../src/engine.js";
 import { Character } from "../src/character.js";
 import { GearItem, getItem, type Slot } from "../src/gear.js";
@@ -3782,5 +3783,258 @@ describe("4-tier runes", () => {
     gs.runeInventory = [RUNE_DEFS["striking_ancient"], RUNE_DEFS["striking_ancient"]];
     gs.combineRunes("striking_ancient", "striking_ancient");
     expect(gs.runeInventory.length).toBe(2); // unchanged
+  });
+});
+
+describe("gearStash", () => {
+  it("gearStash starts empty", () => expect(make().gearStash).toEqual([]));
+  it("stashMax is 0 when not unlocked", () => expect(make().stashMax).toBe(0));
+
+  it("STASH_TIER_COSTS has 4 entries", () => expect(STASH_TIER_COSTS.length).toBe(4));
+  it("STASH_SIZES has 4 entries mapping levels 1-4", () => {
+    expect(STASH_SIZES).toEqual([3, 6, 10, 15]);
+  });
+
+  it("stash level 1 costs 0 pts (free)", () => {
+    expect(prestigeUpgradeCost("stash", 0)).toBe(0);
+  });
+
+  it("stash level 2 costs 2 pts", () => {
+    expect(prestigeUpgradeCost("stash", 1)).toBe(2);
+  });
+
+  it("stash level 3 costs 5 pts", () => {
+    expect(prestigeUpgradeCost("stash", 2)).toBe(5);
+  });
+
+  it("stash level 4 costs 10 pts", () => {
+    expect(prestigeUpgradeCost("stash", 3)).toBe(10);
+  });
+
+  it("stashMax is 3 at level 1", () => {
+    const gs = make();
+    gs.dungeonIndex = 2;
+    gs.buyPrestigeUpgrade("stash");
+    expect(gs.stashMax).toBe(3);
+  });
+
+  it("stashMax is 6 at level 2", () => {
+    const gs = make();
+    gs.dungeonIndex = 2;
+    gs.prestigeUpgrades["stash"] = 1;
+    gs.prestigePoints = 2;
+    gs.buyPrestigeUpgrade("stash");
+    expect(gs.stashMax).toBe(6);
+  });
+
+  it("stashMax is 10 at level 3", () => {
+    const gs = make();
+    gs.dungeonIndex = 2;
+    gs.prestigeUpgrades["stash"] = 2;
+    gs.prestigePoints = 5;
+    gs.buyPrestigeUpgrade("stash");
+    expect(gs.stashMax).toBe(10);
+  });
+
+  it("stashMax is 15 at level 4", () => {
+    const gs = make();
+    gs.dungeonIndex = 2;
+    gs.prestigeUpgrades["stash"] = 3;
+    gs.prestigePoints = 10;
+    gs.buyPrestigeUpgrade("stash");
+    expect(gs.stashMax).toBe(15);
+  });
+
+  it("cannot buy stash at dungeonIndex 0", () => {
+    const gs = make();
+    gs.buyPrestigeUpgrade("stash");
+    expect(gs.prestigeUpgrades["stash"] ?? 0).toBe(0);
+  });
+
+  it("cannot buy stash at dungeonIndex 1", () => {
+    const gs = make();
+    gs.dungeonIndex = 1;
+    gs.buyPrestigeUpgrade("stash");
+    expect(gs.prestigeUpgrades["stash"] ?? 0).toBe(0);
+  });
+
+  it("cannot buy stash beyond level 4", () => {
+    const gs = make();
+    gs.dungeonIndex = 2;
+    gs.prestigeUpgrades["stash"] = 4;
+    gs.prestigePoints = 100;
+    gs.buyPrestigeUpgrade("stash");
+    expect(gs.prestigeUpgrades["stash"]).toBe(4);
+  });
+
+  it("stash is in GameStateDict", () => {
+    const gs = make();
+    gs.dungeonIndex = 2;
+    gs.buyPrestigeUpgrade("stash");
+    const d = gs.toDict();
+    expect(d.gear_stash).toBeDefined();
+    expect(Array.isArray(d.gear_stash)).toBe(true);
+  });
+
+  it("stash round-trips through toDict/fromDict", () => {
+    const gs = make();
+    gs.dungeonIndex = 2;
+    gs.buyPrestigeUpgrade("stash");
+    gs.gearStash.push(getItem("main_hand"));
+    const d = gs.toDict();
+    const gs2 = GameState.fromDict(d);
+    expect(gs2.gearStash.length).toBe(1);
+    expect(gs2.stashMax).toBe(3);
+  });
+});
+
+describe("unequipGear with stash", () => {
+  it("unequipGear sends item to stash when unlocked and not full", () => {
+    const gs = make();
+    gs.dungeonIndex = 2;
+    gs.buyPrestigeUpgrade("stash");
+    const item = getItem("main_hand");
+    gs.party.team[0].equipItem(item);
+    gs.unequipGear(0, "main_hand");
+    expect(gs.gearStash).toContain(item);
+    expect(gs.lootPool.length).toBe(0);
+  });
+
+  it("unequipGear falls back to loot pool when stash is full", () => {
+    const gs = make();
+    gs.dungeonIndex = 2;
+    gs.buyPrestigeUpgrade("stash");
+    for (let i = 0; i < 3; i++) gs.gearStash.push(getItem());
+    const item = getItem("main_hand");
+    gs.party.team[0].equipItem(item);
+    gs.unequipGear(0, "main_hand");
+    expect(gs.lootPool).toContain(item);
+  });
+
+  it("unequipGear goes to loot pool when stash not unlocked", () => {
+    const gs = make();
+    const item = getItem("main_hand");
+    gs.party.team[0].equipItem(item);
+    gs.unequipGear(0, "main_hand");
+    expect(gs.lootPool).toContain(item);
+    expect(gs.gearStash.length).toBe(0);
+  });
+});
+
+describe("equipFromStash", () => {
+  it("equips stash item onto character", () => {
+    const gs = make();
+    gs.dungeonIndex = 2;
+    gs.buyPrestigeUpgrade("stash");
+    const item = getItem("main_hand");
+    gs.gearStash.push(item);
+    gs.equipFromStash(0, 0);
+    expect(gs.gearStash.length).toBe(0);
+    expect(gs.party.team[0].inventory.slots["main_hand"]).toBe(item);
+  });
+
+  it("displaced item goes to stash", () => {
+    const gs = make();
+    gs.dungeonIndex = 2;
+    gs.buyPrestigeUpgrade("stash");
+    const old = getItem("main_hand");
+    gs.party.team[0].equipItem(old);
+    const stashed = getItem("main_hand");
+    gs.gearStash.push(stashed);
+    gs.equipFromStash(0, 0);
+    expect(gs.party.team[0].inventory.slots["main_hand"]).toBe(stashed);
+    expect(gs.gearStash).toContain(old);
+  });
+
+  it("displaced item goes to loot pool when stash is full after removal", () => {
+    const gs = make();
+    gs.dungeonIndex = 2;
+    gs.buyPrestigeUpgrade("stash"); // 3 slots
+    // Fill stash to capacity, then push one more (4 items total, but max is 3)
+    // We need: after removing one item stash has 2, equip leaves old item, stash now has 3 (full after adding old)
+    // Actually we want stash full AFTER removal. stash was: [item, x, x] (3/3).
+    // After removing item, stash is [x, x] (2/3). old item is displaced. Push to stash → [x, x, old] (3/3). Fine.
+    // So displaced always fits in stash. Let's instead force loot pool fallback by filling stash and having another displaced.
+    // Actually this case can't happen naturally with 1 item in stash being equip-swapped.
+    // Test: displaced goes to loot pool if stash somehow full (e.g., stashMax changed)
+    const stashed = getItem("main_hand");
+    gs.gearStash.push(stashed);
+    const old = getItem("main_hand");
+    gs.party.team[0].equipItem(old);
+    // Now reduce stashMax to 0 artificially to force loot pool fallback
+    gs.prestigeUpgrades["stash"] = 0;
+    gs.equipFromStash(0, 0);
+    expect(gs.party.team[0].inventory.slots["main_hand"]).toBe(stashed);
+    expect(gs.lootPool).toContain(old);
+  });
+
+  it("equipFromStash does nothing with out-of-range stashIdx", () => {
+    const gs = make();
+    gs.dungeonIndex = 2;
+    gs.buyPrestigeUpgrade("stash");
+    gs.equipFromStash(0, 5);
+    expect(gs.gearStash.length).toBe(0);
+  });
+
+  it("equipFromStash does nothing with invalid charIdx", () => {
+    const gs = make();
+    gs.dungeonIndex = 2;
+    gs.buyPrestigeUpgrade("stash");
+    const item = getItem("main_hand");
+    gs.gearStash.push(item);
+    gs.equipFromStash(99, 0);
+    expect(gs.gearStash.length).toBe(1);
+  });
+});
+
+describe("sellFromStash", () => {
+  it("sells item and earns gold", () => {
+    const gs = make();
+    gs.dungeonIndex = 2;
+    gs.buyPrestigeUpgrade("stash");
+    const item = getItem();
+    gs.gearStash.push(item);
+    gs.sellFromStash(0);
+    expect(gs.gearStash.length).toBe(0);
+    expect(gs.gold).toBe(item.sellValue);
+  });
+
+  it("increments lifetimeSold", () => {
+    const gs = make();
+    gs.dungeonIndex = 2;
+    gs.buyPrestigeUpgrade("stash");
+    gs.gearStash.push(getItem());
+    gs.sellFromStash(0);
+    expect(gs.lifetimeSold).toBe(1);
+  });
+
+  it("does nothing with out-of-range idx", () => {
+    const gs = make();
+    gs.dungeonIndex = 2;
+    gs.buyPrestigeUpgrade("stash");
+    gs.gearStash.push(getItem());
+    gs.sellFromStash(5);
+    expect(gs.gearStash.length).toBe(1);
+    expect(gs.gold).toBe(0);
+  });
+});
+
+describe("stash persistence", () => {
+  it("stash survives prestige", () => {
+    const gs = withHighLevel(20);
+    gs.dungeonIndex = 2;
+    gs.buyPrestigeUpgrade("stash");
+    const item = getItem();
+    gs.gearStash.push(item);
+    gs.prestige();
+    expect(gs.gearStash.length).toBe(1);
+    expect(gs.stashMax).toBe(3);
+  });
+
+  it("stash clears on venture", () => {
+    const gs = withHighLevel(40);
+    gs.gearStash = [getItem()];
+    gs.venture();
+    expect(gs.gearStash.length).toBe(0);
   });
 });

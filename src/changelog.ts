@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.11.5";
+export const VERSION = "v2.12.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,16 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.12.0",
+    date: "2026-05-16",
+    changes: [
+      "Gear Stash: persistent cross-prestige storage unlocked via Prestige Shop in Dungeon 3+ (Lv1: 3 slots free, Lv2: 6 slots 2pt, Lv3: 10 slots 5pt, Lv4: 15 slots 10pt)",
+      "Unequipping gear now goes to stash first (if unlocked and not full), then loot pool",
+      "Stash items can be equipped to any party member or sold from the loot panel",
+      "Stash persists through prestige but clears on venture",
+    ],
+  },
   {
     version: "v2.11.5",
     date: "2026-05-16",
