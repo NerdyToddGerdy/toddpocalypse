@@ -675,15 +675,14 @@ main {
     line-height: 1.4;
     background: transparent;
     color: var(--border);
-    border: 1px solid transparent;
+    border: 1px solid var(--border);
     border-radius: 3px;
     cursor: pointer;
-    visibility: hidden;
-    transition: color 0.15s, border-color 0.15s;
+    opacity: 0.3;
+    transition: opacity 0.1s, color 0.1s, border-color 0.1s;
 }
 
-.gear-row:hover .gear-unequip-btn { visibility: visible; border-color: var(--border); }
-.gear-unequip-btn:hover { color: var(--enemy-red); border-color: var(--enemy-red); }
+.gear-unequip-btn:hover { opacity: 1; color: var(--enemy-red); border-color: var(--enemy-red); }
 
 .gear-row.empty .gear-slot-label { color: var(--border); font-style: italic; }
 
