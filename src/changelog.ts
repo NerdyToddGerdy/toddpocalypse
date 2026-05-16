@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.11.0";
+export const VERSION = "v2.11.1";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.11.1",
+    date: "2026-05-16",
+    changes: [
+      "Fix: gear unequip ✕ button no longer flickers — party card DOM is now stable between ticks (HP/XP update in-place instead of full rebuild)",
+    ],
+  },
   {
     version: "v2.11.0",
     date: "2026-05-16",
