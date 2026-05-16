@@ -530,6 +530,20 @@ export class GameState {
     return this.respond();
   }
 
+  /** Equips a loot item onto a specific character. Displaced item returns to the loot pool. Returns serialized JSON. */
+  equipLootOnChar(charIdx: number, lootIdx: number): string {
+    const char = this.party.team[charIdx];
+    if (!char) return this.respond();
+    if (lootIdx < 0 || lootIdx >= this.lootPool.length) return this.respond();
+    const item = this.lootPool.splice(lootIdx, 1)[0];
+    const old = char.equipItem(item);
+    this.lifetimeLoot += 1;
+    this.addLog(`${char.name} equips ${item.getName()}!`);
+    if (old) this.lootPool.push(old);
+    this.checkAchievements();
+    return this.respond();
+  }
+
   /** Removes a gear item from a character's slot and returns it to the loot chest. Returns serialized JSON. */
   unequipGear(charIdx: number, slot: string): string {
     const char = this.party.team[charIdx];

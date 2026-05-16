@@ -591,6 +591,62 @@ describe("loot", () => {
   });
 });
 
+describe("equipLootOnChar", () => {
+  it("removes item from loot pool", () => {
+    const gs = withLoot();
+    const before = gs.lootPool.length;
+    gs.equipLootOnChar(0, 0);
+    expect(gs.lootPool.length).toBe(before - 1);
+  });
+
+  it("equips item on the specified character", () => {
+    const gs = make();
+    const item = new GearItem("helmet", "helm", "legendary", "valor");
+    gs.lootPool = [item];
+    gs.equipLootOnChar(0, 0);
+    expect(gs.party.team[0].inventory.slots.helmet).toBe(item);
+  });
+
+  it("does not equip on a different character", () => {
+    const gs = withPrestige(5);
+    gs.buyPrestigeUpgrade("party_slot_2", "fighter");
+    const item = new GearItem("helmet", "helm", "legendary", "valor");
+    gs.lootPool = [item];
+    gs.equipLootOnChar(1, 0);
+    expect(gs.party.team[0].inventory.slots.helmet).toBeNull();
+    expect(gs.party.team[1].inventory.slots.helmet).toBe(item);
+  });
+
+  it("displaced item goes to loot pool", () => {
+    const gs = make();
+    const old = new GearItem("helmet", "rusty helm", "broken", "valor");
+    gs.party.team[0].equipItem(old);
+    const newItem = new GearItem("helmet", "shiny helm", "legendary", "valor");
+    gs.lootPool = [newItem];
+    gs.equipLootOnChar(0, 0);
+    expect(gs.lootPool).toContain(old);
+  });
+
+  it("out of range charIdx is a no-op", () => {
+    const gs = withLoot();
+    const before = gs.lootPool.length;
+    gs.equipLootOnChar(99, 0);
+    expect(gs.lootPool.length).toBe(before);
+  });
+
+  it("out of range lootIdx is a no-op", () => {
+    const gs = withLoot();
+    const before = gs.lootPool.length;
+    gs.equipLootOnChar(0, 999);
+    expect(gs.lootPool.length).toBe(before);
+  });
+
+  it("returns valid JSON", () => {
+    const gs = withLoot();
+    expect(JSON.parse(gs.equipLootOnChar(0, 0))).toHaveProperty("loot_pool");
+  });
+});
+
 describe("unequipGear", () => {
   function withEquipped() {
     const gs = make();

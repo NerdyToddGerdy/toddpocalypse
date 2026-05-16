@@ -361,6 +361,12 @@ function renderParty(state: GameStateDict): void {
     .map((c, ci) => {
       const xpPct = Math.round((c.xp / c.xp_to_next) * 100);
       const leveledUp = c.level > (prevLevels[ci] ?? 0);
+      const lootForSlot = (slot: string) => {
+        const matchSlot = slot === "ring2" ? "ring1" : slot;
+        return state.loot_pool
+          .map((item, idx) => ({ item, idx }))
+          .filter(({ item }) => item.slot === matchSlot);
+      };
       const gearRows = Object.entries(c.equipment)
         .map(([slot, item]) => {
           if (item) {
@@ -371,6 +377,18 @@ function renderParty(state: GameStateDict): void {
               <span class="gear-name ${qc}">${item.name}</span>
               <span class="gear-bonus ${qc}">${formatStats(item.stats ?? { dps: item.damage })}</span>
               <button class="gear-unequip-btn" data-action="unequip-gear" data-char="${ci}" data-slot="${slot}" title="Unequip">✕</button>
+            </div>`;
+          }
+          const options = lootForSlot(slot);
+          if (options.length > 0) {
+            const optHtml = options.map(({ item: li, idx }) => {
+              const qc = qualityClass(li.quality);
+              return `<option value="${idx}" class="${qc}">${li.short_name ?? li.name} (${formatStats(li.stats ?? { dps: li.damage })})</option>`;
+            }).join("");
+            return `<div class="gear-row empty gear-row-equip" data-slot="${slot}">
+              <span class="gear-icon">${SLOT_ICONS[slot]}</span>
+              <select class="gear-loot-select">${optHtml}</select>
+              <button class="gear-equip-from-slot-btn" data-action="equip-loot-on-char" data-char="${ci}" data-slot="${slot}">Equip</button>
             </div>`;
           }
           return `<div class="gear-row empty" data-slot="${slot}">
@@ -2167,6 +2185,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const action = btn.dataset.action;
     const idx = btn.dataset.idx ? parseInt(btn.dataset.idx, 10) : -1;
     if (action === "equip") call("equipLoot", idx);
+    else if (action === "equip-loot-on-char") {
+      const row = btn.closest(".gear-row-equip")!;
+      const sel = row.querySelector(".gear-loot-select") as HTMLSelectElement;
+      call("equipLootOnChar", parseInt(btn.dataset.char!, 10), parseInt(sel.value, 10));
+    }
     else if (action === "unequip-gear") call("unequipGear", parseInt(btn.dataset.char!, 10), btn.dataset.slot!);
     else if (action === "sell") call("sellLoot", idx);
     else if (action === "upgrade") call("buyUpgrade", btn.dataset.char!, btn.dataset.type!);

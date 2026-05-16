@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.10.8";
+export const VERSION = "v2.10.9";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.10.9",
+    date: "2026-05-16",
+    changes: [
+      "Empty gear slots now show a dropdown of matching loot + Equip button, just like the rune panel",
+    ],
+  },
   {
     version: "v2.10.8",
     date: "2026-05-16",

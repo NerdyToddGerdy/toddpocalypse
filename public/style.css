@@ -687,6 +687,34 @@ main {
 
 .gear-row.empty .gear-slot-label { color: var(--border); font-style: italic; }
 
+.gear-row-equip {
+    grid-template-columns: 18px 1fr auto;
+}
+
+.gear-loot-select {
+    font-size: 0.68rem;
+    padding: 1px 2px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gear-equip-from-slot-btn {
+    font-size: 0.68rem;
+    padding: 2px 6px;
+    background: var(--accent-dark, #3a3000);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 3px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
 .hp-section {
     margin-top: 8px;
 }
