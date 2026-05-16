@@ -1108,7 +1108,7 @@ function updatePrestigeButton(state: GameStateDict): void {
 
 /** Populates the Lifetime Stats modal with totals and the enemy kill breakdown. */
 function updateLifetimeStats(state: GameStateDict): void {
-  const newKey = `${state.lifetime_kills}|${state.lifetime_deaths}|${state.lifetime_best_level}|${state.total_prestiges}|${JSON.stringify(state.lifetime_enemy_kills)}`;
+  const newKey = `${state.lifetime_kills}|${state.lifetime_deaths}|${state.lifetime_best_level}|${state.total_prestiges}|${state.dungeon_index}|${JSON.stringify(state.lifetime_enemy_kills)}`;
   if (newKey === lifetimeStatsKey) return;
   lifetimeStatsKey = newKey;
 
@@ -1120,6 +1120,8 @@ function updateLifetimeStats(state: GameStateDict): void {
   if (ltDeaths) ltDeaths.textContent = String(state.lifetime_deaths);
   if (ltBest) ltBest.textContent = String(state.lifetime_best_level);
   if (ltPrestiges) ltPrestiges.textContent = String(state.total_prestiges);
+  const ltDungeon = document.getElementById("lt-dungeon");
+  if (ltDungeon) ltDungeon.textContent = String(state.dungeon_index + 1);
 
   const enemyKillsEl = document.getElementById("lt-enemy-kills");
   const enemySection = document.getElementById("lt-enemy-section");
