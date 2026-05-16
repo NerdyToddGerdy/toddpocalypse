@@ -569,7 +569,7 @@ main {
 
 .gear-row {
     display: grid;
-    grid-template-columns: 18px 1fr auto;
+    grid-template-columns: 18px 1fr auto 16px;
     align-items: center;
     gap: 4px;
     font-size: 0.72rem;
@@ -670,21 +670,19 @@ main {
 .gear-bonus { font-weight: 600; white-space: nowrap; }
 
 .gear-unequip-btn {
-    margin-left: auto;
-    padding: 0 5px;
-    font-size: 0.7rem;
+    padding: 0 3px;
+    font-size: 0.65rem;
     line-height: 1.4;
     background: transparent;
     color: var(--border);
-    border: 1px solid var(--border);
+    border: 1px solid transparent;
     border-radius: 3px;
     cursor: pointer;
-    opacity: 0;
-    transition: opacity 0.15s, color 0.15s;
-    flex-shrink: 0;
+    visibility: hidden;
+    transition: color 0.15s, border-color 0.15s;
 }
 
-.gear-row:hover .gear-unequip-btn { opacity: 1; }
+.gear-row:hover .gear-unequip-btn { visibility: visible; border-color: var(--border); }
 .gear-unequip-btn:hover { color: var(--enemy-red); border-color: var(--enemy-red); }
 
 .gear-row.empty .gear-slot-label { color: var(--border); font-style: italic; }
