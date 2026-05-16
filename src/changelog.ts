@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.13.5";
+export const VERSION = "v2.13.6";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.13.6",
+    date: "2026-05-16",
+    changes: [
+      "Idle gold stat now reads 'Idle: X/s' instead of '⚙ X/s'; hover shows tooltip 'Gold earned per second from idle companions'",
+    ],
+  },
   {
     version: "v2.13.5",
     date: "2026-05-16",
