@@ -3428,6 +3428,15 @@ footer {
     gap: 5px;
 }
 
+.prune-abilities {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border);
+}
+
 .prune-slot-row {
     display: flex;
     align-items: center;
