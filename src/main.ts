@@ -882,8 +882,8 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
       <span>🔮 Runes (${runeInv.length})</span>
       ${runeInv.length > 0 ? `<button class="rune-sell-all-btn" data-action="sell-all-runes">Sell All (${sellAllVal}g)</button>` : ""}
     </div>
-    <div class="rune-inv-items">${items}</div>
     ${combineHtml}
+    <div class="rune-inv-items">${items}</div>
   </div>`;
 
   // Update slot options when character selection changes
