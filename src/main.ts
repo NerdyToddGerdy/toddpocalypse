@@ -401,7 +401,7 @@ function renderParty(state: GameStateDict): void {
             const isSetPiece = !!(item as any).set_name;
             return `<div class="gear-row filled${isSetPiece ? " set-piece" : ""}${locked ? " gear-locked" : ""}" data-slot="${slot}" data-item="${itemJson}">
               <span class="gear-icon">${SLOT_ICONS[slot]}</span>
-              <span class="gear-name ${qc}">${item.name}</span>
+              <span class="gear-name ${qc}">${(item as any).short_name ?? item.name}</span>
               <span class="gear-bonus ${qc}">${formatStats(item.stats ?? { dps: item.damage })}</span>
               ${lockBtn}
               <button class="gear-unequip-btn" data-action="unequip-gear" data-char="${ci}" data-slot="${slot}" title="Unequip">✕</button>

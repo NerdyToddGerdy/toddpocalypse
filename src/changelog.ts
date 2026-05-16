@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.13.7";
+export const VERSION = "v2.13.8";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.13.8",
+    date: "2026-05-16",
+    changes: [
+      "Gear rows: lock button and unequip button now stay on the same line — grid expanded from 4 to 5 columns",
+      "Gear rows: quality adjective (Rare, Epic, etc.) no longer shown in the item name — color already conveys quality; name now shows 'sword of valor' instead of 'Epic sword of valor'",
+    ],
+  },
   {
     version: "v2.13.7",
     date: "2026-05-16",
