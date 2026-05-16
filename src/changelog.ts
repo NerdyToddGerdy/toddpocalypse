@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.9.7";
+export const VERSION = "v2.9.8";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.9.8",
+    date: "2026-05-16",
+    changes: [
+      "Fix: changelog modal no longer renders behind the settings modal (duplicate z-index declaration)",
+    ],
+  },
   {
     version: "v2.9.7",
     date: "2026-05-16",

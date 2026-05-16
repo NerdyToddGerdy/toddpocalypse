@@ -2329,7 +2329,6 @@ footer {
     background: rgba(14,14,20,0.85);
     align-items: center;
     justify-content: center;
-    z-index: 200;
 }
 
 #changelog-modal.open { display: flex; }
