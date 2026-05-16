@@ -994,10 +994,10 @@ function renderCompanionSkills(state: GameStateDict): void {
     const onCooldown = remaining > 0 && !isActive;
     const pct = onCooldown ? Math.min(100, ((totalCooldown - remaining) / totalCooldown) * 100) : 0;
     const label = SKILL_NAMES[skillId] ?? skillId;
-    return `
+    return `<div class="companion-skill-cell">
       <button class="companion-skill-btn${isActive ? " active" : ""}" data-action="activate-companion-skill" data-skill="${skillId}" data-active-skill="${skillId}"${onCooldown ? " disabled" : ""}>${label}</button>
       ${onCooldown ? `<div class="skill-cooldown-bar companion-cooldown-bar"><div class="skill-cooldown-fill" style="width:${pct}%"></div></div>` : ""}
-    `;
+    </div>`;
   }).join("");
 }
 

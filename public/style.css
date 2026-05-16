@@ -2063,11 +2063,19 @@ main {
 }
 
 /* ── Companion skill buttons ── */
-#companion-skills { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+#companion-skills { display: flex; flex-direction: row; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+
+.companion-skill-cell {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    gap: 2px;
+}
 
 .companion-skill-btn {
     width: 100%;
-    padding: 7px 14px;
+    padding: 7px 8px;
     font-size: 0.78rem;
     font-weight: 700;
     background: var(--surface);
