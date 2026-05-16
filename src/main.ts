@@ -28,7 +28,7 @@ const GUILD_HALL_META: Record<string, { icon: string; name: string; desc: string
   skill_battle_cry:    { icon: "📯", name: "Battle Cry",       desc: "Fighter: ×2 party DPS for 8 kills. 20-kill cooldown." },
   skill_shadow_strike: { icon: "🌑", name: "Shadow Strike",    desc: "Rogue: ×3 all damage (tick + click) for 5 kills. 20-kill cooldown." },
   skill_arcane_surge:  { icon: "⚡", name: "Arcane Surge",     desc: "Mage: ×3 DPS for 6 kills. 25-kill cooldown." },
-  skill_consecrate:    { icon: "✝", name: "Consecrate",       desc: "Paladin: heals party 25% max HP per kill for 5 kills. 15-kill cooldown.", dungeonReq: 1 },
+  skill_consecrate:    { icon: "🙏", name: "Consecrate",       desc: "Paladin: heals party 25% max HP per kill for 5 kills. 15-kill cooldown.", dungeonReq: 1 },
   skill_volley:        { icon: "🏹", name: "Volley",           desc: "Ranger: ×2.5 party DPS for 6 kills. 15-kill cooldown.", dungeonReq: 1 },
   rune_forge:          { icon: "🔮", name: "Rune Forge",       desc: "Socket runes into gear slots for flat stat bonuses. Bosses drop runes at 20%, elites at 10%. Tier 2: recover replaced runes + combine 2 lessers → greater. Tier 3: combine 2 greaters → flawless. Tier 4: combine 2 flawless → ancient." },
 };
@@ -925,7 +925,7 @@ const SKILL_NAMES: Record<string, string> = {
   skill_battle_cry:    "📯 Battle Cry",
   skill_shadow_strike: "🌑 Shadow Strike",
   skill_arcane_surge:  "⚡ Arcane Surge",
-  skill_consecrate:    "✝ Consecrate",
+  skill_consecrate:    "🙏 Consecrate",
   skill_volley:        "🏹 Volley",
 };
 const SKILL_DESCS: Record<string, string> = {
