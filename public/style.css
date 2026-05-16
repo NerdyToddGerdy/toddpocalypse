@@ -297,6 +297,8 @@ main {
     flex-direction: row;
     align-items: center;
     gap: 12px;
+    box-shadow: 0 0 12px 3px transparent;
+    transition: box-shadow 0.4s ease, border-color 0.4s ease;
 }
 
 #enemy-content {

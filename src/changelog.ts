@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.11.4";
+export const VERSION = "v2.11.5";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.11.5",
+    date: "2026-05-16",
+    changes: [
+      "Rune achievements now appear in the Feats panel under a 🔮 Runes category",
+      "Fix: elite/boss glow border no longer causes layout jump — shadow fades in smoothly with a transition",
+    ],
+  },
   {
     version: "v2.11.4",
     date: "2026-05-16",

@@ -1222,7 +1222,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_ICONS: Record<string, string> = {
-  combat: "⚔", explorer: "🗺", collector: "🎒", wealth: "💰", prestige: "✦", guild: "🏰",
+  combat: "⚔", explorer: "🗺", collector: "🎒", wealth: "💰", prestige: "✦", guild: "🏰", runes: "🔮",
 };
 
 let featsKey = "";
@@ -1232,7 +1232,7 @@ function renderFeats(state: GameStateDict): void {
   if (newKey === featsKey) return;
   featsKey = newKey;
 
-  const categories = ["combat", "explorer", "collector", "wealth", "prestige", "guild"];
+  const categories = ["combat", "explorer", "collector", "wealth", "prestige", "guild", "runes"];
   const byCategory: Record<string, typeof ACHIEVEMENTS> = {};
   for (const cat of categories) byCategory[cat] = [];
   for (const def of ACHIEVEMENTS) byCategory[def.category]?.push(def);
