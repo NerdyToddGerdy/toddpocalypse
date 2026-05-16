@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.12.2";
+export const VERSION = "v2.12.3";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.12.3",
+    date: "2026-05-16",
+    changes: [
+      "Fixed: enemy panel height no longer grows when boss/elite portrait appears — portrait wrap now has a fixed height so the panel stays stable even before the image slides in",
+    ],
+  },
   {
     version: "v2.12.2",
     date: "2026-05-16",
