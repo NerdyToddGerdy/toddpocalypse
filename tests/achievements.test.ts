@@ -361,3 +361,142 @@ describe("achievement serialization", () => {
     expect(gs.toDict().earned_title).toBe("Slayer");
   });
 });
+
+// ──────────────────────────────────────────
+// Issue #26 — new achievements
+// ──────────────────────────────────────────
+
+describe("Not Alone", () => {
+  it("fires when party has 2+ members", () => {
+    const gs = make();
+    expect(gs.checkAchievements().some(u => u.id === "not_alone")).toBe(false);
+    gs.party.addPlayer(new Character("Ally", "fighter"));
+    expect(gs.checkAchievements().some(u => u.id === "not_alone")).toBe(true);
+  });
+});
+
+describe("Band of Heroes", () => {
+  it("fires when party has 5 members", () => {
+    const gs = make();
+    for (let i = 1; i < 5; i++) gs.party.addPlayer(new Character(`C${i}`, "fighter"));
+    expect(gs.checkAchievements().some(u => u.id === "band_of_heroes")).toBe(true);
+  });
+  it("does not fire with fewer than 5", () => {
+    const gs = make();
+    gs.party.addPlayer(new Character("C1", "fighter"));
+    expect(gs.checkAchievements().some(u => u.id === "band_of_heroes")).toBe(false);
+  });
+});
+
+describe("Battle Ready", () => {
+  it("fires after first skill activation", () => {
+    const gs = make();
+    gs.guildUpgrades["skill_battle_cry"] = 1;
+    gs.activateSkill("skill_battle_cry");
+    expect(gs.checkAchievements().some(u => u.id === "battle_ready")).toBe(true);
+  });
+  it("does not fire before any activation", () => {
+    const gs = make();
+    expect(gs.checkAchievements().some(u => u.id === "battle_ready")).toBe(false);
+  });
+});
+
+describe("Arsenal", () => {
+  it("fires when all 5 active skills are unlocked", () => {
+    const gs = make();
+    ["skill_battle_cry","skill_shadow_strike","skill_arcane_surge","skill_consecrate","skill_volley"].forEach(s => {
+      gs.guildUpgrades[s] = 1;
+    });
+    expect(gs.checkAchievements().some(u => u.id === "arsenal")).toBe(true);
+  });
+  it("does not fire with only 4 skills", () => {
+    const gs = make();
+    ["skill_battle_cry","skill_shadow_strike","skill_arcane_surge","skill_consecrate"].forEach(s => {
+      gs.guildUpgrades[s] = 1;
+    });
+    expect(gs.checkAchievements().some(u => u.id === "arsenal")).toBe(false);
+  });
+});
+
+describe("Arcane Brand", () => {
+  it("fires after branding a rune", () => {
+    const gs = make();
+    gs.guildUpgrades["rune_forge"] = 1;
+    gs.runeInventory.push({ id: "striking_lesser", name: "Lesser Striking Rune", type: "striking", tier: "lesser", statKey: "dps", value: 8 });
+    gs.brandRune(0, "main_hand", "striking_lesser");
+    expect(gs.checkAchievements().some(u => u.id === "arcane_brand")).toBe(true);
+  });
+});
+
+describe("Forge Master", () => {
+  it("fires after combining runes", () => {
+    const gs = make();
+    gs.guildUpgrades["rune_forge"] = 2;
+    gs.runeInventory.push({ id: "striking_lesser", name: "Lesser Striking Rune", type: "striking", tier: "lesser", statKey: "dps", value: 8 });
+    gs.runeInventory.push({ id: "striking_lesser", name: "Lesser Striking Rune", type: "striking", tier: "lesser", statKey: "dps", value: 8 });
+    gs.combineRunes("striking_lesser", "striking_lesser");
+    expect(gs.checkAchievements().some(u => u.id === "forge_master")).toBe(true);
+  });
+});
+
+describe("Rune Trader", () => {
+  it("tracks runes sold via sellRune", () => {
+    const gs = make();
+    gs.runeInventory.push({ id: "striking_lesser", name: "Lesser Striking Rune", type: "striking", tier: "lesser", statKey: "dps", value: 8 });
+    gs.sellRune(0);
+    expect(gs.lifetimeRunesSold).toBe(1);
+  });
+  it("tracks runes sold via sellAllRunes", () => {
+    const gs = make();
+    gs.runeInventory.push({ id: "striking_lesser", name: "x", type: "striking", tier: "lesser", statKey: "dps", value: 8 });
+    gs.runeInventory.push({ id: "warding_lesser", name: "x", type: "warding", tier: "lesser", statKey: "maxHp", value: 25 });
+    gs.sellAllRunes();
+    expect(gs.lifetimeRunesSold).toBe(2);
+  });
+  it("fires bronze at 10 runes sold", () => {
+    const gs = make();
+    gs.lifetimeRunesSold = 10;
+    expect(gs.checkAchievements().some(u => u.id === "rune_trader")).toBe(true);
+  });
+});
+
+describe("Elite Hunter", () => {
+  it("tracks lifetime elite kills", () => {
+    const gs = make();
+    expect(gs.lifetimeEliteKills).toBe(0);
+    gs.lifetimeEliteKills = 10;
+    expect(gs.checkAchievements().some(u => u.id === "elite_hunter")).toBe(true);
+  });
+});
+
+describe("Upgrade Junkie", () => {
+  it("tracks lifetime upgrades bought", () => {
+    const gs = make();
+    expect(gs.lifetimeUpgradesBought).toBe(0);
+    gs.lifetimeUpgradesBought = 50;
+    expect(gs.checkAchievements().some(u => u.id === "upgrade_junkie")).toBe(true);
+  });
+});
+
+describe("new achievement serialization", () => {
+  it("lifetimeRunesSold round-trips", () => {
+    const gs = make();
+    gs.lifetimeRunesSold = 7;
+    expect(GameState.fromDict(gs.toDict()).lifetimeRunesSold).toBe(7);
+  });
+  it("lifetimeEliteKills round-trips", () => {
+    const gs = make();
+    gs.lifetimeEliteKills = 12;
+    expect(GameState.fromDict(gs.toDict()).lifetimeEliteKills).toBe(12);
+  });
+  it("lifetimeSkillActivations round-trips", () => {
+    const gs = make();
+    gs.lifetimeSkillActivations = 5;
+    expect(GameState.fromDict(gs.toDict()).lifetimeSkillActivations).toBe(5);
+  });
+  it("lifetimeUpgradesBought round-trips", () => {
+    const gs = make();
+    gs.lifetimeUpgradesBought = 99;
+    expect(GameState.fromDict(gs.toDict()).lifetimeUpgradesBought).toBe(99);
+  });
+});

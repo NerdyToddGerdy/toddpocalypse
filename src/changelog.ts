@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.10.4";
+export const VERSION = "v2.10.5";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.10.5",
+    date: "2026-05-16",
+    changes: [
+      "12 new achievements: Not Alone, Band of Heroes, Battle Ready, Arsenal, Arcane Brand, Forge Master, Fully Attuned, Ancient Power, Gem Collector, Rune Trader, Elite Hunter, Upgrade Junkie",
+      "Lifetime tracking counters: elite kills, runes sold, runes combined, skill activations, upgrades bought",
+    ],
+  },
   {
     version: "v2.10.4",
     date: "2026-05-16",

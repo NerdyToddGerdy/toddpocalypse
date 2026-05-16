@@ -306,6 +306,11 @@ export interface GameStateDict {
   lifetime_legendary: number;
   lifetime_divine: number;
   lifetime_divine_sold: number;
+  lifetime_elite_kills: number;
+  lifetime_runes_sold: number;
+  lifetime_runes_combined: number;
+  lifetime_skill_activations: number;
+  lifetime_upgrades_bought: number;
   pending_achievements: AchievementUnlock[];
   rune_inventory: Rune[];
   earned_titles: string[];
@@ -385,6 +390,16 @@ export class GameState {
   lifetimeDivine = 0;
   /** 1 once the player has ever sold a divine item; never resets. */
   lifetimeDivineSold = 0;
+  /** Total elite enemies killed across all runs. */
+  lifetimeEliteKills = 0;
+  /** Total runes sold across all runs. */
+  lifetimeRunesSold = 0;
+  /** Total runes combined across all runs. */
+  lifetimeRunesCombined = 0;
+  /** Total skill activations across all runs. */
+  lifetimeSkillActivations = 0;
+  /** Total stat upgrades bought across all runs. */
+  lifetimeUpgradesBought = 0;
   /** Set of achievement/tier IDs that have been awarded. */
   achievementsUnlocked: Set<string> = new Set();
   /** Active cosmetic title earned from an achievement. */
@@ -574,6 +589,7 @@ export class GameState {
     }
     this.gold -= cost;
     this.upgrades[charName][ut] += 1;
+    this.lifetimeUpgradesBought += 1;
     const char = this.party.team.find((c) => c.name === charName);
     if (!char) return this.respond();
     if (ut === "dps") char.dps += UPGRADE_EFFECTS.dps;
@@ -873,6 +889,7 @@ export class GameState {
     if (!next) return this.respond();
     this.runeInventory = remaining;
     this.runeInventory.push(next);
+    this.lifetimeRunesCombined += 1;
     return this.respond();
   }
 
@@ -881,6 +898,7 @@ export class GameState {
     if (idx < 0 || idx >= this.runeInventory.length) return this.respond();
     const rune = this.runeInventory.splice(idx, 1)[0];
     const gold = RUNE_SELL_VALUES[rune.tier] ?? 0;
+    this.lifetimeRunesSold += 1;
     this.earnGold(gold);
     this.addLog(`Sold ${rune.name} for ${gold}g.`);
     return this.respond();
@@ -891,6 +909,7 @@ export class GameState {
     if (this.runeInventory.length === 0) return this.respond();
     let total = 0;
     for (const rune of this.runeInventory) total += RUNE_SELL_VALUES[rune.tier] ?? 0;
+    this.lifetimeRunesSold += this.runeInventory.length;
     this.runeInventory = [];
     this.earnGold(total);
     this.addLog(`Sold all runes for ${total}g.`);
@@ -907,6 +926,7 @@ export class GameState {
     if ((this.skillCooldowns[skillId] ?? 0) > 0) return this.respond();
     this.skillCooldowns[skillId] = def.cooldownKills;
     this.activeEffects[skillId] = def.durationKills;
+    this.lifetimeSkillActivations += 1;
     this.addLog(`${caster.name} uses ${skillId.replace("skill_", "").replace(/_/g, " ")}!`);
     return this.respond();
   }
@@ -1017,6 +1037,11 @@ export class GameState {
       lifetime_legendary: this.lifetimeLegendary,
       lifetime_divine: this.lifetimeDivine,
       lifetime_divine_sold: this.lifetimeDivineSold,
+      lifetime_elite_kills: this.lifetimeEliteKills,
+      lifetime_runes_sold: this.lifetimeRunesSold,
+      lifetime_runes_combined: this.lifetimeRunesCombined,
+      lifetime_skill_activations: this.lifetimeSkillActivations,
+      lifetime_upgrades_bought: this.lifetimeUpgradesBought,
       pending_achievements: [...this.pendingAchievements],
       rune_inventory: [...this.runeInventory],
       earned_titles: this.computeEarnedTitles(),
@@ -1148,6 +1173,7 @@ export class GameState {
     }
     const name = this.enemy.name;
     this.lifetimeEnemyKills[name] = (this.lifetimeEnemyKills[name] ?? 0) + 1;
+    if (this.enemy.isElite) this.lifetimeEliteKills += 1;
     const xp = this.enemy.xp_reward;
     this.addLog(`${name} defeated! +${xp}xp`);
     for (const c of this.party.team) {
@@ -1467,6 +1493,11 @@ export class GameState {
     gs.lifetimeLegendary = d.lifetime_legendary ?? 0;
     gs.lifetimeDivine = d.lifetime_divine ?? 0;
     gs.lifetimeDivineSold = d.lifetime_divine_sold ?? 0;
+    gs.lifetimeEliteKills = d.lifetime_elite_kills ?? 0;
+    gs.lifetimeRunesSold = d.lifetime_runes_sold ?? 0;
+    gs.lifetimeRunesCombined = d.lifetime_runes_combined ?? 0;
+    gs.lifetimeSkillActivations = d.lifetime_skill_activations ?? 0;
+    gs.lifetimeUpgradesBought = d.lifetime_upgrades_bought ?? 0;
     gs.runeInventory = [...(d.rune_inventory ?? [])];
 
     // Migrate old checkpoint_1/2/3 one-time upgrades to single leveled checkpoint
@@ -1700,5 +1731,107 @@ export const ACHIEVEMENTS: AchievementDef[] = [
       { label: "gold",   threshold: GUILD_MAX_STACKS, reward: { type: "prestige_points", value: 2 } },
     ],
     getValue: gs => Object.values(gs.guildUpgrades).reduce((s: number, v) => s + (v as number), 0),
+  },
+  // ── Party ─────────────────────────────────────────────────────────────────
+  {
+    id: "not_alone", name: "Not Alone",
+    description: "Hire your first companion.",
+    category: "guild", hidden: false,
+    getValue: gs => gs.party.team.length >= 2 ? 1 : 0,
+  },
+  {
+    id: "band_of_heroes", name: "Band of Heroes",
+    description: "Field a full 5-member party.",
+    category: "guild", hidden: false,
+    reward: { type: "prestige_points", value: 1 },
+    getValue: gs => gs.party.team.length >= 5 ? 1 : 0,
+  },
+  {
+    id: "battle_ready", name: "Battle Ready",
+    description: "Activate a skill for the first time.",
+    category: "guild", hidden: false,
+    getValue: gs => gs.lifetimeSkillActivations,
+  },
+  {
+    id: "arsenal", name: "Arsenal",
+    description: "Unlock all 5 active skills.",
+    category: "guild", hidden: false,
+    reward: { type: "prestige_points", value: 2 },
+    getValue: gs => Object.keys(SKILL_DEFS).filter(id => (gs.guildUpgrades[id] ?? 0) > 0).length >= Object.keys(SKILL_DEFS).length ? 1 : 0,
+  },
+  // ── Runes ─────────────────────────────────────────────────────────────────
+  {
+    id: "arcane_brand", name: "Arcane Brand",
+    description: "Socket your first rune.",
+    category: "runes", hidden: false,
+    getValue: gs => gs.party.team.some(c => Object.keys(c.runes ?? {}).length > 0) ? 1 : 0,
+  },
+  {
+    id: "forge_master", name: "Forge Master",
+    description: "Combine runes for the first time.",
+    category: "runes", hidden: false,
+    getValue: gs => gs.lifetimeRunesCombined,
+  },
+  {
+    id: "fully_attuned", name: "Fully Attuned",
+    description: "Fill every rune slot on one character.",
+    category: "runes", hidden: false,
+    reward: { type: "prestige_points", value: 1 },
+    getValue: gs => gs.party.team.some(c => Object.keys(c.runes ?? {}).length >= 9) ? 1 : 0,
+  },
+  {
+    id: "ancient_power", name: "Ancient Power",
+    description: "???",
+    category: "runes", hidden: true,
+    reward: { type: "prestige_points", value: 2 },
+    getValue: gs =>
+      gs.runeInventory.some(r => r.tier === "ancient") ||
+      gs.party.team.some(c => Object.values(c.runes ?? {}).some((r: any) => r?.tier === "ancient")) ? 1 : 0,
+  },
+  {
+    id: "gem_collector", name: "Gem Collector",
+    description: "Amass a collection of runes.",
+    category: "runes", hidden: false,
+    tiers: [
+      { label: "bronze", threshold: 5,  reward: { type: "gold", value: 250 } },
+      { label: "silver", threshold: 15, reward: { type: "gold", value: 500 } },
+      { label: "gold",   threshold: 30, reward: { type: "prestige_points", value: 1 } },
+    ],
+    getValue: gs => gs.runeInventory.length,
+  },
+  {
+    id: "rune_trader", name: "Rune Trader",
+    description: "Sell runes to earn gold.",
+    category: "runes", hidden: false,
+    tiers: [
+      { label: "bronze", threshold: 10,  reward: { type: "gold", value: 250 } },
+      { label: "silver", threshold: 50,  reward: { type: "gold", value: 500 } },
+      { label: "gold",   threshold: 200, reward: { type: "prestige_points", value: 1 } },
+    ],
+    getValue: gs => gs.lifetimeRunesSold,
+  },
+  // ── Combat (additions) ────────────────────────────────────────────────────
+  {
+    id: "elite_hunter", name: "Elite Hunter",
+    description: "Slay elite enemies.",
+    category: "combat", hidden: false,
+    tiers: [
+      { label: "bronze", threshold: 10,  reward: { type: "gold", value: 250 } },
+      { label: "silver", threshold: 50,  reward: { type: "prestige_points", value: 1 } },
+      { label: "gold",   threshold: 200, reward: { type: "prestige_points", value: 2 } },
+    ],
+    getValue: gs => gs.lifetimeEliteKills,
+  },
+  // ── Wealth (additions) ────────────────────────────────────────────────────
+  {
+    id: "upgrade_junkie", name: "Upgrade Junkie",
+    description: "Buy stat upgrades for your party.",
+    category: "wealth", hidden: false,
+    tiers: [
+      { label: "bronze", threshold: 50,    reward: { type: "gold", value: 500 } },
+      { label: "silver", threshold: 250,   reward: { type: "prestige_points", value: 1 } },
+      { label: "gold",   threshold: 1_000, reward: { type: "prestige_points", value: 2 } },
+    ],
+    getValue: gs => gs.lifetimeUpgradesBought,
   },
 ];
