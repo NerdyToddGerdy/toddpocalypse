@@ -412,10 +412,10 @@ function renderParty(state: GameStateDict): void {
       <div class="char-class">${c.character_class}</div>${ci === 0 && state.earned_title ? `<div class="char-title">${state.earned_title}</div>` : ""}
       <div class="char-dps" data-dps="${dpsData}">${c.dps.toFixed(1)} DPS</div>
       <div class="char-rune-row">${runeRowHtml}</div>
+      ${abilitiesHtml ? `<div class="char-abilities">${abilitiesHtml}</div>` : ""}
     </div>
     <img class="hero-sprite" src="${heroImg}" alt="${c.character_class}">
   </div>
-  ${abilitiesHtml ? `<div class="char-abilities">${abilitiesHtml}</div>` : ""}
   <div class="hp-section">
     <div class="hp-bar-header">
       <span class="hp-label">HP</span>
