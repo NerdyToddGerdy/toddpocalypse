@@ -2075,8 +2075,8 @@ main {
 
 .companion-skill-btn {
     width: 100%;
-    padding: 7px 8px;
-    font-size: 0.78rem;
+    padding: 8px 14px;
+    font-size: 0.8rem;
     font-weight: 700;
     background: var(--surface);
     color: var(--accent2, #a78bfa);
