@@ -147,6 +147,7 @@ function render(state: GameStateDict): void {
       portraitInner.classList.remove("elite-portrait-frame");
     } else {
       borderEl.removeAttribute("src");
+      borderEl.setAttribute("hidden", "");
       portraitInner.classList.add("elite-portrait-frame");
     }
     portraitWrap.classList.remove("boss-exiting");

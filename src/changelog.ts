@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.13.4";
+export const VERSION = "v2.13.5";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.13.5",
+    date: "2026-05-16",
+    changes: [
+      "Fixed: elite enemy portrait no longer shows a broken image icon in Chrome — border <img> is now hidden by default and explicitly re-hidden when an elite (not boss) appears",
+    ],
+  },
   {
     version: "v2.13.4",
     date: "2026-05-16",
