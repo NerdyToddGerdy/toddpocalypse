@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.12.1";
+export const VERSION = "v2.12.2";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.12.2",
+    date: "2026-05-16",
+    changes: [
+      "Fixed: enemy panel no longer bounces when boss/elite portrait slides in — enemy name is now clipped to one line and panel content is top-anchored so the vertical position never shifts",
+    ],
+  },
   {
     version: "v2.12.1",
     date: "2026-05-16",
