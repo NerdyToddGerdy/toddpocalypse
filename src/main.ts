@@ -77,7 +77,9 @@ let game: GameState | null = null;
 let lootKey: string | null = null;
 let autoSellKey: string | null = null;
 let upgradeKey: string | null = null;
-let partyKey: string | null = null;
+let partyStructKey: string | null = null;
+let prevEquipJsonByChar: string[] = [];
+let prevLevelsByChar: number[] = [];
 let prestigeKey: string | null = null;
 let ventureKey: string | null = null;
 let guildKey: string | null = null;
@@ -325,42 +327,37 @@ function renderDepthGauge(state: GameStateDict): void {
 
 /** Re-renders the party cards section, skipping the DOM write if nothing has changed. */
 function renderParty(state: GameStateDict): void {
-  const prevPartyKey = partyKey;
-  const newKey = JSON.stringify(
-    state.party.map((c) => [c.dps, c.level, c.xp, c.health, JSON.stringify(c.equipment), c.abilities.join(",")]),
-  );
-  if (newKey === partyKey) return;
-  const prevParsed = prevPartyKey
-    ? (JSON.parse(prevPartyKey) as [number, number, number, number, string, string][])
-    : null;
-  const prevLevels = prevParsed
-    ? prevParsed.map(([, lvl]) => lvl)
-    : state.party.map(() => 0);
+  const partyEl = $("party-cards");
+  const partyH2 = document.querySelector<HTMLElement>("#party-panel h2");
 
-  // Determine which gear slots changed so we can flash them after re-render
-  const changedSlots: [number, string][] = [];
-  if (prevParsed) {
+  // Structure key: things that require a full DOM rebuild.
+  // Health and XP are intentionally excluded — they are updated in-place below.
+  const newStructKey = JSON.stringify(
+    state.party.map((c) => [c.level, c.dps, JSON.stringify(c.equipment), c.abilities.join(","), JSON.stringify(c.runes ?? {})])
+  ) + "|" + state.loot_pool.map(i => i.slot + i.name).join("|")
+    + "|" + (state.earned_title ?? "");
+
+  if (newStructKey !== partyStructKey) {
+    // Detect changed gear slots for the flash animation
+    const changedSlots: [number, string][] = [];
     state.party.forEach((c, ci) => {
       const prevEquip: Record<string, { name: string } | null> =
-        JSON.parse(prevParsed[ci]?.[4] ?? "{}") ?? {};
+        JSON.parse(prevEquipJsonByChar[ci] ?? "{}") ?? {};
       Object.entries(c.equipment).forEach(([slot, item]) => {
         const prevName = prevEquip[slot]?.name ?? null;
         const newName = (item as { name: string } | null)?.name ?? null;
         if (newName !== null && newName !== prevName) changedSlots.push([ci, slot]);
       });
     });
-  }
+    const leveledUpFlags = state.party.map((c, ci) => c.level > (prevLevelsByChar[ci] ?? 0));
 
-  partyKey = newKey;
+    prevEquipJsonByChar = state.party.map(c => JSON.stringify(c.equipment));
+    prevLevelsByChar = state.party.map(c => c.level);
+    partyStructKey = newStructKey;
 
-  const partyEl = $("party-cards");
-  const partyH2 = document.querySelector<HTMLElement>("#party-panel h2");
-  if (partyH2) partyH2.dataset.party = encodeURIComponent(JSON.stringify(state.party));
+    if (partyH2) partyH2.dataset.party = encodeURIComponent(JSON.stringify(state.party));
 
-  partyEl.innerHTML = state.party
-    .map((c, ci) => {
-      const xpPct = Math.round((c.xp / c.xp_to_next) * 100);
-      const leveledUp = c.level > (prevLevels[ci] ?? 0);
+    partyEl.innerHTML = state.party.map((c, ci) => {
       const lootForSlot = (slot: string) => {
         const matchSlot = slot === "ring2" ? "ring1" : slot;
         return state.loot_pool
@@ -397,12 +394,8 @@ function renderParty(state: GameStateDict): void {
           </div>`;
         })
         .join("");
-      const hpPct = Math.max(0, Math.round((c.health / c.max_health) * 100));
-      const hpLow = hpPct <= 25;
-      const isDead = c.health <= 0;
-      const gearDps = Object.values(c.equipment).reduce((sum, item) => {
-        return sum + ((item as GearItemDict | null)?.stats?.dps ?? 0);
-      }, 0);
+      const gearDps = Object.values(c.equipment).reduce((sum, item) =>
+        sum + ((item as GearItemDict | null)?.stats?.dps ?? 0), 0);
       const runeDps = Object.values(c.runes ?? {}).reduce((sum, rune) =>
         sum + (rune?.statKey === "dps" ? (rune?.value ?? 0) : 0), 0);
       const dpsData = encodeURIComponent(JSON.stringify({ total: c.dps, base: Math.max(0, c.dps - gearDps - runeDps), gear: gearDps, runes: runeDps, upgLevel: (state.upgrades[c.name]?.dps as { level: number } | undefined)?.level ?? 0 }));
@@ -423,8 +416,11 @@ function renderParty(state: GameStateDict): void {
         const runeJson = encodeURIComponent(JSON.stringify({ ...(rune as object), slotLabel: SLOT_LABELS[slot] ?? slot }));
         return `<span class="tt-rune-slot ${tierClass}" data-rune="${runeJson}"></span>`;
       }).join("");
+      const hpPct = Math.max(0, Math.round((c.health / c.max_health) * 100));
+      const hpLow = hpPct <= 25;
+      const xpPct = Math.round((c.xp / c.xp_to_next) * 100);
       return `
-<div class="char-card${leveledUp ? " levelup-flash" : ""}${isDead ? " is-dead" : ""}">
+<div class="char-card${leveledUpFlags[ci] ? " levelup-flash" : ""}${c.health <= 0 ? " is-dead" : ""}">
   <div class="char-header">
     <div class="char-header-left">
       <div class="char-name" data-char="${charJson}">${c.name}</div>
@@ -456,31 +452,54 @@ function renderParty(state: GameStateDict): void {
     </div>
   </div>
 </div>`;
-    })
-    .join("");
-  applySlotHighlight();
+    }).join("");
 
-  // Register new flashes and prune expired ones
-  const flashDuration = 2000;
-  const now = Date.now();
-  changedSlots.forEach(([ci, slot]) => flashStartTimes.set(`${ci}:${slot}`, now));
-  for (const [key, start] of flashStartTimes) {
-    if (now - start >= flashDuration) flashStartTimes.delete(key);
-  }
+    applySlotHighlight();
 
-  // Re-apply flashes to the freshly rendered DOM.
-  // Negative animation-delay resumes the animation mid-timeline instead of restarting it,
-  // which is necessary because the DOM is replaced every tick (HP updates partyKey constantly).
-  const cards = partyEl.querySelectorAll<HTMLElement>(".char-card");
-  for (const [key, start] of flashStartTimes) {
-    const [ciStr, slot] = key.split(":");
-    const row = cards[+ciStr]?.querySelector<HTMLElement>(`[data-slot="${slot}"]`);
-    if (row) {
-      const elapsed = (now - start) / 1000;
-      row.style.animationDelay = `-${elapsed}s`;
-      row.classList.add("slot-flash");
+    // Register gear-slot flash animations
+    const flashDuration = 2000;
+    const now = Date.now();
+    changedSlots.forEach(([ci, slot]) => flashStartTimes.set(`${ci}:${slot}`, now));
+    for (const [key, start] of flashStartTimes) {
+      if (now - start >= flashDuration) flashStartTimes.delete(key);
+    }
+    const cards = partyEl.querySelectorAll<HTMLElement>(".char-card");
+    for (const [key, start] of flashStartTimes) {
+      const [ciStr, slot] = key.split(":");
+      const row = cards[+ciStr]?.querySelector<HTMLElement>(`[data-slot="${slot}"]`);
+      if (row) {
+        const elapsed = (now - start) / 1000;
+        row.style.animationDelay = `-${elapsed}s`;
+        row.classList.add("slot-flash");
+      }
     }
   }
+
+  // In-place live updates — patch HP/XP bars without touching gear DOM
+  const cards = partyEl.querySelectorAll<HTMLElement>(".char-card");
+  if (partyH2) partyH2.dataset.party = encodeURIComponent(JSON.stringify(state.party));
+  state.party.forEach((c, ci) => {
+    const card = cards[ci];
+    if (!card) return;
+
+    const hpPct = Math.max(0, Math.round((c.health / c.max_health) * 100));
+    const hpLow = hpPct <= 25;
+    const isDead = c.health <= 0;
+    card.classList.toggle("is-dead", isDead);
+
+    const hpBar = card.querySelector<HTMLElement>(".player-hp-bar");
+    if (hpBar) { hpBar.style.width = `${hpPct}%`; hpBar.classList.toggle("hp-bar-low", hpLow); }
+    const hpNumbers = card.querySelector<HTMLElement>(".hp-numbers");
+    if (hpNumbers) { hpNumbers.textContent = `${Math.ceil(c.health)} / ${c.max_health}`; hpNumbers.classList.toggle("hp-low", hpLow); }
+
+    const xpPct = Math.round((c.xp / c.xp_to_next) * 100);
+    const xpBar = card.querySelector<HTMLElement>(".xp-bar");
+    if (xpBar) xpBar.style.width = `${xpPct}%`;
+    const xpBarText = card.querySelector<HTMLElement>(".xp-bar-text");
+    if (xpBarText) xpBarText.textContent = `${xpPct}%`;
+    const xpNumbers = card.querySelector<HTMLElement>(".xp-numbers");
+    if (xpNumbers) xpNumbers.textContent = `${c.xp} / ${c.xp_to_next} XP`;
+  });
 }
 
 function applySlotHighlight(): void {
