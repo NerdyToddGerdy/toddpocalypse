@@ -113,4 +113,32 @@ describe("Inventory", () => {
   it("toDict empty slot serializes to null", () => {
     expect(new Inventory().toDict().main_hand).toBeNull();
   });
+
+  describe("remove", () => {
+    it("returns the item that was in the slot", () => {
+      const inv = new Inventory();
+      const item = makeItem("chest");
+      inv.equip(item);
+      expect(inv.remove("chest")).toBe(item);
+    });
+
+    it("clears the slot after removal", () => {
+      const inv = new Inventory();
+      inv.equip(makeItem("chest"));
+      inv.remove("chest");
+      expect(inv.slots.chest).toBeNull();
+    });
+
+    it("returns null for an empty slot", () => {
+      expect(new Inventory().remove("helmet")).toBeNull();
+    });
+
+    it("only clears the specified slot", () => {
+      const inv = new Inventory();
+      inv.equip(makeItem("chest"));
+      inv.equip(makeItem("helmet"));
+      inv.remove("chest");
+      expect(inv.slots.helmet).not.toBeNull();
+    });
+  });
 });

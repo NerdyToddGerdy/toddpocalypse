@@ -370,6 +370,7 @@ function renderParty(state: GameStateDict): void {
               <span class="gear-icon">${SLOT_ICONS[slot]}</span>
               <span class="gear-name ${qc}">${item.name}</span>
               <span class="gear-bonus ${qc}">${formatStats(item.stats ?? { dps: item.damage })}</span>
+              <button class="gear-unequip-btn" data-action="unequip-gear" data-char="${ci}" data-slot="${slot}" title="Unequip">✕</button>
             </div>`;
           }
           return `<div class="gear-row empty" data-slot="${slot}">
@@ -2166,6 +2167,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const action = btn.dataset.action;
     const idx = btn.dataset.idx ? parseInt(btn.dataset.idx, 10) : -1;
     if (action === "equip") call("equipLoot", idx);
+    else if (action === "unequip-gear") call("unequipGear", parseInt(btn.dataset.char!, 10), btn.dataset.slot!);
     else if (action === "sell") call("sellLoot", idx);
     else if (action === "upgrade") call("buyUpgrade", btn.dataset.char!, btn.dataset.type!);
     else if (action === "attack") call("click");

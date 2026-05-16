@@ -591,6 +591,64 @@ describe("loot", () => {
   });
 });
 
+describe("unequipGear", () => {
+  function withEquipped() {
+    const gs = make();
+    const c = gs.party.team[0];
+    c.equipItem(new GearItem("chest", "plate", "common", "valor"));
+    return gs;
+  }
+
+  it("removes item from the character's slot", () => {
+    const gs = withEquipped();
+    gs.unequipGear(0, "chest");
+    expect(gs.party.team[0].inventory.slots.chest).toBeNull();
+  });
+
+  it("moves item to the loot chest", () => {
+    const gs = withEquipped();
+    const before = gs.lootPool.length;
+    gs.unequipGear(0, "chest");
+    expect(gs.lootPool.length).toBe(before + 1);
+  });
+
+  it("the item in loot chest matches the unequipped item", () => {
+    const gs = withEquipped();
+    const item = gs.party.team[0].inventory.slots.chest!;
+    gs.unequipGear(0, "chest");
+    expect(gs.lootPool).toContain(item);
+  });
+
+  it("is a no-op when slot is empty", () => {
+    const gs = make();
+    const before = gs.lootPool.length;
+    gs.unequipGear(0, "helmet");
+    expect(gs.lootPool.length).toBe(before);
+  });
+
+  it("is a no-op when loot chest is full", () => {
+    const gs = withEquipped();
+    for (let i = gs.lootPool.length; i < gs.lootMax; i++) {
+      gs.lootPool.push(new GearItem("helmet", "helm", "common", "valor"));
+    }
+    const before = gs.party.team[0].inventory.slots.chest;
+    gs.unequipGear(0, "chest");
+    expect(gs.party.team[0].inventory.slots.chest).toBe(before);
+  });
+
+  it("is a no-op for an out-of-range charIdx", () => {
+    const gs = withEquipped();
+    const before = gs.lootPool.length;
+    gs.unequipGear(99, "chest");
+    expect(gs.lootPool.length).toBe(before);
+  });
+
+  it("returns valid JSON", () => {
+    const gs = withEquipped();
+    expect(JSON.parse(gs.unequipGear(0, "chest"))).toHaveProperty("loot_pool");
+  });
+});
+
 describe("upgrades", () => {
   it("dps upgrade increases character dps", () => {
     const gs = withGold();

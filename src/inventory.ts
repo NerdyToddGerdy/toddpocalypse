@@ -36,6 +36,13 @@ export class Inventory {
     }
   }
 
+  /** Removes and returns the item in the given slot, or null if the slot was empty. */
+  remove(slot: Slot): GearItem | null {
+    const item = this.slots[slot];
+    this.slots[slot] = null;
+    return item;
+  }
+
   /** Returns all non-null equipped items across all slots. */
   equippedItems(): GearItem[] {
     return Object.values(this.slots).filter((i): i is GearItem => i !== null);

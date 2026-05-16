@@ -530,6 +530,18 @@ export class GameState {
     return this.respond();
   }
 
+  /** Removes a gear item from a character's slot and returns it to the loot chest. Returns serialized JSON. */
+  unequipGear(charIdx: number, slot: string): string {
+    const char = this.party.team[charIdx];
+    if (!char) return this.respond();
+    if (this.lootPool.length >= this.lootMax) return this.respond();
+    const item = char.inventory.remove(slot as any);
+    if (!item) return this.respond();
+    this.lootPool.push(item);
+    this.addLog(`${char.name} unequips ${item.getName()}.`);
+    return this.respond();
+  }
+
   /** Equips every item in the loot pool that is an upgrade; sells the rest. Returns serialized JSON. */
   equipAll(): string {
     for (const item of this.lootPool) {
