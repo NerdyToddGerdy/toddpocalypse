@@ -641,10 +641,12 @@ function renderPrestigeShop(state: GameStateDict): void {
       const canAfford = pts >= cost;
       const disabled = atMax || prereqMissing || !canAfford;
       const ownedLabel = atMax ? " ✓" : owned > 0 ? ` (${owned})` : "";
+      const currentStat = prestigeCurrentStat(type, owned);
       return `<div class="prestige-item">
       <div class="prestige-item-meta">
         <div class="prestige-item-name">${meta.icon} ${meta.name}${ownedLabel}</div>
         <div class="prestige-item-desc">${meta.desc}</div>
+        ${currentStat ? `<div class="shop-current-stat">${currentStat}</div>` : ""}
       </div>
       <button class="prestige-buy-btn" data-action="buy-prestige" data-type="${type}" ${disabled ? "disabled" : ""}>${atMax ? "Owned" : cost + "pt"}</button>
     </div>`;
@@ -665,6 +667,31 @@ function updateVentureButton(state: GameStateDict): void {
   } else {
     btn.disabled = true;
     btn.textContent = `⚔ Venture (need lv${ventureUnlockLevel(state.dungeon_index)})`;
+  }
+}
+
+/** Returns a short "Current: …" label for a stackable prestige upgrade, or "" if not applicable. */
+function prestigeCurrentStat(type: string, owned: number): string {
+  if (owned <= 0) return "";
+  switch (type) {
+    case "starting_gold":  return `Current: +${owned * 250}g per run`;
+    case "xp_bonus":       return `Current: +${owned * 10}% XP`;
+    case "gold_bonus":     return `Current: +${owned * 10}% gold`;
+    case "gold_mastery":   return `Current: +${owned * 20}% boss gold`;
+    case "gear_luck":      return `Current: +${Math.min(owned * 5, 75)}% drop chance`;
+    case "checkpoint":     return `Current: respawn at floor ${owned * 5}`;
+    default: return "";
+  }
+}
+
+/** Returns a short "Current: …" label for a guild upgrade at its current tier, or "" if not applicable. */
+function guildCurrentStat(type: string, stacks: number, lootMax: number): string {
+  if (stacks <= 0) return "";
+  switch (type) {
+    case "expanded_armory": return `Current: ${lootMax} loot slots`;
+    case "companion_hall":  return stacks >= 2 ? "Current: Party Slots IV + V unlocked" : "Current: Party Slot IV unlocked";
+    case "rune_forge":      return `Current: Forge Tier ${stacks}`;
+    default: return "";
   }
 }
 
@@ -709,10 +736,12 @@ function renderGuildHall(state: GameStateDict): void {
     const disabled = atMax || !canAfford;
     const stackLabel = costs.length > 1 ? (atMax ? ` (${stacks}/${costs.length})` : stacks > 0 ? ` (${stacks}/${costs.length})` : "") : atMax ? " ✓" : "";
     const preview = atMax ? "" : guildUpgradePreview(type, stacks, state.loot_max);
+    const currentStat = guildCurrentStat(type, stacks, state.loot_max);
     return `<div class="prestige-item">
       <div class="prestige-item-meta">
         <div class="prestige-item-name">${meta.icon} ${meta.name}${stackLabel}</div>
         <div class="prestige-item-desc">${meta.desc}</div>
+        ${currentStat ? `<div class="shop-current-stat">${currentStat}</div>` : ""}
         ${preview ? `<div class="guild-preview">→ ${preview}</div>` : ""}
       </div>
       <button class="guild-buy-btn" data-action="buy-guild" data-type="${type}" ${disabled ? "disabled" : ""}>${atMax ? "Owned" : nextCost.toLocaleString() + "g"}</button>

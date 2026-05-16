@@ -1821,6 +1821,7 @@ main {
 .prestige-item-meta { flex: 1; min-width: 0; }
 .prestige-item-name { font-size: 0.8rem; font-weight: 700; color: var(--text); }
 .prestige-item-desc { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
+.shop-current-stat { font-size: 0.68rem; color: var(--hp-green); margin-top: 2px; }
 
 .prestige-buy-btn {
     padding: 6px 12px;
