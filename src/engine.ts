@@ -220,7 +220,7 @@ export const THEME_UNLOCKS: { theme: string; icon: string; label: string; presti
   { theme: "necropolis",  icon: "💀", label: "Necropolis",   prestiges: 17 },
 ];
 
-export type AchievementCategory = "combat" | "explorer" | "collector" | "wealth" | "prestige" | "guild";
+export type AchievementCategory = "combat" | "explorer" | "collector" | "wealth" | "prestige" | "guild" | "runes";
 export type AchievementTierLabel = "bronze" | "silver" | "gold";
 
 export interface AchievementReward {
