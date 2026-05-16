@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.10.2";
+export const VERSION = "v2.10.3";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.10.3",
+    date: "2026-05-16",
+    changes: [
+      "Passive skills moved to hero card above HP bar, next to rune quick-reference row",
+    ],
+  },
   {
     version: "v2.10.2",
     date: "2026-05-16",

@@ -415,6 +415,7 @@ function renderParty(state: GameStateDict): void {
     </div>
     <img class="hero-sprite" src="${heroImg}" alt="${c.character_class}">
   </div>
+  ${abilitiesHtml ? `<div class="char-abilities">${abilitiesHtml}</div>` : ""}
   <div class="hp-section">
     <div class="hp-bar-header">
       <span class="hp-label">HP</span>
@@ -821,18 +822,9 @@ function renderPartyRunePanel(runeInv: any[], party: any[], runeForge: number): 
       </div>`;
     }).join("");
 
-    const classAbilities = CLASS_ABILITIES[c.character_class] ?? [];
-    const abilitiesHtml = classAbilities.map((a: any) => {
-      const unlocked = (c.abilities ?? []).includes(a.id);
-      return unlocked
-        ? `<span class="ability-badge unlocked">${a.icon} ${a.name}</span>`
-        : `<span class="ability-badge locked">${a.icon} Lv${a.level}</span>`;
-    }).join("");
-
     return `<div class="prune-char-block">
       <div class="prune-char-name">${c.name} — ${c.character_class}</div>
       <div class="prune-slots">${slots}</div>
-      ${abilitiesHtml ? `<div class="prune-abilities">${abilitiesHtml}</div>` : ""}
     </div>`;
   }).join("");
 
