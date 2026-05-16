@@ -285,6 +285,8 @@ export interface GameStateDict {
   prestige_points_preview: number;
   checkpoint_level: number;
   auto_sell_qualities: string[];
+  auto_equip_enabled: boolean;
+  auto_sell_enabled: boolean;
   floor_kills: number;
   dungeon_index: number;
   idle_gold_rate: number;
@@ -356,6 +358,10 @@ export class GameState {
   prestigePartyClasses: Record<string, string> = {};
   /** Quality tier names currently enabled for auto-sell. */
   autoSellQualities: string[] = [];
+  /** Whether auto-equip runs automatically on loot drops. */
+  autoEquipEnabled = true;
+  /** Whether auto-sell runs automatically on loot drops. */
+  autoSellEnabled = true;
   /** Floor to respawn on after a party wipe (set every 10 floors). */
   checkpointLevel = 1;
   /** Regular kills on the current floor (resets when the boss spawns). */
@@ -1041,6 +1047,8 @@ export class GameState {
         : 0,
       checkpoint_level: this.checkpointLevel,
       auto_sell_qualities: [...this.autoSellQualities],
+      auto_equip_enabled: this.autoEquipEnabled,
+      auto_sell_enabled: this.autoSellEnabled,
       floor_kills: this.floorKills,
       dungeon_index: this.dungeonIndex,
       idle_gold_rate: this.idleGoldRate,
@@ -1349,8 +1357,15 @@ export class GameState {
   }
 
   /** Sells all loot items matching the auto-sell quality list, skipping items that are upgrades. */
+  toggleAutoAction(type: "auto_equip" | "auto_sell"): string {
+    if (type === "auto_equip") this.autoEquipEnabled = !this.autoEquipEnabled;
+    else if (type === "auto_sell") this.autoSellEnabled = !this.autoSellEnabled;
+    return this.respond();
+  }
+
   private runAutoSeller(): void {
     if (!(this.prestigeUpgrades["auto_seller"] > 0)) return;
+    if (!this.autoSellEnabled) return;
     const smartFull = (this.prestigeUpgrades["smart_seller"] ?? 0) > 0 && this.lootPool.length >= this.lootMax;
     if (this.autoSellQualities.length === 0 && !smartFull) return;
     const toSell = this.lootPool.filter(item => {
@@ -1381,6 +1396,7 @@ export class GameState {
   /** Equips all upgrade items from the loot pool, cascading displaced items to other party members. */
   private runAutoEquip(): void {
     if (!(this.prestigeUpgrades["auto_equip"] > 0)) return;
+    if (!this.autoEquipEnabled) return;
     let found = true;
     while (found) {
       found = false;
@@ -1496,6 +1512,8 @@ export class GameState {
     gs.prestigeUpgrades = { ...(d.prestige_upgrades ?? {}) };
     gs.prestigePartyClasses = { ...(d.prestige_party_classes ?? {}) };
     gs.autoSellQualities = [...(d.auto_sell_qualities ?? [])];
+    gs.autoEquipEnabled = d.auto_equip_enabled ?? true;
+    gs.autoSellEnabled = d.auto_sell_enabled ?? true;
     gs.checkpointLevel = d.checkpoint_level ?? 1;
     gs.floorKills = d.floor_kills ?? 0;
     gs.dungeonIndex = d.dungeon_index ?? 0;

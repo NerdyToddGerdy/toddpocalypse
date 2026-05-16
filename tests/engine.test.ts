@@ -1826,6 +1826,81 @@ describe("auto-seller", () => {
   });
 });
 
+describe("toggleAutoAction", () => {
+  function withAutoEquip(): GameState {
+    const gs = withPrestige(5);
+    gs.buyPrestigeUpgrade("auto_equip", "fighter");
+    return gs;
+  }
+  function withAutoSell(): GameState {
+    const gs = withPrestige(3);
+    gs.buyPrestigeUpgrade("auto_seller", "fighter");
+    return gs;
+  }
+
+  it("auto equip is enabled by default", () => {
+    expect(withAutoEquip().autoEquipEnabled).toBe(true);
+  });
+
+  it("auto sell is enabled by default", () => {
+    expect(withAutoSell().autoSellEnabled).toBe(true);
+  });
+
+  it("toggleAutoAction flips autoEquipEnabled", () => {
+    const gs = withAutoEquip();
+    gs.toggleAutoAction("auto_equip");
+    expect(gs.autoEquipEnabled).toBe(false);
+  });
+
+  it("toggleAutoAction flips autoSellEnabled", () => {
+    const gs = withAutoSell();
+    gs.toggleAutoAction("auto_sell");
+    expect(gs.autoSellEnabled).toBe(false);
+  });
+
+  it("toggleAutoAction toggles back on", () => {
+    const gs = withAutoEquip();
+    gs.toggleAutoAction("auto_equip");
+    gs.toggleAutoAction("auto_equip");
+    expect(gs.autoEquipEnabled).toBe(true);
+  });
+
+  it("runAutoEquip does nothing when disabled", () => {
+    const gs = withAutoEquip();
+    gs.autoEquipEnabled = false;
+    const item = new GearItem("helmet", "helm", "legendary", "valor");
+    gs.lootPool = [item];
+    gs.toggleAutoSellQuality("broken"); // trigger a tick-adjacent sweep
+    expect(gs.lootPool).toContain(item);
+  });
+
+  it("runAutoSeller does nothing when disabled", () => {
+    const gs = withAutoSell();
+    gs.autoSellEnabled = false;
+    gs.autoSellQualities = ["broken"];
+    const item = new GearItem("helmet", "helm", "broken", "valor");
+    gs.lootPool = [item];
+    gs.toggleAutoSellQuality("worn"); // trigger sweep without re-adding broken
+    expect(gs.lootPool).toContain(item);
+  });
+
+  it("autoEquipEnabled round-trips through toDict/fromDict", () => {
+    const gs = withAutoEquip();
+    gs.autoEquipEnabled = false;
+    expect(GameState.fromDict(gs.toDict()).autoEquipEnabled).toBe(false);
+  });
+
+  it("autoSellEnabled round-trips through toDict/fromDict", () => {
+    const gs = withAutoSell();
+    gs.autoSellEnabled = false;
+    expect(GameState.fromDict(gs.toDict()).autoSellEnabled).toBe(false);
+  });
+
+  it("toggleAutoAction returns valid JSON", () => {
+    expect(JSON.parse(withAutoEquip().toggleAutoAction("auto_equip"))).toHaveProperty("auto_equip_enabled");
+  });
+});
+
 describe("class ability effects", () => {
   function geared(gs: GameState): GameState {
     gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));

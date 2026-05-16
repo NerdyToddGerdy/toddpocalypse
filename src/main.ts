@@ -492,7 +492,26 @@ function applySlotHighlight(): void {
 /** Renders the loot chest with equip/sell buttons and auto-seller quality checkboxes. */
 function renderLoot(state: GameStateDict): void {
   const loot = state.loot_pool;
-  const autoSellOwned = ((state.prestige_upgrades as Record<string, number>)["auto_seller"] ?? 0) > 0;
+  const ups = state.prestige_upgrades as Record<string, number>;
+  const autoSellOwned = (ups["auto_seller"] ?? 0) > 0;
+  const autoEquipOwned = (ups["auto_equip"] ?? 0) > 0;
+
+  // Auto-action toggles
+  const togglesSection = document.getElementById("auto-toggles-section")!;
+  const hasToggles = autoEquipOwned || autoSellOwned;
+  togglesSection.hidden = !hasToggles;
+  if (hasToggles) {
+    const togglesKey = `${autoEquipOwned}|${(state as any).auto_equip_enabled}|${autoSellOwned}|${(state as any).auto_sell_enabled}`;
+    if (togglesSection.dataset.key !== togglesKey) {
+      togglesSection.dataset.key = togglesKey;
+      const btns = [
+        autoEquipOwned ? `<button class="auto-toggle-btn${(state as any).auto_equip_enabled ? " on" : ""}" data-action="toggle-auto-action" data-type="auto_equip">Auto Equip: ${(state as any).auto_equip_enabled ? "ON" : "OFF"}</button>` : "",
+        autoSellOwned  ? `<button class="auto-toggle-btn${(state as any).auto_sell_enabled  ? " on" : ""}" data-action="toggle-auto-action" data-type="auto_sell">Auto Sell: ${(state as any).auto_sell_enabled  ? "ON" : "OFF"}</button>` : "",
+      ].filter(Boolean).join("");
+      togglesSection.innerHTML = btns;
+    }
+  }
+
   const newKey = loot.map((i) => i.slot + i.name).join("|") + "|" + JSON.stringify(state.auto_sell_qualities) + "|" + state.highest_level + "|" + lootFilterActive;
   if (newKey !== lootKey) {
     lootKey = newKey;
@@ -2184,7 +2203,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!btn || !game) return;
     const action = btn.dataset.action;
     const idx = btn.dataset.idx ? parseInt(btn.dataset.idx, 10) : -1;
-    if (action === "equip") call("equipLoot", idx);
+    if (action === "toggle-auto-action") call("toggleAutoAction", btn.dataset.type!);
+    else if (action === "equip") call("equipLoot", idx);
     else if (action === "equip-loot-on-char") {
       const row = btn.closest(".gear-row-equip")!;
       const sel = row.querySelector(".gear-loot-select") as HTMLSelectElement;

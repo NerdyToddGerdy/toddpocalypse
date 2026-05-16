@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.10.9";
+export const VERSION = "v2.11.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.11.0",
+    date: "2026-05-16",
+    changes: [
+      "Toggleable auto actions: Auto Equip and Auto Sell can each be turned ON/OFF from the loot panel; state persists across saves",
+    ],
+  },
   {
     version: "v2.10.9",
     date: "2026-05-16",
