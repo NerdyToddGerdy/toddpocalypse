@@ -13,7 +13,7 @@ import {
   STASH_TIER_COSTS, STASH_SIZES,
 } from "../src/engine.js";
 import { Character } from "../src/character.js";
-import { GearItem, getItem, type Slot } from "../src/gear.js";
+import { GearItem, getItem, getSetItem, SET_DEFS, type Slot } from "../src/gear.js";
 import { RUNE_DEFS } from "../src/engine.js";
 import { generateEliteEnemy } from "../src/dungeon.js";
 
@@ -4076,5 +4076,171 @@ describe("stashLoot", () => {
     gs.buyPrestigeUpgrade("stash");
     gs.stashLoot(5);
     expect(gs.gearStash.length).toBe(0);
+  });
+});
+
+describe("named gear sets — recomputeSetBonuses", () => {
+  function makeChar(): Character {
+    return new Character("Hero", "fighter");
+  }
+
+  it("character has appliedSetBonuses field initialized to empty object", () => {
+    const c = makeChar();
+    expect(c.appliedSetBonuses).toBeDefined();
+    expect(typeof c.appliedSetBonuses).toBe("object");
+  });
+
+  it("recomputeSetBonuses exists on Character", () => {
+    const c = makeChar();
+    expect(typeof c.recomputeSetBonuses).toBe("function");
+  });
+
+  it("2pc Shadowbane bonus applies critChance when 2 pieces equipped", () => {
+    const def = SET_DEFS.find(d => d.id === "shadowbane")!;
+    const c = makeChar();
+    const baseCrit = c.critChance;
+    c.equipItem(new GearItem("helmet", "helm", "rare", "valor", {}, 1, def.name));
+    c.equipItem(new GearItem("gloves", "gauntlets", "rare", "valor", {}, 1, def.name));
+    c.recomputeSetBonuses();
+    expect(c.critChance).toBeCloseTo(baseCrit + def.bonus2pc.critChance!);
+  });
+
+  it("3pc Shadowbane bonus also applies haste when all 3 pieces equipped", () => {
+    const def = SET_DEFS.find(d => d.id === "shadowbane")!;
+    const c = makeChar();
+    const baseHaste = c.haste;
+    c.equipItem(new GearItem("helmet",  "helm",      "rare", "valor", {}, 1, def.name));
+    c.equipItem(new GearItem("gloves",  "gauntlets", "rare", "valor", {}, 1, def.name));
+    c.equipItem(new GearItem("shoes",   "boots",     "rare", "valor", {}, 1, def.name));
+    c.recomputeSetBonuses();
+    expect(c.haste).toBeCloseTo(baseHaste + def.bonus3pc.haste!);
+  });
+
+  it("2pc Iron Bulwark bonus applies maxHp when 2 pieces equipped", () => {
+    const def = SET_DEFS.find(d => d.id === "iron_bulwark")!;
+    const c = makeChar();
+    const baseHp = c.maxHealth;
+    c.equipItem(new GearItem("chest", "plate",    "rare", "valor", {}, 1, def.name));
+    c.equipItem(new GearItem("legs",  "greaves",  "rare", "valor", {}, 1, def.name));
+    c.recomputeSetBonuses();
+    expect(c.maxHealth).toBe(baseHp + def.bonus2pc.maxHp!);
+  });
+
+  it("removing a piece drops below 2pc threshold and removes bonus", () => {
+    const def = SET_DEFS.find(d => d.id === "shadowbane")!;
+    const c = makeChar();
+    const baseCrit = c.critChance;
+    const helmet  = new GearItem("helmet", "helm",      "rare", "valor", {}, 1, def.name);
+    const gloves  = new GearItem("gloves", "gauntlets", "rare", "valor", {}, 1, def.name);
+    c.equipItem(helmet);
+    c.equipItem(gloves);
+    c.recomputeSetBonuses();
+    // now unequip helmet
+    c.inventory.remove("helmet");
+    c.recomputeSetBonuses();
+    expect(c.critChance).toBeCloseTo(baseCrit);
+  });
+
+  it("recomputeSetBonuses is idempotent — calling twice gives same result as once", () => {
+    const def = SET_DEFS.find(d => d.id === "shadowbane")!;
+    const c = makeChar();
+    c.equipItem(new GearItem("helmet", "helm",      "rare", "valor", {}, 1, def.name));
+    c.equipItem(new GearItem("gloves", "gauntlets", "rare", "valor", {}, 1, def.name));
+    c.recomputeSetBonuses();
+    const critAfterFirst = c.critChance;
+    c.recomputeSetBonuses();
+    expect(c.critChance).toBeCloseTo(critAfterFirst);
+  });
+
+  it("2pc Plunderer's Kit bonus applies goldBonus", () => {
+    const def = SET_DEFS.find(d => d.id === "plunderers_kit")!;
+    const c = makeChar();
+    const baseGold = c.goldBonus;
+    c.equipItem(new GearItem("main_hand", "sword", "rare", "valor", {}, 1, def.name));
+    c.equipItem(new GearItem("ring1",     "ring",  "rare", "valor", {}, 1, def.name));
+    c.recomputeSetBonuses();
+    expect(c.goldBonus).toBeCloseTo(baseGold + def.bonus2pc.goldBonus!);
+  });
+
+  it("2pc Warlord's Grasp bonus applies haste", () => {
+    const def = SET_DEFS.find(d => d.id === "warlords_grasp")!;
+    const c = makeChar();
+    const baseHaste = c.haste;
+    c.equipItem(new GearItem("main_hand", "sword", "rare", "valor", {}, 1, def.name));
+    c.equipItem(new GearItem("chest",     "plate", "rare", "valor", {}, 1, def.name));
+    c.recomputeSetBonuses();
+    expect(c.haste).toBeCloseTo(baseHaste + def.bonus2pc.haste!);
+  });
+
+  it("no set pieces → no bonus applied (appliedSetBonuses is empty)", () => {
+    const c = makeChar();
+    c.recomputeSetBonuses();
+    expect(Object.keys(c.appliedSetBonuses)).toHaveLength(0);
+  });
+
+  it("toDict/fromDict roundtrip preserves set bonus stats (baked in)", () => {
+    const def = SET_DEFS.find(d => d.id === "shadowbane")!;
+    const c = makeChar();
+    c.equipItem(new GearItem("helmet", "helm",      "rare", "valor", {}, 1, def.name));
+    c.equipItem(new GearItem("gloves", "gauntlets", "rare", "valor", {}, 1, def.name));
+    c.recomputeSetBonuses();
+    const critBefore = c.critChance;
+    const restored = Character.fromDict(c.toDict());
+    expect(restored.critChance).toBeCloseTo(critBefore);
+  });
+});
+
+describe("named gear sets — engine drops", () => {
+  it("boss always drops a set piece when set_drops_enabled (loot pool has room)", () => {
+    const gs = make();
+    // Force boss enemy
+    gs.enemy = { name: "The Test Boss", level: 5, max_hp: 100, hp: 0, xp_reward: 10, gold_reward: 50, attack_dps: 0, isBoss: true };
+    gs.lootPool = [];
+    gs.onEnemyDeath();
+    const setItem = gs.lootPool.find(i => i.setName !== undefined);
+    expect(setItem).toBeDefined();
+  });
+
+  it("elite enemy has 15% chance to drop a set piece", () => {
+    let setDrops = 0;
+    const TRIALS = 400;
+    for (let i = 0; i < TRIALS; i++) {
+      const gs = make();
+      gs.enemy = { name: "Elite Test", level: 5, max_hp: 100, hp: 0, xp_reward: 5, gold_reward: 20, attack_dps: 0, isBoss: false, isElite: true };
+      gs.lootPool = [];
+      gs.onEnemyDeath();
+      if (gs.lootPool.some(i => i.setName !== undefined)) setDrops++;
+    }
+    // Expect roughly 15% (allow broad tolerance: 8%–25%)
+    expect(setDrops / TRIALS).toBeGreaterThan(0.08);
+    expect(setDrops / TRIALS).toBeLessThan(0.30);
+  });
+
+  it("regular enemy does not drop set pieces", () => {
+    // Force drops to always trigger (override Math.random)
+    vi.spyOn(Math, "random").mockReturnValue(0.01);
+    const gs = make();
+    gs.enemy = { name: "Weak Goblin", level: 1, max_hp: 10, hp: 0, xp_reward: 1, gold_reward: 1, attack_dps: 0, isBoss: false };
+    gs.lootPool = [];
+    gs.kills = 0;
+    gs.floorKills = 0;
+    gs.onEnemyDeath();
+    const setItem = gs.lootPool.find(i => i.setName !== undefined);
+    vi.restoreAllMocks();
+    expect(setItem).toBeUndefined();
+  });
+
+  it("boss set piece drop calls recomputeSetBonuses on equip", () => {
+    const gs = make();
+    const def = SET_DEFS.find(d => d.id === "shadowbane")!;
+    const helmet  = new GearItem("helmet", "helm",      "rare", "valor", {}, 5, def.name);
+    const gloves  = new GearItem("gloves", "gauntlets", "rare", "valor", {}, 5, def.name);
+    const char = gs.party.team[0];
+    char.equipItem(helmet);
+    char.recomputeSetBonuses();
+    const critBefore = char.critChance;
+    char.equipItem(gloves);
+    char.recomputeSetBonuses();
+    expect(char.critChance).toBeGreaterThan(critBefore);
   });
 });

@@ -12,6 +12,8 @@ import {
   gearLevelScale,
   autoSellThreshold,
   gearPower,
+  SET_DEFS,
+  getSetItem,
 } from "../src/gear.js";
 
 describe("autoSellThreshold", () => {
@@ -420,5 +422,157 @@ describe("gearPower", () => {
   it("combines multiple stats into a single score", () => {
     const p = gearPower({ dps: 10, critChance: 0.05 });
     expect(p).toBeCloseTo(10 + 0.05 * 150);
+  });
+});
+
+describe("SET_DEFS", () => {
+  it("exports exactly 4 gear sets", () => {
+    expect(SET_DEFS).toHaveLength(4);
+  });
+
+  it("every set has id, name, slots, bonus2pc, bonus3pc", () => {
+    for (const s of SET_DEFS) {
+      expect(s).toHaveProperty("id");
+      expect(s).toHaveProperty("name");
+      expect(Array.isArray(s.slots)).toBe(true);
+      expect(s.slots).toHaveLength(3);
+      expect(s).toHaveProperty("bonus2pc");
+      expect(s).toHaveProperty("bonus3pc");
+    }
+  });
+
+  it("Shadowbane slots are helmet, gloves, shoes", () => {
+    const s = SET_DEFS.find(d => d.id === "shadowbane")!;
+    expect(s).toBeDefined();
+    expect(s.slots).toEqual(expect.arrayContaining(["helmet", "gloves", "shoes"]));
+  });
+
+  it("Iron Bulwark slots are chest, legs, off_hand", () => {
+    const s = SET_DEFS.find(d => d.id === "iron_bulwark")!;
+    expect(s).toBeDefined();
+    expect(s.slots).toEqual(expect.arrayContaining(["chest", "legs", "off_hand"]));
+  });
+
+  it("Plunderer's Kit slots are main_hand, ring1, ring2", () => {
+    const s = SET_DEFS.find(d => d.id === "plunderers_kit")!;
+    expect(s).toBeDefined();
+    expect(s.slots).toEqual(expect.arrayContaining(["main_hand", "ring1", "ring2"]));
+  });
+
+  it("Warlord's Grasp slots are main_hand, chest, helmet", () => {
+    const s = SET_DEFS.find(d => d.id === "warlords_grasp")!;
+    expect(s).toBeDefined();
+    expect(s.slots).toEqual(expect.arrayContaining(["main_hand", "chest", "helmet"]));
+  });
+
+  it("Shadowbane 2pc bonus is critChance", () => {
+    const s = SET_DEFS.find(d => d.id === "shadowbane")!;
+    expect(s.bonus2pc.critChance).toBeGreaterThan(0);
+  });
+
+  it("Iron Bulwark 2pc bonus is maxHp", () => {
+    const s = SET_DEFS.find(d => d.id === "iron_bulwark")!;
+    expect(s.bonus2pc.maxHp).toBeGreaterThan(0);
+  });
+
+  it("Plunderer's Kit 2pc bonus is goldBonus", () => {
+    const s = SET_DEFS.find(d => d.id === "plunderers_kit")!;
+    expect(s.bonus2pc.goldBonus).toBeGreaterThan(0);
+  });
+
+  it("Warlord's Grasp 2pc bonus is haste", () => {
+    const s = SET_DEFS.find(d => d.id === "warlords_grasp")!;
+    expect(s.bonus2pc.haste).toBeGreaterThan(0);
+  });
+
+  it("all set ids are unique", () => {
+    const ids = SET_DEFS.map(s => s.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("all slot lists reference valid SLOTS entries", () => {
+    const validSlots = new Set(SLOTS);
+    for (const s of SET_DEFS) {
+      for (const slot of s.slots) {
+        expect(validSlots.has(slot as any)).toBe(true);
+      }
+    }
+  });
+});
+
+describe("GearItem set fields", () => {
+  it("setName is undefined by default", () => {
+    const item = getItem("main_hand", 5);
+    expect(item.setName).toBeUndefined();
+  });
+
+  it("getName returns normal format when no setName", () => {
+    const item = new GearItem("helmet", "helm", "rare", "valor", {}, 1);
+    expect(item.getName()).toBe("rare helm of valor");
+  });
+
+  it("getName returns set format when setName is set", () => {
+    const item = new GearItem("helmet", "helm", "rare", "valor", {}, 1, "Shadowbane");
+    expect(item.getName()).toContain("Shadowbane");
+    expect(item.getName()).toContain("helm");
+  });
+
+  it("toDict includes set_name when setName is set", () => {
+    const item = new GearItem("helmet", "helm", "rare", "valor", {}, 1, "Shadowbane");
+    expect(item.toDict().set_name).toBe("Shadowbane");
+  });
+
+  it("toDict omits set_name when setName is undefined", () => {
+    const item = new GearItem("helmet", "helm", "rare", "valor", {}, 1);
+    expect(item.toDict().set_name).toBeUndefined();
+  });
+
+  it("fromDict round-trips set_name", () => {
+    const item = new GearItem("gloves", "gauntlets", "epic", "valor", {}, 5, "Shadowbane");
+    const restored = GearItem.fromDict(item.toDict());
+    expect(restored.setName).toBe("Shadowbane");
+  });
+
+  it("fromDict with no set_name produces undefined setName", () => {
+    const item = getItem("shoes", 3);
+    const restored = GearItem.fromDict(item.toDict());
+    expect(restored.setName).toBeUndefined();
+  });
+});
+
+describe("getSetItem", () => {
+  it("returns a GearItem", () => {
+    expect(getSetItem("shadowbane", "helmet", 5)).toBeInstanceOf(GearItem);
+  });
+
+  it("returns item in requested slot", () => {
+    const item = getSetItem("shadowbane", "helmet", 5);
+    expect(item.slot).toBe("helmet");
+  });
+
+  it("sets setName to the set's name", () => {
+    const def = SET_DEFS.find(d => d.id === "shadowbane")!;
+    const item = getSetItem("shadowbane", "helmet", 5);
+    expect(item.setName).toBe(def.name);
+  });
+
+  it("quality is at least rare", () => {
+    for (let i = 0; i < 20; i++) {
+      const item = getSetItem("iron_bulwark", "chest", 1);
+      const qIdx = QUAL.indexOf(item.quality as typeof QUAL[number]);
+      expect(qIdx).toBeGreaterThanOrEqual(QUAL.indexOf("rare"));
+    }
+  });
+
+  it("scales with dungeon level", () => {
+    const low  = getSetItem("plunderers_kit", "main_hand", 1);
+    const high = getSetItem("plunderers_kit", "main_hand", 20);
+    expect(high.dungeonLevel).toBe(20);
+    expect(low.dungeonLevel).toBe(1);
+  });
+
+  it("ring2 slot falls back to ring1 slot item", () => {
+    const item = getSetItem("plunderers_kit", "ring2", 5);
+    expect(item.slot).toBe("ring1");
   });
 });

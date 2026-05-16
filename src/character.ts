@@ -1,5 +1,5 @@
 import { Inventory, type InventoryDict } from "./inventory.js";
-import { GearItem, type Slot } from "./gear.js";
+import { GearItem, SET_DEFS, type GearStats, type Slot } from "./gear.js";
 
 /** A socketed rune that grants a flat stat bonus to the wearer. */
 export interface Rune {
@@ -120,6 +120,7 @@ export interface CharacterDict {
   lifesteal: number;
   haste: number;
   runes?: Partial<Record<Slot, Rune>>;
+  applied_set_bonuses?: Record<string, GearStats>;
 }
 
 /** A player character or companion with class stats, equipment, and abilities. */
@@ -160,6 +161,8 @@ export class Character {
   haste = 0;
   /** Rune socketed into each gear slot (null if empty). */
   runes: Partial<Record<Slot, Rune>> = {};
+  /** Currently applied named-set stat bonuses, keyed by set id. Used for reversal on recompute. */
+  appliedSetBonuses: Record<string, GearStats> = {};
   /** Seconds accumulated toward the next Mana Surge burst. */
   surgeTimer = 0;
   /** Party-wide ability effects queued to apply after the current enemy dies. */
@@ -263,6 +266,38 @@ export class Character {
     this.haste -= s.haste ?? 0;
   }
 
+  /** Recomputes named-set bonuses from the current inventory and applies the delta.
+   *  Call this after any inventory change (equip, unequip, restore from save). */
+  recomputeSetBonuses(): void {
+    // Reverse previous bonuses
+    for (const bonus of Object.values(this.appliedSetBonuses)) {
+      this.removeStats(bonus);
+    }
+    this.appliedSetBonuses = {};
+
+    // Count equipped pieces per set name
+    const counts: Record<string, number> = {};
+    for (const item of this.inventory.equippedItems()) {
+      if (item.setName) counts[item.setName] = (counts[item.setName] ?? 0) + 1;
+    }
+
+    // Apply bonuses for each set
+    for (const def of SET_DEFS) {
+      const count = counts[def.name] ?? 0;
+      if (count < 2) continue;
+      const newBonus: GearStats = { ...def.bonus2pc };
+      if (count >= 3) {
+        for (const [k, v] of Object.entries(def.bonus3pc) as [keyof GearStats, number][]) {
+          (newBonus[k] as number) = ((newBonus[k] as number) ?? 0) + v;
+        }
+      }
+      if (Object.keys(newBonus).length > 0) {
+        this.appliedSetBonuses[def.id] = newBonus;
+        this.applyStats(newBonus);
+      }
+    }
+  }
+
   /** Adds XP scaled by xpMultiplier and triggers level-ups until XP is consumed. */
   gainXp(amount: number): void {
     this.xp += Math.floor(amount * this.xpMultiplier);
@@ -326,6 +361,7 @@ export class Character {
       lifesteal: Math.round(this.lifesteal * 10000) / 10000,
       haste: Math.round(this.haste * 10000) / 10000,
       runes: Object.keys(this.runes).length > 0 ? { ...this.runes } : undefined,
+      applied_set_bonuses: Object.keys(this.appliedSetBonuses).length > 0 ? { ...this.appliedSetBonuses } : undefined,
     };
   }
 
@@ -355,6 +391,10 @@ export class Character {
       for (const [slot, rune] of Object.entries(d.runes)) {
         if (rune) c.runes[slot as Slot] = rune;
       }
+    }
+    // Restore applied set bonuses without re-applying (baked into serialized stat fields)
+    if (d.applied_set_bonuses) {
+      c.appliedSetBonuses = { ...d.applied_set_bonuses };
     }
     return c;
   }

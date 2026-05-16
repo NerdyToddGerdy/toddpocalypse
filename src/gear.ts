@@ -257,6 +257,56 @@ export function gearPower(stats: GearStats): number {
     + (stats.xpBonus ?? 0) * 60;
 }
 
+/** Definition of a named gear set with slot requirements and stat bonuses. */
+export interface SetDef {
+  /** Unique identifier (snake_case). */
+  id: string;
+  /** Display name shown in UI. */
+  name: string;
+  /** The three slots that make up this set. */
+  slots: Slot[];
+  /** Stat bonus applied when 2 pieces are equipped. */
+  bonus2pc: GearStats;
+  /** Additional stat bonus applied when all 3 pieces are equipped. */
+  bonus3pc: GearStats;
+  /** Optional engine-level effect key triggered by the 3-piece bonus. */
+  effect3pc?: string;
+}
+
+/** The four named gear sets. */
+export const SET_DEFS: SetDef[] = [
+  {
+    id: "shadowbane",
+    name: "Shadowbane",
+    slots: ["helmet", "gloves", "shoes"],
+    bonus2pc: { critChance: 0.15 },
+    bonus3pc: { haste: 0.15 },
+  },
+  {
+    id: "iron_bulwark",
+    name: "Iron Bulwark",
+    slots: ["chest", "legs", "off_hand"],
+    bonus2pc: { maxHp: 100 },
+    bonus3pc: { defense: 0.15 },
+  },
+  {
+    id: "plunderers_kit",
+    name: "Plunderer's Kit",
+    slots: ["main_hand", "ring1", "ring2"],
+    bonus2pc: { goldBonus: 0.20 },
+    bonus3pc: { goldBonus: 0.10 },
+    effect3pc: "elite_rune",
+  },
+  {
+    id: "warlords_grasp",
+    name: "Warlord's Grasp",
+    slots: ["main_hand", "chest", "helmet"],
+    bonus2pc: { haste: 0.10 },
+    bonus3pc: {},
+    effect3pc: "cooldown_reset",
+  },
+];
+
 /** Serialized, plain-object form of a {@link GearItem}. */
 export interface GearItemDict {
   slot: Slot;
@@ -272,6 +322,8 @@ export interface GearItemDict {
   cost: number;
   sell_value: number;
   dungeon_level: number;
+  /** Present only for named set pieces. */
+  set_name?: string;
 }
 
 /** A single piece of loot with slot, quality, and depth-scaled stats. */
@@ -292,6 +344,8 @@ export class GearItem {
   readonly sellValue: number;
   /** Dungeon floor at which this item dropped, used for damage scaling. */
   readonly dungeonLevel: number;
+  /** Named gear set this item belongs to, or undefined for random drops. */
+  readonly setName?: string;
 
   /**
    * Creates a GearItem with explicit stats.
@@ -305,6 +359,7 @@ export class GearItem {
     adjective: string,
     statsOrLevel: GearStats | number = 1,
     dungeonLevel?: number,
+    setName?: string,
   ) {
     const isNum = typeof statsOrLevel === "number";
     const level = isNum ? (statsOrLevel as number) : (dungeonLevel ?? 1);
@@ -314,6 +369,7 @@ export class GearItem {
     this.quality = quality;
     this.adjective = adjective;
     this.dungeonLevel = level;
+    this.setName = setName;
     this.stats = isNum
       ? { dps: Math.ceil(DAMAGE_BY_QUALITY[quality] * scale) }
       : (statsOrLevel as GearStats);
@@ -326,8 +382,9 @@ export class GearItem {
     return Math.round((this.stats.dps ?? 0) * 100) / 100;
   }
 
-  /** Returns the display name in "quality itemType of adjective" format. */
+  /** Returns "[Set Name] itemType" for set pieces, or "quality itemType of adjective" for normal drops. */
   getName(): string {
+    if (this.setName) return `[${this.setName}] ${this.itemType}`;
     return `${this.quality} ${this.itemType} of ${this.adjective}`;
   }
 
@@ -346,13 +403,14 @@ export class GearItem {
       cost: this.cost,
       sell_value: this.sellValue,
       dungeon_level: this.dungeonLevel,
+      ...(this.setName !== undefined ? { set_name: this.setName } : {}),
     };
   }
 
   /** Reconstructs a GearItem from its serialized form, migrating old saves that have damage but no stats. */
   static fromDict(d: GearItemDict & { damage?: number; stats?: GearStats }): GearItem {
     const stats: GearStats = d.stats ?? (d.damage !== undefined ? { dps: d.damage } : {});
-    return new GearItem(d.slot, d.item_type, d.quality, d.adjective, stats, d.dungeon_level ?? 1);
+    return new GearItem(d.slot, d.item_type, d.quality, d.adjective, stats, d.dungeon_level ?? 1, d.set_name);
   }
 }
 
@@ -388,4 +446,23 @@ export function getItem(slot?: Slot, dungeonLevel = 1): GearItem {
 /** Convenience wrapper — generates a random main-hand weapon. */
 export function getWeapon(): GearItem {
   return getItem("main_hand");
+}
+
+/** Generates a named set piece for the given set, slot, and dungeon level.
+ *  Always at least rare quality. ring2 falls back to ring1 (inventory logic handles placement). */
+export function getSetItem(setId: string, slot: Slot, dungeonLevel = 1): GearItem {
+  const def = SET_DEFS.find(d => d.id === setId)!;
+  const effectiveSlot: Slot = slot === "ring2" ? "ring1" : slot;
+  const itemType = pick(SLOT_ITEM_TYPES[effectiveSlot]);
+  const minQualIdx = QUAL.indexOf("rare");
+  // Zero out sub-rare weights; ensure rare always has at least weight 1 even at low dungeon levels
+  const weights = qualityWeights(dungeonLevel).map((w, i) => {
+    if (i < minQualIdx) return 0;
+    if (i === minQualIdx) return Math.max(w, 1.0);
+    return w;
+  });
+  const quality = weightedPick(QUAL, weights);
+  const adjective = pick(ADJ);
+  const stats = rollStats(effectiveSlot, quality, dungeonLevel);
+  return new GearItem(effectiveSlot, itemType, quality, adjective, stats, dungeonLevel, def.name);
 }

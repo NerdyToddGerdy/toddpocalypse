@@ -1,6 +1,6 @@
 import { Character, type Rune } from "./character.js";
 import { Party } from "./party.js";
-import { GearItem, getItem, gearPower, QUAL, SLOTS, autoSellThreshold, type GearItemDict } from "./gear.js";
+import { GearItem, getItem, getSetItem, SET_DEFS, gearPower, QUAL, SLOTS, autoSellThreshold, type GearItemDict } from "./gear.js";
 import { generateEnemy, generateBoss, generateEliteEnemy, ENEMY_NOUNS, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT, type Enemy } from "./dungeon.js";
 
 export { ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT };
@@ -547,6 +547,7 @@ export class GameState {
     const item = this.lootPool.splice(idx, 1)[0];
     const target = this.bestRecipient(item);
     const old = target.equipItem(item);
+    target.recomputeSetBonuses();
     this.lifetimeLoot += 1;
     this.addLog(`${target.name} equips ${item.getName()}!`);
     if (old) this.disposeItem(old);
@@ -561,6 +562,7 @@ export class GameState {
     if (lootIdx < 0 || lootIdx >= this.lootPool.length) return this.respond();
     const item = this.lootPool.splice(lootIdx, 1)[0];
     const old = char.equipItem(item);
+    char.recomputeSetBonuses();
     this.lifetimeLoot += 1;
     this.addLog(`${char.name} equips ${item.getName()}!`);
     if (old) this.lootPool.push(old);
@@ -577,6 +579,7 @@ export class GameState {
     if (!canStash && !canLoot) return this.respond();
     const item = char.inventory.remove(slot as any);
     if (!item) return this.respond();
+    char.recomputeSetBonuses();
     if (canStash) {
       this.gearStash.push(item);
     } else {
@@ -593,6 +596,7 @@ export class GameState {
     if (stashIdx < 0 || stashIdx >= this.gearStash.length) return this.respond();
     const item = this.gearStash.splice(stashIdx, 1)[0];
     const old = char.equipItem(item);
+    char.recomputeSetBonuses();
     this.addLog(`${char.name} equips ${item.getName()} from stash!`);
     if (old) {
       if (this.gearStash.length < this.stashMax) {
@@ -647,6 +651,7 @@ export class GameState {
       }
     }
     this.lootPool = [];
+    for (const char of this.party.team) char.recomputeSetBonuses();
     this.checkAchievements();
     return this.respond();
   }
@@ -1322,7 +1327,9 @@ export class GameState {
       this.lifetimeBossKills += 1;
       if (this.lootPool.length < this.lootMax) {
         const effectiveLevel = this.dungeonLevel + this.dungeonIndex * 5;
-        const drop = getItem(undefined, effectiveLevel);
+        const setDef = SET_DEFS[Math.floor(Math.random() * SET_DEFS.length)];
+        const setSlot = setDef.slots[Math.floor(Math.random() * setDef.slots.length)] as import("./gear.js").Slot;
+        const drop = getSetItem(setDef.id, setSlot, effectiveLevel);
         this.lootPool.push(drop);
         if (drop.quality === "divine") this.lifetimeDivine = 1;
         else if (QUAL.indexOf(drop.quality as typeof QUAL[number]) >= QUAL.indexOf("legendary")) this.lifetimeLegendary = 1;
@@ -1365,6 +1372,14 @@ export class GameState {
         this.runeInventory.push(RUNE_DEFS[runeId]);
         this.addLog(`Elite dropped a ${RUNE_DEFS[runeId].name}!`);
       }
+      if (this.enemy.isElite && Math.random() < 0.15 && this.lootPool.length < this.lootMax) {
+        const effectiveLevel = this.dungeonLevel + this.dungeonIndex * 5;
+        const setDef = SET_DEFS[Math.floor(Math.random() * SET_DEFS.length)];
+        const setSlot = setDef.slots[Math.floor(Math.random() * setDef.slots.length)] as import("./gear.js").Slot;
+        const setDrop = getSetItem(setDef.id, setSlot, effectiveLevel);
+        this.lootPool.push(setDrop);
+        this.addLog(`Elite dropped a set piece: ${setDrop.getName()}!`);
+      }
       this.kills += 1;
       this.floorKills += 1;
       if (this.floorKills >= killsForFloor(this.dungeonLevel)) {
@@ -1402,6 +1417,7 @@ export class GameState {
     if (this.isUpgradeForAnyMember(old)) {
       const recipient = this.bestRecipient(old);
       const further = recipient.equipItem(old);
+      recipient.recomputeSetBonuses();
       this.addLog(`${recipient.name} equips ${old.getName()}!`);
       if (further) {
         this.earnGold(further.sellValue);
@@ -1477,6 +1493,7 @@ export class GameState {
           this.lootPool.splice(i, 1);
           const target = this.bestRecipient(item);
           const old = target.equipItem(item);
+          target.recomputeSetBonuses();
           this.addLog(`Auto Equip: ${target.name} equips ${item.getName()}!`);
           if (old) this.disposeItem(old);
           found = true;

@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.12.3";
+export const VERSION = "v2.13.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,16 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.13.0",
+    date: "2026-05-16",
+    changes: [
+      "Named Gear Sets: four sets (Shadowbane, Iron Bulwark, Plunderer's Kit, Warlord's Grasp) each with 2pc and 3pc stat bonuses",
+      "Bosses always drop a set piece; elite enemies have a 15% chance to drop a set piece",
+      "Set pieces are always at least rare quality and display with gold styling throughout the UI",
+      "Active set bonuses shown as badges on each character card (gold = 2pc, bright = 3pc)",
+    ],
+  },
   {
     version: "v2.12.3",
     date: "2026-05-16",

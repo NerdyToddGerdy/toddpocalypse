@@ -1,5 +1,5 @@
 import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock } from "./engine.js";
-import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, type GearStats, type GearItemDict } from "./gear.js";
+import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, SET_DEFS, type GearStats, type GearItemDict } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
 import { parseAuthHash, getStoredToken, storeToken, clearToken, getLoginUrl, cloudLoad, cloudSave, cloudClaimSession, resetSessionId, getOrCreateSessionId } from "./cloud.js";
@@ -343,7 +343,7 @@ function renderParty(state: GameStateDict): void {
   // Structure key: things that require a full DOM rebuild.
   // Health and XP are intentionally excluded — they are updated in-place below.
   const newStructKey = JSON.stringify(
-    state.party.map((c) => [c.level, c.dps, JSON.stringify(c.equipment), c.abilities.join(","), JSON.stringify(c.runes ?? {})])
+    state.party.map((c) => [c.level, c.dps, JSON.stringify(c.equipment), c.abilities.join(","), JSON.stringify(c.runes ?? {}), JSON.stringify((c as any).applied_set_bonuses ?? {})])
   ) + "|" + state.loot_pool.map(i => i.slot + i.name).join("|")
     + "|" + (state.earned_title ?? "");
 
@@ -379,7 +379,8 @@ function renderParty(state: GameStateDict): void {
           if (item) {
             const qc = qualityClass(item.quality);
             const itemJson = encodeURIComponent(JSON.stringify(item));
-            return `<div class="gear-row filled" data-slot="${slot}" data-item="${itemJson}">
+            const isSetPiece = !!(item as any).set_name;
+            return `<div class="gear-row filled${isSetPiece ? " set-piece" : ""}" data-slot="${slot}" data-item="${itemJson}">
               <span class="gear-icon">${SLOT_ICONS[slot]}</span>
               <span class="gear-name ${qc}">${item.name}</span>
               <span class="gear-bonus ${qc}">${formatStats(item.stats ?? { dps: item.damage })}</span>
@@ -429,6 +430,23 @@ function renderParty(state: GameStateDict): void {
       const hpPct = Math.max(0, Math.round((c.health / c.max_health) * 100));
       const hpLow = hpPct <= 25;
       const xpPct = Math.round((c.xp / c.xp_to_next) * 100);
+      // Compute set bonus display for this character
+      const equippedItems = Object.values(c.equipment).filter(Boolean) as GearItemDict[];
+      const setPieceCounts: Record<string, number> = {};
+      for (const item of equippedItems) {
+        const sn = (item as any).set_name as string | undefined;
+        if (sn) setPieceCounts[sn] = (setPieceCounts[sn] ?? 0) + 1;
+      }
+      const setBonus2pcActive = SET_DEFS.filter(d => (setPieceCounts[d.name] ?? 0) >= 2);
+      const setBonus3pcActive = SET_DEFS.filter(d => (setPieceCounts[d.name] ?? 0) >= 3);
+      const setBonusHtml = setBonus2pcActive.length > 0
+        ? `<div class="char-set-bonuses">${setBonus2pcActive.map(d => {
+            const has3pc = setBonus3pcActive.some(x => x.id === d.id);
+            const pcs = setPieceCounts[d.name];
+            return `<span class="set-bonus-badge${has3pc ? " set-3pc" : " set-2pc"}" title="${d.name} ${pcs}/3">⚙ ${d.name} ${pcs}/3</span>`;
+          }).join("")}</div>`
+        : "";
+
       return `
 <div class="char-card${leveledUpFlags[ci] ? " levelup-flash" : ""}${c.health <= 0 ? " is-dead" : ""}">
   <div class="char-header">
@@ -451,6 +469,7 @@ function renderParty(state: GameStateDict): void {
     </div>
   </div>
   <div class="char-gear">${gearRows}</div>
+  ${setBonusHtml}
   <div class="xp-section">
     <div class="xp-header">
       <span class="xp-level-label">Level ${c.level}</span>
@@ -572,12 +591,15 @@ function renderLoot(state: GameStateDict): void {
           const itemJson = encodeURIComponent(JSON.stringify(item));
           const isUpgrade = tri !== null;
           const dimmed = lootFilterActive && !isUpgrade;
+          const setName = (item as any).set_name as string | undefined;
+          const displayName = setName ? `${setName} ${item.slot_display}` : (item.short_name ?? item.name);
           return `
-<div class="loot-item${dimmed ? " loot-dim" : ""}" data-slot="${item.slot}" data-item="${itemJson}">
+<div class="loot-item${dimmed ? " loot-dim" : ""}${setName ? " set-piece" : ""}" data-slot="${item.slot}" data-item="${itemJson}">
   <div class="loot-header">
-    <span class="loot-name ${qc}">${item.short_name ?? item.name}</span>
+    <span class="loot-name ${qc}">${displayName}</span>
     <span class="loot-slot-badge">${item.slot_display}</span>
   </div>
+  ${setName ? `<div class="set-badge">${setName}</div>` : ""}
   <div class="loot-body">
     <div class="loot-dmg ${triCls || qc}">${formatLootStats(tri, item.stats ?? { dps: item.damage })}</div>
     <div class="loot-btns">
@@ -630,14 +652,17 @@ function renderStash(state: GameStateDict): void {
   container.innerHTML = stash.map((item, idx) => {
     const qc = qualityClass(item.quality);
     const statsText = formatLootStats("", item.stats ?? {});
+    const setName = (item as any).set_name as string | undefined;
+    const displayName = setName ? `${setName} ${item.slot_display}` : (item.short_name ?? item.name);
     const charSel = multiChar
       ? `<select class="stash-char-select">${charOptions}</select>`
       : `<input type="hidden" class="stash-char-select" value="0">`;
-    return `<div class="stash-item">
+    return `<div class="stash-item${setName ? " set-piece" : ""}">
   <div class="stash-item-header">
-    <span class="stash-item-name ${qc}">${item.short_name ?? item.name}</span>
+    <span class="stash-item-name ${qc}">${displayName}</span>
     <span class="stash-item-slot">${item.slot_display}</span>
   </div>
+  ${setName ? `<div class="set-badge">${setName}</div>` : ""}
   ${statsText ? `<div class="stash-item-stats">${statsText}</div>` : ""}
   <div class="stash-item-btns">
     ${charSel}
