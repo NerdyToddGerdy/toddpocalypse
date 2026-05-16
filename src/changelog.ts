@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.9.9";
+export const VERSION = "v2.10.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.10.0",
+    date: "2026-05-16",
+    changes: [
+      "Hide header settings button on tablet/mobile (≤768px) — use the ⚙ tab in the bottom nav instead",
+    ],
+  },
   {
     version: "v2.9.9",
     date: "2026-05-16",

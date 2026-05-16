@@ -1604,6 +1604,8 @@ main {
 #mobile-tabs { display: none; }
 
 @media (max-width: 768px) {
+    #settings-open-btn { display: none; }
+
     body {
         height: 100dvh;
         min-height: unset;
