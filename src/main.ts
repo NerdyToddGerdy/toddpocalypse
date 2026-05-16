@@ -74,6 +74,9 @@ function initTheme(): void {
 }
 
 let game: GameState | null = null;
+let floorProgressKey: string | null = null;
+let lifetimeStatsKey: string | null = null;
+let logKey: string | null = null;
 let lootKey: string | null = null;
 let autoSellKey: string | null = null;
 let upgradeKey: string | null = null;
@@ -235,8 +238,13 @@ function renderFloorProgress(state: GameStateDict): void {
   const left = state.monsters_left;
   const total = killsForFloor(state.dungeon_level);
   const done = total - left;
-
   const isElite = state.enemy.is_elite;
+
+  const newKey = `${state.dungeon_level}|${done}|${isBoss}|${isElite}|${state.checkpoint_level}`;
+  if (newKey === floorProgressKey) return;
+  floorProgressKey = newKey;
+
+
   if (isBoss) {
     $("monsters-left-text").textContent = "★ BOSS FIGHT ★";
     $("monsters-left-text").className = "boss-text";
@@ -477,7 +485,6 @@ function renderParty(state: GameStateDict): void {
 
   // In-place live updates — patch HP/XP bars without touching gear DOM
   const cards = partyEl.querySelectorAll<HTMLElement>(".char-card");
-  if (partyH2) partyH2.dataset.party = encodeURIComponent(JSON.stringify(state.party));
   state.party.forEach((c, ci) => {
     const card = cards[ci];
     if (!card) return;
@@ -1101,6 +1108,10 @@ function updatePrestigeButton(state: GameStateDict): void {
 
 /** Populates the Lifetime Stats modal with totals and the enemy kill breakdown. */
 function updateLifetimeStats(state: GameStateDict): void {
+  const newKey = `${state.lifetime_kills}|${state.lifetime_deaths}|${state.lifetime_best_level}|${state.total_prestiges}|${JSON.stringify(state.lifetime_enemy_kills)}`;
+  if (newKey === lifetimeStatsKey) return;
+  lifetimeStatsKey = newKey;
+
   const ltKills = document.getElementById("lt-kills");
   const ltDeaths = document.getElementById("lt-deaths");
   const ltBest = document.getElementById("lt-best");
@@ -1342,8 +1353,12 @@ function showAchievementToasts(unlocks: AchievementUnlock[]): void {
 }
 
 function renderLog(state: GameStateDict): void {
-  const lines = [...state.log].reverse();
-  $("combat-log").innerHTML = lines.map((l) => `<div class="log-line">${l}</div>`).join("");
+  const newKey = state.log.join("|");
+  if (newKey !== logKey) {
+    logKey = newKey;
+    const lines = [...state.log].reverse();
+    $("combat-log").innerHTML = lines.map((l) => `<div class="log-line">${l}</div>`).join("");
+  }
   // Accumulate new entries into fullLog (dedupe by checking against last entry)
   for (const line of state.log) {
     if (fullLog[fullLog.length - 1] !== line) {
