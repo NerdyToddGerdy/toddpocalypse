@@ -176,7 +176,7 @@ function render(state: GameStateDict): void {
   }
   const pct = Math.max(0, (enemy.hp / enemy.max_hp) * 100);
   ($("enemy-hp-bar") as HTMLElement).style.width = pct + "%";
-  $("enemy-hp-text").textContent = `${Math.ceil(enemy.hp)} / ${enemy.max_hp}`;
+  $("enemy-hp-text").textContent = `${formatNumber(Math.ceil(enemy.hp))} / ${formatNumber(enemy.max_hp)}`;
 
   $("stat-gold").textContent = formatNumber(state.gold);
   const partyGoldEl = $("stat-party-gold-bonus");
