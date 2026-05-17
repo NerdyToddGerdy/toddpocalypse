@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.23.2";
+export const VERSION = "v2.23.3";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.23.3",
+    date: "2026-05-17",
+    changes: [
+      "Corruption now only applies in dungeon 2+ and starts at floor 20 (was floor 25 in all dungeons)",
+      "Corruption scales with dungeon number — dungeon 3 is 2x as strong, dungeon 4 is 3x, etc.",
+    ],
+  },
   {
     version: "v2.23.2",
     date: "2026-05-17",

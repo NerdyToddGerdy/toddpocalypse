@@ -192,8 +192,8 @@ export const GUILD_HALL_DUNGEON_REQ: Record<string, number> = {
 };
 
 /** Cooldown (ms) and duration (kills) and class requirement for each active combat skill. */
-/** Floor at which dungeon corruption begins dealing passive damage to the party. */
-export const CORRUPTION_FLOOR = 25;
+/** Floor at which dungeon corruption begins dealing passive damage to the party (dungeon 2+ only). */
+export const CORRUPTION_FLOOR = 20;
 /** Fraction of a member's maxHealth lost per second per floor of depth beyond CORRUPTION_FLOOR. */
 export const CORRUPTION_RATE_PER_FLOOR = 0.003;
 /** Lifesteal is reduced by this fraction per floor of depth, capped at 90%. */
@@ -587,9 +587,10 @@ export class GameState {
       return this.respond();
     }
 
-    // Corruption depth used for both lifesteal reduction and damage below
-    const corruptionDepth = Math.max(0, this.dungeonLevel - CORRUPTION_FLOOR);
-    const healReduction = Math.min(0.90, corruptionDepth * CORRUPTION_HEAL_REDUCTION_PER_FLOOR);
+    // Corruption: scales with floor depth × dungeon number (dungeon 2+ only)
+    const corruptionDepth = this.dungeonIndex >= 1 ? Math.max(0, this.dungeonLevel - CORRUPTION_FLOOR) : 0;
+    const corruptionMult = corruptionDepth * this.dungeonIndex;
+    const healReduction = Math.min(0.90, corruptionMult * CORRUPTION_HEAL_REDUCTION_PER_FLOOR);
 
     // Lifesteal: heal the first injured alive character — reduced by corruption at depth
     const partyLifesteal = this.party.team.reduce((s, c) => c.isAlive() ? s + c.lifesteal : s, 0);
@@ -614,11 +615,11 @@ export class GameState {
       target.health = Math.max(0, target.health);
     }
 
-    // Dungeon corruption: all living members lose % of maxHealth per second, scaling with floor depth
-    if (corruptionDepth > 0) {
+    // Dungeon corruption: all living members lose % of maxHealth per second, scaling with floor depth × dungeon
+    if (corruptionMult > 0) {
       for (const c of this.party.team) {
         if (!c.isAlive()) continue;
-        c.health = Math.max(0, c.health - c.maxHealth * corruptionDepth * CORRUPTION_RATE_PER_FLOOR * dt);
+        c.health = Math.max(0, c.health - c.maxHealth * corruptionMult * CORRUPTION_RATE_PER_FLOOR * dt);
       }
     }
 

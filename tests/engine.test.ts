@@ -383,13 +383,25 @@ describe("party combat (multi-member HP)", () => {
 describe("dungeon corruption", () => {
   function makeDeepGs(floor: number) {
     const gs = make();
+    gs.dungeonIndex = 1; // corruption only active in dungeon 2+
     gs.dungeonLevel = floor;
     gs.enemy.hp = gs.enemy.max_hp = 999_999;
     gs.enemy.attack_dps = 0; // isolate corruption
-    // give all members full HP
     for (const c of gs.party.team) { c.health = c.maxHealth; }
     return gs;
   }
+
+  it("deals no corruption in dungeon 1 regardless of floor", () => {
+    const gs = make();
+    gs.dungeonIndex = 0;
+    gs.dungeonLevel = 40;
+    gs.enemy.hp = gs.enemy.max_hp = 999_999;
+    gs.enemy.attack_dps = 0;
+    for (const c of gs.party.team) { c.health = c.maxHealth; }
+    const before = gs.party.team.map(c => c.health);
+    gs.tick(1.0);
+    gs.party.team.forEach((c, i) => expect(c.health).toBe(before[i]));
+  });
 
   it("deals no corruption at or below CORRUPTION_FLOOR", () => {
     const gs = makeDeepGs(CORRUPTION_FLOOR);
@@ -413,6 +425,17 @@ describe("dungeon corruption", () => {
     const dmg30 = gs30.party.team[0].maxHealth - gs30.party.team[0].health;
     const dmg40 = gs40.party.team[0].maxHealth - gs40.party.team[0].health;
     expect(dmg40).toBeGreaterThan(dmg30);
+  });
+
+  it("corruption scales with dungeon number", () => {
+    const gsDungeon2 = makeDeepGs(30); // dungeonIndex = 1
+    const gsDungeon3 = makeDeepGs(30);
+    gsDungeon3.dungeonIndex = 2;
+    gsDungeon2.tick(1.0);
+    gsDungeon3.tick(1.0);
+    const dmg2 = gsDungeon2.party.team[0].maxHealth - gsDungeon2.party.team[0].health;
+    const dmg3 = gsDungeon3.party.team[0].maxHealth - gsDungeon3.party.team[0].health;
+    expect(dmg3).toBeGreaterThan(dmg2);
   });
 
   it("corruption can kill party members and trigger onPlayerDeath", () => {

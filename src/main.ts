@@ -192,15 +192,16 @@ function render(state: GameStateDict): void {
   $("stat-kills").textContent = String(state.kills);
   $("stat-deaths").textContent = String(state.deaths);
 
-  const corruptionDepth = Math.max(0, state.dungeon_level - CORRUPTION_FLOOR);
-  const totalCorruptionDps = corruptionDepth > 0
-    ? state.party.reduce((s, c) => s + c.max_health * corruptionDepth * CORRUPTION_RATE_PER_FLOOR, 0)
+  const corruptionDepth = state.dungeon_index >= 1 ? Math.max(0, state.dungeon_level - CORRUPTION_FLOOR) : 0;
+  const corruptionMult = corruptionDepth * state.dungeon_index;
+  const totalCorruptionDps = corruptionMult > 0
+    ? state.party.reduce((s, c) => s + c.max_health * corruptionMult * CORRUPTION_RATE_PER_FLOOR, 0)
     : 0;
   const corruptionEl = $("stat-corruption");
   corruptionEl.hidden = totalCorruptionDps <= 0;
   if (totalCorruptionDps > 0) {
     $("stat-corruption-dps").textContent = formatNumber(Math.round(totalCorruptionDps));
-    const healReductionPct = Math.round(Math.min(90, corruptionDepth * CORRUPTION_HEAL_REDUCTION_PER_FLOOR * 100));
+    const healReductionPct = Math.round(Math.min(90, corruptionMult * CORRUPTION_HEAL_REDUCTION_PER_FLOOR * 100));
     corruptionEl.title = `Dungeon corruption: ${formatNumber(Math.round(totalCorruptionDps))} damage/s to all party members. Lifesteal reduced by ${healReductionPct}%.`;
   }
 
