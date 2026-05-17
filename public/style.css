@@ -353,8 +353,6 @@ main {
     gap: 12px;
     box-shadow: 0 0 12px 3px transparent;
     transition: box-shadow 0.4s ease, border-color 0.4s ease;
-    position: relative;
-    overflow: hidden;
 }
 
 #enemy-content {
@@ -363,12 +361,6 @@ main {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    padding-left: 0;
-    transition: padding-left 0.55s cubic-bezier(0.34, 1.4, 0.64, 1);
-}
-
-#enemy-panel.portrait-visible #enemy-content {
-    padding-left: 142px;
 }
 
 #party-panel {
@@ -377,17 +369,10 @@ main {
 
 /* ── Boss portrait panel ──────────────────────────────────────────────── */
 #monster-portrait-wrap {
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 200px;
-    width: 0;
-    overflow: hidden;
-    transition: width 0.55s cubic-bezier(0.34, 1.4, 0.64, 1);
-    z-index: 1;
-}
-#monster-portrait-wrap.boss-visible {
     width: 130px;
+    flex-shrink: 0;
+    align-self: flex-start;
+    overflow: hidden;
 }
 
 /* Fixed-size inner so absolutely-positioned images have a real containing block */
@@ -396,6 +381,12 @@ main {
     width: 130px;
     height: 200px;
     transform-origin: center center;
+    visibility: hidden;
+}
+
+#monster-portrait-wrap.boss-visible #portrait-inner,
+#monster-portrait-wrap.boss-exiting #portrait-inner {
+    visibility: visible;
 }
 
 #monster-portrait {

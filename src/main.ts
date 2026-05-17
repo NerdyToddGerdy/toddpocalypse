@@ -167,14 +167,12 @@ function render(state: GameStateDict): void {
     portraitWrap.classList.remove("boss-exiting");
     void portraitWrap.offsetWidth;
     portraitWrap.classList.add("boss-visible", "boss-entering");
-    enemyPanel.classList.add("portrait-visible");
     clearTimeout(portraitEnterTimer);
     portraitEnterTimer = setTimeout(() => portraitWrap.classList.remove("boss-entering"), 750);
   } else if (!wantsPortrait && bossPortraitShowing) {
     bossPortraitShowing = false;
     portraitInner.classList.remove("elite-portrait-frame");
     portraitWrap.classList.add("boss-exiting");
-    enemyPanel.classList.remove("portrait-visible");
     clearTimeout(portraitExitTimer);
     portraitExitTimer = setTimeout(() => {
       portraitWrap.classList.remove("boss-visible");
