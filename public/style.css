@@ -1621,9 +1621,6 @@ main {
     border-radius: 4px;
 }
 
-#portrait-inner.elite-portrait-frame #monster-portrait {
-    inset: 0;
-}
 
 /* ── Depth gauge ── */
 #depth-gauge {
