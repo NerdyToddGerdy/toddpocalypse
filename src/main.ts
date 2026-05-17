@@ -1008,9 +1008,12 @@ function buildSlotOptions(char: any): string {
 }
 
 function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number): void {
+  const runesTabBtn = document.getElementById("loot-stab-runes");
+  if (runesTabBtn) runesTabBtn.hidden = runeForge < 1;
+  const runeCountEl = document.getElementById("loot-rune-count");
+  if (runeCountEl) runeCountEl.textContent = runeInv.length > 0 ? `(${runeInv.length})` : "";
   const el = $("loot-rune-inventory");
-  if (runeForge < 1) { el.hidden = true; return; }
-  el.hidden = false;
+  if (runeForge < 1) { el.innerHTML = ""; return; }
 
   const charOptions = party.map((c: any, i: number) =>
     `<option value="${i}">${c.name}</option>`
@@ -1074,7 +1077,7 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
           ? `<div class="rune-combine-hint">Rune Forge Tier 4 unlocks combining flawless runes into ancient.</div>`
           : "";
 
-  el.innerHTML = `<div class="rune-inv-section" style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">
+  el.innerHTML = `<div class="rune-inv-section">
     <div class="rune-inv-title">
       <span>🔮 Runes (${runeInv.length})</span>
       ${runeInv.length > 0 ? `<button class="rune-sell-all-btn" data-action="sell-all-runes">Sell All (${sellAllVal}g)</button>` : ""}
@@ -1102,13 +1105,13 @@ function renderArtifactPanel(state: GameStateDict): void {
 
   const hasAnyArtifact = artifactInv.length > 0 || party.some((c: any) => c.artifact_slots?.some((s: any) => s !== null));
 
-  // Tab button visibility (sidebar + party panel)
-  const stabBtn = document.querySelector<HTMLElement>(".stab-btn[data-stab='artifacts']");
+  // Sub-tab button + party panel tab visibility
+  const lootArtBtn = document.getElementById("loot-stab-artifacts");
   const ptabBtn = document.getElementById("ptab-artifacts-btn");
-  if (stabBtn) stabBtn.hidden = !hasAnyArtifact;
+  if (lootArtBtn) lootArtBtn.hidden = !hasAnyArtifact;
   if (ptabBtn) ptabBtn.hidden = !hasAnyArtifact;
 
-  // Count badge
+  // Count badge on the sub-tab button
   const countEl = document.getElementById("artifact-count");
   if (countEl) countEl.textContent = artifactInv.length > 0 ? `(${artifactInv.length})` : "";
 
@@ -1763,13 +1766,12 @@ const TAB_PANELS: Record<string, string[]> = {
 };
 
 const SIDEBAR_TAB_PANELS: Record<string, string[]> = {
-  upgrades:  ["upgrades-panel"],
-  loot:      ["loot-panel"],
-  artifacts: ["artifact-panel"],
-  prestige:  ["prestige-panel"],
-  guild:     ["guild-hall-panel"],
-  feats:     ["feats-panel"],
-  log:       ["log-panel"],
+  upgrades: ["upgrades-panel"],
+  loot:     ["loot-panel"],
+  prestige: ["prestige-panel"],
+  guild:    ["guild-hall-panel"],
+  feats:    ["feats-panel"],
+  log:      ["log-panel"],
 };
 
 function initMobileTabs(): void {
@@ -1798,6 +1800,22 @@ function initSidebarTabs(): void {
 
   tabs.forEach(btn => btn.addEventListener("click", () => showSidebarTab(btn.dataset.stab!)));
   showSidebarTab("upgrades");
+}
+
+const LOOT_SUBPANEL_IDS = ["loot-equipment-sub", "loot-runes-sub", "loot-artifacts-sub"] as const;
+
+function initLootSubtabs(): void {
+  const btns = document.querySelectorAll<HTMLElement>(".loot-stab");
+
+  function showLootSub(tab: string): void {
+    btns.forEach(b => b.classList.toggle("active", b.dataset.lootStab === tab));
+    LOOT_SUBPANEL_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.hidden = id !== `loot-${tab}-sub`;
+    });
+  }
+
+  btns.forEach(btn => btn.addEventListener("click", () => showLootSub(btn.dataset.lootStab!)));
 }
 
 interface AbilityCardData { icon: string; name: string; desc: string; level: number; unlocked: boolean; }
@@ -2302,6 +2320,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initSaveBackup();
   initMobileTabs();
   initSidebarTabs();
+  initLootSubtabs();
   initItemTooltip();
   initMobileItemCard();
   initPartyGearToggle();

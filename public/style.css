@@ -888,6 +888,35 @@ main {
     border-radius: 50%;
 }
 
+/* ── Loot sub-tabs ── */
+#loot-subtab-nav {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    margin: -16px -16px 14px;
+    padding: 0 4px;
+}
+.loot-stab {
+    flex: 1;
+    padding: 7px 4px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    font-size: 0.67rem;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    cursor: pointer;
+    margin-bottom: -1px;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+}
+.loot-stab:hover { color: var(--text); }
+.loot-stab.active { color: var(--accent2); border-bottom-color: var(--accent2); }
+.loot-stab-count { font-size: 0.65em; color: var(--muted); margin-left: 2px; }
+.loot-stab.active .loot-stab-count { color: var(--accent2); }
+
+#loot-runes-sub, #loot-artifacts-sub { padding-top: 4px; }
+
 /* ── Sidebar panels shared ── */
 #loot-panel, #upgrades-panel {
     background: var(--surface);
@@ -912,7 +941,7 @@ main {
 
 /* Desktop: panels live inside the sidebar card — no individual borders */
 @media (min-width: 769px) {
-    #upgrades-panel, #loot-panel, #prestige-panel, #guild-hall-panel, #feats-panel, #log-panel, #artifact-panel {
+    #upgrades-panel, #loot-panel, #prestige-panel, #guild-hall-panel, #feats-panel, #log-panel {
         display: none;
         background: none;
         border: none;
@@ -1746,8 +1775,7 @@ main {
     #prestige-panel,
     #guild-hall-panel,
     #feats-panel,
-    #log-panel,
-    #artifact-panel { display: none; }
+    #log-panel { display: none; }
 
     .tab-visible { display: flex !important; flex-direction: column; width: 100%; }
 

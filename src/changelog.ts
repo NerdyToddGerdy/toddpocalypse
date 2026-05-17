@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.14.1";
+export const VERSION = "v2.14.2";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.14.2",
+    date: "2026-05-16",
+    changes: [
+      "Loot panel split into 3 sub-tabs: Equipment (loot chest + stash), Runes, Artifacts — no more separate top-level Artifacts sidebar tab",
+      "Runes and Artifacts sub-tabs appear only when unlocked/earned; each shows a live item count in the tab button",
+    ],
+  },
   {
     version: "v2.14.1",
     date: "2026-05-16",

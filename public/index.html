@@ -146,7 +146,6 @@
       <button class="stab-btn" data-stab="prestige">Prestige<span id="stab-prestige-badge" class="stab-badge" hidden></span></button>
       <button class="stab-btn" data-stab="guild">Guild<span id="stab-guild-badge" class="stab-badge" hidden></span></button>
       <button class="stab-btn" data-stab="feats">Feats<span id="stab-feats-badge" class="stab-badge" hidden></span></button>
-      <button class="stab-btn" data-stab="artifacts" hidden>✨ Artifacts<span id="stab-artifacts-badge" class="stab-badge" hidden></span></button>
     </nav>
 
     <section id="upgrades-panel">
@@ -155,37 +154,47 @@
     </section>
 
     <section id="loot-panel">
-      <div id="loot-header">
-        <div id="loot-header-top">
-          <h2>Loot <span id="loot-count"></span></h2>
-          <button id="drop-chart-btn" title="Drop rate chart">📊</button>
-          <button id="loot-filter-btn" title="Dim non-upgrades">🔍</button>
-        </div>
-        <div id="loot-header-actions">
-          <button class="equip-all-btn" data-action="equip-all" disabled>Equip All</button>
-          <button class="sell-all-btn" data-action="sell-all" disabled>Sell All</button>
-        </div>
-      </div>
-      <div id="auto-toggles-section" hidden></div>
-      <div id="auto-seller-section" hidden>
-        <div id="auto-seller-label">Auto-sell tiers</div>
-        <div id="auto-seller-config"></div>
-      </div>
-      <hr id="loot-divider" hidden>
-      <div id="loot-items"><div class="loot-empty">No drops yet…</div></div>
-      <div id="loot-rune-inventory" hidden></div>
-      <div id="stash-section" hidden>
-        <hr>
-        <div id="stash-header">
-          <h3>Stash <span id="stash-count"></span></h3>
-        </div>
-        <div id="stash-items"></div>
-      </div>
-    </section>
+      <nav id="loot-subtab-nav">
+        <button class="loot-stab active" data-loot-stab="equipment">Equipment</button>
+        <button class="loot-stab" data-loot-stab="runes" id="loot-stab-runes" hidden>🔮 Runes <span id="loot-rune-count" class="loot-stab-count"></span></button>
+        <button class="loot-stab" data-loot-stab="artifacts" id="loot-stab-artifacts" hidden>✨ Artifacts <span id="artifact-count" class="loot-stab-count"></span></button>
+      </nav>
 
-    <section id="artifact-panel" hidden>
-      <h2>Artifacts <span id="artifact-count"></span></h2>
-      <div id="artifact-inventory"></div>
+      <div id="loot-equipment-sub">
+        <div id="loot-header">
+          <div id="loot-header-top">
+            <h2>Loot <span id="loot-count"></span></h2>
+            <button id="drop-chart-btn" title="Drop rate chart">📊</button>
+            <button id="loot-filter-btn" title="Dim non-upgrades">🔍</button>
+          </div>
+          <div id="loot-header-actions">
+            <button class="equip-all-btn" data-action="equip-all" disabled>Equip All</button>
+            <button class="sell-all-btn" data-action="sell-all" disabled>Sell All</button>
+          </div>
+        </div>
+        <div id="auto-toggles-section" hidden></div>
+        <div id="auto-seller-section" hidden>
+          <div id="auto-seller-label">Auto-sell tiers</div>
+          <div id="auto-seller-config"></div>
+        </div>
+        <hr id="loot-divider" hidden>
+        <div id="loot-items"><div class="loot-empty">No drops yet…</div></div>
+        <div id="stash-section" hidden>
+          <hr>
+          <div id="stash-header">
+            <h3>Stash <span id="stash-count"></span></h3>
+          </div>
+          <div id="stash-items"></div>
+        </div>
+      </div>
+
+      <div id="loot-runes-sub" hidden>
+        <div id="loot-rune-inventory"></div>
+      </div>
+
+      <div id="loot-artifacts-sub" hidden>
+        <div id="artifact-inventory"></div>
+      </div>
     </section>
 
     <section id="prestige-panel">
