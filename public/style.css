@@ -912,7 +912,7 @@ main {
 
 /* Desktop: panels live inside the sidebar card — no individual borders */
 @media (min-width: 769px) {
-    #upgrades-panel, #loot-panel, #prestige-panel, #guild-hall-panel, #feats-panel, #log-panel {
+    #upgrades-panel, #loot-panel, #prestige-panel, #guild-hall-panel, #feats-panel, #log-panel, #artifact-panel {
         display: none;
         background: none;
         border: none;
@@ -1746,7 +1746,8 @@ main {
     #prestige-panel,
     #guild-hall-panel,
     #feats-panel,
-    #log-panel { display: none; }
+    #log-panel,
+    #artifact-panel { display: none; }
 
     .tab-visible { display: flex !important; flex-direction: column; width: 100%; }
 
@@ -3914,13 +3915,13 @@ footer {
 /* Inventory panel (sidebar) */
 .artifact-inv-row {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     padding: 6px 0;
     border-bottom: 1px solid var(--border);
 }
 .artifact-inv-row:last-child { border-bottom: none; }
-.artifact-inv-icon { font-size: 1.3rem; flex-shrink: 0; }
+.artifact-inv-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 2px; }
 .artifact-inv-info { flex: 1; min-width: 0; }
 .artifact-inv-name { font-size: 0.82rem; font-weight: 600; color: var(--text); }
 .artifact-inv-name.artifact-upgraded { color: #a78bfa; }
@@ -3935,8 +3936,32 @@ footer {
     cursor: pointer;
     white-space: nowrap;
     flex-shrink: 0;
+    margin-top: 2px;
 }
 .artifact-sell-btn:hover { border-color: var(--hp-green); filter: brightness(1.2); }
+.artifact-equip-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 5px;
+}
+.artifact-char-slot-select {
+    font-size: 0.72rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 3px;
+    padding: 1px 3px;
+    flex: 1;
+    min-width: 0;
+}
+.artifact-no-slot {
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 5px;
+    display: block;
+}
 
 /* Combine section */
 .artifact-combine-section { margin-bottom: 4px; }

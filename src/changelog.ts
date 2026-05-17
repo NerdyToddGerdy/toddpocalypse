@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.14.0";
+export const VERSION = "v2.14.1";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.14.1",
+    date: "2026-05-16",
+    changes: [
+      "Artifact equip: moved Equip button + character/slot dropdown into the sidebar Artifacts panel alongside the artifact — no more hunting for it in a separate party tab",
+      "Fixed: #artifact-panel was missing from the sidebar CSS display:none list, causing it to render on top of other panels instead of participating in the tab system",
+    ],
+  },
   {
     version: "v2.14.0",
     date: "2026-05-16",
