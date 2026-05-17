@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.13.8";
+export const VERSION = "v2.14.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,17 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.14.0",
+    date: "2026-05-16",
+    changes: [
+      "Artifact system: 6 base artifacts drop from dungeon-3+ bosses (10% chance) — Bloodstone, Berserker's Eye, Greed Idol, Soulbrand, Warden's Core, Executioner's Mark",
+      "Artifacts: combine 2 identical base artifacts into 1 upgraded artifact (6 upgraded variants)",
+      "Artifacts: each character has 3 artifact slots; effects apply dynamically during combat",
+      "Artifacts: persist through prestige — separate ✨ Artifacts sidebar tab and party panel tab appear once you earn your first artifact",
+      "Kill streak tracker: increments per kill, resets on party wipe (used by Berserker's Eye / Titan's Eye DPS bonuses)",
+    ],
+  },
   {
     version: "v2.13.8",
     date: "2026-05-16",

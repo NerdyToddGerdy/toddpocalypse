@@ -126,10 +126,12 @@
           <div id="party-panel-tabs">
             <button class="ptab-btn active" data-ptab="party">Party</button>
             <button class="ptab-btn" data-ptab="runes">🔮 Runes</button>
+            <button class="ptab-btn" id="ptab-artifacts-btn" data-ptab="artifacts" hidden>✨ Artifacts</button>
           </div>
         </div>
         <div id="party-cards"></div>
         <div id="party-rune-panel" hidden></div>
+        <div id="party-artifact-panel" hidden></div>
       </section>
 
     </div>
@@ -144,6 +146,7 @@
       <button class="stab-btn" data-stab="prestige">Prestige<span id="stab-prestige-badge" class="stab-badge" hidden></span></button>
       <button class="stab-btn" data-stab="guild">Guild<span id="stab-guild-badge" class="stab-badge" hidden></span></button>
       <button class="stab-btn" data-stab="feats">Feats<span id="stab-feats-badge" class="stab-badge" hidden></span></button>
+      <button class="stab-btn" data-stab="artifacts" hidden>✨ Artifacts<span id="stab-artifacts-badge" class="stab-badge" hidden></span></button>
     </nav>
 
     <section id="upgrades-panel">
@@ -178,6 +181,11 @@
         </div>
         <div id="stash-items"></div>
       </div>
+    </section>
+
+    <section id="artifact-panel" hidden>
+      <h2>Artifacts <span id="artifact-count"></span></h2>
+      <div id="artifact-inventory"></div>
     </section>
 
     <section id="prestige-panel">

@@ -1,4 +1,4 @@
-import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock } from "./engine.js";
+import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock, ARTIFACT_DEFS } from "./engine.js";
 import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, SET_DEFS, type GearStats, type GearItemDict } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
@@ -209,6 +209,7 @@ function render(state: GameStateDict): void {
   renderUpgrades(state);
   renderPrestigeShop(state);
   renderGuildHall(state);
+  renderArtifactPanel(state);
   renderSkillButton(state);
   renderCompanionSkills(state);
   renderLog(state);
@@ -1095,6 +1096,108 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
   });
 }
 
+function renderArtifactPanel(state: GameStateDict): void {
+  const artifactInv: string[] = (state as any).artifact_inventory ?? [];
+  const party = state.party;
+
+  // Sidebar tab / panel visibility
+  const hasAnyArtifact = artifactInv.length > 0 || party.some((c: any) => c.artifact_slots?.some((s: any) => s !== null));
+  const stabBtn = document.querySelector<HTMLElement>(".stab-btn[data-stab='artifacts']");
+  const ptabBtn = document.getElementById("ptab-artifacts-btn");
+  const artifactPanelEl = document.getElementById("artifact-panel");
+  if (stabBtn) stabBtn.hidden = !hasAnyArtifact;
+  if (ptabBtn) ptabBtn.hidden = !hasAnyArtifact;
+  if (artifactPanelEl) artifactPanelEl.hidden = !hasAnyArtifact;
+
+  // Count badge
+  const countEl = document.getElementById("artifact-count");
+  if (countEl) countEl.textContent = artifactInv.length > 0 ? `(${artifactInv.length})` : "";
+
+  // Character artifact-slots panel (inside party panel)
+  const partyArtEl = document.getElementById("party-artifact-panel");
+  if (partyArtEl) {
+    const invOptions = artifactInv.length === 0
+      ? `<option value="">— no artifacts —</option>`
+      : artifactInv.map((id, i) => {
+          const def = ARTIFACT_DEFS[id as keyof typeof ARTIFACT_DEFS];
+          return `<option value="${i}">${def?.icon ?? "✨"} ${def?.name ?? id}</option>`;
+        }).join("");
+    const hasInv = artifactInv.length > 0;
+
+    const charBlocks = party.map((c: any, charIdx: number) => {
+      const slots: string[] = (c.artifact_slots ?? [null, null, null]).map((slotId: string | null, slotIdx: number) => {
+        if (slotId) {
+          const def = ARTIFACT_DEFS[slotId as keyof typeof ARTIFACT_DEFS];
+          return `<div class="artifact-slot filled">
+            <span class="artifact-slot-icon">${def?.icon ?? "✨"}</span>
+            <span class="artifact-slot-name">${def?.name ?? slotId}</span>
+            <span class="artifact-slot-desc">${def?.desc ?? ""}</span>
+            <button class="artifact-unequip-btn" data-action="unequip-artifact" data-char-idx="${charIdx}" data-slot-idx="${slotIdx}" title="Unequip">✕</button>
+          </div>`;
+        }
+        return `<div class="artifact-slot empty">
+          ${hasInv
+            ? `<select class="artifact-inv-select" data-char-idx="${charIdx}" data-slot-idx="${slotIdx}">${invOptions}</select>
+               <button class="artifact-equip-btn" data-action="equip-artifact-btn" data-char-idx="${charIdx}" data-slot-idx="${slotIdx}">Equip</button>`
+            : `<span class="artifact-slot-empty-label">empty</span>`}
+        </div>`;
+      });
+      return `<div class="artifact-char-block">
+        <div class="artifact-char-name">${c.name}</div>
+        <div class="artifact-char-slots">${slots.join("")}</div>
+      </div>`;
+    }).join("");
+
+    partyArtEl.innerHTML = charBlocks;
+  }
+
+  // Sidebar artifact inventory panel
+  const invEl = document.getElementById("artifact-inventory");
+  if (!invEl) return;
+  if (artifactInv.length === 0) {
+    invEl.innerHTML = `<div class="artifact-empty">No artifacts in inventory.</div>`;
+    return;
+  }
+
+  // Find combinable pairs
+  const idxByArtifact: Record<string, number[]> = {};
+  artifactInv.forEach((id, i) => { (idxByArtifact[id] ??= []).push(i); });
+  const combinePairs: { id: string; idx1: number; idx2: number }[] = [];
+  for (const [id, idxs] of Object.entries(idxByArtifact)) {
+    const def = ARTIFACT_DEFS[id as keyof typeof ARTIFACT_DEFS];
+    if (def?.tier === "base" && idxs.length >= 2) {
+      combinePairs.push({ id, idx1: idxs[0], idx2: idxs[1] });
+    }
+  }
+
+  const combineHtml = combinePairs.map(p => {
+    const def = ARTIFACT_DEFS[p.id as keyof typeof ARTIFACT_DEFS];
+    const { id: resultId } = Object.values(ARTIFACT_DEFS).find(d => d.upgradesFrom === p.id) ?? { id: "" };
+    const resultDef = resultId ? ARTIFACT_DEFS[resultId as keyof typeof ARTIFACT_DEFS] : null;
+    return `<div class="artifact-combine-row">
+      <span>${def?.icon} ${def?.name} ×2</span>
+      <span class="artifact-combine-arrow">→</span>
+      <span>${resultDef?.icon ?? "✨"} ${resultDef?.name ?? "?"}</span>
+      <button class="artifact-combine-btn" data-action="combine-artifact" data-idx1="${p.idx1}" data-idx2="${p.idx2}">Combine</button>
+    </div>`;
+  }).join("");
+
+  const itemsHtml = artifactInv.map((id, i) => {
+    const def = ARTIFACT_DEFS[id as keyof typeof ARTIFACT_DEFS];
+    if (!def) return "";
+    return `<div class="artifact-inv-row">
+      <span class="artifact-inv-icon">${def.icon}</span>
+      <div class="artifact-inv-info">
+        <div class="artifact-inv-name ${def.tier === "upgraded" ? "artifact-upgraded" : ""}">${def.name}</div>
+        <div class="artifact-inv-desc">${def.desc}</div>
+      </div>
+      <button class="artifact-sell-btn" data-action="sell-artifact" data-inv-idx="${i}" title="Sell for ${def.sellValue}g">${def.sellValue}g</button>
+    </div>`;
+  }).join("");
+
+  invEl.innerHTML = (combineHtml ? `<div class="artifact-combine-section">${combineHtml}</div><hr class="artifact-divider">` : "") + itemsHtml;
+}
+
 function findCombinePairs(runeInv: any[], maxTier: "lesser" | "greater" | "flawless" | "ancient" = "lesser"): { id1: string; id2: string; type: string; tier: string; name: string; result: string }[] {
   const TIER_ORDER = ["lesser", "greater", "flawless", "ancient"];
   const maxIdx = TIER_ORDER.indexOf(maxTier);
@@ -1661,12 +1764,13 @@ const TAB_PANELS: Record<string, string[]> = {
 };
 
 const SIDEBAR_TAB_PANELS: Record<string, string[]> = {
-  upgrades: ["upgrades-panel"],
-  loot:     ["loot-panel"],
-  prestige: ["prestige-panel"],
-  guild:    ["guild-hall-panel"],
-  feats:    ["feats-panel"],
-  log:      ["log-panel"],
+  upgrades:  ["upgrades-panel"],
+  loot:      ["loot-panel"],
+  artifacts: ["artifact-panel"],
+  prestige:  ["prestige-panel"],
+  guild:     ["guild-hall-panel"],
+  feats:     ["feats-panel"],
+  log:       ["log-panel"],
 };
 
 function initMobileTabs(): void {
@@ -2118,6 +2222,7 @@ function initPartyPanelTabs(): void {
   const tabs = document.querySelectorAll<HTMLButtonElement>(".ptab-btn");
   const cardsEl = $("party-cards");
   const runeEl = $("party-rune-panel");
+  const artEl = $("party-artifact-panel");
   const gearToggle = $("party-gear-toggle");
 
   tabs.forEach(tab => {
@@ -2125,15 +2230,10 @@ function initPartyPanelTabs(): void {
       tabs.forEach(t => t.classList.remove("active"));
       tab.classList.add("active");
       const which = tab.dataset.ptab;
-      if (which === "runes") {
-        cardsEl.hidden = true;
-        runeEl.hidden = false;
-        gearToggle.hidden = true;
-      } else {
-        cardsEl.hidden = false;
-        runeEl.hidden = true;
-        gearToggle.hidden = false;
-      }
+      cardsEl.hidden = which !== "party";
+      runeEl.hidden = which !== "runes";
+      artEl.hidden = which !== "artifacts";
+      gearToggle.hidden = which !== "party";
     });
   });
 }
@@ -2435,6 +2535,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     else if (action === "sell-all-runes") {
       call("sellAllRunes");
+    }
+    else if (action === "equip-artifact-btn") {
+      const charIdx = parseInt(btn.dataset.charIdx!, 10);
+      const slotIdx = parseInt(btn.dataset.slotIdx!, 10);
+      const row = btn.closest(".artifact-slot")!;
+      const sel = row.querySelector(".artifact-inv-select") as HTMLSelectElement;
+      if (sel) call("equipArtifact", charIdx, slotIdx, parseInt(sel.value, 10));
+    }
+    else if (action === "unequip-artifact") {
+      call("unequipArtifact", parseInt(btn.dataset.charIdx!, 10), parseInt(btn.dataset.slotIdx!, 10));
+    }
+    else if (action === "combine-artifact") {
+      call("combineArtifacts", parseInt(btn.dataset.idx1!, 10), parseInt(btn.dataset.idx2!, 10));
+    }
+    else if (action === "sell-artifact") {
+      call("sellArtifact", parseInt(btn.dataset.invIdx!, 10));
     }
     else if (action === "set-title") {
       call("setEarnedTitle", btn.dataset.title ?? "");
