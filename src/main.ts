@@ -1,4 +1,4 @@
-import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock, ARTIFACT_DEFS } from "./engine.js";
+import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock, ARTIFACT_DEFS, artifactFuelValue } from "./engine.js";
 import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, SET_DEFS, type GearStats, type GearItemDict } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
@@ -1275,152 +1275,160 @@ function renderArtifactModalBody(state: GameStateDict): void {
   const el = document.getElementById("artifact-detail-body");
   if (!el) return;
 
-  const inv: { id: string; level: number }[] = (state as any).artifact_inventory ?? [];
+  const inv: { id: string; level: number; fuel: number }[] = (state as any).artifact_inventory ?? [];
   const party = state.party;
 
-  // ── Equipped artifact view ──────────────────────────────────────────────────
-  if (artifactModalTargetIdx === -1 && artifactModalCharIdx >= 0) {
+  // Resolve target artifact and context (equipped or inventory)
+  const isEquipped = artifactModalTargetIdx === -1 && artifactModalCharIdx >= 0;
+  let inst: { id: string; level: number; fuel: number } | null = null;
+  let charName = "";
+
+  if (isEquipped) {
     const char = party[artifactModalCharIdx] as any;
-    const inst: { id: string; level: number } | null = char?.artifact_slots?.[artifactModalSlotIdx] ?? null;
-    if (!inst || inst.id !== artifactModalArtId) { closeArtifactModal(); return; }
-    const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
-    if (!def) { closeArtifactModal(); return; }
-
-    const titleEl = document.getElementById("artifact-detail-title");
-    if (titleEl) titleEl.textContent = def.name;
-
-    const levelBadge = inst.level > 0 ? ` <span class="artifact-level-badge">+${inst.level}</span>` : "";
-    const invCopies = inv.filter(a => a.id === inst.id).length;
-    const invNote = invCopies > 0
-      ? `<div class="amodal-equipped-note">${invCopies} more cop${invCopies === 1 ? "y" : "ies"} in inventory — unequip to level up or sell</div>`
-      : "";
-
-    el.innerHTML = `
-      <div class="amodal-hero-row">
-        <span class="amodal-icon">${def.icon}</span>
-        <div>
-          <div class="amodal-name">${def.name}${levelBadge}</div>
-          <div class="amodal-copies">Equipped on ${char.name}, slot ${artifactModalSlotIdx + 1}</div>
-        </div>
-      </div>
-      <div class="amodal-desc">${def.desc}</div>
-      ${invNote}
-      <div class="amodal-section amodal-sell-section">
-        <button class="amodal-unequip-btn" data-action="modal-unequip-artifact" data-char-idx="${artifactModalCharIdx}" data-slot-idx="${artifactModalSlotIdx}">
-          Unequip → return to inventory
-        </button>
-      </div>`;
-    return;
+    const raw = char?.artifact_slots?.[artifactModalSlotIdx];
+    if (!raw || raw.id !== artifactModalArtId) { closeArtifactModal(); return; }
+    inst = { id: raw.id, level: raw.level ?? 0, fuel: raw.fuel ?? 0 };
+    charName = char.name ?? "";
+  } else {
+    const raw = inv[artifactModalTargetIdx];
+    if (!raw || raw.id !== artifactModalArtId) {
+      const anyIdx = inv.findIndex(a => a.id === artifactModalArtId);
+      if (anyIdx < 0) { closeArtifactModal(); return; }
+      artifactModalTargetIdx = anyIdx;
+      artifactModalFuelSelected = new Set();
+    }
+    inst = inv[artifactModalTargetIdx];
   }
+  if (!inst) { closeArtifactModal(); return; }
 
-  // ── Inventory artifact view ─────────────────────────────────────────────────
-  // Remap: if the target index shifted (after a level-up), find the new position by scanning
-  const target = inv[artifactModalTargetIdx];
-  if (!target || target.id !== artifactModalArtId) {
-    // Target was consumed or index is stale — find any remaining copy
-    const anyIdx = inv.findIndex(a => a.id === artifactModalArtId);
-    if (anyIdx < 0) { closeArtifactModal(); return; }
-    artifactModalTargetIdx = anyIdx;
-    artifactModalFuelSelected = new Set();
-  }
-
-  const inst = inv[artifactModalTargetIdx];
   const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
   if (!def) { closeArtifactModal(); return; }
 
   const titleEl = document.getElementById("artifact-detail-title");
   if (titleEl) titleEl.textContent = def.name;
 
-  const cost = inst.level + 1;
-  // All other copies of this type are potential fuel
-  const fuelCandidates = inv.map((a, i) => ({ ...a, invIdx: i })).filter(a => a.id === artifactModalArtId && a.invIdx !== artifactModalTargetIdx);
+  const levelBadge = inst.level > 0 ? ` <span class="artifact-level-badge">+${inst.level}</span>` : "";
+  const cost = inst.level + 1; // fuel units needed for next level
+  const storedFuel = inst.fuel;
+  const pct = Math.min(100, Math.round((storedFuel / cost) * 100));
 
-  // Remove any stale selections (indices that no longer exist or are now the target)
+  // Fuel candidates are always inventory copies of the same type (excluding the target if in inventory)
+  const fuelCandidates = inv
+    .map((a, i) => ({ ...a, invIdx: i }))
+    .filter(a => a.id === artifactModalArtId && (isEquipped || a.invIdx !== artifactModalTargetIdx));
+
+  // Clear stale selections
   for (const fi of artifactModalFuelSelected) {
     if (!fuelCandidates.some(c => c.invIdx === fi)) artifactModalFuelSelected.delete(fi);
   }
 
-  const selectedCount = artifactModalFuelSelected.size;
-  const canLevel = selectedCount === cost;
-  const levelBadge = inst.level > 0 ? ` <span class="artifact-level-badge">+${inst.level}</span>` : "";
-
-  const charSlotOptions = party.map((c: any, ci: number) => {
-    const slots: ({ id: string; level: number } | null)[] = c.artifact_slots ?? [null, null, null];
-    return slots.map((s, si) =>
-      s ? "" : `<option value="${ci}:${si}">${c.name} — slot ${si + 1}</option>`
-    ).join("");
-  }).join("");
-  const hasOpenSlot = charSlotOptions.includes("<option");
-  const sellVal = def.sellValue * (inst.level + 1);
+  const selectedUnits = [...artifactModalFuelSelected].reduce(
+    (sum, fi) => sum + artifactFuelValue(inv[fi]?.level ?? 0), 0
+  );
 
   const fuelListHtml = fuelCandidates.length === 0
     ? `<div class="amodal-no-fuel">No other copies in inventory.</div>`
     : fuelCandidates.map(c => {
         const checked = artifactModalFuelSelected.has(c.invIdx) ? " checked" : "";
         const lvlLabel = c.level > 0 ? ` <span class="artifact-level-badge">+${c.level}</span>` : "";
+        const units = artifactFuelValue(c.level);
         return `<label class="amodal-fuel-item">
           <input type="checkbox" class="amodal-fuel-check" data-fuel-idx="${c.invIdx}"${checked}>
           <span class="amodal-fuel-label">${def.icon} ${def.name}${lvlLabel}</span>
+          <span class="amodal-fuel-unit">+${units} fuel</span>
         </label>`;
       }).join("");
 
-  const equipSection = hasOpenSlot ? `
+  const addFuelAction = isEquipped ? "modal-add-fuel-equipped-artifact" : "modal-add-fuel-artifact";
+  const addFuelExtra = isEquipped
+    ? `data-char-idx="${artifactModalCharIdx}" data-slot-idx="${artifactModalSlotIdx}"`
+    : `data-inv-idx="${artifactModalTargetIdx}"`;
+
+  const fuelSection = `
     <div class="amodal-section">
-      <div class="amodal-section-title">Equip to Hero</div>
-      <div class="amodal-equip-row">
-        <select class="artifact-char-slot-select">${charSlotOptions}</select>
-        <button class="artifact-equip-btn" data-action="equip-artifact" data-inv-idx="${artifactModalTargetIdx}">Equip</button>
+      <div class="amodal-section-title">Level Up to +${inst.level + 1}</div>
+      <div class="amodal-fuel-progress-wrap">
+        <div class="amodal-fuel-progress-label">
+          <span>Stored fuel</span>
+          <span id="amodal-fuel-stored">${storedFuel} / ${cost} units</span>
+        </div>
+        <div class="amodal-fuel-bar-track">
+          <div class="amodal-fuel-bar-fill" style="width: ${pct}%"></div>
+        </div>
       </div>
-    </div>` : "";
+      <div class="amodal-fuel-list">${fuelListHtml}</div>
+      <button class="amodal-addfuel-btn" data-action="${addFuelAction}" ${addFuelExtra} id="amodal-addfuel-btn"${selectedUnits > 0 ? "" : " disabled"}>
+        ${selectedUnits > 0 ? `Add ${selectedUnits} fuel unit${selectedUnits === 1 ? "" : "s"}` : "Select artifacts below"}
+      </button>
+    </div>`;
+
+  let actionsHtml = "";
+  if (isEquipped) {
+    actionsHtml = `
+      <div class="amodal-section amodal-sell-section">
+        <button class="amodal-unequip-btn" data-action="modal-unequip-artifact" data-char-idx="${artifactModalCharIdx}" data-slot-idx="${artifactModalSlotIdx}">
+          Unequip → return to inventory
+        </button>
+        <button class="artifact-sell-btn amodal-sell-btn" data-action="modal-sell-equipped-artifact" data-char-idx="${artifactModalCharIdx}" data-slot-idx="${artifactModalSlotIdx}">
+          Sell for ${def.sellValue * (inst.level + 1)}g
+        </button>
+      </div>`;
+  } else {
+    const charSlotOptions = party.map((c: any, ci: number) => {
+      const slots: ({ id: string; level: number } | null)[] = c.artifact_slots ?? [null, null, null];
+      return slots.map((s, si) =>
+        s ? "" : `<option value="${ci}:${si}">${c.name} — slot ${si + 1}</option>`
+      ).join("");
+    }).join("");
+    const hasOpenSlot = charSlotOptions.includes("<option");
+    const equipSection = hasOpenSlot ? `
+      <div class="amodal-section">
+        <div class="amodal-section-title">Equip to Hero</div>
+        <div class="amodal-equip-row">
+          <select class="artifact-char-slot-select">${charSlotOptions}</select>
+          <button class="artifact-equip-btn" data-action="equip-artifact" data-inv-idx="${artifactModalTargetIdx}">Equip</button>
+        </div>
+      </div>` : "";
+    actionsHtml = `
+      ${equipSection}
+      <div class="amodal-section amodal-sell-section">
+        <button class="artifact-sell-btn amodal-sell-btn" data-action="sell-artifact" data-inv-idx="${artifactModalTargetIdx}">
+          Sell for ${def.sellValue * (inst.level + 1)}g
+        </button>
+      </div>`;
+  }
+
+  const subTitle = isEquipped
+    ? `Equipped on ${charName}, slot ${artifactModalSlotIdx + 1}`
+    : `${inv.filter(a => a.id === artifactModalArtId).length} in inventory`;
 
   el.innerHTML = `
     <div class="amodal-hero-row">
       <span class="amodal-icon">${def.icon}</span>
       <div>
         <div class="amodal-name">${def.name}${levelBadge}</div>
-        <div class="amodal-copies">${inv.filter(a => a.id === artifactModalArtId).length} in inventory</div>
+        <div class="amodal-copies">${subTitle}</div>
       </div>
     </div>
     <div class="amodal-desc">${def.desc}</div>
-    <div class="amodal-section">
-      <div class="amodal-section-title">Level Up to +${inst.level + 1}</div>
-      <div class="amodal-fuel-header">
-        <span>Select <strong>${cost}</strong> to sacrifice as fuel</span>
-        <span id="amodal-sel-count" class="${canLevel ? "amodal-fuel-ready" : "amodal-fuel-short"}">${selectedCount}/${cost} selected</span>
-      </div>
-      <div class="amodal-fuel-list">${fuelListHtml}</div>
-      <button class="amodal-levelup-btn" data-action="modal-level-up-artifact" data-inv-idx="${artifactModalTargetIdx}"${canLevel ? "" : " disabled"}>
-        ⬆ Level Up to +${inst.level + 1}
-      </button>
-    </div>
-    ${equipSection}
-    <div class="amodal-section amodal-sell-section">
-      <button class="artifact-sell-btn amodal-sell-btn" data-action="sell-artifact" data-inv-idx="${artifactModalTargetIdx}">Sell for ${sellVal}g</button>
-    </div>`;
+    ${fuelSection}
+    ${actionsHtml}`;
 
-  // Wire checkboxes (can't use data-action delegation for checkbox change)
+  // Wire checkboxes — no cap, any combination allowed
   el.querySelectorAll<HTMLInputElement>(".amodal-fuel-check").forEach(cb => {
     cb.addEventListener("change", () => {
       const fi = parseInt(cb.dataset.fuelIdx!, 10);
-      if (cb.checked) {
-        if (artifactModalFuelSelected.size < cost) {
-          artifactModalFuelSelected.add(fi);
-        } else {
-          cb.checked = false; // reject — already at limit
-        }
-      } else {
-        artifactModalFuelSelected.delete(fi);
+      if (cb.checked) artifactModalFuelSelected.add(fi);
+      else artifactModalFuelSelected.delete(fi);
+
+      const total = [...artifactModalFuelSelected].reduce(
+        (s, idx) => s + artifactFuelValue(inv[idx]?.level ?? 0), 0
+      );
+      const btn = document.getElementById("amodal-addfuel-btn") as HTMLButtonElement | null;
+      if (btn) {
+        btn.disabled = total === 0;
+        btn.textContent = total > 0 ? `Add ${total} fuel unit${total === 1 ? "" : "s"}` : "Select artifacts below";
       }
-      // Update count display and button state without full re-render
-      const sel = artifactModalFuelSelected.size;
-      const ready = sel === cost;
-      const countEl = document.getElementById("amodal-sel-count");
-      if (countEl) {
-        countEl.textContent = `${sel}/${cost} selected`;
-        countEl.className = ready ? "amodal-fuel-ready" : "amodal-fuel-short";
-      }
-      const lvlBtn = el.querySelector<HTMLButtonElement>(".amodal-levelup-btn");
-      if (lvlBtn) lvlBtn.disabled = !ready;
     });
   });
 }
@@ -2795,11 +2803,22 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (action === "close-artifact-modal") {
       closeArtifactModal();
     }
-    else if (action === "modal-level-up-artifact") {
+    else if (action === "modal-add-fuel-artifact") {
       const targetIdx = parseInt(btn.dataset.invIdx!, 10);
       const fuelIdxs = [...artifactModalFuelSelected];
       artifactModalFuelSelected = new Set();
-      call("levelUpArtifact", targetIdx, fuelIdxs);
+      call("addFuelToArtifact", targetIdx, fuelIdxs);
+    }
+    else if (action === "modal-add-fuel-equipped-artifact") {
+      const charIdx = parseInt(btn.dataset.charIdx!, 10);
+      const slotIdx = parseInt(btn.dataset.slotIdx!, 10);
+      const fuelIdxs = [...artifactModalFuelSelected];
+      artifactModalFuelSelected = new Set();
+      call("addFuelToEquippedArtifact", charIdx, slotIdx, fuelIdxs);
+    }
+    else if (action === "modal-sell-equipped-artifact") {
+      call("sellEquippedArtifact", parseInt(btn.dataset.charIdx!, 10), parseInt(btn.dataset.slotIdx!, 10));
+      closeArtifactModal();
     }
     else if (action === "equip-artifact") {
       const invIdx = parseInt(btn.dataset.invIdx!, 10);

@@ -123,7 +123,7 @@ export interface CharacterDict {
   runes?: Partial<Record<Slot, Rune>>;
   applied_set_bonuses?: Record<string, GearStats>;
   locked_slots?: string[];
-  artifact_slots?: ({ id: string; level: number } | null)[];
+  artifact_slots?: ({ id: string; level: number; fuel?: number } | null)[];
 }
 
 /** A player character or companion with class stats, equipment, and abilities. */
@@ -370,7 +370,7 @@ export class Character {
       runes: Object.keys(this.runes).length > 0 ? { ...this.runes } : undefined,
       applied_set_bonuses: Object.keys(this.appliedSetBonuses).length > 0 ? { ...this.appliedSetBonuses } : undefined,
       locked_slots: this.lockedSlots.size > 0 ? [...this.lockedSlots] : undefined,
-      artifact_slots: [...this.artifactSlots],
+      artifact_slots: this.artifactSlots.map(s => s ? { id: s.id, level: s.level, fuel: s.fuel } : null),
     };
   }
 
@@ -410,13 +410,14 @@ export class Character {
     }
     c.artifactSlots = (d.artifact_slots ?? [null, null, null]).map(s => {
       if (!s) return null;
-      // Migrate old string format and old upgraded IDs
       if (typeof s === "string") {
-        return LEGACY_UPGRADED_MAP[s] ?? { id: s as ArtifactEffectId, level: 0 };
+        return LEGACY_UPGRADED_MAP[s]
+          ? { ...LEGACY_UPGRADED_MAP[s], fuel: 0 }
+          : { id: s as ArtifactEffectId, level: 0, fuel: 0 };
       }
       return LEGACY_UPGRADED_MAP[s.id] !== undefined && s.level === 0
-        ? LEGACY_UPGRADED_MAP[s.id]
-        : { id: s.id as ArtifactEffectId, level: s.level ?? 0 };
+        ? { ...LEGACY_UPGRADED_MAP[s.id], fuel: s.fuel ?? 0 }
+        : { id: s.id as ArtifactEffectId, level: s.level ?? 0, fuel: s.fuel ?? 0 };
     });
     return c;
   }

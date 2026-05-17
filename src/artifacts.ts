@@ -20,6 +20,7 @@ export interface ArtifactDef {
 export interface ArtifactInstance {
   id: ArtifactEffectId;
   level: number;
+  fuel: number; // stored fuel units toward next level
 }
 
 export const ARTIFACT_DEFS: Record<ArtifactEffectId, ArtifactDef> = {
@@ -89,6 +90,12 @@ export function artifactUpgradeCost(level: number): number {
   return level + 1;
 }
 
+/** Fuel units contributed by sacrificing one artifact at the given level.
+ *  Equal to the total base artifacts that went into making it: 1 + level*(level+1)/2 */
+export function artifactFuelValue(level: number): number {
+  return 1 + level * (level + 1) / 2;
+}
+
 /** Gold value for selling a leveled artifact instance. */
 export function artifactSellValue(id: string, level = 0): number {
   const def = ARTIFACT_DEFS[id as ArtifactEffectId];
@@ -98,10 +105,10 @@ export function artifactSellValue(id: string, level = 0): number {
 
 /** Maps old "upgraded" artifact IDs (pre-leveling system) to their base equivalent. */
 export const LEGACY_UPGRADED_MAP: Record<string, ArtifactInstance> = {
-  sanguine_bloodstone: { id: "bloodstone",         level: 1 },
-  titans_eye:          { id: "berserkers_eye",      level: 1 },
-  golden_idol:         { id: "greed_idol",          level: 1 },
-  soulfire_brand:      { id: "soulbrand",           level: 1 },
-  fortress_core:       { id: "wardens_core",        level: 1 },
-  death_mark:          { id: "executioners_mark",   level: 1 },
+  sanguine_bloodstone: { id: "bloodstone",         level: 1, fuel: 0 },
+  titans_eye:          { id: "berserkers_eye",      level: 1, fuel: 0 },
+  golden_idol:         { id: "greed_idol",          level: 1, fuel: 0 },
+  soulfire_brand:      { id: "soulbrand",           level: 1, fuel: 0 },
+  fortress_core:       { id: "wardens_core",        level: 1, fuel: 0 },
+  death_mark:          { id: "executioners_mark",   level: 1, fuel: 0 },
 };

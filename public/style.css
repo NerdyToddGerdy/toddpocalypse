@@ -4271,13 +4271,10 @@ footer {
     color: var(--muted);
     margin-bottom: 8px;
 }
-.amodal-fuel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    font-size: 0.8rem;
-    margin-bottom: 8px;
-}
+.amodal-fuel-progress-wrap { margin: 6px 0 10px; }
+.amodal-fuel-progress-label { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--muted); margin-bottom: 4px; }
+.amodal-fuel-bar-track { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.amodal-fuel-bar-fill { height: 100%; background: linear-gradient(90deg, #4ade80, #22c55e); border-radius: 3px; transition: width 0.3s ease; }
 .amodal-fuel-ready { color: #4ade80; font-weight: 600; }
 .amodal-fuel-short { color: var(--muted); }
 .amodal-fuel-list {
@@ -4304,6 +4301,11 @@ footer {
 .amodal-fuel-item:has(input:checked) { background: rgba(124,58,237,0.12); border-color: #7c3aed55; }
 .amodal-fuel-label { flex: 1; }
 .amodal-no-fuel { font-size: 0.8rem; color: var(--muted); margin-bottom: 10px; }
+.amodal-fuel-unit { font-size: 0.72rem; color: #4ade80; margin-left: auto; flex-shrink: 0; }
+.amodal-addfuel-btn { display: block; width: 100%; padding: 8px 12px; background: #16a34a; color: #fff; border: none; border-radius: 6px; font-size: 0.88rem; font-weight: 700; cursor: pointer; text-align: center; margin-top: 8px; }
+.amodal-addfuel-btn:hover:not(:disabled) { filter: brightness(1.2); }
+.amodal-addfuel-btn:disabled { background: var(--border); color: var(--muted); cursor: default; }
+.amodal-sell-section { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 .amodal-levelup-btn {
     display: block;
     width: 100%;

@@ -2,8 +2,8 @@ import { Character, type Rune } from "./character.js";
 import { Party } from "./party.js";
 import { GearItem, getItem, getSetItem, SET_DEFS, gearPower, QUAL, SLOTS, autoSellThreshold, type GearItemDict } from "./gear.js";
 import { generateEnemy, generateBoss, generateEliteEnemy, ENEMY_NOUNS, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT, type Enemy } from "./dungeon.js";
-import { ARTIFACT_DEFS, ARTIFACT_DROP_POOL, LEGACY_UPGRADED_MAP, artifactUpgradeCost, artifactSellValue, type ArtifactEffectId, type ArtifactInstance } from "./artifacts.js";
-export { ARTIFACT_DEFS, ARTIFACT_DROP_POOL, artifactUpgradeCost, artifactSellValue };
+import { ARTIFACT_DEFS, ARTIFACT_DROP_POOL, LEGACY_UPGRADED_MAP, artifactUpgradeCost, artifactSellValue, artifactFuelValue, type ArtifactEffectId, type ArtifactInstance } from "./artifacts.js";
+export { ARTIFACT_DEFS, ARTIFACT_DROP_POOL, artifactUpgradeCost, artifactSellValue, artifactFuelValue };
 export type { ArtifactInstance };
 
 export { ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT };
@@ -738,35 +738,59 @@ export class GameState {
     return this.respond();
   }
 
-  /** Levels up an artifact in the inventory, consuming (level+1) same-type copies as fuel. */
-  levelUpArtifact(invIdx: number, explicitFuelIdxs?: number[]): string {
-    if (invIdx < 0 || invIdx >= this.artifactInventory.length) return this.respond();
-    const target = this.artifactInventory[invIdx];
-    const cost = artifactUpgradeCost(target.level);
+  /** Adds fuel from inventory artifacts to a target inventory artifact; levels up on threshold with overflow cascade. */
+  addFuelToArtifact(targetInvIdx: number, fuelInvIdxs: number[]): string {
+    if (targetInvIdx < 0 || targetInvIdx >= this.artifactInventory.length) return this.respond();
+    const target = this.artifactInventory[targetInvIdx];
+    const valid = fuelInvIdxs.every(
+      fi => fi !== targetInvIdx && fi >= 0 && fi < this.artifactInventory.length && this.artifactInventory[fi].id === target.id
+    );
+    if (!valid) return this.respond();
 
-    let fuelIdxs: number[];
-    if (explicitFuelIdxs !== undefined) {
-      // Validate every provided index: must exist, be same type, and not be the target
-      const valid = explicitFuelIdxs.every(
-        fi => fi !== invIdx && fi >= 0 && fi < this.artifactInventory.length && this.artifactInventory[fi].id === target.id
-      );
-      if (!valid || explicitFuelIdxs.length !== cost) return this.respond();
-      fuelIdxs = [...explicitFuelIdxs].sort((a, b) => b - a); // highest first for safe splicing
-    } else {
-      fuelIdxs = [];
-      for (let i = 0; i < this.artifactInventory.length; i++) {
-        if (i !== invIdx && this.artifactInventory[i].id === target.id) fuelIdxs.push(i);
-        if (fuelIdxs.length >= cost) break;
-      }
-      if (fuelIdxs.length < cost) return this.respond();
-      fuelIdxs.sort((a, b) => b - a);
+    const totalUnits = fuelInvIdxs.reduce((sum, fi) => sum + artifactFuelValue(this.artifactInventory[fi].level), 0);
+    // Remove fuel from highest index first to avoid index shifting
+    for (const fi of [...fuelInvIdxs].sort((a, b) => b - a)) this.artifactInventory.splice(fi, 1);
+    target.fuel += totalUnits;
+    while (target.fuel >= artifactUpgradeCost(target.level)) {
+      target.fuel -= artifactUpgradeCost(target.level);
+      target.level += 1;
+      this.addLog(`✨ ${ARTIFACT_DEFS[target.id].name} leveled up to +${target.level}!`);
     }
+    return this.respond();
+  }
 
-    for (const fi of fuelIdxs) this.artifactInventory.splice(fi, 1);
-    // target index may have shifted if any fuel came before it
-    const newIdx = this.artifactInventory.indexOf(target);
-    if (newIdx >= 0) this.artifactInventory[newIdx].level += 1;
-    this.addLog(`✨ ${ARTIFACT_DEFS[target.id].name} leveled up to +${target.level}!`);
+  /** Adds fuel from inventory artifacts to an equipped artifact; levels up on threshold with overflow cascade. */
+  addFuelToEquippedArtifact(charIdx: number, slotIdx: number, fuelInvIdxs: number[]): string {
+    const char = this.party.team[charIdx];
+    if (!char || slotIdx < 0 || slotIdx >= 3) return this.respond();
+    const target = char.artifactSlots[slotIdx];
+    if (!target) return this.respond();
+    const valid = fuelInvIdxs.every(
+      fi => fi >= 0 && fi < this.artifactInventory.length && this.artifactInventory[fi].id === target.id
+    );
+    if (!valid) return this.respond();
+
+    const totalUnits = fuelInvIdxs.reduce((sum, fi) => sum + artifactFuelValue(this.artifactInventory[fi].level), 0);
+    for (const fi of [...fuelInvIdxs].sort((a, b) => b - a)) this.artifactInventory.splice(fi, 1);
+    target.fuel += totalUnits;
+    while (target.fuel >= artifactUpgradeCost(target.level)) {
+      target.fuel -= artifactUpgradeCost(target.level);
+      target.level += 1;
+      this.addLog(`✨ ${ARTIFACT_DEFS[target.id].name} leveled up to +${target.level}!`);
+    }
+    return this.respond();
+  }
+
+  /** Sells an equipped artifact directly from a character slot, granting gold. */
+  sellEquippedArtifact(charIdx: number, slotIdx: number): string {
+    const char = this.party.team[charIdx];
+    if (!char || slotIdx < 0 || slotIdx >= 3) return this.respond();
+    const inst = char.artifactSlots[slotIdx];
+    if (!inst) return this.respond();
+    char.artifactSlots[slotIdx] = null;
+    const value = artifactSellValue(inst.id, inst.level);
+    this.earnGold(value);
+    this.addLog(`Sold ${ARTIFACT_DEFS[inst.id].name}${inst.level > 0 ? ` +${inst.level}` : ""} for ${value}g.`);
     return this.respond();
   }
 
@@ -1125,7 +1149,7 @@ export class GameState {
     if (ancientIdxs.length < 10) return this.respond();
     for (let i = ancientIdxs.length - 1; i >= 0; i--) this.runeInventory.splice(ancientIdxs[i], 1);
     const id = ARTIFACT_DROP_POOL[Math.floor(Math.random() * ARTIFACT_DROP_POOL.length)];
-    this.artifactInventory.push({ id, level: 0 });
+    this.artifactInventory.push({ id, level: 0, fuel: 0 });
     this.addLog(`Forged ${ARTIFACT_DEFS[id]?.name ?? id} from 10 ancient runes!`);
     return this.respond();
   }
@@ -1274,7 +1298,7 @@ export class GameState {
       rune_inventory: [...this.runeInventory],
       earned_titles: this.computeEarnedTitles(),
       gear_stash: this.gearStash.map(i => i.toDict()),
-      artifact_inventory: this.artifactInventory.map(a => ({ id: a.id, level: a.level })),
+      artifact_inventory: this.artifactInventory.map(a => ({ id: a.id, level: a.level, fuel: a.fuel })),
       kill_streak: this.killStreak,
     };
   }
@@ -1489,7 +1513,7 @@ export class GameState {
       // Artifact drop: dungeon 3+ (dungeonIndex >= 2), 10% chance
       if (this.dungeonIndex >= 2 && Math.random() < 0.10) {
         const artifactId = ARTIFACT_DROP_POOL[Math.floor(Math.random() * ARTIFACT_DROP_POOL.length)];
-        this.artifactInventory.push({ id: artifactId, level: 0 });
+        this.artifactInventory.push({ id: artifactId, level: 0, fuel: 0 });
         this.addLog(`✨ Boss dropped: ${ARTIFACT_DEFS[artifactId].name}!`);
       }
       this.dungeonLevel += 1;
@@ -1833,11 +1857,13 @@ export class GameState {
     gs.gearStash = (d.gear_stash ?? []).map(item => GearItem.fromDict(item));
     gs.artifactInventory = (d.artifact_inventory ?? []).map((item: any) => {
       if (typeof item === "string") {
-        return LEGACY_UPGRADED_MAP[item] ? { ...LEGACY_UPGRADED_MAP[item] } : { id: item as ArtifactEffectId, level: 0 };
+        return LEGACY_UPGRADED_MAP[item]
+          ? { ...LEGACY_UPGRADED_MAP[item], fuel: 0 }
+          : { id: item as ArtifactEffectId, level: 0, fuel: 0 };
       }
       return LEGACY_UPGRADED_MAP[item.id] && item.level === 0
-        ? { ...LEGACY_UPGRADED_MAP[item.id] }
-        : { id: item.id as ArtifactEffectId, level: item.level ?? 0 };
+        ? { ...LEGACY_UPGRADED_MAP[item.id], fuel: item.fuel ?? 0 }
+        : { id: item.id as ArtifactEffectId, level: item.level ?? 0, fuel: item.fuel ?? 0 };
     });
     gs.killStreak = d.kill_streak ?? 0;
 

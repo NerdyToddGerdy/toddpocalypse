@@ -1,12 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   ARTIFACT_DEFS, ARTIFACT_DROP_POOL, LEGACY_UPGRADED_MAP,
-  artifactUpgradeCost, artifactSellValue, type ArtifactInstance,
+  artifactUpgradeCost, artifactSellValue, artifactFuelValue, type ArtifactInstance,
 } from "../src/artifacts.js";
 import { GameState, RUNE_DEFS } from "../src/engine.js";
 import { Character } from "../src/character.js";
 
-const a = (id: string, level = 0): ArtifactInstance => ({ id: id as any, level });
+const a = (id: string, level = 0): ArtifactInstance => ({ id: id as any, level, fuel: 0 });
 
 // ─── Artifact definitions ────────────────────────────────────────────────────
 
@@ -48,7 +48,7 @@ describe("ARTIFACT_DROP_POOL", () => {
 
 describe("LEGACY_UPGRADED_MAP", () => {
   it("maps sanguine_bloodstone → bloodstone level 1", () => {
-    expect(LEGACY_UPGRADED_MAP.sanguine_bloodstone).toEqual({ id: "bloodstone", level: 1 });
+    expect(LEGACY_UPGRADED_MAP.sanguine_bloodstone).toEqual({ id: "bloodstone", level: 1, fuel: 0 });
   });
 
   it("maps all 6 old upgraded IDs", () => {
@@ -98,9 +98,9 @@ describe("Character.artifactSlots", () => {
     c.artifactSlots[2] = a("greed_idol", 0);
     const d = c.toDict();
     const c2 = Character.fromDict(d);
-    expect(c2.artifactSlots[0]).toEqual({ id: "bloodstone", level: 2 });
+    expect(c2.artifactSlots[0]).toEqual({ id: "bloodstone", level: 2, fuel: 0 });
     expect(c2.artifactSlots[1]).toBeNull();
-    expect(c2.artifactSlots[2]).toEqual({ id: "greed_idol", level: 0 });
+    expect(c2.artifactSlots[2]).toEqual({ id: "greed_idol", level: 0, fuel: 0 });
   });
 
   it("migrates old string format on load", () => {
@@ -108,8 +108,8 @@ describe("Character.artifactSlots", () => {
     const d = c.toDict();
     (d as any).artifact_slots = ["bloodstone", null, "wardens_core"];
     const c2 = Character.fromDict(d);
-    expect(c2.artifactSlots[0]).toEqual({ id: "bloodstone", level: 0 });
-    expect(c2.artifactSlots[2]).toEqual({ id: "wardens_core", level: 0 });
+    expect(c2.artifactSlots[0]).toEqual({ id: "bloodstone", level: 0, fuel: 0 });
+    expect(c2.artifactSlots[2]).toEqual({ id: "wardens_core", level: 0, fuel: 0 });
   });
 
   it("migrates old upgraded IDs on load", () => {
@@ -117,8 +117,8 @@ describe("Character.artifactSlots", () => {
     const d = c.toDict();
     (d as any).artifact_slots = ["sanguine_bloodstone", "fortress_core", null];
     const c2 = Character.fromDict(d);
-    expect(c2.artifactSlots[0]).toEqual({ id: "bloodstone", level: 1 });
-    expect(c2.artifactSlots[1]).toEqual({ id: "wardens_core", level: 1 });
+    expect(c2.artifactSlots[0]).toEqual({ id: "bloodstone", level: 1, fuel: 0 });
+    expect(c2.artifactSlots[1]).toEqual({ id: "wardens_core", level: 1, fuel: 0 });
   });
 });
 
@@ -141,7 +141,7 @@ describe("equipArtifact", () => {
     const gs = new GameState();
     gs.artifactInventory = [a("bloodstone")];
     gs.equipArtifact(0, 0, 0);
-    expect(gs.party.team[0].artifactSlots[0]).toEqual({ id: "bloodstone", level: 0 });
+    expect(gs.party.team[0].artifactSlots[0]).toEqual({ id: "bloodstone", level: 0, fuel: 0 });
     expect(gs.artifactInventory).toHaveLength(0);
   });
 
@@ -150,8 +150,8 @@ describe("equipArtifact", () => {
     gs.party.team[0].artifactSlots[0] = a("bloodstone", 1);
     gs.artifactInventory = [a("greed_idol")];
     gs.equipArtifact(0, 0, 0);
-    expect(gs.party.team[0].artifactSlots[0]).toEqual({ id: "greed_idol", level: 0 });
-    expect(gs.artifactInventory).toContainEqual({ id: "bloodstone", level: 1 });
+    expect(gs.party.team[0].artifactSlots[0]).toEqual({ id: "greed_idol", level: 0, fuel: 0 });
+    expect(gs.artifactInventory).toContainEqual({ id: "bloodstone", level: 1, fuel: 0 });
   });
 
   it("noop for invalid char index", () => {
@@ -177,7 +177,7 @@ describe("unequipArtifact", () => {
     gs.party.team[0].artifactSlots[1] = a("greed_idol", 2);
     gs.unequipArtifact(0, 1);
     expect(gs.party.team[0].artifactSlots[1]).toBeNull();
-    expect(gs.artifactInventory).toContainEqual({ id: "greed_idol", level: 2 });
+    expect(gs.artifactInventory).toContainEqual({ id: "greed_idol", level: 2, fuel: 0 });
   });
 
   it("noop when slot is already empty", () => {
@@ -187,109 +187,152 @@ describe("unequipArtifact", () => {
   });
 });
 
-// ─── levelUpArtifact ─────────────────────────────────────────────────────────
+// ─── artifactFuelValue ───────────────────────────────────────────────────────
 
-describe("levelUpArtifact", () => {
-  it("noop when fewer copies than cost", () => {
-    const gs = new GameState();
-    gs.artifactInventory = [a("bloodstone")]; // needs 1 extra, has 0
-    gs.levelUpArtifact(0);
-    expect(gs.artifactInventory[0].level).toBe(0);
-    expect(gs.artifactInventory).toHaveLength(1);
-  });
-
-  it("level 0 → 1 consumes 1 copy of same type", () => {
-    const gs = new GameState();
-    gs.artifactInventory = [a("bloodstone"), a("bloodstone")];
-    gs.levelUpArtifact(0);
-    expect(gs.artifactInventory).toHaveLength(1);
-    expect(gs.artifactInventory[0].level).toBe(1);
-  });
-
-  it("level 1 → 2 consumes 2 copies", () => {
-    const gs = new GameState();
-    gs.artifactInventory = [a("bloodstone", 1), a("bloodstone"), a("bloodstone")];
-    gs.levelUpArtifact(0);
-    expect(gs.artifactInventory).toHaveLength(1);
-    expect(gs.artifactInventory[0].level).toBe(2);
-  });
-
-  it("does not consume copies of different artifact types", () => {
-    const gs = new GameState();
-    gs.artifactInventory = [a("bloodstone"), a("bloodstone"), a("greed_idol")];
-    gs.levelUpArtifact(0);
-    expect(gs.artifactInventory).toContainEqual({ id: "greed_idol", level: 0 });
-    expect(gs.artifactInventory).toHaveLength(2); // leveled one + greed_idol
-  });
-
-  it("accepts any level of same type as fuel", () => {
-    const gs = new GameState();
-    gs.artifactInventory = [a("bloodstone"), a("bloodstone", 3)]; // fuel is higher level
-    gs.levelUpArtifact(0);
-    expect(gs.artifactInventory).toHaveLength(1);
-    expect(gs.artifactInventory[0].level).toBe(1);
-  });
-
-  it("noop for invalid index", () => {
-    const gs = new GameState();
-    gs.artifactInventory = [a("bloodstone")];
-    gs.levelUpArtifact(5);
-    expect(gs.artifactInventory).toHaveLength(1);
-  });
+describe("artifactFuelValue", () => {
+  it("level 0 → 1 fuel unit",  () => expect(artifactFuelValue(0)).toBe(1));
+  it("level 1 → 2 fuel units", () => expect(artifactFuelValue(1)).toBe(2));
+  it("level 2 → 4 fuel units", () => expect(artifactFuelValue(2)).toBe(4));
+  it("level 3 → 7 fuel units", () => expect(artifactFuelValue(3)).toBe(7));
+  it("level 4 → 11 fuel units", () => expect(artifactFuelValue(4)).toBe(11));
 });
 
-// ─── levelUpArtifact with explicit fuel selection ────────────────────────────
+// ─── addFuelToArtifact ───────────────────────────────────────────────────────
 
-describe("levelUpArtifact (explicit fuel)", () => {
-  it("uses specified fuel indices instead of auto-selecting", () => {
+describe("addFuelToArtifact", () => {
+  it("stores partial fuel without leveling when below threshold", () => {
     const gs = new GameState();
-    // idx 0 = target, idx 1 = ignored fuel, idx 2 = chosen fuel
-    gs.artifactInventory = [a("bloodstone"), a("bloodstone"), a("bloodstone")];
-    gs.levelUpArtifact(0, [2]); // cost=1, use idx 2
-    expect(gs.artifactInventory).toHaveLength(2); // target + idx 1 remain
-    expect(gs.artifactInventory[0].level).toBe(1);
-    expect(gs.artifactInventory[1].level).toBe(0); // idx 1 untouched
-  });
-
-  it("can use a higher-level artifact as a single fuel slot", () => {
-    const gs = new GameState();
-    gs.artifactInventory = [a("bloodstone", 1), a("bloodstone", 2), a("bloodstone", 0)];
-    // target=idx 0 (level 1, costs 2 fuel), use idx 1 (level 2) + idx 2 (level 0)
-    gs.levelUpArtifact(0, [1, 2]);
+    // target at level 1 needs 2 fuel units to level; we add 1 (one level-0 = 1 unit)
+    gs.artifactInventory = [a("bloodstone", 1), a("bloodstone")];
+    gs.addFuelToArtifact(0, [1]);
     expect(gs.artifactInventory).toHaveLength(1);
-    expect(gs.artifactInventory[0].level).toBe(2);
+    expect(gs.artifactInventory[0].level).toBe(1);  // not leveled yet
+    expect(gs.artifactInventory[0].fuel).toBe(1);   // fuel stored
   });
 
-  it("noop when explicit fuel count does not match cost", () => {
+  it("levels up when fuel reaches the threshold", () => {
     const gs = new GameState();
-    gs.artifactInventory = [a("bloodstone", 1), a("bloodstone"), a("bloodstone"), a("bloodstone")];
-    gs.levelUpArtifact(0, [1]); // cost=2, only 1 provided
-    expect(gs.artifactInventory).toHaveLength(4); // no change
+    gs.artifactInventory = [a("bloodstone"), a("bloodstone")];
+    gs.addFuelToArtifact(0, [1]); // level 0 needs 1 unit; adding 1 → level-up
+    expect(gs.artifactInventory).toHaveLength(1);
     expect(gs.artifactInventory[0].level).toBe(1);
+    expect(gs.artifactInventory[0].fuel).toBe(0);
+  });
+
+  it("higher-level fuel contributes more units (level-3 = 7 units)", () => {
+    const gs = new GameState();
+    // target at level 1: needs 2 to reach level 2, then 3 to reach level 3
+    // level-3 fuel = 7 units: 7-2=5 (→level 2), 5-3=2 (→level 3), 2<4 stop
+    gs.artifactInventory = [a("bloodstone", 1), a("bloodstone", 3)];
+    gs.addFuelToArtifact(0, [1]);
+    expect(gs.artifactInventory).toHaveLength(1);
+    expect(gs.artifactInventory[0].level).toBe(3);
+    expect(gs.artifactInventory[0].fuel).toBe(2); // 7 - 2 - 3 = 2 leftover
+  });
+
+  it("overflow cascades to additional level-ups in one action", () => {
+    const gs = new GameState();
+    // target at level 0, needs 1 unit; level-3 fuel = 7 units
+    // 7 - 1 = 6 overflow → level 1 needs 2, level 2 needs 3, 6-2=4, 4-3=1 → reach level 3, 1 leftover
+    gs.artifactInventory = [a("bloodstone"), a("bloodstone", 3)];
+    gs.addFuelToArtifact(0, [1]);
+    expect(gs.artifactInventory).toHaveLength(1);
+    expect(gs.artifactInventory[0].level).toBe(3);
+    expect(gs.artifactInventory[0].fuel).toBe(1);
+  });
+
+  it("fuel persists between separate addFuelToArtifact calls", () => {
+    const gs = new GameState();
+    gs.artifactInventory = [a("bloodstone", 1), a("bloodstone"), a("bloodstone")];
+    gs.addFuelToArtifact(0, [1]); // adds 1 unit, need 2 → stored fuel=1, no level
+    expect(gs.artifactInventory[0].level).toBe(1);
+    expect(gs.artifactInventory[0].fuel).toBe(1);
+    gs.addFuelToArtifact(0, [1]); // idx 1 is now the old idx 2; adds 1 more → total=2 → levels up
+    expect(gs.artifactInventory[0].level).toBe(2);
+    expect(gs.artifactInventory[0].fuel).toBe(0);
+  });
+
+  it("all selected fuel artifacts are removed from inventory", () => {
+    const gs = new GameState();
+    gs.artifactInventory = [a("bloodstone", 2), a("bloodstone"), a("bloodstone"), a("bloodstone")];
+    // target at level 2 needs 3 units; 3× level-0 = 3 units → exact level-up
+    gs.addFuelToArtifact(0, [1, 2, 3]);
+    expect(gs.artifactInventory).toHaveLength(1);
+    expect(gs.artifactInventory[0].level).toBe(3);
   });
 
   it("noop when fuel idx contains wrong artifact type", () => {
     const gs = new GameState();
     gs.artifactInventory = [a("bloodstone"), a("berserkers_eye")];
-    gs.levelUpArtifact(0, [1]); // berserkers_eye cannot fuel bloodstone
+    gs.addFuelToArtifact(0, [1]);
     expect(gs.artifactInventory).toHaveLength(2);
-    expect(gs.artifactInventory[0].level).toBe(0);
+    expect(gs.artifactInventory[0].fuel).toBe(0);
   });
 
   it("noop when fuel idx equals the target idx", () => {
     const gs = new GameState();
     gs.artifactInventory = [a("bloodstone"), a("bloodstone")];
-    gs.levelUpArtifact(0, [0]); // can't use itself as fuel
+    gs.addFuelToArtifact(0, [0]);
     expect(gs.artifactInventory).toHaveLength(2);
-    expect(gs.artifactInventory[0].level).toBe(0);
+    expect(gs.artifactInventory[0].fuel).toBe(0);
   });
 
-  it("noop when a fuel idx is out of bounds", () => {
+  it("noop when fuel idx is out of bounds", () => {
     const gs = new GameState();
     gs.artifactInventory = [a("bloodstone"), a("bloodstone")];
-    gs.levelUpArtifact(0, [99]); // idx 99 doesn't exist
+    gs.addFuelToArtifact(0, [99]);
     expect(gs.artifactInventory).toHaveLength(2);
-    expect(gs.artifactInventory[0].level).toBe(0);
+    expect(gs.artifactInventory[0].fuel).toBe(0);
+  });
+});
+
+// ─── addFuelToEquippedArtifact ────────────────────────────────────────────────
+
+describe("addFuelToEquippedArtifact", () => {
+  it("levels up an equipped artifact using inventory fuel", () => {
+    const gs = new GameState();
+    gs.party.team[0].artifactSlots[0] = a("bloodstone"); // level 0, needs 1 unit
+    gs.artifactInventory = [a("bloodstone")];
+    gs.addFuelToEquippedArtifact(0, 0, [0]);
+    expect(gs.party.team[0].artifactSlots[0]!.level).toBe(1);
+    expect(gs.artifactInventory).toHaveLength(0);
+  });
+
+  it("artifact stays equipped after level-up", () => {
+    const gs = new GameState();
+    gs.party.team[0].artifactSlots[0] = a("bloodstone");
+    gs.artifactInventory = [a("bloodstone")];
+    gs.addFuelToEquippedArtifact(0, 0, [0]);
+    expect(gs.party.team[0].artifactSlots[0]).not.toBeNull();
+    expect(gs.party.team[0].artifactSlots[0]!.id).toBe("bloodstone");
+  });
+
+  it("stores partial fuel on the equipped artifact", () => {
+    const gs = new GameState();
+    gs.party.team[0].artifactSlots[0] = a("bloodstone", 1); // needs 2 units
+    gs.artifactInventory = [a("bloodstone")]; // contributes 1 unit
+    gs.addFuelToEquippedArtifact(0, 0, [0]);
+    expect(gs.party.team[0].artifactSlots[0]!.level).toBe(1); // not leveled
+    expect(gs.party.team[0].artifactSlots[0]!.fuel).toBe(1);  // fuel stored
+  });
+});
+
+// ─── sellEquippedArtifact ─────────────────────────────────────────────────────
+
+describe("sellEquippedArtifact", () => {
+  it("removes artifact from slot and leaves slot null", () => {
+    const gs = new GameState();
+    gs.party.team[0].artifactSlots[1] = a("bloodstone");
+    gs.sellEquippedArtifact(0, 1);
+    expect(gs.party.team[0].artifactSlots[1]).toBeNull();
+  });
+
+  it("awards gold scaled by level (same formula as sellArtifact)", () => {
+    const gs = new GameState();
+    gs.party.team[0].artifactSlots[0] = a("bloodstone", 2); // level 2 → 150g
+    gs.gold = 0;
+    gs.sellEquippedArtifact(0, 0);
+    expect(gs.gold).toBe(150);
   });
 });
 
@@ -519,15 +562,15 @@ describe("prestige preserves artifacts", () => {
     const gs = readyForPrestige();
     gs.artifactInventory = [a("bloodstone", 2), a("greed_idol")];
     gs.prestige();
-    expect(gs.artifactInventory).toContainEqual({ id: "bloodstone", level: 2 });
-    expect(gs.artifactInventory).toContainEqual({ id: "greed_idol", level: 0 });
+    expect(gs.artifactInventory).toContainEqual({ id: "bloodstone", level: 2, fuel: 0 });
+    expect(gs.artifactInventory).toContainEqual({ id: "greed_idol", level: 0, fuel: 0 });
   });
 
   it("preserves character artifact slots through prestige", () => {
     const gs = readyForPrestige();
     gs.party.team[0].artifactSlots[0] = a("wardens_core", 1);
     gs.prestige();
-    expect(gs.party.team[0].artifactSlots[0]).toEqual({ id: "wardens_core", level: 1 });
+    expect(gs.party.team[0].artifactSlots[0]).toEqual({ id: "wardens_core", level: 1, fuel: 0 });
   });
 });
 
@@ -540,7 +583,7 @@ describe("artifact serialization", () => {
     gs.killStreak = 7;
     const dict = JSON.parse(gs.respond());
     const restored = GameState.fromDict(dict);
-    expect(restored.artifactInventory).toEqual([{ id: "bloodstone", level: 3 }, { id: "greed_idol", level: 0 }]);
+    expect(restored.artifactInventory).toEqual([{ id: "bloodstone", level: 3, fuel: 0 }, { id: "greed_idol", level: 0, fuel: 0 }]);
     expect(restored.killStreak).toBe(7);
   });
 
@@ -559,8 +602,8 @@ describe("artifact serialization", () => {
     const dict = JSON.parse(gs.respond()) as any;
     dict.artifact_inventory = ["bloodstone", "sanguine_bloodstone"];
     const restored = GameState.fromDict(dict);
-    expect(restored.artifactInventory[0]).toEqual({ id: "bloodstone", level: 0 });
-    expect(restored.artifactInventory[1]).toEqual({ id: "bloodstone", level: 1 });
+    expect(restored.artifactInventory[0]).toEqual({ id: "bloodstone", level: 0, fuel: 0 });
+    expect(restored.artifactInventory[1]).toEqual({ id: "bloodstone", level: 1, fuel: 0 });
   });
 });
 

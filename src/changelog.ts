@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.15.3";
+export const VERSION = "v2.16.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,17 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.16.0",
+    date: "2026-05-16",
+    changes: [
+      "Artifact leveling now uses a fuel-unit system: higher-level artifacts are worth more (lv0=1, lv1=2, lv2=4, lv3=7)",
+      "Fuel accumulates on the artifact — partial fills are stored and persist across multiple sacrifices",
+      "Overflow cascades: excess fuel automatically triggers additional level-ups in one action",
+      "Equipped artifacts can now be leveled up directly from their slot without unequipping",
+      "Sell button added to equipped artifact modal",
+    ],
+  },
   {
     version: "v2.15.3",
     date: "2026-05-16",
