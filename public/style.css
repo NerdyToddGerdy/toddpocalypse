@@ -3540,7 +3540,8 @@ footer {
     font-weight: 700;
     white-space: nowrap;
 }
-.rune-forge-artifact-btn:hover { filter: brightness(1.2); }
+.rune-forge-artifact-btn:hover:not(:disabled) { filter: brightness(1.2); }
+.rune-forge-artifact-btn:disabled { background: var(--border); color: var(--muted); cursor: default; }
 
 .rune-combine-section {
     margin-top: 8px;

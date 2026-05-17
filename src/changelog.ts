@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.14.5";
+export const VERSION = "v2.14.6";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.14.6",
+    date: "2026-05-16",
+    changes: [
+      "Forge Artifact banner now appears as soon as you have any ancient rune, showing progress (e.g. 3 / 10); button is disabled until 10 are accumulated",
+    ],
+  },
   {
     version: "v2.14.5",
     date: "2026-05-16",

@@ -1087,11 +1087,12 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
           : "";
 
   const ancientCount = runeInv.filter((r: any) => r.tier === "ancient").length;
-  const forgeArtifactHtml = ancientCount >= 10
+  const canForge = ancientCount >= 10;
+  const forgeArtifactHtml = ancientCount > 0
     ? `<div class="rune-forge-artifact-row">
          <span class="rune-forge-artifact-label">✨ Forge Artifact</span>
-         <span class="rune-forge-artifact-cost">10× Ancient rune (${ancientCount} available)</span>
-         <button class="rune-forge-artifact-btn" data-action="forge-artifact-from-runes">Forge</button>
+         <span class="rune-forge-artifact-cost">${ancientCount} / 10 Ancient runes</span>
+         <button class="rune-forge-artifact-btn" data-action="forge-artifact-from-runes"${canForge ? "" : " disabled"}>Forge</button>
        </div>`
     : "";
 
