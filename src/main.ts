@@ -758,13 +758,15 @@ const PRESTIGE_SHOP_META: Record<string, { icon: string; name: string; desc: str
   party_slot_3:  { icon: "👥", name: "Party Slot III", desc: "Add a 3rd member. Requires Slot II.", max: 1 },
   party_slot_4:  { icon: "👥", name: "Party Slot IV",  desc: "Add a 4th member. Requires Slot III + Companion Hall.", max: 1, guildReq: 1 },
   party_slot_5:  { icon: "👥", name: "Party Slot V",   desc: "Add a 5th member. Requires Slot IV + Companion Hall II.", max: 1, guildReq: 2 },
-  starting_gold: { icon: "💰", name: "Starting Gold",  desc: "+250g at the start of each run.", max: Infinity },
-  xp_bonus:      { icon: "✨", name: "XP Bonus",       desc: "+10% XP gain for all party members.", max: Infinity },
-  gold_bonus:    { icon: "🪙", name: "Gold Bonus",     desc: "+10% gold from kills per stack.", max: Infinity },
-  checkpoint:    { icon: "⚑", name: "Checkpoint",     desc: "Each level adds a respawn checkpoint at the next multiple of 5 (lv1→floor 5, lv2→floor 10, lv3→floor 15…).", max: 20 },
-  gold_mastery:  { icon: "💰", name: "Gold Mastery",   desc: "+20% gold from bosses per stack. Dungeon 2+.", max: Infinity, dungeonReq: 1 },
-  gear_luck:     { icon: "🍀", name: "Gear Luck",      desc: "+5% item drop chance per stack (max 75%). Dungeon 2+.", max: 10, dungeonReq: 1 },
-  stash:         { icon: "📦", name: "Gear Stash",     desc: "Persistent stash that survives prestige. Lv1: 3 slots (free), Lv2: 6 slots, Lv3: 10 slots, Lv4: 15 slots. Dungeon 3+.", max: 4, dungeonReq: 2 },
+  starting_gold:    { icon: "💰", name: "Starting Gold",    desc: "+250g at the start of each run.", max: Infinity },
+  xp_bonus:         { icon: "✨", name: "XP Bonus",         desc: "+10% XP gain for all party members.", max: Infinity },
+  gold_bonus:       { icon: "🪙", name: "Gold Bonus",       desc: "+10% gold from kills per stack.", max: Infinity },
+  dps_bonus:        { icon: "⚔", name: "DPS Bonus",        desc: "+5% party DPS per stack.", max: Infinity },
+  checkpoint:       { icon: "⚑", name: "Checkpoint",       desc: "Each level adds a respawn checkpoint at the next multiple of 5 (lv1→floor 5, lv2→floor 10, lv3→floor 15…).", max: 20 },
+  gold_mastery:     { icon: "💰", name: "Gold Mastery",     desc: "+20% gold from bosses per stack. Dungeon 2+.", max: Infinity, dungeonReq: 1 },
+  gear_luck:        { icon: "🍀", name: "Gear Luck",        desc: "+5% item drop chance per stack (max 75%). Dungeon 2+.", max: 10, dungeonReq: 1 },
+  combine_all_runes:{ icon: "🔮", name: "Combine All Runes",desc: "Adds a 'Combine All' button to the rune panel — auto-combines all matching pairs in sequence. Dungeon 3+.", max: 1, dungeonReq: 2 },
+  stash:            { icon: "📦", name: "Gear Stash",       desc: "Persistent stash that survives prestige. Lv1: 3 slots (free), Lv2: 6 slots, Lv3: 10 slots, Lv4: 15 slots. Dungeon 3+.", max: 4, dungeonReq: 2 },
 };
 
 /** Builds the HTML for quality-tier auto-sell checkboxes shown beneath the loot chest. */
@@ -859,6 +861,7 @@ function prestigeCurrentStat(type: string, owned: number): string {
     case "starting_gold":  return `Current: +${owned * 250}g per run`;
     case "xp_bonus":       return `Current: +${owned * 10}% XP`;
     case "gold_bonus":     return `Current: +${owned * 10}% gold`;
+    case "dps_bonus":      return `Current: +${owned * 5}% DPS`;
     case "gold_mastery":   return `Current: +${owned * 20}% boss gold`;
     case "gear_luck":      return `Current: +${Math.min(owned * 5, 75)}% drop chance`;
     case "checkpoint":     return `Current: respawn at floor ${owned * 5}`;
@@ -933,10 +936,11 @@ function renderGuildHall(state: GameStateDict): void {
 
   const runeForge = owned["rune_forge"] ?? 0;
   const runeInv: any[] = state.rune_inventory ?? [];
+  const hasCombineAll = (state.prestige_upgrades as Record<string, number>)?.["combine_all_runes"] >= 1;
 
   $("guild-hall-items").innerHTML = upgradesHtml;
   renderPartyRunePanel(runeInv, state.party, runeForge);
-  renderLootRuneInventory(runeInv, state.party, runeForge);
+  renderLootRuneInventory(runeInv, state.party, runeForge, hasCombineAll);
 }
 
 const RUNE_STAT_LABELS: Record<string, string> = {
@@ -1022,7 +1026,7 @@ function buildSlotOptions(char: any): string {
   }).join("");
 }
 
-function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number): void {
+function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number, hasCombineAll = false): void {
   const runesTabBtn = document.getElementById("loot-stab-runes");
   if (runesTabBtn) runesTabBtn.hidden = runeForge < 1;
   const runeCountEl = document.getElementById("loot-rune-count");
@@ -1077,6 +1081,9 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
 
   const maxCombineTier = runeForge >= 4 ? "flawless" : runeForge >= 3 ? "greater" : "lesser";
   const combinePairs = runeForge >= 2 ? findCombinePairs(runeInv, maxCombineTier as any) : [];
+  const combineAllBtn = hasCombineAll && runeForge >= 2 && combinePairs.length > 0
+    ? `<button class="rune-combine-all-btn" data-action="combine-all-runes">Combine All</button>`
+    : "";
   const combineHtml = runeForge >= 2 && combinePairs.length > 0
     ? `<div class="rune-combine-section">
         <span class="rune-combine-label">Combine:</span>
@@ -1084,6 +1091,7 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
           `<option value="${p.id1}|${p.id2}">${RUNE_ICONS[p.type] ?? "🔮"} 2× ${p.name} → ${p.result}</option>`
         ).join("")}</select>
         <button class="rune-combine-btn" data-action="combine-runes">Combine</button>
+        ${combineAllBtn}
       </div>`
     : runeForge < 2
       ? `<div class="rune-combine-hint">Rune Forge Tier 2 unlocks combining two matching lesser runes into a greater.</div>`
@@ -1429,8 +1437,83 @@ function renderArtifactModalBody(state: GameStateDict): void {
         btn.disabled = total === 0;
         btn.textContent = total > 0 ? `Add ${total} fuel unit${total === 1 ? "" : "s"}` : "Select artifacts below";
       }
+      applyFuelBarPreview(inst.fuel, inst.level, total);
     });
   });
+}
+
+/** Animates the artifact fuel progress bar to preview the effect of adding `totalAdded` fuel units.
+ *  Rushes through completed levels quickly, then eases to the final resting position. */
+function applyFuelBarPreview(storedFuel: number, instLevel: number, totalAdded: number): void {
+  const bar = document.querySelector<HTMLElement>(".amodal-fuel-bar-fill");
+  const label = document.getElementById("amodal-fuel-stored");
+  if (!bar) return;
+
+  if (totalAdded === 0) {
+    // Reset to the stored (real) state
+    bar.style.animation = "none";
+    bar.style.transition = "";
+    bar.style.width = `${Math.min(100, Math.round(storedFuel / (instLevel + 1) * 100))}%`;
+    if (label) label.textContent = `${storedFuel} / ${instLevel + 1} units`;
+    return;
+  }
+
+  // Simulate the cascade to build the animation keyframe sequence
+  const RUSH = 0.15;  // seconds to fill one level bar
+  const RESET = 0.03; // seconds for the near-instant reset flash
+  const EASE = 0.45;  // seconds to ease to the final resting position
+
+  let fuel = storedFuel;
+  let level = instLevel;
+  let remaining = totalAdded;
+  const segments: { dt: number; width: number }[] = [];
+
+  while (remaining > 0) {
+    const levelCost = level + 1;
+    const space = levelCost - fuel;
+    if (remaining >= space) {
+      segments.push({ dt: RUSH, width: 1.0 });
+      remaining -= space;
+      fuel = 0;
+      level++;
+      if (remaining > 0) segments.push({ dt: RESET, width: 0.0 });
+    } else {
+      fuel += remaining;
+      remaining = 0;
+      segments.push({ dt: EASE, width: fuel / (level + 1) });
+    }
+  }
+  // If we ended exactly on a level-up (bar at 100%), ease to 0% of next level
+  if (segments.length > 0 && segments[segments.length - 1].width === 1.0) {
+    segments[segments.length - 1].dt = EASE;
+    fuel = 0;
+  }
+
+  const totalDuration = segments.reduce((s, seg) => s + seg.dt, 0);
+  const startWidth = Math.min(100, Math.round(storedFuel / (instLevel + 1) * 100));
+
+  // Build percentage keyframes
+  let accumulated = 0;
+  let kfCss = `0% { width: ${startWidth}% }`;
+  for (const seg of segments) {
+    accumulated += seg.dt;
+    const pct = Math.round((accumulated / totalDuration) * 100);
+    kfCss += `\n${pct}% { width: ${Math.round(seg.width * 100)}% }`;
+  }
+
+  const animName = `fuel-preview-${Date.now()}`;
+  let styleEl = document.getElementById("amodal-fuel-anim-style") as HTMLStyleElement | null;
+  if (!styleEl) {
+    styleEl = document.createElement("style");
+    styleEl.id = "amodal-fuel-anim-style";
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent = `@keyframes ${animName} { ${kfCss} }`;
+
+  bar.style.transition = "none";
+  bar.style.animation = `${animName} ${totalDuration.toFixed(2)}s ease-out forwards`;
+
+  if (label) label.textContent = `${fuel} / ${level + 1} units (preview)`;
 }
 
 function findCombinePairs(runeInv: any[], maxTier: "lesser" | "greater" | "flawless" | "ancient" = "lesser"): { id1: string; id2: string; type: string; tier: string; name: string; result: string }[] {
@@ -2780,6 +2863,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const sel = row.querySelector(".rune-combine-select") as HTMLSelectElement;
       const [id1, id2] = sel.value.split("|");
       call("combineRunes", id1, id2);
+    }
+    else if (action === "combine-all-runes") {
+      call("combineAllRunes");
     }
     else if (action === "sell-rune") {
       call("sellRune", parseInt(btn.dataset.runeIdx!, 10));

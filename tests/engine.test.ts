@@ -11,6 +11,8 @@ import {
   BATTLE_CRY_MULT, SHADOW_STRIKE_MULT, ARCANE_SURGE_MULT, VOLLEY_MULT,
   killsForFloor, prestigeUpgradeCost, ventureUnlockLevel,
   STASH_TIER_COSTS, STASH_SIZES,
+  DPS_BONUS_PER_LEVEL,
+  ARTIFACT_DEFS, ARTIFACT_DROP_POOL,
 } from "../src/engine.js";
 import { Character } from "../src/character.js";
 import { GearItem, getItem, getSetItem, SET_DEFS, type Slot } from "../src/gear.js";
@@ -4406,5 +4408,175 @@ describe("gear locking", () => {
     gs.toggleGearLock(0, "helmet");
     gs.prestige();
     expect(gs.party.team[0].lockedSlots.has("helmet")).toBe(true);
+  });
+});
+
+describe("Warlord's Sigil artifact", () => {
+  function makeWithWeapon() {
+    const gs = make();
+    gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor", { dps: 100 }, 1));
+    return gs;
+  }
+
+  it("warlords_sigil is in ARTIFACT_DEFS", () => {
+    expect(ARTIFACT_DEFS["warlords_sigil"]).toBeDefined();
+  });
+
+  it("warlords_sigil is in ARTIFACT_DROP_POOL", () => {
+    expect(ARTIFACT_DROP_POOL).toContain("warlords_sigil");
+  });
+
+  it("tick deals more damage when warlords_sigil is equipped", () => {
+    const without = makeWithWeapon();
+    const with_ = makeWithWeapon();
+    with_.party.team[0].artifactSlots[0] = { id: "warlords_sigil", level: 0, fuel: 0 };
+
+    const hp = 100_000;
+    without.enemy.hp = hp; without.enemy.max_hp = hp;
+    with_.enemy.hp = hp; with_.enemy.max_hp = hp;
+    vi.spyOn(without, "onEnemyDeath").mockImplementation(() => {});
+    vi.spyOn(with_, "onEnemyDeath").mockImplementation(() => {});
+
+    without.tick(1); with_.tick(1);
+    expect(hp - with_.enemy.hp).toBeGreaterThan(hp - without.enemy.hp);
+  });
+
+  it("warlords_sigil level 1 contributes 2× effect compared to level 0", () => {
+    const gs0 = makeWithWeapon();
+    const gs1 = makeWithWeapon();
+    gs0.party.team[0].artifactSlots[0] = { id: "warlords_sigil", level: 0, fuel: 0 };
+    gs1.party.team[0].artifactSlots[0] = { id: "warlords_sigil", level: 1, fuel: 0 };
+
+    const hp = 100_000;
+    gs0.enemy.hp = hp; gs0.enemy.max_hp = hp;
+    gs1.enemy.hp = hp; gs1.enemy.max_hp = hp;
+    vi.spyOn(gs0, "onEnemyDeath").mockImplementation(() => {});
+    vi.spyOn(gs1, "onEnemyDeath").mockImplementation(() => {});
+    gs0.tick(1); gs1.tick(1);
+    const dmg0 = hp - gs0.enemy.hp;
+    const dmg1 = hp - gs1.enemy.hp;
+    // Level 0: ×1.05, Level 1: ×1.10 → ratio ≈ 1.10/1.05
+    expect(dmg1 / dmg0).toBeCloseTo(1.10 / 1.05, 1);
+  });
+});
+
+describe("dps_bonus prestige upgrade", () => {
+  it("DPS_BONUS_PER_LEVEL is exported and equals 0.05", () => {
+    expect(DPS_BONUS_PER_LEVEL).toBeCloseTo(0.05);
+  });
+
+  it("dps_bonus is in PRESTIGE_SHOP_COSTS", () => {
+    expect(PRESTIGE_SHOP_COSTS["dps_bonus"]).toBeDefined();
+  });
+
+  it("dps_bonus upgrade can be purchased with prestige points", () => {
+    const gs = withPrestige(5);
+    const before = gs.prestigePoints;
+    gs.buyPrestigeUpgrade("dps_bonus");
+    expect(gs.prestigeUpgrades["dps_bonus"]).toBe(1);
+    expect(gs.prestigePoints).toBeLessThan(before);
+  });
+
+  it("dps_bonus scales cost on second purchase", () => {
+    expect(prestigeUpgradeCost("dps_bonus", 0)).toBe(PRESTIGE_SHOP_COSTS["dps_bonus"]);
+    expect(prestigeUpgradeCost("dps_bonus", 1)).toBe(PRESTIGE_SHOP_COSTS["dps_bonus"] + 1);
+    expect(prestigeUpgradeCost("dps_bonus", 2)).toBe(PRESTIGE_SHOP_COSTS["dps_bonus"] + 2);
+  });
+
+  it("dps_bonus increases damage dealt per tick", () => {
+    const gs0 = make();
+    gs0.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor", { dps: 100 }, 1));
+    const gs1 = make();
+    gs1.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor", { dps: 100 }, 1));
+    gs1.prestigeUpgrades["dps_bonus"] = 1;
+
+    const hp = 100_000;
+    gs0.enemy.hp = hp; gs0.enemy.max_hp = hp;
+    gs1.enemy.hp = hp; gs1.enemy.max_hp = hp;
+    vi.spyOn(gs0, "onEnemyDeath").mockImplementation(() => {});
+    vi.spyOn(gs1, "onEnemyDeath").mockImplementation(() => {});
+
+    gs0.tick(1); gs1.tick(1);
+    const dmg0 = hp - gs0.enemy.hp;
+    const dmg1 = hp - gs1.enemy.hp;
+    expect(dmg1 / dmg0).toBeCloseTo(1 + DPS_BONUS_PER_LEVEL, 1);
+  });
+});
+
+describe("combineAllRunes prestige upgrade", () => {
+  function makeWithForge(tier: number) {
+    const gs = make();
+    gs.guildUpgrades["rune_forge"] = tier;
+    gs.prestigeUpgrades["combine_all_runes"] = 1;
+    return gs;
+  }
+
+  it("combine_all_runes is in PRESTIGE_SHOP_COSTS", () => {
+    expect(PRESTIGE_SHOP_COSTS["combine_all_runes"]).toBeDefined();
+  });
+
+  it("combineAllRunes is a noop without the prestige upgrade", () => {
+    const gs = make();
+    gs.guildUpgrades["rune_forge"] = 4;
+    gs.runeInventory = [RUNE_DEFS["striking_lesser"], RUNE_DEFS["striking_lesser"]];
+    gs.combineAllRunes();
+    expect(gs.runeInventory.length).toBe(2);
+  });
+
+  it("combineAllRunes is a noop without rune_forge ≥ 2", () => {
+    const gs = make();
+    gs.guildUpgrades["rune_forge"] = 1;
+    gs.prestigeUpgrades["combine_all_runes"] = 1;
+    gs.runeInventory = [RUNE_DEFS["striking_lesser"], RUNE_DEFS["striking_lesser"]];
+    gs.combineAllRunes();
+    expect(gs.runeInventory.length).toBe(2);
+  });
+
+  it("combines all lesser pairs at forge 2", () => {
+    const gs = makeWithForge(2);
+    gs.runeInventory = [
+      RUNE_DEFS["striking_lesser"], RUNE_DEFS["striking_lesser"],
+      RUNE_DEFS["warding_lesser"],  RUNE_DEFS["warding_lesser"],
+    ];
+    gs.combineAllRunes();
+    expect(gs.runeInventory.length).toBe(2);
+    expect(gs.runeInventory.every(r => r.tier === "greater")).toBe(true);
+  });
+
+  it("cascades: lesser pair produces greater which chains into flawless at forge 3", () => {
+    const gs = makeWithForge(3);
+    // 4 lesser → 2 greater → 1 flawless
+    gs.runeInventory = Array(4).fill(RUNE_DEFS["striking_lesser"]);
+    gs.combineAllRunes();
+    expect(gs.runeInventory.length).toBe(1);
+    expect(gs.runeInventory[0].tier).toBe("flawless");
+  });
+
+  it("leftover lesser that can't pair stays in inventory", () => {
+    const gs = makeWithForge(2);
+    gs.runeInventory = [
+      RUNE_DEFS["striking_lesser"], RUNE_DEFS["striking_lesser"], RUNE_DEFS["striking_lesser"],
+    ];
+    gs.combineAllRunes();
+    // 2 combine → 1 greater, 1 lesser remains
+    expect(gs.runeInventory.filter(r => r.tier === "greater").length).toBe(1);
+    expect(gs.runeInventory.filter(r => r.tier === "lesser").length).toBe(1);
+  });
+
+  it("does not combine greater at forge 2", () => {
+    const gs = makeWithForge(2);
+    gs.runeInventory = [RUNE_DEFS["striking_greater"], RUNE_DEFS["striking_greater"]];
+    gs.combineAllRunes();
+    expect(gs.runeInventory.length).toBe(2);
+  });
+
+  it("increments lifetimeRunesCombined for each pair combined", () => {
+    const gs = makeWithForge(2);
+    gs.runeInventory = [
+      RUNE_DEFS["striking_lesser"], RUNE_DEFS["striking_lesser"],
+      RUNE_DEFS["warding_lesser"],  RUNE_DEFS["warding_lesser"],
+    ];
+    gs.combineAllRunes();
+    expect(gs.lifetimeRunesCombined).toBe(2);
   });
 });

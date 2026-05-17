@@ -11,8 +11,8 @@ const a = (id: string, level = 0): ArtifactInstance => ({ id: id as any, level, 
 // ─── Artifact definitions ────────────────────────────────────────────────────
 
 describe("ARTIFACT_DEFS", () => {
-  it("has exactly 6 artifacts", () => {
-    expect(Object.keys(ARTIFACT_DEFS).length).toBe(6);
+  it("has exactly 7 artifacts", () => {
+    expect(Object.keys(ARTIFACT_DEFS).length).toBe(7);
   });
 
   it("all artifacts have sellValue 50", () => {
@@ -33,8 +33,8 @@ describe("ARTIFACT_DEFS", () => {
 });
 
 describe("ARTIFACT_DROP_POOL", () => {
-  it("contains exactly 6 artifact IDs", () => {
-    expect(ARTIFACT_DROP_POOL.length).toBe(6);
+  it("contains exactly 7 artifact IDs", () => {
+    expect(ARTIFACT_DROP_POOL.length).toBe(7);
   });
 
   it("all pool IDs are valid ARTIFACT_DEFS keys", () => {

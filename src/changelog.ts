@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.16.0";
+export const VERSION = "v2.17.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,16 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.17.0",
+    date: "2026-05-17",
+    changes: [
+      "New artifact: Warlord's Sigil 🔱 — +5% party DPS per level (flat, always-on)",
+      "New prestige upgrade: DPS Bonus — +5% party DPS per stack",
+      "New prestige upgrade: Combine All Runes — auto-combines all matching rune pairs in sequence (Dungeon 3+)",
+      "Artifact fuel progress bar animates a preview when you select fuel — rushes through level-ups, eases to the final position",
+    ],
+  },
   {
     version: "v2.16.0",
     date: "2026-05-16",

@@ -101,9 +101,11 @@ export const PRESTIGE_SHOP_COSTS: Record<string, number> = {
   starting_gold: 1,
   xp_bonus: 1,
   gold_bonus: 1,
+  dps_bonus: 1,
   checkpoint: 1,
   gold_mastery: 2,
   gear_luck: 2,
+  combine_all_runes: 2,
   stash: 0,
 };
 
@@ -115,7 +117,7 @@ export const PRESTIGE_DUNGEON_REQ: Record<string, number> = {
 };
 
 /** Stackable upgrades whose cost increases by 1 pt per stack already owned. */
-const SCALING_PRESTIGE_UPGRADES = new Set(["starting_gold", "xp_bonus", "gold_bonus", "checkpoint", "gold_mastery", "gear_luck"]);
+const SCALING_PRESTIGE_UPGRADES = new Set(["starting_gold", "xp_bonus", "gold_bonus", "dps_bonus", "checkpoint", "gold_mastery", "gear_luck"]);
 
 /** Prestige point costs for each tier of the gear stash upgrade (levels 1–4). */
 export const STASH_TIER_COSTS = [0, 2, 5, 10];
@@ -208,6 +210,9 @@ export const XP_BONUS_PER_LEVEL = 0.10;
 
 /** Gold earn multiplier bonus added per gold_bonus prestige upgrade level. */
 export const GOLD_BONUS_PER_LEVEL = 0.10;
+
+/** Party DPS multiplier bonus added per dps_bonus prestige upgrade level. */
+export const DPS_BONUS_PER_LEVEL = 0.05;
 
 /** Gold multiplier bonus per additional party member beyond the first. */
 export const PARTY_GOLD_BONUS_PER_MEMBER = 0.20;
@@ -500,6 +505,9 @@ export class GameState {
         const streakBonus = Math.min(this.killStreak * eyeDef.effectValue * mult, (eyeDef.cap ?? 1) * mult);
         dps *= (1 + streakBonus);
       }
+      // Warlord's Sigil: flat DPS bonus per level
+      const sigilSlot = c.artifactSlots.find(s => s?.id === "warlords_sigil");
+      if (sigilSlot) dps *= (1 + ARTIFACT_DEFS["warlords_sigil"].effectValue * (sigilSlot.level + 1));
       // Soulbrand: crit bonus per rune, scales with level
       const soulSlot = c.artifactSlots.find(s => s?.id === "soulbrand");
       let totalCrit = c.critChance;
@@ -509,7 +517,8 @@ export class GameState {
       if (totalCrit > 0 && Math.random() < totalCrit) dps *= 2;
       baseDps += dps;
     }
-    const totalDps = baseDps * (1 + partyHaste);
+    const dpsPrestigeMult = 1 + DPS_BONUS_PER_LEVEL * (this.prestigeUpgrades["dps_bonus"] ?? 0);
+    const totalDps = baseDps * (1 + partyHaste) * dpsPrestigeMult;
     const dmgMult = (hasExpose ? EXPOSE_WEAKNESS_MULT : 1.0) * (hasMark ? 1.20 : 1.0) * battleCryMult * shadowStrikeTick * arcaneSurgeMult * volleyMult * (divineWrathActive ? 1.15 : 1.0);
     const damageDealt = totalDps * dmgMult * dt;
     this.enemy.hp -= damageDealt;
@@ -1126,6 +1135,42 @@ export class GameState {
     this.runeInventory = remaining;
     this.runeInventory.push(next);
     this.lifetimeRunesCombined += 1;
+    return this.respond();
+  }
+
+  /** Combines all combinable pairs in the inventory (lesser→greater→flawless→ancient), cascading.
+   *  Requires prestige upgrade combine_all_runes and rune_forge ≥ 2. */
+  combineAllRunes(): string {
+    if (!(this.prestigeUpgrades["combine_all_runes"] ?? 0)) return this.respond();
+    const forge = this.guildUpgrades["rune_forge"] ?? 0;
+    if (forge < 2) return this.respond();
+    const TIER_UP: Record<string, string> = { lesser: "greater", greater: "flawless", flawless: "ancient" };
+    const tiersAllowed = ["lesser"];
+    if (forge >= 3) tiersAllowed.push("greater");
+    if (forge >= 4) tiersAllowed.push("flawless");
+    let combined = 0;
+    for (const tier of tiersAllowed) {
+      let changed = true;
+      while (changed) {
+        changed = false;
+        const types = [...new Set(this.runeInventory.filter(r => r.tier === tier).map(r => r.type))];
+        for (const type of types) {
+          const idxs = this.runeInventory.reduce<number[]>((acc, r, i) => {
+            if (r.tier === tier && r.type === type) acc.push(i);
+            return acc;
+          }, []);
+          if (idxs.length >= 2) {
+            this.runeInventory.splice(idxs[1], 1);
+            this.runeInventory.splice(idxs[0], 1);
+            this.runeInventory.push(RUNE_DEFS[`${type}_${TIER_UP[tier]}`]);
+            this.lifetimeRunesCombined++;
+            combined++;
+            changed = true;
+          }
+        }
+      }
+    }
+    if (combined > 0) this.addLog(`Combined ${combined} rune pair${combined === 1 ? "" : "s"}.`);
     return this.respond();
   }
 

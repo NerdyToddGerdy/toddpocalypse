@@ -4,7 +4,8 @@ export type ArtifactEffectId =
   | "greed_idol"
   | "soulbrand"
   | "wardens_core"
-  | "executioners_mark";
+  | "executioners_mark"
+  | "warlords_sigil";
 
 export interface ArtifactDef {
   id: ArtifactEffectId;
@@ -73,6 +74,14 @@ export const ARTIFACT_DEFS: Record<ArtifactEffectId, ArtifactDef> = {
     effectValue: 1.0,
     sellValue: 50,
   },
+  warlords_sigil: {
+    id: "warlords_sigil",
+    name: "Warlord's Sigil",
+    desc: "+5% party DPS per level",
+    icon: "🔱",
+    effectValue: 0.05,
+    sellValue: 50,
+  },
 };
 
 /** Base artifact IDs eligible to drop from dungeon bosses. */
@@ -83,6 +92,7 @@ export const ARTIFACT_DROP_POOL: ArtifactEffectId[] = [
   "soulbrand",
   "wardens_core",
   "executioners_mark",
+  "warlords_sigil",
 ];
 
 /** Number of same-type artifacts consumed to level up from `level` → `level + 1`. */
