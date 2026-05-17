@@ -81,6 +81,7 @@ let lootKey: string | null = null;
 let autoSellKey: string | null = null;
 let stashKey: string | null = null;
 let artifactKey: string | null = null;
+let artifactModalArtId: string | null = null;
 let upgradeKey: string | null = null;
 let partyStructKey: string | null = null;
 let prevEquipJsonByChar: string[] = [];
@@ -1174,28 +1175,14 @@ function renderArtifactPanel(state: GameStateDict): void {
     : artifactInv.map((inst, i) => {
         const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
         if (!def) return "";
-        const cost = inst.level + 1;
-        const fuelCount = artifactInv.filter((o, j) => j !== i && o.id === inst.id).length;
-        const canLevel = fuelCount >= cost;
         const sellVal = def.sellValue * (inst.level + 1);
-        const equipRow = hasOpenSlot
-          ? `<div class="artifact-equip-row">
-               <select class="artifact-char-slot-select">${charSlotOptions}</select>
-               <button class="artifact-equip-btn" data-action="equip-artifact" data-inv-idx="${i}">Equip</button>
-             </div>`
-          : `<span class="artifact-no-slot">No open slots</span>`;
-        const levelUpRow = `<div class="artifact-levelup-row">
-          <button class="artifact-levelup-btn" data-action="level-up-artifact" data-inv-idx="${i}"${canLevel ? "" : " disabled"}>
-            Level Up +${inst.level + 1} <span class="artifact-levelup-cost">(${cost}× ${def.name}, have ${fuelCount})</span>
-          </button>
-        </div>`;
-        return `<div class="artifact-inv-row">
+        const fuelCount = artifactInv.filter((o, j) => j !== i && o.id === inst.id).length;
+        const canLevel = fuelCount >= inst.level + 1;
+        return `<div class="artifact-inv-row${canLevel ? " artifact-inv-row--levelup" : ""}" data-action="open-artifact-modal" data-inv-idx="${i}" role="button" tabindex="0">
           <span class="artifact-inv-icon">${def.icon}</span>
           <div class="artifact-inv-info">
             <div class="artifact-inv-name">${def.name}${inst.level > 0 ? ` <span class="artifact-level-badge">+${inst.level}</span>` : ""}</div>
             <div class="artifact-inv-desc">${def.desc}</div>
-            ${levelUpRow}
-            ${equipRow}
           </div>
           <button class="artifact-sell-btn" data-action="sell-artifact" data-inv-idx="${i}" title="Sell for ${sellVal}g">${sellVal}g</button>
         </div>`;
@@ -1243,6 +1230,91 @@ function renderArtifactPanel(state: GameStateDict): void {
     }).join("");
     partyArtEl.innerHTML = charBlocks;
   }
+
+  if (artifactModalArtId) renderArtifactModalBody(state);
+}
+
+function openArtifactModal(invIdx: number, state: GameStateDict): void {
+  const inv: { id: string; level: number }[] = (state as any).artifact_inventory ?? [];
+  const inst = inv[invIdx];
+  if (!inst) return;
+  artifactModalArtId = inst.id;
+  renderArtifactModalBody(state);
+  $("artifact-detail-modal").classList.add("open");
+}
+
+function closeArtifactModal(): void {
+  artifactModalArtId = null;
+  $("artifact-detail-modal").classList.remove("open");
+}
+
+function renderArtifactModalBody(state: GameStateDict): void {
+  if (!artifactModalArtId) return;
+  const el = document.getElementById("artifact-detail-body");
+  if (!el) return;
+
+  const inv: { id: string; level: number }[] = (state as any).artifact_inventory ?? [];
+  const party = state.party;
+  const copies = inv.map((a, i) => ({ ...a, invIdx: i })).filter(a => a.id === artifactModalArtId);
+  if (copies.length === 0) { closeArtifactModal(); return; }
+
+  const primary = [...copies].sort((a, b) => b.level - a.level)[0];
+  const def = ARTIFACT_DEFS[primary.id as keyof typeof ARTIFACT_DEFS];
+  if (!def) { closeArtifactModal(); return; }
+
+  const titleEl = document.getElementById("artifact-detail-title");
+  if (titleEl) titleEl.textContent = def.name;
+
+  const cost = primary.level + 1;
+  const fuelCount = copies.filter(c => c.invIdx !== primary.invIdx).length;
+  const canLevel = fuelCount >= cost;
+  const needMore = cost - fuelCount;
+  const levelBadge = primary.level > 0 ? ` <span class="artifact-level-badge">+${primary.level}</span>` : "";
+
+  const charSlotOptions = party.map((c: any, ci: number) => {
+    const slots: ({ id: string; level: number } | null)[] = c.artifact_slots ?? [null, null, null];
+    return slots.map((s, si) =>
+      s ? "" : `<option value="${ci}:${si}">${c.name} — slot ${si + 1}</option>`
+    ).join("");
+  }).join("");
+  const hasOpenSlot = charSlotOptions.includes("<option");
+
+  const sellVal = def.sellValue * (primary.level + 1);
+
+  const equipSection = hasOpenSlot ? `
+    <div class="amodal-section">
+      <div class="amodal-section-title">Equip to Hero</div>
+      <div class="amodal-equip-row">
+        <select class="artifact-char-slot-select">${charSlotOptions}</select>
+        <button class="artifact-equip-btn" data-action="equip-artifact" data-inv-idx="${primary.invIdx}">Equip</button>
+      </div>
+    </div>` : "";
+
+  el.innerHTML = `
+    <div class="amodal-hero-row">
+      <span class="amodal-icon">${def.icon}</span>
+      <div>
+        <div class="amodal-name">${def.name}${levelBadge}</div>
+        <div class="amodal-copies">${copies.length} in inventory</div>
+      </div>
+    </div>
+    <div class="amodal-desc">${def.desc}</div>
+    <div class="amodal-section">
+      <div class="amodal-section-title">Level Up to +${primary.level + 1}</div>
+      <div class="amodal-fuel-info">
+        Costs <strong>${cost}×</strong> ${def.name}&ensp;·&ensp;
+        ${canLevel
+          ? `<span class="amodal-fuel-ready">✓ ${fuelCount} available</span>`
+          : `<span class="amodal-fuel-short">need ${needMore} more (have ${fuelCount})</span>`}
+      </div>
+      <button class="amodal-levelup-btn" data-action="modal-level-up-artifact" data-inv-idx="${primary.invIdx}"${canLevel ? "" : " disabled"}>
+        ⬆ Level Up to +${primary.level + 1}
+      </button>
+    </div>
+    ${equipSection}
+    <div class="amodal-section amodal-sell-section">
+      <button class="artifact-sell-btn amodal-sell-btn" data-action="sell-artifact" data-inv-idx="${primary.invIdx}">Sell for ${sellVal}g</button>
+    </div>`;
 }
 
 function findCombinePairs(runeInv: any[], maxTier: "lesser" | "greater" | "flawless" | "ancient" = "lesser"): { id1: string; id2: string; type: string; tier: string; name: string; result: string }[] {
@@ -2602,13 +2674,23 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (action === "forge-artifact-from-runes") {
       call("forgeArtifactFromRunes");
     }
+    else if (action === "open-artifact-modal") {
+      if (game) openArtifactModal(parseInt(btn.dataset.invIdx!, 10), JSON.parse(game.respond()) as GameStateDict);
+    }
+    else if (action === "close-artifact-modal") {
+      closeArtifactModal();
+    }
+    else if (action === "modal-level-up-artifact") {
+      call("levelUpArtifact", parseInt(btn.dataset.invIdx!, 10));
+    }
     else if (action === "equip-artifact") {
       const invIdx = parseInt(btn.dataset.invIdx!, 10);
-      const row = btn.closest(".artifact-inv-row")!;
-      const sel = row.querySelector(".artifact-char-slot-select") as HTMLSelectElement;
+      const container = btn.closest(".amodal-equip-row, .artifact-inv-row")!;
+      const sel = container.querySelector(".artifact-char-slot-select") as HTMLSelectElement;
       if (sel && sel.value) {
         const [charIdx, slotIdx] = sel.value.split(":").map(Number);
         call("equipArtifact", charIdx, slotIdx, invIdx);
+        closeArtifactModal();
       }
     }
     else if (action === "equip-artifact-slot") {
@@ -2623,11 +2705,9 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (action === "unequip-artifact") {
       call("unequipArtifact", parseInt(btn.dataset.charIdx!, 10), parseInt(btn.dataset.slotIdx!, 10));
     }
-    else if (action === "level-up-artifact") {
-      call("levelUpArtifact", parseInt(btn.dataset.invIdx!, 10));
-    }
     else if (action === "sell-artifact") {
       call("sellArtifact", parseInt(btn.dataset.invIdx!, 10));
+      if (artifactModalArtId) closeArtifactModal();
     }
     else if (action === "set-title") {
       call("setEarnedTitle", btn.dataset.title ?? "");
@@ -2660,6 +2740,11 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("log-history-modal")?.addEventListener("click", (e) => {
     if (e.target === $("log-history-modal")) $("log-history-modal").classList.remove("open");
+  });
+
+  document.getElementById("artifact-detail-close")?.addEventListener("click", closeArtifactModal);
+  document.getElementById("artifact-detail-modal")?.addEventListener("click", (e) => {
+    if (e.target === $("artifact-detail-modal")) closeArtifactModal();
   });
 
   // Keyboard shortcuts

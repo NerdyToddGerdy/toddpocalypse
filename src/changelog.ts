@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.15.0";
+export const VERSION = "v2.15.1";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.15.1",
+    date: "2026-05-16",
+    changes: [
+      "Click any artifact in the Artifacts panel to open a detail modal for leveling up, equipping, or selling",
+      "Modal shows fuel count, cost, and a full-width Level Up button; stays open so you can keep leveling",
+      "Artifact rows now show a purple left-border accent when a level-up is ready",
+    ],
+  },
   {
     version: "v2.15.0",
     date: "2026-05-16",
