@@ -35,6 +35,7 @@ const GUILD_HALL_META: Record<string, { icon: string; name: string; desc: string
   skill_volley:        { icon: "🏹", name: "Volley",           desc: "Ranger: ×2.5 party DPS for 6 kills. 15-kill cooldown.", dungeonReq: 1 },
   skill_entangle:      { icon: "🌿", name: "Entangle",         desc: "Druid: reduces enemy attack by 60% for 8 kills. 20-kill cooldown. Dungeon 3+.", dungeonReq: 2 },
   auto_attack:         { icon: "⚔", name: "Auto-Attack",      desc: "Automatically fires a click attack every second. Toggle the AUTO button next to the Attack button." },
+  eternal_cycle:       { icon: "⟳", name: "Eternal Cycle",    desc: "Automatically prestige when a run would yield at least N points. Set the threshold and toggle below." },
   rune_forge:          { icon: "🔮", name: "Rune Forge",       desc: "Socket runes into gear slots for flat stat bonuses. Bosses drop runes at 20%, elites at 10%. Tier 2: recover replaced runes + combine 2 lessers → greater. Tier 3: combine 2 greaters → flawless. Tier 4: combine 2 flawless → ancient." },
 };
 
@@ -940,7 +941,7 @@ function renderProfileWidget(state: GameStateDict): void {
 
 /** Renders the Prestige Shop item list, marking purchased one-time items and unaffordable items. */
 function renderPrestigeShop(state: GameStateDict): void {
-  const newKey = JSON.stringify(state.prestige_upgrades) + "|" + state.prestige_points + "|" + state.highest_level + "|" + JSON.stringify(state.auto_sell_qualities) + "|" + state.dungeon_index + "|" + state.auto_prestige_enabled + "|" + state.auto_prestige_threshold;
+  const newKey = JSON.stringify(state.prestige_upgrades) + "|" + state.prestige_points + "|" + state.highest_level + "|" + JSON.stringify(state.auto_sell_qualities) + "|" + state.dungeon_index;
   if (newKey === prestigeKey) return;
   prestigeKey = newKey;
 
@@ -975,20 +976,6 @@ function renderPrestigeShop(state: GameStateDict): void {
       <div class="prestige-item-desc">Recruit a new companion (you choose their class). Slots 4+ require Companion Hall upgrades.</div>
     </div>
     <button class="prestige-buy-btn" data-action="buy-prestige" data-type="${nextSlotKey ?? ""}" ${partySlotDisabled ? "disabled" : ""}>${partySlotLabel}</button>
-  </div>`;
-
-  // --- Auto-prestige (Eternal Cycle) card ---
-  const autoEnabled = state.auto_prestige_enabled ?? false;
-  const autoThreshold = state.auto_prestige_threshold ?? 5;
-  const autoCard = `<div class="prestige-item prestige-auto-card">
-    <div class="prestige-item-meta">
-      <div class="prestige-item-name">⟳ Eternal Cycle</div>
-      <div class="prestige-item-desc">Automatically prestige when the run would yield at least <strong>${autoThreshold}</strong> point${autoThreshold !== 1 ? "s" : ""}.</div>
-    </div>
-    <div class="prestige-auto-controls">
-      <input type="number" class="prestige-auto-threshold" data-action="set-auto-prestige-threshold" value="${autoThreshold}" min="1" max="99" style="width:48px;text-align:center" />
-      <button class="prestige-buy-btn ${autoEnabled ? "auto-prestige-active" : ""}" data-action="toggle-auto-prestige">${autoEnabled ? "ON" : "OFF"}</button>
-    </div>
   </div>`;
 
   // --- Normal items (excluding party_slot_*) ---
@@ -1028,7 +1015,7 @@ function renderPrestigeShop(state: GameStateDict): void {
     })
     .join("");
 
-  $("prestige-shop-items").innerHTML = autoCard + partyMembersCard + normalItems;
+  $("prestige-shop-items").innerHTML = partyMembersCard + normalItems;
 }
 
 /** Enables/disables the Venture button based on whether the player has reached floor 40. */
@@ -1095,7 +1082,7 @@ function renderGuildHall(state: GameStateDict): void {
     return state.gold >= costs[stacks] ? "yes" : "no";
   }).join(",");
   const runeInvKey = JSON.stringify(state.rune_inventory ?? []);
-  const newKey = JSON.stringify(state.guild_upgrades) + "|" + affordKey + "|" + state.dungeon_index + "|" + runeInvKey + "|" + JSON.stringify(state.party.map(c => c.runes));
+  const newKey = JSON.stringify(state.guild_upgrades) + "|" + affordKey + "|" + state.dungeon_index + "|" + runeInvKey + "|" + JSON.stringify(state.party.map(c => c.runes)) + "|" + state.auto_prestige_enabled + "|" + state.auto_prestige_threshold;
   if (newKey === guildKey) return;
   guildKey = newKey;
 
@@ -1116,6 +1103,22 @@ function renderGuildHall(state: GameStateDict): void {
     const stackLabel = costs.length > 1 ? (atMax ? ` (${stacks}/${costs.length})` : stacks > 0 ? ` (${stacks}/${costs.length})` : "") : atMax ? " ✓" : "";
     const preview = atMax ? "" : guildUpgradePreview(type, stacks, state.loot_max);
     const currentStat = guildCurrentStat(type, stacks, state.loot_max);
+
+    if (type === "eternal_cycle" && atMax) {
+      const autoEnabled = state.auto_prestige_enabled ?? false;
+      const autoThreshold = state.auto_prestige_threshold ?? 5;
+      return `<div class="prestige-item prestige-auto-card">
+        <div class="prestige-item-meta">
+          <div class="prestige-item-name">${meta.icon} ${meta.name} ✓</div>
+          <div class="prestige-item-desc">Auto-prestige when a run yields at least <strong>${autoThreshold}</strong> pt${autoThreshold !== 1 ? "s" : ""}.</div>
+        </div>
+        <div class="prestige-auto-controls">
+          <input type="number" class="prestige-auto-threshold" data-action="set-auto-prestige-threshold" value="${autoThreshold}" min="1" max="99" style="width:48px;text-align:center" />
+          <button class="prestige-buy-btn ${autoEnabled ? "auto-prestige-active" : ""}" data-action="toggle-auto-prestige">${autoEnabled ? "ON" : "OFF"}</button>
+        </div>
+      </div>`;
+    }
+
     return `<div class="prestige-item">
       <div class="prestige-item-meta">
         <div class="prestige-item-name">${meta.icon} ${meta.name}${stackLabel}</div>

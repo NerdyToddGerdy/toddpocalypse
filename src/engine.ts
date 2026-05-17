@@ -158,6 +158,7 @@ export const GUILD_HALL_COSTS: Record<string, number[]> = {
   skill_volley:        [5_000],
   skill_entangle:      [5_000],
   auto_attack:         [3_000],
+  eternal_cycle:       [8_000],
   rune_forge:          [5_000, 10_000, 20_000, 40_000],
 };
 

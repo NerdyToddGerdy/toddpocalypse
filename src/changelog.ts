@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.26.2";
+export const VERSION = "v2.26.3";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.26.3",
+    date: "2026-05-17",
+    changes: [
+      "Eternal Cycle (auto-prestige) moved from Prestige Shop to Guild Hall — unlock for 8,000g, then toggle and set threshold there",
+    ],
+  },
   {
     version: "v2.26.2",
     date: "2026-05-17",
