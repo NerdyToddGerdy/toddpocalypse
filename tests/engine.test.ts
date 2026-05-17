@@ -2523,11 +2523,11 @@ describe("venture", () => {
     expect(gs.party.team[1].characterClass).toBe("rogue");
   });
 
-  it("ventureUnlockLevel increases by 10 per dungeon", () => {
+  it("ventureUnlockLevel increases by 5 per dungeon", () => {
     expect(ventureUnlockLevel(0)).toBe(40);
-    expect(ventureUnlockLevel(1)).toBe(50);
-    expect(ventureUnlockLevel(2)).toBe(60);
-    expect(ventureUnlockLevel(3)).toBe(70);
+    expect(ventureUnlockLevel(1)).toBe(45);
+    expect(ventureUnlockLevel(2)).toBe(50);
+    expect(ventureUnlockLevel(3)).toBe(55);
   });
 
   it("venture increments dungeonIndex on each call (infinite progression)", () => {

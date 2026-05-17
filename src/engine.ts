@@ -88,9 +88,9 @@ export const PRESTIGE_UNLOCK_LEVEL = 20;
 /** Minimum dungeon floor (highest_level) required to venture from dungeon 1. */
 export const VENTURE_UNLOCK_LEVEL = 40;
 
-/** Returns the floor required to venture from the given dungeon (increases by 10 per dungeon). */
+/** Returns the floor required to venture from the given dungeon (increases by 5 per dungeon). */
 export function ventureUnlockLevel(dungeonIndex: number): number {
-  return VENTURE_UNLOCK_LEVEL + dungeonIndex * 10;
+  return VENTURE_UNLOCK_LEVEL + dungeonIndex * 5;
 }
 
 /** Gold earned per idle companion DPS-point per real second after venturing. */

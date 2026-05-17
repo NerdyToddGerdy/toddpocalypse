@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.23.0";
+export const VERSION = "v2.23.1";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.23.1",
+    date: "2026-05-17",
+    changes: [
+      "New dungeons unlock every 5 floors past floor 40 (was every 10)",
+    ],
+  },
   {
     version: "v2.23.0",
     date: "2026-05-17",
