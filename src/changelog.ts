@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.19.0";
+export const VERSION = "v2.20.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.20.0",
+    date: "2026-05-17",
+    changes: [
+      "Artifact badges on the character card now show a tooltip with the current computed stat (e.g. '+10% party DPS')",
+      "Cosmetic rewards (avatars/borders) are now backfilled on load for saves predating the cosmetic system",
+      "Removed loot filter (dim non-upgrades) button",
+    ],
+  },
   {
     version: "v2.19.0",
     date: "2026-05-17",

@@ -1,4 +1,4 @@
-import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock, ARTIFACT_DEFS, artifactFuelValue, AVATAR_DEFS, BORDER_DEFS } from "./engine.js";
+import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock, ARTIFACT_DEFS, artifactFuelValue, artifactStatLabel, AVATAR_DEFS, BORDER_DEFS } from "./engine.js";
 import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, SET_DEFS, type GearStats, type GearItemDict } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
@@ -96,7 +96,6 @@ let guildKey: string | null = null;
 let skillKey: string | null = null;
 let companionSkillKey: string | null = null;
 let hoveredLootSlot: string | null = null;
-let lootFilterActive = false;
 const fullLog: string[] = []; // persistent combat log history (last 200 entries)
 const flashStartTimes = new Map<string, number>(); // "ci:slot" → ms timestamp when flash began
 let bossPortraitShowing = false;
@@ -462,7 +461,8 @@ function renderParty(state: GameStateDict): void {
         if (!inst) return `<span class="char-artifact-badge empty" title="Artifact slot ${si + 1}: empty">·</span>`;
         const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
         const lvlLabel = inst.level > 0 ? ` +${inst.level}` : "";
-        return `<span class="char-artifact-badge filled${inst.level > 0 ? " upgraded" : ""}" title="${def?.name ?? inst.id}${lvlLabel}: ${def?.desc ?? ""}">${def?.icon ?? "✨"}${inst.level > 0 ? `<sup>+${inst.level}</sup>` : ""}</span>`;
+        const statLabel = def ? artifactStatLabel(def.id, inst.level) : "";
+        return `<span class="char-artifact-badge filled${inst.level > 0 ? " upgraded" : ""}" title="${def?.name ?? inst.id}${lvlLabel}&#10;${statLabel}">${def?.icon ?? "✨"}${inst.level > 0 ? `<sup>+${inst.level}</sup>` : ""}</span>`;
       }).join("");
 
       const hpPct = Math.max(0, Math.round((c.health / c.max_health) * 100));
@@ -604,7 +604,7 @@ function renderLoot(state: GameStateDict): void {
     }
   }
 
-  const newKey = loot.map((i) => i.slot + i.name).join("|") + "|" + JSON.stringify(state.auto_sell_qualities) + "|" + state.highest_level + "|" + lootFilterActive + "|" + stashUnlocked + "|" + stashFull;
+  const newKey = loot.map((i) => i.slot + i.name).join("|") + "|" + JSON.stringify(state.auto_sell_qualities) + "|" + state.highest_level + "|" + stashUnlocked + "|" + stashFull;
   if (newKey !== lootKey) {
     lootKey = newKey;
 
@@ -614,9 +614,6 @@ function renderLoot(state: GameStateDict): void {
     if (equipAllBtn) equipAllBtn.disabled = loot.length === 0;
     const sellAllBtn = document.querySelector<HTMLButtonElement>(".sell-all-btn");
     if (sellAllBtn) sellAllBtn.disabled = loot.length === 0;
-
-    const filterBtn = document.getElementById("loot-filter-btn");
-    if (filterBtn) filterBtn.classList.toggle("active", lootFilterActive);
 
     const sortedLoot = [...loot].sort((a, b) =>
       (QUAL as readonly string[]).indexOf(b.quality) - (QUAL as readonly string[]).indexOf(a.quality)
@@ -628,12 +625,10 @@ function renderLoot(state: GameStateDict): void {
           const [tri, triCls] = lootTier(item, state.party);
           const qc = qualityClass(item.quality);
           const itemJson = encodeURIComponent(JSON.stringify(item));
-          const isUpgrade = tri !== null;
-          const dimmed = lootFilterActive && !isUpgrade;
           const setName = (item as any).set_name as string | undefined;
           const displayName = setName ? `${setName} ${item.slot_display}` : (item.short_name ?? item.name);
           return `
-<div class="loot-item${dimmed ? " loot-dim" : ""}${setName ? " set-piece" : ""}" data-slot="${item.slot}" data-item="${itemJson}">
+<div class="loot-item${setName ? " set-piece" : ""}" data-slot="${item.slot}" data-item="${itemJson}">
   <div class="loot-header">
     <span class="loot-name ${qc}">${displayName}</span>
     <span class="loot-slot-badge">${item.slot_display}</span>
@@ -3084,13 +3079,6 @@ document.addEventListener("DOMContentLoaded", () => {
   $("settings-modal-close").addEventListener("click", closeSettings);
   $("settings-modal").addEventListener("click", (e) => { if (e.target === $("settings-modal")) closeSettings(); });
   document.getElementById("mobile-settings-tab-btn")?.addEventListener("click", openSettings);
-
-  // Loot filter toggle
-  document.getElementById("loot-filter-btn")?.addEventListener("click", () => {
-    lootFilterActive = !lootFilterActive;
-    lootKey = null; // force re-render
-    if (game) render(JSON.parse(game.respond()));
-  });
 
   // Combat log history modal
   document.getElementById("log-history-btn")?.addEventListener("click", () => {

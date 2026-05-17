@@ -106,6 +106,22 @@ export function artifactFuelValue(level: number): number {
   return 1 + level * (level + 1) / 2;
 }
 
+/** Human-readable current stat string for an artifact at a given level. */
+export function artifactStatLabel(id: ArtifactEffectId, level: number): string {
+  const def = ARTIFACT_DEFS[id];
+  if (!def) return "";
+  const eff = def.effectValue * (level + 1);
+  switch (id) {
+    case "warlords_sigil":    return `+${(eff * 100).toFixed(0)}% party DPS`;
+    case "wardens_core":      return `-${(eff * 100).toFixed(0)}% damage taken`;
+    case "bloodstone":        return `${(eff * 100).toFixed(0)}% max HP healed per kill`;
+    case "greed_idol":        return `×${(1 + eff).toFixed(1)} boss gold`;
+    case "soulbrand":         return `+${(eff * 100).toFixed(0)}% crit per rune`;
+    case "berserkers_eye":    return `+${(eff * 100).toFixed(0)}% DPS per kill streak (cap ${((def.cap ?? 0.20) * (level + 1) * 100).toFixed(0)}%)`;
+    case "executioners_mark": return `${level + 1} extra boss drop check${level > 0 ? "s" : ""} on elites`;
+  }
+}
+
 /** Gold value for selling a leveled artifact instance. */
 export function artifactSellValue(id: string, level = 0): number {
   const def = ARTIFACT_DEFS[id as ArtifactEffectId];

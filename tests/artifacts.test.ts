@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   ARTIFACT_DEFS, ARTIFACT_DROP_POOL, LEGACY_UPGRADED_MAP,
-  artifactUpgradeCost, artifactSellValue, artifactFuelValue, type ArtifactInstance,
+  artifactUpgradeCost, artifactSellValue, artifactFuelValue, artifactStatLabel, type ArtifactInstance,
 } from "../src/artifacts.js";
 import { GameState, RUNE_DEFS } from "../src/engine.js";
 import { Character } from "../src/character.js";
@@ -663,5 +663,49 @@ describe("forgeArtifactFromRunes", () => {
       expect(ARTIFACT_DEFS[inst.id]).toBeDefined();
       expect(inst.level).toBe(0);
     }
+  });
+});
+
+// ─── artifactStatLabel ────────────────────────────────────────────────────────
+
+describe("artifactStatLabel", () => {
+  it("warlords_sigil level 0 → +5% party DPS", () => {
+    expect(artifactStatLabel("warlords_sigil", 0)).toBe("+5% party DPS");
+  });
+  it("warlords_sigil level 1 → +10% party DPS", () => {
+    expect(artifactStatLabel("warlords_sigil", 1)).toBe("+10% party DPS");
+  });
+  it("wardens_core level 0 → -10% damage taken", () => {
+    expect(artifactStatLabel("wardens_core", 0)).toBe("-10% damage taken");
+  });
+  it("wardens_core level 2 → -30% damage taken", () => {
+    expect(artifactStatLabel("wardens_core", 2)).toBe("-30% damage taken");
+  });
+  it("bloodstone level 0 → 1% max HP healed per kill", () => {
+    expect(artifactStatLabel("bloodstone", 0)).toBe("1% max HP healed per kill");
+  });
+  it("bloodstone level 1 → 2% max HP healed per kill", () => {
+    expect(artifactStatLabel("bloodstone", 1)).toBe("2% max HP healed per kill");
+  });
+  it("greed_idol level 0 → ×1.5 boss gold", () => {
+    expect(artifactStatLabel("greed_idol", 0)).toBe("×1.5 boss gold");
+  });
+  it("greed_idol level 1 → ×2.0 boss gold", () => {
+    expect(artifactStatLabel("greed_idol", 1)).toBe("×2.0 boss gold");
+  });
+  it("soulbrand level 0 → +3% crit per rune", () => {
+    expect(artifactStatLabel("soulbrand", 0)).toBe("+3% crit per rune");
+  });
+  it("berserkers_eye level 0 → +1% DPS per kill streak (cap 20%)", () => {
+    expect(artifactStatLabel("berserkers_eye", 0)).toBe("+1% DPS per kill streak (cap 20%)");
+  });
+  it("berserkers_eye level 1 → +2% DPS per kill streak (cap 40%)", () => {
+    expect(artifactStatLabel("berserkers_eye", 1)).toBe("+2% DPS per kill streak (cap 40%)");
+  });
+  it("executioners_mark level 0 → 1 extra boss drop check on elites", () => {
+    expect(artifactStatLabel("executioners_mark", 0)).toBe("1 extra boss drop check on elites");
+  });
+  it("executioners_mark level 1 → 2 extra boss drop checks on elites", () => {
+    expect(artifactStatLabel("executioners_mark", 1)).toBe("2 extra boss drop checks on elites");
   });
 });

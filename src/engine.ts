@@ -2,8 +2,8 @@ import { Character, type Rune } from "./character.js";
 import { Party } from "./party.js";
 import { GearItem, getItem, getSetItem, SET_DEFS, gearPower, QUAL, SLOTS, autoSellThreshold, type GearItemDict } from "./gear.js";
 import { generateEnemy, generateBoss, generateEliteEnemy, ENEMY_NOUNS, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT, type Enemy } from "./dungeon.js";
-import { ARTIFACT_DEFS, ARTIFACT_DROP_POOL, LEGACY_UPGRADED_MAP, artifactUpgradeCost, artifactSellValue, artifactFuelValue, type ArtifactEffectId, type ArtifactInstance } from "./artifacts.js";
-export { ARTIFACT_DEFS, ARTIFACT_DROP_POOL, artifactUpgradeCost, artifactSellValue, artifactFuelValue };
+import { ARTIFACT_DEFS, ARTIFACT_DROP_POOL, LEGACY_UPGRADED_MAP, artifactUpgradeCost, artifactSellValue, artifactFuelValue, artifactStatLabel, type ArtifactEffectId, type ArtifactInstance } from "./artifacts.js";
+export { ARTIFACT_DEFS, ARTIFACT_DROP_POOL, artifactUpgradeCost, artifactSellValue, artifactFuelValue, artifactStatLabel };
 export type { ArtifactInstance };
 
 export { ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT };
@@ -1982,6 +1982,23 @@ export class GameState {
     gs.earnedBorders = new Set(d.earned_borders ?? ["none"]);
     gs.selectedAvatar = d.selected_avatar ?? "default";
     gs.selectedBorder = d.selected_border ?? "none";
+
+    // Backfill cosmetic rewards for saves predating the avatar/border reward system
+    for (const def of ACHIEVEMENTS) {
+      if (def.tiers) {
+        for (const tier of def.tiers) {
+          if (gs.achievementsUnlocked.has(`${def.id}_${tier.label}`) && tier.reward) {
+            if (tier.reward.type === "avatar" && tier.reward.cosmetic) gs.earnedAvatars.add(tier.reward.cosmetic);
+            if (tier.reward.type === "border" && tier.reward.cosmetic) gs.earnedBorders.add(tier.reward.cosmetic);
+          }
+        }
+      } else {
+        if (gs.achievementsUnlocked.has(def.id) && def.reward) {
+          if (def.reward.type === "avatar" && def.reward.cosmetic) gs.earnedAvatars.add(def.reward.cosmetic);
+          if (def.reward.type === "border" && def.reward.cosmetic) gs.earnedBorders.add(def.reward.cosmetic);
+        }
+      }
+    }
 
     // Migrate old checkpoint_1/2/3 one-time upgrades to single leveled checkpoint
     if (!("checkpoint" in gs.prestigeUpgrades)) {

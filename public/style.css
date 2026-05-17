@@ -3804,23 +3804,6 @@ footer {
     grid-column: 1 / -1;
 }
 
-/* ── Loot filter ── */
-#loot-filter-btn {
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 4px 7px;
-    font-size: 0.85rem;
-    cursor: pointer;
-    color: var(--muted);
-    line-height: 1;
-}
-#loot-filter-btn.active {
-    background: var(--accent2);
-    border-color: var(--accent2);
-    color: #fff;
-}
-.loot-dim { opacity: 0.35; }
 
 /* ── Log panel header ── */
 #log-panel-header {

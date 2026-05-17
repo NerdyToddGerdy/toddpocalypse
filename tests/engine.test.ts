@@ -4814,3 +4814,38 @@ describe("hidden feat wasHidden flag", () => {
     expect(gs.pendingAchievements.length).toBe(0);
   });
 });
+
+// ─── fromDict cosmetic backfill ───────────────────────────────────────────────
+
+describe("fromDict cosmetic backfill", () => {
+  it("backfills avatar reward for pre-cosmetic-era unlocked achievements", () => {
+    const gs = new GameState();
+    const dict = gs.toDict();
+    dict.achievements_unlocked = ["kills_tiered_silver"];
+    dict.earned_avatars = ["default"];
+    dict.earned_borders = ["none"];
+    const gs2 = GameState.fromDict(dict);
+    expect(gs2.earnedAvatars.has("dragon")).toBe(true);
+  });
+
+  it("backfills border reward for pre-cosmetic-era unlocked achievements", () => {
+    const gs = new GameState();
+    const dict = gs.toDict();
+    dict.achievements_unlocked = ["depth_tiered_silver"];
+    dict.earned_avatars = ["default"];
+    dict.earned_borders = ["none"];
+    const gs2 = GameState.fromDict(dict);
+    expect(gs2.earnedBorders.has("silver")).toBe(true);
+  });
+
+  it("does not discard already-earned cosmetics on backfill", () => {
+    const gs = new GameState();
+    const dict = gs.toDict();
+    dict.achievements_unlocked = ["depth_tiered_silver"];
+    dict.earned_avatars = ["default"];
+    dict.earned_borders = ["none", "gold"]; // already earned gold
+    const gs2 = GameState.fromDict(dict);
+    expect(gs2.earnedBorders.has("silver")).toBe(true);
+    expect(gs2.earnedBorders.has("gold")).toBe(true);
+  });
+});
