@@ -1827,12 +1827,23 @@ const CATEGORY_ICONS: Record<string, string> = {
 };
 
 let featsKey = "";
+let featsFilterKey = "";
 let featsFilter: "all" | "in_progress" | "completed" = "all";
 
 function renderFeats(state: GameStateDict): void {
+  // Filter tabs live in a separate stable element so re-renders of feat content don't destroy them
+  if (featsFilter !== featsFilterKey) {
+    featsFilterKey = featsFilter;
+    $("feats-filter-bar").innerHTML = `<div class="feats-filter-tabs">
+      <button class="feats-filter-btn${featsFilter === "all" ? " active" : ""}" data-action="feats-filter" data-filter="all">All</button>
+      <button class="feats-filter-btn${featsFilter === "in_progress" ? " active" : ""}" data-action="feats-filter" data-filter="in_progress">In Progress</button>
+      <button class="feats-filter-btn${featsFilter === "completed" ? " active" : ""}" data-action="feats-filter" data-filter="completed">Completed</button>
+    </div>`;
+  }
+
   const unlocked = new Set(state.achievements_unlocked ?? []);
   const progress = state.achievement_progress ?? {};
-  const progressBucket = ACHIEVEMENTS.map(def => Math.floor((progress[def.id] ?? 0) / 5) * 5).join(",");
+  const progressBucket = ACHIEVEMENTS.map(def => Math.floor((progress[def.id] ?? 0) / 50) * 50).join(",");
   const newKey = `${state.achievements_unlocked?.join(",")}|${featsFilter}|${progressBucket}`;
   if (newKey === featsKey) return;
   featsKey = newKey;
@@ -1869,11 +1880,6 @@ function renderFeats(state: GameStateDict): void {
     }
   }
 
-  const filterTabs = `<div class="feats-filter-tabs">
-    <button class="feats-filter-btn${featsFilter === "all" ? " active" : ""}" data-action="feats-filter" data-filter="all">All</button>
-    <button class="feats-filter-btn${featsFilter === "in_progress" ? " active" : ""}" data-action="feats-filter" data-filter="in_progress">In Progress</button>
-    <button class="feats-filter-btn${featsFilter === "completed" ? " active" : ""}" data-action="feats-filter" data-filter="completed">Completed</button>
-  </div>`;
 
   const categorySections = categories.map(cat => {
     const allDefs = byCategory[cat];
@@ -1957,7 +1963,7 @@ function renderFeats(state: GameStateDict): void {
 
   const noResults = `<div class="feat-empty">No feats match this filter.</div>`;
 
-  $("feats-content").innerHTML = filterTabs + (categorySections || noResults);
+  $("feats-content").innerHTML = categorySections || noResults;
 
   // Badge: show count of pending toasts as a brief notification
   const badge = document.getElementById("stab-feats-badge");
@@ -3053,6 +3059,7 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (action === "feats-filter") {
       featsFilter = (btn.dataset.filter as "all" | "in_progress" | "completed") ?? "all";
       featsKey = "";
+      featsFilterKey = "";
       if (game) renderFeats(JSON.parse(game.respond()) as GameStateDict);
     }
     else if (action === "open-profile-picker") {
