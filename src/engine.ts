@@ -637,7 +637,7 @@ export class GameState {
     const living = this.party.team.filter(c => c.isAlive());
     if (living.length > 0) {
       const target = living[Math.floor(Math.random() * living.length)];
-      const partySizeMult = Math.sqrt(living.length);
+      const partySizeMult = Math.sqrt(this.party.team.length);
       // Warden's Core: additive damage reduction scaled by level, capped at 50%
       let artifactDmgReduction = 0;
       const coreSlot = target.artifactSlots.find(s => s?.id === "wardens_core");

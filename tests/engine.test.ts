@@ -362,6 +362,31 @@ describe("party combat (multi-member HP)", () => {
     }
   });
 
+  it("last survivor takes at least as much boss damage as when party is full", () => {
+    // partySizeMult should use total party size, not living count, so a
+    // solo survivor is not accidentally safer than a full party
+    const gs = twoMembers(); // hero + rogue, attack_dps = 5
+    gs.enemy.attack_dps = 100;
+    gs.party.team[0].health = gs.party.team[0].maxHealth = 999_999;
+    gs.party.team[1].health = gs.party.team[1].maxHealth = 999_999;
+
+    // Record damage taken by hero when both are alive
+    const heroBefore = gs.party.team[0].health;
+    gs.tick(1.0);
+    const dmgFullParty = heroBefore - gs.party.team[0].health;
+
+    // Now kill the rogue and measure damage to hero alone
+    gs.party.team[1].health = 0;
+    gs.party.team[0].health = 999_999;
+    const heroBeforeSolo = gs.party.team[0].health;
+    gs.tick(1.0);
+    const dmgSolo = heroBeforeSolo - gs.party.team[0].health;
+
+    // Solo hero should take MORE damage per tick (only target, same mult)
+    // At minimum: total damage dealt should be the same regardless of living count
+    expect(dmgSolo).toBeGreaterThanOrEqual(dmgFullParty * 0.9); // within 10% or more
+  });
+
   it("dead member contributes no auto-DPS", () => {
     const gs = make();
     const rogue = new Character("Rogue", "rogue", 1);
