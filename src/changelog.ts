@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.21.0";
+export const VERSION = "v2.21.1";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.21.1",
+    date: "2026-05-17",
+    changes: [
+      "Fixed Feats panel flickering and hard-to-click filter buttons — filter tabs now live in a stable element separate from the feat list",
+    ],
+  },
   {
     version: "v2.21.0",
     date: "2026-05-17",
