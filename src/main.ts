@@ -1720,6 +1720,7 @@ const SKILL_NAMES: Record<string, string> = {
   skill_arcane_surge:  "⚡ Arcane Surge",
   skill_consecrate:    "🙏 Consecrate",
   skill_volley:        "🏹 Volley",
+  skill_entangle:      "🌿 Entangle",
 };
 const SKILL_DESCS: Record<string, string> = {
   skill_battle_cry:    "Doubles party damage for 8 kills.",
@@ -1727,6 +1728,7 @@ const SKILL_DESCS: Record<string, string> = {
   skill_arcane_surge:  "Triples party damage for 6 kills.",
   skill_consecrate:    "Instantly heals all party members for 50% of their max HP.",
   skill_volley:        "×2.5 party DPS for 6 kills.",
+  skill_entangle:      "Reduces enemy attack by 60% for 8 kills.",
 };
 
 /** Shows/hides the active skill button and updates its cooldown drain bar. */
