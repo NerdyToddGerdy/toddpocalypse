@@ -24,6 +24,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "Feats sort within categories: active progress first, completed last",
       "Category headers show completion count (e.g. ⚔ Combat 3/7)",
       "Fixed missing Runes category label in Feats panel",
+      "Credits: added peeplover23 as tester",
     ],
   },
   {
