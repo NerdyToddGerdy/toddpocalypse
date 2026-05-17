@@ -462,6 +462,10 @@ main {
     overflow: hidden;
     border: 1px solid #b45309;
     position: relative;
+    visibility: hidden;
+}
+#enemy-enrage-bar-wrap.active {
+    visibility: visible;
 }
 #enemy-enrage-bar-wrap.enraged {
     border-color: #ef4444;

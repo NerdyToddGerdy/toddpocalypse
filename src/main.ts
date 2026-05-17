@@ -189,7 +189,7 @@ function render(state: GameStateDict): void {
     const enrageTime = state.boss_enrage_time ?? 0;
     const enrageMult = state.boss_enrage_mult ?? 1;
     const wantsEnrage = enemy.is_boss || !!enemy.is_elite;
-    enrageEl.hidden = !wantsEnrage;
+    enrageEl.classList.toggle("active", wantsEnrage);
     if (wantsEnrage) {
       const isEnraged = enrageMult > 1;
       const BOSS_ENRAGE_TRIGGER = 20;
