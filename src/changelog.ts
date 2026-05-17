@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.22.1";
+export const VERSION = "v2.22.2";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.22.2",
+    date: "2026-05-17",
+    changes: [
+      "Skill button tooltips now show live cooldown status: '✓ Ready', '⚡ Active — N kills remaining', or '⏳ Cooldown — N / X kills'",
+    ],
+  },
   {
     version: "v2.22.1",
     date: "2026-05-17",

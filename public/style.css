@@ -3329,6 +3329,14 @@ footer {
     font-size: 0.75rem;
     color: var(--muted);
 }
+.skill-tooltip-status {
+    font-size: 0.78rem;
+    margin-top: 6px;
+    font-weight: 600;
+}
+.skill-status-ready   { color: var(--accent2); }
+.skill-status-active  { color: var(--accent); }
+.skill-status-cooldown{ color: var(--muted); }
 
 .tt-rune-row {
     display: flex;

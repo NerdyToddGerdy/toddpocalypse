@@ -1654,6 +1654,7 @@ function renderSkillButton(state: GameStateDict): void {
 
   btn.textContent = SKILL_NAMES[skillId] ?? skillId;
   btn.dataset.activeSkill = skillId;
+  btn.dataset.skillState = encodeURIComponent(JSON.stringify({ remaining, expiry, totalCooldown, isActive, onCooldown }));
   btn.disabled = onCooldown;
   btn.className = isActive ? "active" : "";
 
@@ -1687,7 +1688,7 @@ function renderCompanionSkills(state: GameStateDict): void {
     const pct = onCooldown ? Math.min(100, ((totalCooldown - remaining) / totalCooldown) * 100) : 0;
     const label = SKILL_NAMES[skillId] ?? skillId;
     return `<div class="companion-skill-cell">
-      <button class="companion-skill-btn${isActive ? " active" : ""}" data-action="activate-companion-skill" data-skill="${skillId}" data-active-skill="${skillId}"${onCooldown ? " disabled" : ""}>${label}</button>
+      <button class="companion-skill-btn${isActive ? " active" : ""}" data-action="activate-companion-skill" data-skill="${skillId}" data-active-skill="${skillId}" data-skill-state="${encodeURIComponent(JSON.stringify({ remaining, expiry, totalCooldown, isActive, onCooldown }))}"${onCooldown ? " disabled" : ""}>${label}</button>
       ${onCooldown ? `<div class="skill-cooldown-bar companion-cooldown-bar"><div class="skill-cooldown-fill" style="width:${pct}%"></div></div>` : ""}
     </div>`;
   }).join("");
@@ -2269,11 +2270,21 @@ function buildSkillTooltipHTML(a: AbilityCardData): string {
 
 const TOOLTIP_SELECTORS = ".gear-row.filled[data-item], .loot-item[data-item], .char-name[data-char], #party-panel h2[data-party], [data-active-skill], .char-dps[data-dps], .tt-rune-slot[data-rune]";
 
-function buildActiveSkillTooltipHTML(skillId: string): string {
+function buildActiveSkillTooltipHTML(skillId: string, skillState?: { remaining: number; expiry: number; totalCooldown: number; isActive: boolean; onCooldown: boolean }): string {
   const name = SKILL_NAMES[skillId] ?? skillId;
   const desc = SKILL_DESCS[skillId] ?? "";
-  const cooldownKills = SKILL_DEFS[skillId]?.cooldownKills ?? 30;
-  return `<div class="skill-tooltip"><div class="skill-tooltip-name">${name}</div><div class="skill-tooltip-desc">${desc}</div><div class="skill-tooltip-cd">Cooldown: ${cooldownKills} kills</div></div>`;
+  const cooldownKills = skillState?.totalCooldown ?? SKILL_DEFS[skillId]?.cooldownKills ?? 30;
+  let statusLine = "";
+  if (skillState?.isActive) {
+    const left = skillState.expiry;
+    statusLine = `<div class="skill-tooltip-status skill-status-active">⚡ Active — ${left} kill${left !== 1 ? "s" : ""} remaining</div>`;
+  } else if (skillState?.onCooldown) {
+    const left = skillState.remaining;
+    statusLine = `<div class="skill-tooltip-status skill-status-cooldown">⏳ Cooldown — ${left} / ${cooldownKills} kills</div>`;
+  } else {
+    statusLine = `<div class="skill-tooltip-status skill-status-ready">✓ Ready</div>`;
+  }
+  return `<div class="skill-tooltip"><div class="skill-tooltip-name">${name}</div><div class="skill-tooltip-desc">${desc}</div><div class="skill-tooltip-cd">Cooldown: ${cooldownKills} kills</div>${statusLine}</div>`;
 }
 
 function buildDpsTooltipHTML(d: { total: number; base: number; gear: number; runes?: number; upgLevel: number }): string {
@@ -2293,7 +2304,10 @@ function buildDpsTooltipHTML(d: { total: number; base: number; gear: number; run
 
 function getTooltipContent(el: HTMLElement): string | null {
   try {
-    if (el.dataset.activeSkill) return buildActiveSkillTooltipHTML(el.dataset.activeSkill);
+    if (el.dataset.activeSkill) {
+      const skillState = el.dataset.skillState ? JSON.parse(decodeURIComponent(el.dataset.skillState)) : undefined;
+      return buildActiveSkillTooltipHTML(el.dataset.activeSkill, skillState);
+    }
     if (el.dataset.dps)   return buildDpsTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.dps)));
     if (el.dataset.item)  return buildTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.item)) as GearItemDict);
     if (el.dataset.rune)  return buildRuneTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.rune)));
