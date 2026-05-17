@@ -927,6 +927,9 @@ main {
     border: 1px solid var(--border);
     border-radius: 10px;
     overflow: hidden;
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 32px);
 }
 
 /* ── Sidebar tab strip ── */
@@ -1041,6 +1044,10 @@ main {
     .stab-visible {
         display: flex !important;
         flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
     }
 }
 
