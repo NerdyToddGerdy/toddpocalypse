@@ -200,7 +200,7 @@ export const GUILD_HALL_DUNGEON_REQ: Record<string, number> = {
 /** Floor at which dungeon corruption begins dealing passive damage to the party (dungeon 2+ only). */
 export const CORRUPTION_FLOOR = 20;
 /** Fraction of a member's maxHealth lost per second per floor of depth beyond CORRUPTION_FLOOR. */
-export const CORRUPTION_RATE_PER_FLOOR = 0.003;
+export const CORRUPTION_RATE_PER_FLOOR = 0.0015;
 /** Lifesteal is reduced by this fraction per floor of depth, capped at 90%. */
 export const CORRUPTION_HEAL_REDUCTION_PER_FLOOR = 0.06;
 
@@ -604,7 +604,7 @@ export class GameState {
 
     // Corruption: scales with floor depth × dungeon number (dungeon 2+ only)
     const corruptionDepth = this.dungeonIndex >= 1 ? Math.max(0, this.dungeonLevel - CORRUPTION_FLOOR) : 0;
-    const corruptionMult = corruptionDepth * this.dungeonIndex;
+    const corruptionMult = Math.min(20, corruptionDepth * this.dungeonIndex);
     const healReduction = Math.min(0.90, corruptionMult * CORRUPTION_HEAL_REDUCTION_PER_FLOOR);
 
     // Lifesteal: heal the first injured alive character — reduced by corruption at depth

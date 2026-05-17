@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.24.0";
+export const VERSION = "v2.24.1";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.24.1",
+    date: "2026-05-17",
+    changes: [
+      "Corruption rate reduced from 0.3% to 0.15% of max HP per second per depth",
+      "Corruption multiplier capped at 20 so deep floors don't spiral out of control",
+    ],
+  },
   {
     version: "v2.24.0",
     date: "2026-05-17",
