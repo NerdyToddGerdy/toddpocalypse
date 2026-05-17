@@ -208,7 +208,7 @@ export const SKILL_DEFS: Record<string, { cooldownKills: number; durationKills: 
   skill_battle_cry:    { cooldownKills: 20, durationKills: 8, class: "fighter" },
   skill_shadow_strike: { cooldownKills: 20, durationKills: 5, class: "rogue" },
   skill_arcane_surge:  { cooldownKills: 25, durationKills: 6, class: "mage" },
-  skill_consecrate:    { cooldownKills: 15, durationKills: 5, class: "paladin" },
+  skill_consecrate:    { cooldownKills: 15, durationKills: 0, class: "paladin" },
   skill_volley:        { cooldownKills: 15, durationKills: 6, class: "ranger" },
 };
 
@@ -1307,9 +1307,15 @@ export class GameState {
     if (!caster) return this.respond();
     if ((this.skillCooldowns[skillId] ?? 0) > 0) return this.respond();
     this.skillCooldowns[skillId] = def.cooldownKills;
-    this.activeEffects[skillId] = def.durationKills;
+    if (def.durationKills > 0) this.activeEffects[skillId] = def.durationKills;
     this.lifetimeSkillActivations += 1;
     this.addLog(`${caster.name} uses ${skillId.replace("skill_", "").replace(/_/g, " ")}!`);
+    if (skillId === "skill_consecrate") {
+      for (const c of this.party.team) {
+        if (c.isAlive()) c.health = Math.min(c.maxHealth, c.health + c.maxHealth * 0.50);
+      }
+      this.addLog(`Holy light surges — party healed 50% max HP!`);
+    }
     return this.respond();
   }
 
@@ -1560,7 +1566,6 @@ export class GameState {
 
   /** Handles enemy defeat: awards XP/gold/loot, applies pending party abilities, and advances the floor. */
   onEnemyDeath(): void {
-    const consecrate = (this.activeEffects["skill_consecrate"] ?? 0) > 0;
     for (const key of Object.keys(this.activeEffects)) {
       this.activeEffects[key] -= 1;
       if (this.activeEffects[key] <= 0) delete this.activeEffects[key];
@@ -1595,12 +1600,6 @@ export class GameState {
           }
           this.addLog(`${c.name} Holy Light! Party healed 5 HP.`);
         }
-      }
-    }
-
-    if (consecrate) {
-      for (const c of this.party.team) {
-        c.health = Math.min(c.maxHealth, c.health + c.maxHealth * 0.25);
       }
     }
 
