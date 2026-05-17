@@ -607,9 +607,9 @@ export class GameState {
     return this.respond();
   }
 
-  /** Deals a burst of manual click damage, with crit and skill-effect modifiers applied. Returns serialized JSON. */
-  click(): string {
-    this.lifetimeClicks++;
+  /** Deals a burst of click damage. Pass `manual=true` when triggered by the attack button to count toward the clicking feat. */
+  click(manual = false): string {
+    if (manual) this.lifetimeClicks++;
     const totalDps = this.party.team.reduce((s, c) => c.isAlive() ? s + c.dps : s, 0);
     const clickBonus = this.party.team.reduce((s, c) => c.isAlive() ? s + c.clickBonus : s, 0);
     let damage = Math.max(1.0, totalDps * CLICK_DAMAGE_MULTIPLIER * 0.1 + clickBonus);

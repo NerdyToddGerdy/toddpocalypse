@@ -2922,7 +2922,7 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (action === "stash-loot") call("stashLoot", idx);
     else if (action === "sell") call("sellLoot", idx);
     else if (action === "upgrade") call("buyUpgrade", btn.dataset.char!, btn.dataset.type!);
-    else if (action === "attack") call("click");
+    else if (action === "attack") call("click", true);
     else if (action === "equip-all") call("equipAll");
     else if (action === "sell-all") call("sellAll");
     else if (action === "prestige") {

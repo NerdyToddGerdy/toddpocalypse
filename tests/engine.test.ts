@@ -4631,12 +4631,23 @@ describe("lifetimeClicks", () => {
     expect(make().lifetimeClicks).toBe(0);
   });
 
-  it("increments on each click() call", () => {
+  it("does NOT increment on click() without manual flag", () => {
     const gs = make();
     gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "common", "valor", { dps: 1 }, 1));
     gs.click();
-    expect(gs.lifetimeClicks).toBe(1);
+    expect(gs.lifetimeClicks).toBe(0);
     gs.click();
+    expect(gs.lifetimeClicks).toBe(0);
+  });
+
+  it("increments only when click(true) is called", () => {
+    const gs = make();
+    gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "common", "valor", { dps: 1 }, 1));
+    gs.click(true);
+    expect(gs.lifetimeClicks).toBe(1);
+    gs.click();       // keyboard — no increment
+    expect(gs.lifetimeClicks).toBe(1);
+    gs.click(true);   // button — increments
     expect(gs.lifetimeClicks).toBe(2);
   });
 
