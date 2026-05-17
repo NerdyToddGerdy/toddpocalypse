@@ -2332,6 +2332,14 @@ function initSidebarTabs(): void {
 
 const LOOT_SUBPANEL_IDS = ["loot-equipment-sub", "loot-runes-sub", "loot-artifacts-sub"] as const;
 
+const LOOT_TO_PTAB: Record<string, string> = {
+  equipment: "party",
+  runes:     "runes",
+  artifacts: "artifacts",
+};
+
+let switchPartyTab: (which: string) => void = () => {};
+
 function initLootSubtabs(): void {
   const btns = document.querySelectorAll<HTMLElement>(".loot-stab");
 
@@ -2341,6 +2349,7 @@ function initLootSubtabs(): void {
       const el = document.getElementById(id);
       if (el) el.hidden = id !== `loot-${tab}-sub`;
     });
+    switchPartyTab(LOOT_TO_PTAB[tab] ?? "party");
   }
 
   btns.forEach(btn => btn.addEventListener("click", () => showLootSub(btn.dataset.lootStab!)));
@@ -2795,16 +2804,16 @@ function initPartyPanelTabs(): void {
   const artEl = $("party-artifact-panel");
   const gearToggle = $("party-gear-toggle");
 
+  switchPartyTab = (which: string) => {
+    tabs.forEach(t => t.classList.toggle("active", t.dataset.ptab === which));
+    cardsEl.hidden = which !== "party";
+    runeEl.hidden = which !== "runes";
+    artEl.hidden = which !== "artifacts";
+    gearToggle.hidden = which !== "party";
+  };
+
   tabs.forEach(tab => {
-    tab.addEventListener("click", () => {
-      tabs.forEach(t => t.classList.remove("active"));
-      tab.classList.add("active");
-      const which = tab.dataset.ptab;
-      cardsEl.hidden = which !== "party";
-      runeEl.hidden = which !== "runes";
-      artEl.hidden = which !== "artifacts";
-      gearToggle.hidden = which !== "party";
-    });
+    tab.addEventListener("click", () => switchPartyTab(tab.dataset.ptab!));
   });
 }
 
