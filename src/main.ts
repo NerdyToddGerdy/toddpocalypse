@@ -451,11 +451,12 @@ function renderParty(state: GameStateDict): void {
         const runeJson = encodeURIComponent(JSON.stringify({ ...(rune as object), slotLabel: SLOT_LABELS[slot] ?? slot }));
         return `<span class="tt-rune-slot ${tierClass}" data-rune="${runeJson}"></span>`;
       }).join("");
-      const artifactSlots: (string | null)[] = (c as any).artifact_slots ?? [null, null, null];
-      const artifactBadgesHtml = artifactSlots.map((id, si) => {
-        if (!id) return `<span class="char-artifact-badge empty" title="Artifact slot ${si + 1}: empty">·</span>`;
-        const def = ARTIFACT_DEFS[id as keyof typeof ARTIFACT_DEFS];
-        return `<span class="char-artifact-badge filled${def?.tier === "upgraded" ? " upgraded" : ""}" title="${def?.name ?? id}: ${def?.desc ?? ""}">${def?.icon ?? "✨"}</span>`;
+      const artifactSlots: ({ id: string; level: number } | null)[] = (c as any).artifact_slots ?? [null, null, null];
+      const artifactBadgesHtml = artifactSlots.map((inst, si) => {
+        if (!inst) return `<span class="char-artifact-badge empty" title="Artifact slot ${si + 1}: empty">·</span>`;
+        const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
+        const lvlLabel = inst.level > 0 ? ` +${inst.level}` : "";
+        return `<span class="char-artifact-badge filled${inst.level > 0 ? " upgraded" : ""}" title="${def?.name ?? inst.id}${lvlLabel}: ${def?.desc ?? ""}">${def?.icon ?? "✨"}${inst.level > 0 ? `<sup>+${inst.level}</sup>` : ""}</span>`;
       }).join("");
 
       const hpPct = Math.max(0, Math.round((c.health / c.max_health) * 100));
@@ -1125,105 +1126,103 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
 }
 
 function renderArtifactPanel(state: GameStateDict): void {
-  const artifactInv: string[] = (state as any).artifact_inventory ?? [];
+  const artifactInv: { id: string; level: number }[] = (state as any).artifact_inventory ?? [];
   const party = state.party;
 
-  const newArtKey = artifactInv.join(",") + "|" + party.map((c: any) => (c.artifact_slots ?? []).join(",")).join("|");
+  const newArtKey = artifactInv.map(a => `${a.id}:${a.level}`).join(",") + "|" + party.map((c: any) => (c.artifact_slots ?? []).map((s: any) => s ? `${s.id}:${s.level}` : "null").join(",")).join("|");
   if (newArtKey === artifactKey) return;
   artifactKey = newArtKey;
 
   const hasAnyArtifact = artifactInv.length > 0 || party.some((c: any) => c.artifact_slots?.some((s: any) => s !== null));
 
-  // Sub-tab button + party panel tab visibility
   const lootArtBtn = document.getElementById("loot-stab-artifacts");
   const ptabBtn = document.getElementById("ptab-artifacts-btn");
   if (lootArtBtn) lootArtBtn.hidden = !hasAnyArtifact;
   if (ptabBtn) ptabBtn.hidden = !hasAnyArtifact;
 
-  // Count badge on the sub-tab button
   const countEl = document.getElementById("artifact-count");
   if (countEl) countEl.textContent = artifactInv.length > 0 ? `(${artifactInv.length})` : "";
 
+  // Notification dot: show when any artifact can be leveled up
+  const levelUpPossible = artifactInv.some((inst, i) => {
+    const cost = inst.level + 1;
+    const fuel = artifactInv.filter((o, j) => j !== i && o.id === inst.id).length;
+    return fuel >= cost;
+  });
+  const artifactDotEl = document.getElementById("loot-artifact-dot");
+  if (artifactDotEl) artifactDotEl.hidden = !levelUpPossible;
+
   // Build character + slot options for equip dropdowns
   const charSlotOptions = party.map((c: any, ci: number) => {
-    const slots: string[] = (c.artifact_slots ?? [null, null, null]);
-    return slots.map((s: string | null, si: number) =>
+    const slots: ({ id: string; level: number } | null)[] = c.artifact_slots ?? [null, null, null];
+    return slots.map((s, si) =>
       s ? "" : `<option value="${ci}:${si}">${c.name} — slot ${si + 1}</option>`
     ).join("");
   }).join("");
   const hasOpenSlot = charSlotOptions.includes("<option");
 
-  // Sidebar artifact inventory panel
   const invEl = document.getElementById("artifact-inventory");
   if (!invEl) return;
 
-  // Find combinable pairs
-  const idxByArtifact: Record<string, number[]> = {};
-  artifactInv.forEach((id, i) => { (idxByArtifact[id] ??= []).push(i); });
-  const combinePairs: { id: string; idx1: number; idx2: number }[] = [];
-  for (const [id, idxs] of Object.entries(idxByArtifact)) {
-    const def = ARTIFACT_DEFS[id as keyof typeof ARTIFACT_DEFS];
-    if (def?.tier === "base" && idxs.length >= 2) {
-      combinePairs.push({ id, idx1: idxs[0], idx2: idxs[1] });
-    }
+  function instLabel(inst: { id: string; level: number }): string {
+    const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
+    return `${def?.icon ?? "✨"} ${def?.name ?? inst.id}${inst.level > 0 ? ` <span class="artifact-level-badge">+${inst.level}</span>` : ""}`;
   }
-  const artifactDotEl = document.getElementById("loot-artifact-dot");
-  if (artifactDotEl) artifactDotEl.hidden = combinePairs.length === 0;
-
-  const combineHtml = combinePairs.map(p => {
-    const def = ARTIFACT_DEFS[p.id as keyof typeof ARTIFACT_DEFS];
-    const resultDef = Object.values(ARTIFACT_DEFS).find(d => d.upgradesFrom === p.id);
-    return `<div class="artifact-combine-row">
-      <span>${def?.icon} ${def?.name} ×2</span>
-      <span class="artifact-combine-arrow">→</span>
-      <span>${resultDef?.icon ?? "✨"} ${resultDef?.name ?? "?"}</span>
-      <button class="artifact-combine-btn" data-action="combine-artifact" data-idx1="${p.idx1}" data-idx2="${p.idx2}">Combine</button>
-    </div>`;
-  }).join("");
 
   const itemsHtml = artifactInv.length === 0
     ? `<div class="artifact-empty">No artifacts in inventory.</div>`
-    : artifactInv.map((id, i) => {
-        const def = ARTIFACT_DEFS[id as keyof typeof ARTIFACT_DEFS];
+    : artifactInv.map((inst, i) => {
+        const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
         if (!def) return "";
+        const cost = inst.level + 1;
+        const fuelCount = artifactInv.filter((o, j) => j !== i && o.id === inst.id).length;
+        const canLevel = fuelCount >= cost;
+        const sellVal = def.sellValue * (inst.level + 1);
         const equipRow = hasOpenSlot
           ? `<div class="artifact-equip-row">
                <select class="artifact-char-slot-select">${charSlotOptions}</select>
                <button class="artifact-equip-btn" data-action="equip-artifact" data-inv-idx="${i}">Equip</button>
              </div>`
           : `<span class="artifact-no-slot">No open slots</span>`;
+        const levelUpRow = `<div class="artifact-levelup-row">
+          <button class="artifact-levelup-btn" data-action="level-up-artifact" data-inv-idx="${i}"${canLevel ? "" : " disabled"}>
+            Level Up +${inst.level + 1} <span class="artifact-levelup-cost">(${cost}× ${def.name}, have ${fuelCount})</span>
+          </button>
+        </div>`;
         return `<div class="artifact-inv-row">
           <span class="artifact-inv-icon">${def.icon}</span>
           <div class="artifact-inv-info">
-            <div class="artifact-inv-name ${def.tier === "upgraded" ? "artifact-upgraded" : ""}">${def.name}</div>
+            <div class="artifact-inv-name">${def.name}${inst.level > 0 ? ` <span class="artifact-level-badge">+${inst.level}</span>` : ""}</div>
             <div class="artifact-inv-desc">${def.desc}</div>
+            ${levelUpRow}
             ${equipRow}
           </div>
-          <button class="artifact-sell-btn" data-action="sell-artifact" data-inv-idx="${i}" title="Sell for ${def.sellValue}g">${def.sellValue}g</button>
+          <button class="artifact-sell-btn" data-action="sell-artifact" data-inv-idx="${i}" title="Sell for ${sellVal}g">${sellVal}g</button>
         </div>`;
       }).join("");
 
-  invEl.innerHTML = (combineHtml ? `<div class="artifact-combine-section">${combineHtml}</div><hr class="artifact-divider">` : "") + itemsHtml;
+  invEl.innerHTML = itemsHtml;
 
-  // Party panel equipped artifacts (list + inline equip for empty slots)
+  // Party panel equipped artifacts
   const partyArtEl = document.getElementById("party-artifact-panel");
   if (partyArtEl) {
     const artifactOptions = artifactInv.length === 0
       ? `<option value="">— no artifacts —</option>`
-      : artifactInv.map((id, i) => {
-          const def = ARTIFACT_DEFS[id as keyof typeof ARTIFACT_DEFS];
-          return `<option value="${i}">${def?.icon ?? "✨"} ${def?.name ?? id}</option>`;
+      : artifactInv.map((inst, i) => {
+          const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
+          const lvlLabel = inst.level > 0 ? ` +${inst.level}` : "";
+          return `<option value="${i}">${def?.icon ?? "✨"} ${def?.name ?? inst.id}${lvlLabel}</option>`;
         }).join("");
     const hasArtifacts = artifactInv.length > 0;
 
     const charBlocks = party.map((c: any, charIdx: number) => {
-      const slots: (string | null)[] = c.artifact_slots ?? [null, null, null];
-      const slotRows = slots.map((slotId, slotIdx) => {
-        if (slotId) {
-          const def = ARTIFACT_DEFS[slotId as keyof typeof ARTIFACT_DEFS];
+      const slots: ({ id: string; level: number } | null)[] = c.artifact_slots ?? [null, null, null];
+      const slotRows = slots.map((inst, slotIdx) => {
+        if (inst) {
+          const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
           return `<div class="artifact-slot filled">
             <span class="artifact-slot-icon">${def?.icon ?? "✨"}</span>
-            <span class="artifact-slot-name">${def?.name ?? slotId}</span>
+            <span class="artifact-slot-name">${def?.name ?? inst.id}${inst.level > 0 ? ` <span class="artifact-level-badge">+${inst.level}</span>` : ""}</span>
             <span class="artifact-slot-desc">${def?.desc ?? ""}</span>
             <button class="artifact-unequip-btn" data-action="unequip-artifact" data-char-idx="${charIdx}" data-slot-idx="${slotIdx}" title="Unequip">✕</button>
           </div>`;
@@ -2624,8 +2623,8 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (action === "unequip-artifact") {
       call("unequipArtifact", parseInt(btn.dataset.charIdx!, 10), parseInt(btn.dataset.slotIdx!, 10));
     }
-    else if (action === "combine-artifact") {
-      call("combineArtifacts", parseInt(btn.dataset.idx1!, 10), parseInt(btn.dataset.idx2!, 10));
+    else if (action === "level-up-artifact") {
+      call("levelUpArtifact", parseInt(btn.dataset.invIdx!, 10));
     }
     else if (action === "sell-artifact") {
       call("sellArtifact", parseInt(btn.dataset.invIdx!, 10));

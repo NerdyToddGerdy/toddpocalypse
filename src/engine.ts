@@ -2,8 +2,9 @@ import { Character, type Rune } from "./character.js";
 import { Party } from "./party.js";
 import { GearItem, getItem, getSetItem, SET_DEFS, gearPower, QUAL, SLOTS, autoSellThreshold, type GearItemDict } from "./gear.js";
 import { generateEnemy, generateBoss, generateEliteEnemy, ENEMY_NOUNS, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT, type Enemy } from "./dungeon.js";
-import { ARTIFACT_DEFS, ARTIFACT_DROP_POOL, canCombineArtifacts, getCombineResult, artifactSellValue, type ArtifactEffectId } from "./artifacts.js";
-export { ARTIFACT_DEFS, ARTIFACT_DROP_POOL, canCombineArtifacts, getCombineResult, artifactSellValue };
+import { ARTIFACT_DEFS, ARTIFACT_DROP_POOL, LEGACY_UPGRADED_MAP, artifactUpgradeCost, artifactSellValue, type ArtifactEffectId, type ArtifactInstance } from "./artifacts.js";
+export { ARTIFACT_DEFS, ARTIFACT_DROP_POOL, artifactUpgradeCost, artifactSellValue };
+export type { ArtifactInstance };
 
 export { ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT };
 export const ELITE_SPAWN_CHANCE = 0.15;
@@ -328,7 +329,7 @@ export interface GameStateDict {
   rune_inventory: Rune[];
   earned_titles: string[];
   gear_stash: GearItemDict[];
-  artifact_inventory?: string[];
+  artifact_inventory?: { id: string; level: number }[];
   kill_streak?: number;
 }
 
@@ -430,8 +431,8 @@ export class GameState {
   runeInventory: Rune[] = [];
   /** Items saved in the cross-prestige gear stash. */
   gearStash: GearItem[] = [];
-  /** Artifact IDs held in the shared artifact inventory (persists through prestige). */
-  artifactInventory: string[] = [];
+  /** Leveled artifact instances held in the shared inventory (persists through prestige). */
+  artifactInventory: ArtifactInstance[] = [];
   /** Consecutive kills without a party wipe (used by Berserker's Eye / Titan's Eye). */
   killStreak = 0;
 
@@ -491,19 +492,19 @@ export class GameState {
       if (c.inventory.equippedItems().length === 0) continue;
       let dps = c.dps;
       if (c.abilities.includes("bloodlust") && c.health <= c.maxHealth * 0.5) dps *= BLOODLUST_MULTIPLIER;
-      // Berserker's Eye / Titan's Eye: streak-based DPS bonus
-      const eyeId = c.artifactSlots.find(id => id === "berserkers_eye" || id === "titans_eye");
-      if (eyeId) {
-        const eyeDef = ARTIFACT_DEFS[eyeId as ArtifactEffectId];
-        const streakBonus = Math.min(this.killStreak * eyeDef.effectValue, eyeDef.cap ?? 1);
+      // Berserker's Eye: streak-based DPS bonus, scales with level
+      const eyeSlot = c.artifactSlots.find(s => s?.id === "berserkers_eye");
+      if (eyeSlot) {
+        const eyeDef = ARTIFACT_DEFS[eyeSlot.id];
+        const mult = eyeSlot.level + 1;
+        const streakBonus = Math.min(this.killStreak * eyeDef.effectValue * mult, (eyeDef.cap ?? 1) * mult);
         dps *= (1 + streakBonus);
       }
-      // Soulbrand / Soulfire Brand: crit bonus per rune
-      const soulId = c.artifactSlots.find(id => id === "soulbrand" || id === "soulfire_brand");
+      // Soulbrand: crit bonus per rune, scales with level
+      const soulSlot = c.artifactSlots.find(s => s?.id === "soulbrand");
       let totalCrit = c.critChance;
-      if (soulId) {
-        const soulDef = ARTIFACT_DEFS[soulId as ArtifactEffectId];
-        totalCrit += soulDef.effectValue * Object.values(c.runes).filter(Boolean).length;
+      if (soulSlot) {
+        totalCrit += ARTIFACT_DEFS[soulSlot.id].effectValue * (soulSlot.level + 1) * Object.values(c.runes).filter(Boolean).length;
       }
       if (totalCrit > 0 && Math.random() < totalCrit) dps *= 2;
       baseDps += dps;
@@ -530,10 +531,10 @@ export class GameState {
     if (living.length > 0) {
       const target = living[Math.floor(Math.random() * living.length)];
       const partySizeMult = Math.sqrt(living.length);
-      // Warden's Core / Fortress Core: additive damage reduction, capped at 50%
+      // Warden's Core: additive damage reduction scaled by level, capped at 50%
       let artifactDmgReduction = 0;
-      const coreId = target.artifactSlots.find(id => id === "wardens_core" || id === "fortress_core");
-      if (coreId) artifactDmgReduction = ARTIFACT_DEFS[coreId as ArtifactEffectId].effectValue;
+      const coreSlot = target.artifactSlots.find(s => s?.id === "wardens_core");
+      if (coreSlot) artifactDmgReduction = ARTIFACT_DEFS[coreSlot.id].effectValue * (coreSlot.level + 1);
       const totalDmgReduction = Math.min(0.50, target.damageReduction + artifactDmgReduction);
       target.health -= this.enemy.attack_dps * partySizeMult * dt * (1 - totalDmgReduction);
       target.health = Math.max(0, target.health);
@@ -709,58 +710,60 @@ export class GameState {
     return this.respond();
   }
 
-  /** Equips an artifact from the inventory into a character's artifact slot. Displaced artifact returns to inventory. */
+  /** Equips an artifact instance from the inventory into a character's artifact slot. Displaced instance returns to inventory. */
   equipArtifact(charIdx: number, slotIdx: number, invIdx: number): string {
     const char = this.party.team[charIdx];
     if (!char) return this.respond();
     if (slotIdx < 0 || slotIdx >= 3) return this.respond();
     if (invIdx < 0 || invIdx >= this.artifactInventory.length) return this.respond();
     const existing = char.artifactSlots[slotIdx];
-    const artifactId = this.artifactInventory.splice(invIdx, 1)[0];
-    char.artifactSlots[slotIdx] = artifactId;
+    const instance = this.artifactInventory.splice(invIdx, 1)[0];
+    char.artifactSlots[slotIdx] = instance;
     if (existing) this.artifactInventory.push(existing);
-    this.addLog(`${char.name} equips ${ARTIFACT_DEFS[artifactId as ArtifactEffectId].name}!`);
+    const label = instance.level > 0 ? `${ARTIFACT_DEFS[instance.id].name} +${instance.level}` : ARTIFACT_DEFS[instance.id].name;
+    this.addLog(`${char.name} equips ${label}!`);
     return this.respond();
   }
 
-  /** Unequips an artifact from a character's slot back into the shared inventory. */
+  /** Unequips an artifact instance from a character's slot back into the shared inventory. */
   unequipArtifact(charIdx: number, slotIdx: number): string {
     const char = this.party.team[charIdx];
     if (!char) return this.respond();
     if (slotIdx < 0 || slotIdx >= 3) return this.respond();
-    const artifactId = char.artifactSlots[slotIdx];
-    if (!artifactId) return this.respond();
+    const instance = char.artifactSlots[slotIdx];
+    if (!instance) return this.respond();
     char.artifactSlots[slotIdx] = null;
-    this.artifactInventory.push(artifactId);
-    this.addLog(`${char.name} unequips ${ARTIFACT_DEFS[artifactId as ArtifactEffectId].name}.`);
+    this.artifactInventory.push(instance);
+    this.addLog(`${char.name} unequips ${ARTIFACT_DEFS[instance.id].name}.`);
     return this.respond();
   }
 
-  /** Combines two identical base artifacts in the inventory into one upgraded artifact. */
-  combineArtifacts(invIdx1: number, invIdx2: number): string {
-    if (invIdx1 < 0 || invIdx1 >= this.artifactInventory.length) return this.respond();
-    if (invIdx2 < 0 || invIdx2 >= this.artifactInventory.length) return this.respond();
-    if (invIdx1 === invIdx2) return this.respond();
-    const id1 = this.artifactInventory[invIdx1];
-    const id2 = this.artifactInventory[invIdx2];
-    if (!canCombineArtifacts(id1, id2)) return this.respond();
-    const result = getCombineResult(id1);
-    if (!result) return this.respond();
-    const [hi, lo] = invIdx1 > invIdx2 ? [invIdx1, invIdx2] : [invIdx2, invIdx1];
-    this.artifactInventory.splice(hi, 1);
-    this.artifactInventory.splice(lo, 1);
-    this.artifactInventory.push(result);
-    this.addLog(`✨ Combined 2× ${ARTIFACT_DEFS[id1 as ArtifactEffectId].name} → ${ARTIFACT_DEFS[result].name}!`);
+  /** Levels up an artifact in the inventory, consuming (level+1) same-type copies as fuel. */
+  levelUpArtifact(invIdx: number): string {
+    if (invIdx < 0 || invIdx >= this.artifactInventory.length) return this.respond();
+    const target = this.artifactInventory[invIdx];
+    const cost = artifactUpgradeCost(target.level);
+    const fuelIdxs: number[] = [];
+    for (let i = 0; i < this.artifactInventory.length; i++) {
+      if (i !== invIdx && this.artifactInventory[i].id === target.id) fuelIdxs.push(i);
+      if (fuelIdxs.length >= cost) break;
+    }
+    if (fuelIdxs.length < cost) return this.respond();
+    for (let i = fuelIdxs.length - 1; i >= 0; i--) this.artifactInventory.splice(fuelIdxs[i], 1);
+    // target index may have shifted if any fuel came before it
+    const newIdx = this.artifactInventory.indexOf(target);
+    if (newIdx >= 0) this.artifactInventory[newIdx].level += 1;
+    this.addLog(`✨ ${ARTIFACT_DEFS[target.id].name} leveled up to +${target.level}!`);
     return this.respond();
   }
 
-  /** Sells an artifact from the inventory for gold. */
+  /** Sells an artifact instance from the inventory for gold (sell value scales with level). */
   sellArtifact(invIdx: number): string {
     if (invIdx < 0 || invIdx >= this.artifactInventory.length) return this.respond();
-    const id = this.artifactInventory.splice(invIdx, 1)[0];
-    const value = artifactSellValue(id);
+    const instance = this.artifactInventory.splice(invIdx, 1)[0];
+    const value = artifactSellValue(instance.id, instance.level);
     this.earnGold(value);
-    this.addLog(`Sold ${ARTIFACT_DEFS[id as ArtifactEffectId].name} for ${value}g.`);
+    this.addLog(`Sold ${ARTIFACT_DEFS[instance.id].name}${instance.level > 0 ? ` +${instance.level}` : ""} for ${value}g.`);
     return this.respond();
   }
 
@@ -1109,7 +1112,7 @@ export class GameState {
     if (ancientIdxs.length < 10) return this.respond();
     for (let i = ancientIdxs.length - 1; i >= 0; i--) this.runeInventory.splice(ancientIdxs[i], 1);
     const id = ARTIFACT_DROP_POOL[Math.floor(Math.random() * ARTIFACT_DROP_POOL.length)];
-    this.artifactInventory.push(id);
+    this.artifactInventory.push({ id, level: 0 });
     this.addLog(`Forged ${ARTIFACT_DEFS[id]?.name ?? id} from 10 ancient runes!`);
     return this.respond();
   }
@@ -1258,7 +1261,7 @@ export class GameState {
       rune_inventory: [...this.runeInventory],
       earned_titles: this.computeEarnedTitles(),
       gear_stash: this.gearStash.map(i => i.toDict()),
-      artifact_inventory: [...this.artifactInventory],
+      artifact_inventory: this.artifactInventory.map(a => ({ id: a.id, level: a.level })),
       kill_streak: this.killStreak,
     };
   }
@@ -1424,11 +1427,11 @@ export class GameState {
 
     this.killStreak += 1;
 
-    // Bloodstone / Sanguine Bloodstone: heal party on each kill
+    // Bloodstone: heal party on each kill, scales with level
     let bloodHealFrac = 0;
     for (const c of this.party.team) {
-      const bloodId = c.artifactSlots.find(id => id === "bloodstone" || id === "sanguine_bloodstone");
-      if (bloodId) bloodHealFrac += ARTIFACT_DEFS[bloodId as ArtifactEffectId].effectValue;
+      const bloodSlot = c.artifactSlots.find(s => s?.id === "bloodstone");
+      if (bloodSlot) bloodHealFrac += ARTIFACT_DEFS[bloodSlot.id].effectValue * (bloodSlot.level + 1);
     }
     if (bloodHealFrac > 0) {
       for (const ally of this.party.team) {
@@ -1442,11 +1445,14 @@ export class GameState {
     const goldMasteryMult = 1 + 0.20 * (this.prestigeUpgrades["gold_mastery"] ?? 0);
     const prestigeGoldMult = 1 + GOLD_BONUS_PER_LEVEL * (this.prestigeUpgrades["gold_bonus"] ?? 0);
     const partySizeMult = 1 + PARTY_GOLD_BONUS_PER_MEMBER * (this.party.team.length - 1);
-    // Greed Idol / Golden Idol: boss gold multiplier (take highest equipped)
+    // Greed Idol: boss gold multiplier scaled by level (1 + 0.5*(level+1)); take highest
     let artifactGoldMult = 1.0;
     for (const c of this.party.team) {
-      const greedId = c.artifactSlots.find(id => id === "greed_idol" || id === "golden_idol");
-      if (greedId) artifactGoldMult = Math.max(artifactGoldMult, ARTIFACT_DEFS[greedId as ArtifactEffectId].effectValue);
+      const greedSlot = c.artifactSlots.find(s => s?.id === "greed_idol");
+      if (greedSlot) {
+        const mult = 1 + ARTIFACT_DEFS[greedSlot.id].effectValue * (greedSlot.level + 1);
+        artifactGoldMult = Math.max(artifactGoldMult, mult);
+      }
     }
     if (this.enemy.isBoss) {
       this.earnGold(this.enemy.gold_reward * (1 + partyGoldBonus) * goldMasteryMult * prestigeGoldMult * partySizeMult * artifactGoldMult);
@@ -1467,10 +1473,10 @@ export class GameState {
         this.runeInventory.push(RUNE_DEFS[runeId]);
         this.addLog(`Boss dropped a ${RUNE_DEFS[runeId].name}!`);
       }
-      // Artifact drop: dungeon 3+ (dungeonIndex >= 2), 10% chance, base artifacts only
+      // Artifact drop: dungeon 3+ (dungeonIndex >= 2), 10% chance
       if (this.dungeonIndex >= 2 && Math.random() < 0.10) {
         const artifactId = ARTIFACT_DROP_POOL[Math.floor(Math.random() * ARTIFACT_DROP_POOL.length)];
-        this.artifactInventory.push(artifactId);
+        this.artifactInventory.push({ id: artifactId, level: 0 });
         this.addLog(`✨ Boss dropped: ${ARTIFACT_DEFS[artifactId].name}!`);
       }
       this.dungeonLevel += 1;
@@ -1512,23 +1518,20 @@ export class GameState {
         this.lootPool.push(setDrop);
         this.addLog(`Elite dropped a set piece: ${setDrop.getName()}!`);
       }
-      // Executioner's Mark: elite triggers an extra boss-quality set piece drop
-      const hasExecMark = this.party.team.some(c => c.artifactSlots.includes("executioners_mark"));
-      if (this.enemy.isElite && hasExecMark && this.lootPool.length < this.lootMax) {
+      // Executioner's Mark: elite triggers (level+1) extra boss-quality set piece drop checks
+      const execMarkSlot = this.party.team
+        .flatMap(c => c.artifactSlots)
+        .find(s => s?.id === "executioners_mark");
+      if (this.enemy.isElite && execMarkSlot) {
+        const checks = execMarkSlot.level + 1;
         const effectiveLevel = this.dungeonLevel + this.dungeonIndex * 5;
-        const setDef = SET_DEFS[Math.floor(Math.random() * SET_DEFS.length)];
-        const setSlot = setDef.slots[Math.floor(Math.random() * setDef.slots.length)] as import("./gear.js").Slot;
-        const execDrop = getSetItem(setDef.id, setSlot, effectiveLevel);
-        this.lootPool.push(execDrop);
-        this.addLog(`⚔ Executioner's Mark: ${execDrop.getName()}!`);
-      }
-      // Death Mark: 10% chance for an extra random item from elites
-      const hasDeathMark = this.party.team.some(c => c.artifactSlots.includes("death_mark"));
-      if (this.enemy.isElite && hasDeathMark && Math.random() < ARTIFACT_DEFS.death_mark.effectValue && this.lootPool.length < this.lootMax) {
-        const effectiveLevel = this.dungeonLevel + this.dungeonIndex * 5;
-        const markDrop = getItem(undefined, effectiveLevel);
-        this.lootPool.push(markDrop);
-        this.addLog(`💀 Death Mark: ${markDrop.getName()}!`);
+        for (let i = 0; i < checks && this.lootPool.length < this.lootMax; i++) {
+          const setDef = SET_DEFS[Math.floor(Math.random() * SET_DEFS.length)];
+          const setSlot = setDef.slots[Math.floor(Math.random() * setDef.slots.length)] as import("./gear.js").Slot;
+          const execDrop = getSetItem(setDef.id, setSlot, effectiveLevel);
+          this.lootPool.push(execDrop);
+          this.addLog(`⚔ Executioner's Mark: ${execDrop.getName()}!`);
+        }
       }
       this.kills += 1;
       this.floorKills += 1;
@@ -1815,7 +1818,14 @@ export class GameState {
     gs.lifetimeUpgradesBought = d.lifetime_upgrades_bought ?? 0;
     gs.runeInventory = [...(d.rune_inventory ?? [])];
     gs.gearStash = (d.gear_stash ?? []).map(item => GearItem.fromDict(item));
-    gs.artifactInventory = [...(d.artifact_inventory ?? [])];
+    gs.artifactInventory = (d.artifact_inventory ?? []).map((item: any) => {
+      if (typeof item === "string") {
+        return LEGACY_UPGRADED_MAP[item] ? { ...LEGACY_UPGRADED_MAP[item] } : { id: item as ArtifactEffectId, level: 0 };
+      }
+      return LEGACY_UPGRADED_MAP[item.id] && item.level === 0
+        ? { ...LEGACY_UPGRADED_MAP[item.id] }
+        : { id: item.id as ArtifactEffectId, level: item.level ?? 0 };
+    });
     gs.killStreak = d.kill_streak ?? 0;
 
     // Migrate old checkpoint_1/2/3 one-time upgrades to single leveled checkpoint

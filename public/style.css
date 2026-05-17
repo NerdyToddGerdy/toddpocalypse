@@ -4027,7 +4027,32 @@ footer {
 .artifact-inv-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 2px; }
 .artifact-inv-info { flex: 1; min-width: 0; }
 .artifact-inv-name { font-size: 0.82rem; font-weight: 600; color: var(--text); }
-.artifact-inv-name.artifact-upgraded { color: #a78bfa; }
+.artifact-level-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #fbbf24;
+  background: rgba(251,191,36,0.15);
+  border: 1px solid #fbbf2455;
+  border-radius: 3px;
+  padding: 0 4px;
+  margin-left: 3px;
+  vertical-align: middle;
+}
+.artifact-levelup-row { margin: 3px 0; }
+.artifact-levelup-btn {
+  font-size: 0.65rem;
+  padding: 2px 8px;
+  background: #7c3aed;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.artifact-levelup-btn:hover:not(:disabled) { filter: brightness(1.2); }
+.artifact-levelup-btn:disabled { background: var(--border); color: var(--muted); cursor: default; }
+.artifact-levelup-cost { font-weight: 400; opacity: 0.8; }
 .artifact-inv-desc { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
 .artifact-sell-btn {
     font-size: 0.72rem;

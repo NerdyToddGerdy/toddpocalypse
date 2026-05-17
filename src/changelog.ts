@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.14.7";
+export const VERSION = "v2.15.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,18 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.15.0",
+    date: "2026-05-16",
+    changes: [
+      "Artifacts now have endless levels instead of a single merge: equip N+1 copies of the same artifact to level it up to +N",
+      "Level-up cost scales: going from +N to +N+1 costs N+1 fuel artifacts of the same type",
+      "Leveled artifacts show a '+N' badge in the Artifacts panel and on hero card icon strips",
+      "All artifact effects scale with level: a +2 artifact is 3× as effective as a base copy",
+      "Old upgraded artifacts (Sanguine Bloodstone, Titan's Eye, etc.) automatically migrate to their base counterpart at level +1",
+      "Removed the six separate 'upgraded' artifact definitions; all six base artifacts now level indefinitely",
+    ],
+  },
   {
     version: "v2.14.7",
     date: "2026-05-16",

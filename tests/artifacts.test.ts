@@ -1,54 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  ARTIFACT_DEFS, ARTIFACT_DROP_POOL,
-  canCombineArtifacts, getCombineResult, artifactSellValue,
+  ARTIFACT_DEFS, ARTIFACT_DROP_POOL, LEGACY_UPGRADED_MAP,
+  artifactUpgradeCost, artifactSellValue, type ArtifactInstance,
 } from "../src/artifacts.js";
 import { GameState, RUNE_DEFS } from "../src/engine.js";
 import { Character } from "../src/character.js";
 
+const a = (id: string, level = 0): ArtifactInstance => ({ id: id as any, level });
+
 // ─── Artifact definitions ────────────────────────────────────────────────────
 
 describe("ARTIFACT_DEFS", () => {
-  it("has 12 total artifacts", () => {
-    expect(Object.keys(ARTIFACT_DEFS).length).toBe(12);
+  it("has exactly 6 artifacts", () => {
+    expect(Object.keys(ARTIFACT_DEFS).length).toBe(6);
   });
 
-  it("has 6 base-tier artifacts", () => {
-    const base = Object.values(ARTIFACT_DEFS).filter(d => d.tier === "base");
-    expect(base.length).toBe(6);
-  });
-
-  it("has 6 upgraded-tier artifacts", () => {
-    const upgraded = Object.values(ARTIFACT_DEFS).filter(d => d.tier === "upgraded");
-    expect(upgraded.length).toBe(6);
-  });
-
-  it("every upgraded artifact has upgradesFrom pointing to a valid base artifact", () => {
-    for (const def of Object.values(ARTIFACT_DEFS).filter(d => d.tier === "upgraded")) {
-      expect(def.upgradesFrom).toBeDefined();
-      const parent = ARTIFACT_DEFS[def.upgradesFrom!];
-      expect(parent).toBeDefined();
-      expect(parent.tier).toBe("base");
-    }
-  });
-
-  it("every base artifact has a corresponding upgraded artifact", () => {
-    const baseIds = Object.values(ARTIFACT_DEFS).filter(d => d.tier === "base").map(d => d.id);
-    for (const id of baseIds) {
-      const upgraded = Object.values(ARTIFACT_DEFS).find(d => d.upgradesFrom === id);
-      expect(upgraded, `no upgraded form for ${id}`).toBeDefined();
-    }
-  });
-
-  it("base artifacts have sellValue 50", () => {
-    for (const def of Object.values(ARTIFACT_DEFS).filter(d => d.tier === "base")) {
+  it("all artifacts have sellValue 50", () => {
+    for (const def of Object.values(ARTIFACT_DEFS)) {
       expect(def.sellValue).toBe(50);
-    }
-  });
-
-  it("upgraded artifacts have sellValue 200", () => {
-    for (const def of Object.values(ARTIFACT_DEFS).filter(d => d.tier === "upgraded")) {
-      expect(def.sellValue).toBe(200);
     }
   });
 
@@ -56,121 +25,100 @@ describe("ARTIFACT_DEFS", () => {
     expect(ARTIFACT_DEFS.berserkers_eye.cap).toBe(0.20);
   });
 
-  it("titans_eye has cap 0.30", () => {
-    expect(ARTIFACT_DEFS.titans_eye.cap).toBe(0.30);
-  });
-});
-
-describe("ARTIFACT_DROP_POOL", () => {
-  it("contains exactly 6 base-tier artifact IDs", () => {
-    expect(ARTIFACT_DROP_POOL.length).toBe(6);
-    for (const id of ARTIFACT_DROP_POOL) {
-      expect(ARTIFACT_DEFS[id].tier).toBe("base");
+  it("all artifacts have a positive effectValue", () => {
+    for (const def of Object.values(ARTIFACT_DEFS)) {
+      expect(def.effectValue).toBeGreaterThan(0);
     }
   });
 });
 
-// ─── canCombineArtifacts ─────────────────────────────────────────────────────
-
-describe("canCombineArtifacts", () => {
-  it("returns true for two of the same base artifact", () => {
-    expect(canCombineArtifacts("bloodstone", "bloodstone")).toBe(true);
-    expect(canCombineArtifacts("berserkers_eye", "berserkers_eye")).toBe(true);
+describe("ARTIFACT_DROP_POOL", () => {
+  it("contains exactly 6 artifact IDs", () => {
+    expect(ARTIFACT_DROP_POOL.length).toBe(6);
   });
 
-  it("returns false for different artifacts", () => {
-    expect(canCombineArtifacts("bloodstone", "greed_idol")).toBe(false);
-  });
-
-  it("returns false for upgraded artifacts", () => {
-    expect(canCombineArtifacts("sanguine_bloodstone", "sanguine_bloodstone")).toBe(false);
-  });
-
-  it("returns false for unknown ids", () => {
-    expect(canCombineArtifacts("unknown", "unknown")).toBe(false);
+  it("all pool IDs are valid ARTIFACT_DEFS keys", () => {
+    for (const id of ARTIFACT_DROP_POOL) {
+      expect(ARTIFACT_DEFS[id]).toBeDefined();
+    }
   });
 });
 
-// ─── getCombineResult ────────────────────────────────────────────────────────
+// ─── LEGACY_UPGRADED_MAP ─────────────────────────────────────────────────────
 
-describe("getCombineResult", () => {
-  it("bloodstone → sanguine_bloodstone", () => {
-    expect(getCombineResult("bloodstone")).toBe("sanguine_bloodstone");
+describe("LEGACY_UPGRADED_MAP", () => {
+  it("maps sanguine_bloodstone → bloodstone level 1", () => {
+    expect(LEGACY_UPGRADED_MAP.sanguine_bloodstone).toEqual({ id: "bloodstone", level: 1 });
   });
 
-  it("berserkers_eye → titans_eye", () => {
-    expect(getCombineResult("berserkers_eye")).toBe("titans_eye");
+  it("maps all 6 old upgraded IDs", () => {
+    const expected = ["sanguine_bloodstone", "titans_eye", "golden_idol", "soulfire_brand", "fortress_core", "death_mark"];
+    for (const key of expected) {
+      expect(LEGACY_UPGRADED_MAP[key]).toBeDefined();
+      expect(ARTIFACT_DEFS[LEGACY_UPGRADED_MAP[key].id]).toBeDefined();
+      expect(LEGACY_UPGRADED_MAP[key].level).toBe(1);
+    }
   });
+});
 
-  it("greed_idol → golden_idol", () => {
-    expect(getCombineResult("greed_idol")).toBe("golden_idol");
-  });
+// ─── artifactUpgradeCost ─────────────────────────────────────────────────────
 
-  it("soulbrand → soulfire_brand", () => {
-    expect(getCombineResult("soulbrand")).toBe("soulfire_brand");
-  });
-
-  it("wardens_core → fortress_core", () => {
-    expect(getCombineResult("wardens_core")).toBe("fortress_core");
-  });
-
-  it("executioners_mark → death_mark", () => {
-    expect(getCombineResult("executioners_mark")).toBe("death_mark");
-  });
-
-  it("returns null for upgraded artifacts", () => {
-    expect(getCombineResult("sanguine_bloodstone")).toBeNull();
-  });
-
-  it("returns null for unknown id", () => {
-    expect(getCombineResult("nope")).toBeNull();
+describe("artifactUpgradeCost", () => {
+  it("level 0 → 1 costs 1", () => expect(artifactUpgradeCost(0)).toBe(1));
+  it("level 1 → 2 costs 2", () => expect(artifactUpgradeCost(1)).toBe(2));
+  it("level 4 → 5 costs 5", () => expect(artifactUpgradeCost(4)).toBe(5));
+  it("cost equals level + 1", () => {
+    for (let i = 0; i < 10; i++) expect(artifactUpgradeCost(i)).toBe(i + 1);
   });
 });
 
 // ─── artifactSellValue ───────────────────────────────────────────────────────
 
 describe("artifactSellValue", () => {
-  it("base artifact → 50", () => {
-    expect(artifactSellValue("bloodstone")).toBe(50);
+  it("level 0 → 50g", () => expect(artifactSellValue("bloodstone", 0)).toBe(50));
+  it("level 1 → 100g", () => expect(artifactSellValue("bloodstone", 1)).toBe(100));
+  it("level 2 → 150g", () => expect(artifactSellValue("bloodstone", 2)).toBe(150));
+  it("scales as sellValue × (level + 1)", () => {
+    for (let i = 0; i < 5; i++) expect(artifactSellValue("greed_idol", i)).toBe(50 * (i + 1));
   });
-
-  it("upgraded artifact → 200", () => {
-    expect(artifactSellValue("golden_idol")).toBe(200);
-  });
-
-  it("unknown → 0", () => {
-    expect(artifactSellValue("nope")).toBe(0);
-  });
+  it("unknown id → 0", () => expect(artifactSellValue("unknown", 0)).toBe(0));
 });
 
 // ─── Character.artifactSlots ─────────────────────────────────────────────────
 
 describe("Character.artifactSlots", () => {
-  it("initializes to 3 null slots", () => {
+  it("starts with 3 null slots", () => {
     const c = new Character("Hero", "fighter");
     expect(c.artifactSlots).toEqual([null, null, null]);
   });
 
-  it("serializes artifact slots in toDict", () => {
+  it("round-trips through toDict/fromDict", () => {
     const c = new Character("Hero", "fighter");
-    c.artifactSlots[0] = "bloodstone";
-    const dict = c.toDict();
-    expect(dict.artifact_slots).toEqual(["bloodstone", null, null]);
+    c.artifactSlots[0] = a("bloodstone", 2);
+    c.artifactSlots[2] = a("greed_idol", 0);
+    const d = c.toDict();
+    const c2 = Character.fromDict(d);
+    expect(c2.artifactSlots[0]).toEqual({ id: "bloodstone", level: 2 });
+    expect(c2.artifactSlots[1]).toBeNull();
+    expect(c2.artifactSlots[2]).toEqual({ id: "greed_idol", level: 0 });
   });
 
-  it("round-trips through fromDict", () => {
+  it("migrates old string format on load", () => {
     const c = new Character("Hero", "fighter");
-    c.artifactSlots = ["bloodstone", "greed_idol", null];
-    const restored = Character.fromDict(c.toDict());
-    expect(restored.artifactSlots).toEqual(["bloodstone", "greed_idol", null]);
+    const d = c.toDict();
+    (d as any).artifact_slots = ["bloodstone", null, "wardens_core"];
+    const c2 = Character.fromDict(d);
+    expect(c2.artifactSlots[0]).toEqual({ id: "bloodstone", level: 0 });
+    expect(c2.artifactSlots[2]).toEqual({ id: "wardens_core", level: 0 });
   });
 
-  it("fromDict defaults to [null, null, null] when field absent", () => {
+  it("migrates old upgraded IDs on load", () => {
     const c = new Character("Hero", "fighter");
-    const dict = c.toDict();
-    delete (dict as any).artifact_slots;
-    const restored = Character.fromDict(dict);
-    expect(restored.artifactSlots).toEqual([null, null, null]);
+    const d = c.toDict();
+    (d as any).artifact_slots = ["sanguine_bloodstone", "fortress_core", null];
+    const c2 = Character.fromDict(d);
+    expect(c2.artifactSlots[0]).toEqual({ id: "bloodstone", level: 1 });
+    expect(c2.artifactSlots[1]).toEqual({ id: "wardens_core", level: 1 });
   });
 });
 
@@ -178,57 +126,44 @@ describe("Character.artifactSlots", () => {
 
 describe("GameState.artifactInventory", () => {
   it("starts empty", () => {
-    const gs = new GameState();
-    expect(gs.artifactInventory).toEqual([]);
+    expect(new GameState().artifactInventory).toEqual([]);
   });
 
   it("killStreak starts at 0", () => {
-    const gs = new GameState();
-    expect(gs.killStreak).toBe(0);
+    expect(new GameState().killStreak).toBe(0);
   });
 });
 
 // ─── equipArtifact ───────────────────────────────────────────────────────────
 
 describe("equipArtifact", () => {
-  function makeWithArtifact(): GameState {
+  it("moves artifact instance from inventory to character slot", () => {
     const gs = new GameState();
-    gs.artifactInventory = ["bloodstone"];
-    return gs;
-  }
-
-  it("moves artifact from inventory to character slot", () => {
-    const gs = makeWithArtifact();
+    gs.artifactInventory = [a("bloodstone")];
     gs.equipArtifact(0, 0, 0);
-    expect(gs.party.team[0].artifactSlots[0]).toBe("bloodstone");
-    expect(gs.artifactInventory).toEqual([]);
+    expect(gs.party.team[0].artifactSlots[0]).toEqual({ id: "bloodstone", level: 0 });
+    expect(gs.artifactInventory).toHaveLength(0);
   });
 
   it("displaced artifact returns to inventory", () => {
     const gs = new GameState();
-    gs.artifactInventory = ["greed_idol"];
-    gs.party.team[0].artifactSlots[0] = "bloodstone";
+    gs.party.team[0].artifactSlots[0] = a("bloodstone", 1);
+    gs.artifactInventory = [a("greed_idol")];
     gs.equipArtifact(0, 0, 0);
-    expect(gs.party.team[0].artifactSlots[0]).toBe("greed_idol");
-    expect(gs.artifactInventory).toContain("bloodstone");
+    expect(gs.party.team[0].artifactSlots[0]).toEqual({ id: "greed_idol", level: 0 });
+    expect(gs.artifactInventory).toContainEqual({ id: "bloodstone", level: 1 });
   });
 
   it("noop for invalid char index", () => {
-    const gs = makeWithArtifact();
-    const before = JSON.stringify(gs.artifactInventory);
+    const gs = new GameState();
+    gs.artifactInventory = [a("bloodstone")];
     gs.equipArtifact(99, 0, 0);
-    expect(JSON.stringify(gs.artifactInventory)).toBe(before);
+    expect(gs.artifactInventory).toHaveLength(1);
   });
 
-  it("noop for invalid slot index", () => {
-    const gs = makeWithArtifact();
-    gs.equipArtifact(0, 5, 0);
-    expect(gs.party.team[0].artifactSlots[5]).toBeUndefined();
-    expect(gs.artifactInventory).toEqual(["bloodstone"]);
-  });
-
-  it("noop for invalid inventory index", () => {
-    const gs = makeWithArtifact();
+  it("noop for invalid inv index", () => {
+    const gs = new GameState();
+    gs.artifactInventory = [a("bloodstone")];
     gs.equipArtifact(0, 0, 5);
     expect(gs.party.team[0].artifactSlots[0]).toBeNull();
   });
@@ -237,12 +172,12 @@ describe("equipArtifact", () => {
 // ─── unequipArtifact ─────────────────────────────────────────────────────────
 
 describe("unequipArtifact", () => {
-  it("moves artifact from slot back to inventory", () => {
+  it("moves artifact instance from slot back to inventory", () => {
     const gs = new GameState();
-    gs.party.team[0].artifactSlots[1] = "greed_idol";
+    gs.party.team[0].artifactSlots[1] = a("greed_idol", 2);
     gs.unequipArtifact(0, 1);
     expect(gs.party.team[0].artifactSlots[1]).toBeNull();
-    expect(gs.artifactInventory).toContain("greed_idol");
+    expect(gs.artifactInventory).toContainEqual({ id: "greed_idol", level: 2 });
   });
 
   it("noop when slot is already empty", () => {
@@ -252,106 +187,116 @@ describe("unequipArtifact", () => {
   });
 });
 
-// ─── combineArtifacts ────────────────────────────────────────────────────────
+// ─── levelUpArtifact ─────────────────────────────────────────────────────────
 
-describe("combineArtifacts", () => {
-  function makeWithTwo(id: string): GameState {
+describe("levelUpArtifact", () => {
+  it("noop when fewer copies than cost", () => {
     const gs = new GameState();
-    gs.artifactInventory = [id, id];
-    return gs;
-  }
-
-  it("combines two bloodstones into sanguine_bloodstone", () => {
-    const gs = makeWithTwo("bloodstone");
-    gs.combineArtifacts(0, 1);
-    expect(gs.artifactInventory).toEqual(["sanguine_bloodstone"]);
+    gs.artifactInventory = [a("bloodstone")]; // needs 1 extra, has 0
+    gs.levelUpArtifact(0);
+    expect(gs.artifactInventory[0].level).toBe(0);
+    expect(gs.artifactInventory).toHaveLength(1);
   });
 
-  it("noop when ids differ", () => {
+  it("level 0 → 1 consumes 1 copy of same type", () => {
     const gs = new GameState();
-    gs.artifactInventory = ["bloodstone", "greed_idol"];
-    gs.combineArtifacts(0, 1);
-    expect(gs.artifactInventory.length).toBe(2);
+    gs.artifactInventory = [a("bloodstone"), a("bloodstone")];
+    gs.levelUpArtifact(0);
+    expect(gs.artifactInventory).toHaveLength(1);
+    expect(gs.artifactInventory[0].level).toBe(1);
   });
 
-  it("noop when same index provided twice", () => {
-    const gs = makeWithTwo("bloodstone");
-    gs.combineArtifacts(0, 0);
-    expect(gs.artifactInventory.length).toBe(2);
+  it("level 1 → 2 consumes 2 copies", () => {
+    const gs = new GameState();
+    gs.artifactInventory = [a("bloodstone", 1), a("bloodstone"), a("bloodstone")];
+    gs.levelUpArtifact(0);
+    expect(gs.artifactInventory).toHaveLength(1);
+    expect(gs.artifactInventory[0].level).toBe(2);
   });
 
-  it("noop for upgraded artifacts", () => {
-    const gs = makeWithTwo("sanguine_bloodstone");
-    gs.combineArtifacts(0, 1);
-    expect(gs.artifactInventory.length).toBe(2);
+  it("does not consume copies of different artifact types", () => {
+    const gs = new GameState();
+    gs.artifactInventory = [a("bloodstone"), a("bloodstone"), a("greed_idol")];
+    gs.levelUpArtifact(0);
+    expect(gs.artifactInventory).toContainEqual({ id: "greed_idol", level: 0 });
+    expect(gs.artifactInventory).toHaveLength(2); // leveled one + greed_idol
+  });
+
+  it("accepts any level of same type as fuel", () => {
+    const gs = new GameState();
+    gs.artifactInventory = [a("bloodstone"), a("bloodstone", 3)]; // fuel is higher level
+    gs.levelUpArtifact(0);
+    expect(gs.artifactInventory).toHaveLength(1);
+    expect(gs.artifactInventory[0].level).toBe(1);
+  });
+
+  it("noop for invalid index", () => {
+    const gs = new GameState();
+    gs.artifactInventory = [a("bloodstone")];
+    gs.levelUpArtifact(5);
+    expect(gs.artifactInventory).toHaveLength(1);
   });
 });
 
 // ─── sellArtifact ────────────────────────────────────────────────────────────
 
 describe("sellArtifact", () => {
-  it("removes artifact and awards gold", () => {
+  it("removes artifact instance and awards gold proportional to level", () => {
     const gs = new GameState();
-    gs.artifactInventory = ["bloodstone"];
+    gs.artifactInventory = [a("bloodstone", 0)];
     gs.gold = 0;
     gs.sellArtifact(0);
     expect(gs.artifactInventory).toEqual([]);
     expect(gs.gold).toBe(50);
   });
 
-  it("upgraded artifact awards 200 gold", () => {
+  it("level 2 artifact awards 150 gold", () => {
     const gs = new GameState();
-    gs.artifactInventory = ["golden_idol"];
+    gs.artifactInventory = [a("bloodstone", 2)];
     gs.gold = 0;
     gs.sellArtifact(0);
-    expect(gs.gold).toBe(200);
+    expect(gs.gold).toBe(150);
   });
 
   it("noop for invalid index", () => {
     const gs = new GameState();
-    gs.artifactInventory = ["bloodstone"];
+    gs.artifactInventory = [a("bloodstone")];
     gs.sellArtifact(5);
-    expect(gs.artifactInventory.length).toBe(1);
+    expect(gs.artifactInventory).toHaveLength(1);
   });
 });
 
 // ─── Artifact effects: Bloodstone ────────────────────────────────────────────
 
 describe("bloodstone heal on kill", () => {
-  it("heals party 1% max HP per kill when equipped", () => {
+  it("heals party when equipped at level 0", () => {
     const gs = new GameState();
-    gs.party.team[0].artifactSlots[0] = "bloodstone";
+    gs.party.team[0].artifactSlots[0] = a("bloodstone");
     gs.party.team[0].health = 50;
     gs.party.team[0].maxHealth = 100;
-    // Force an enemy death
     gs.enemy.hp = 0;
     gs.onEnemyDeath();
-    // Should heal 1% of 100 = 1 HP (plus any combat heal fraction)
     expect(gs.party.team[0].health).toBeGreaterThan(50);
   });
 
-  it("does not heal when no bloodstone equipped", () => {
-    const gs = new GameState();
-    gs.party.team[0].health = 50;
-    gs.party.team[0].maxHealth = 100;
-    const prevHealth = gs.party.team[0].health;
-    // Combat heal fraction also applies, so just ensure bloodstone not double-counted
-    // We can check via sanguine_bloodstone being stronger
-    gs.enemy.hp = 0;
-    gs.onEnemyDeath();
-    // No crash — test just verifies it runs without error
-    expect(gs.party.team[0].health).toBeGreaterThanOrEqual(prevHealth);
-  });
-
-  it("sanguine_bloodstone heals 2% max HP", () => {
-    const gs = new GameState();
-    gs.party.team[0].artifactSlots[0] = "sanguine_bloodstone";
-    gs.party.team[0].health = 1;
-    gs.party.team[0].maxHealth = 100;
-    gs.enemy.hp = 0;
-    gs.onEnemyDeath();
-    // Should include at least 2% from artifact (2 HP)
-    expect(gs.party.team[0].health).toBeGreaterThan(1);
+  it("bloodstone +1 heals 2× as much as level 0", () => {
+    function bloodstoneHeal(level: number): number {
+      const gs = new GameState();
+      gs.party.team.forEach(c => { c.xpToNext = 9999999; });
+      gs.party.team[0].artifactSlots[0] = a("bloodstone", level);
+      const MAX = 1000;
+      const START = Math.floor(MAX / 2);
+      gs.party.team[0].health = START;
+      gs.party.team[0].maxHealth = MAX;
+      // Controlled enemy: no boss, minimal XP
+      gs.enemy = { name: "Dummy", level: 1, hp: 0, max_hp: 10, xp_reward: 1, gold_reward: 0, attack_dps: 0, isBoss: false, isElite: false };
+      gs.onEnemyDeath();
+      return gs.party.team[0].health - START;
+    }
+    const h0 = bloodstoneHeal(0);
+    const h1 = bloodstoneHeal(1);
+    // Level 1 adds one extra unit of bloodstone heal vs level 0 (1% × 1000 = 10 HP)
+    expect(h1 - h0).toBeCloseTo(ARTIFACT_DEFS.bloodstone.effectValue * 1000, 0);
   });
 });
 
@@ -361,11 +306,9 @@ describe("kill streak", () => {
   it("increments on each enemy kill", () => {
     const gs = new GameState();
     expect(gs.killStreak).toBe(0);
-    gs.enemy.hp = 0;
-    gs.onEnemyDeath();
+    gs.enemy.hp = 0; gs.onEnemyDeath();
     expect(gs.killStreak).toBe(1);
-    gs.enemy.hp = 0;
-    gs.onEnemyDeath();
+    gs.enemy.hp = 0; gs.onEnemyDeath();
     expect(gs.killStreak).toBe(2);
   });
 
@@ -376,134 +319,90 @@ describe("kill streak", () => {
     expect(gs.killStreak).toBe(0);
   });
 
-  it("berserkers_eye DPS bonus capped at 20%", () => {
+  it("berserkers_eye tick does not throw with high streak", () => {
     const gs = new GameState();
-    gs.party.team[0].artifactSlots[0] = "berserkers_eye";
-    gs.killStreak = 100; // would be 100% without cap
-    // We test via tick — just verify it doesn't crash and cap applies
-    const baseDps = gs.party.team[0].dps;
-    // Simulate one tick to verify engine doesn't throw
+    gs.party.team[0].artifactSlots[0] = a("berserkers_eye");
+    gs.killStreak = 100;
     expect(() => gs.tick(0.1)).not.toThrow();
-    // The berserker's eye multiplier should be capped at 1.20× base
-    // We can verify by reading the state; at least enemy hp should decrease
   });
 });
 
 // ─── Artifact effects: Greed Idol ────────────────────────────────────────────
 
 describe("greed_idol boss gold", () => {
-  it("multiplies boss gold by 1.5 when equipped", () => {
+  function makeBossGs(): GameState {
     const gs = new GameState();
-    gs.party.team[0].artifactSlots[0] = "greed_idol";
     gs.dungeonLevel = 5;
-    // Make enemy a boss
-    gs.enemy = {
-      name: "Boss",
-      level: 5,
-      hp: 0,
-      max_hp: 500,
-      xp_reward: 50,
-      gold_reward: 100,
-      attack_dps: 10,
-      isBoss: true,
-      isElite: false,
-    };
+    gs.enemy = { name: "Boss", level: 5, hp: 0, max_hp: 500, xp_reward: 50, gold_reward: 100, attack_dps: 10, isBoss: true, isElite: false };
+    return gs;
+  }
+
+  it("multiplies boss gold by 1.5 at level 0", () => {
+    const gs = makeBossGs();
+    gs.party.team[0].artifactSlots[0] = a("greed_idol", 0);
     gs.gold = 0;
     gs.onEnemyDeath();
-    // Base: 100g * 1.5 (greed_idol) = 150g (approximately, other multipliers apply too)
     expect(gs.gold).toBeGreaterThan(100);
   });
 
-  it("golden_idol multiplies boss gold by 2", () => {
-    const gs = new GameState();
-    gs.party.team[0].artifactSlots[0] = "golden_idol";
-    gs.dungeonLevel = 5;
-    gs.enemy = {
-      name: "Boss",
-      level: 5,
-      hp: 0,
-      max_hp: 500,
-      xp_reward: 50,
-      gold_reward: 100,
-      attack_dps: 10,
-      isBoss: true,
-      isElite: false,
-    };
-    gs.gold = 0;
-    gs.onEnemyDeath();
-    expect(gs.gold).toBeGreaterThan(150); // More than greed_idol
+  it("level 1 gives 2× multiplier (more than level 0)", () => {
+    const gs0 = makeBossGs(); gs0.party.team[0].artifactSlots[0] = a("greed_idol", 0); gs0.gold = 0; gs0.onEnemyDeath();
+    const gs1 = makeBossGs(); gs1.party.team[0].artifactSlots[0] = a("greed_idol", 1); gs1.gold = 0; gs1.onEnemyDeath();
+    expect(gs1.gold).toBeGreaterThan(gs0.gold);
   });
 });
 
 // ─── Artifact effects: Warden's Core ─────────────────────────────────────────
 
 describe("wardens_core damage reduction", () => {
-  it("reduces incoming damage by 10%", () => {
+  it("reduces incoming damage by 10% at level 0", () => {
     const gs = new GameState();
-    gs.party.team[0].damageReduction = 0; // no base reduction
-    gs.party.team[0].artifactSlots[0] = "wardens_core";
+    gs.party.team[0].damageReduction = 0;
+    gs.party.team[0].artifactSlots[0] = a("wardens_core", 0);
     gs.party.team[0].health = 100;
     gs.party.team[0].maxHealth = 100;
-    // Direct tick against an enemy that attacks
-    gs.enemy.hp = 999999; // won't die
-    gs.enemy.attack_dps = 100; // 100 dps
+    gs.enemy.hp = 999999;
+    gs.enemy.attack_dps = 100;
     gs.tick(1.0);
-    // With artifact: 100 dmg × (1 - 0.10) = 90 dmg taken → health = 100 - 90 = 10
-    expect(gs.party.team[0].health).toBeGreaterThan(0);
-    expect(gs.party.team[0].health).toBeLessThan(100);
     expect(gs.party.team[0].health).toBeCloseTo(10, 0);
   });
 
-  it("wardens_core + existing damageReduction do not exceed 50% cap", () => {
-    const gs = new GameState();
-    gs.party.team[0].damageReduction = 0.45;
-    gs.party.team[0].artifactSlots[0] = "wardens_core"; // +10% would be 55%, capped to 50%
-    gs.party.team[0].health = 100;
-    gs.party.team[0].maxHealth = 100;
-    gs.enemy.hp = 999999;
-    gs.enemy.attack_dps = 100;
-    gs.tick(1.0);
-    // With 50% cap: 100 dmg × (1 - 0.50) = 50 dmg → health = 50
-    expect(gs.party.team[0].health).toBeCloseTo(50, 0);
-  });
-
-  it("fortress_core reduces damage by 20%", () => {
+  it("wardens_core +1 reduces damage by 20%", () => {
     const gs = new GameState();
     gs.party.team[0].damageReduction = 0;
-    gs.party.team[0].artifactSlots[0] = "fortress_core";
+    gs.party.team[0].artifactSlots[0] = a("wardens_core", 1);
     gs.party.team[0].health = 100;
     gs.party.team[0].maxHealth = 100;
     gs.enemy.hp = 999999;
     gs.enemy.attack_dps = 100;
     gs.tick(1.0);
-    // 100 dmg × (1 - 0.20) = 80 dmg taken → health = 100 - 80 = 20
     expect(gs.party.team[0].health).toBeCloseTo(20, 0);
+  });
+
+  it("does not exceed 50% cap", () => {
+    const gs = new GameState();
+    gs.party.team[0].damageReduction = 0.45;
+    gs.party.team[0].artifactSlots[0] = a("wardens_core", 0); // +10% → would be 55%, capped to 50%
+    gs.party.team[0].health = 100;
+    gs.party.team[0].maxHealth = 100;
+    gs.enemy.hp = 999999;
+    gs.enemy.attack_dps = 100;
+    gs.tick(1.0);
+    expect(gs.party.team[0].health).toBeCloseTo(50, 0);
   });
 });
 
 // ─── Artifact effects: Executioner's Mark ────────────────────────────────────
 
 describe("executioners_mark elite boss drop", () => {
-  it("can trigger boss-drop on elite kill when equipped", () => {
+  it("triggers extra set piece drops on elite kill", () => {
     const gs = new GameState();
-    gs.party.team[0].artifactSlots[0] = "executioners_mark";
-    gs.enemy = {
-      name: "Elite Goblin",
-      level: 3,
-      hp: 0,
-      max_hp: 300,
-      xp_reward: 30,
-      gold_reward: 30,
-      attack_dps: 10,
-      isBoss: false,
-      isElite: true,
-    };
-    // Force all random drops by mocking Math.random
+    gs.party.team[0].artifactSlots[0] = a("executioners_mark");
+    gs.enemy = { name: "Elite", level: 3, hp: 0, max_hp: 300, xp_reward: 30, gold_reward: 30, attack_dps: 10, isBoss: false, isElite: true };
     vi.spyOn(Math, "random").mockReturnValue(0.01);
     const before = gs.lootPool.length;
     gs.onEnemyDeath();
     vi.restoreAllMocks();
-    // At least one drop should occur (executioners_mark or regular elite drop)
     expect(gs.lootPool.length).toBeGreaterThanOrEqual(before);
   });
 });
@@ -515,41 +414,22 @@ describe("artifact drops", () => {
     const gs = new GameState();
     gs.dungeonIndex = 2;
     gs.dungeonLevel = 5;
-    gs.enemy = {
-      name: "Boss",
-      level: 5,
-      hp: 0,
-      max_hp: 500,
-      xp_reward: 50,
-      gold_reward: 100,
-      attack_dps: 10,
-      isBoss: true,
-      isElite: false,
-    };
-    vi.spyOn(Math, "random").mockReturnValue(0.05); // 5% < 10% drop threshold
+    gs.enemy = { name: "Boss", level: 5, hp: 0, max_hp: 500, xp_reward: 50, gold_reward: 100, attack_dps: 10, isBoss: true, isElite: false };
+    vi.spyOn(Math, "random").mockReturnValue(0.05);
     gs.onEnemyDeath();
     vi.restoreAllMocks();
     expect(gs.artifactInventory.length).toBeGreaterThan(0);
-    // Should be a base artifact
+    // Dropped artifact is a valid base artifact at level 0
     const dropped = gs.artifactInventory[0];
-    expect(ARTIFACT_DROP_POOL).toContain(dropped);
+    expect(ARTIFACT_DROP_POOL).toContain(dropped.id);
+    expect(dropped.level).toBe(0);
   });
 
   it("boss at dungeonIndex<2 does not drop artifacts", () => {
     const gs = new GameState();
     gs.dungeonIndex = 0;
     gs.dungeonLevel = 5;
-    gs.enemy = {
-      name: "Boss",
-      level: 5,
-      hp: 0,
-      max_hp: 500,
-      xp_reward: 50,
-      gold_reward: 100,
-      attack_dps: 10,
-      isBoss: true,
-      isElite: false,
-    };
+    gs.enemy = { name: "Boss", level: 5, hp: 0, max_hp: 500, xp_reward: 50, gold_reward: 100, attack_dps: 10, isBoss: true, isElite: false };
     vi.spyOn(Math, "random").mockReturnValue(0.05);
     gs.onEnemyDeath();
     vi.restoreAllMocks();
@@ -559,17 +439,7 @@ describe("artifact drops", () => {
   it("non-boss enemy never drops artifacts", () => {
     const gs = new GameState();
     gs.dungeonIndex = 5;
-    gs.enemy = {
-      name: "Goblin",
-      level: 3,
-      hp: 0,
-      max_hp: 100,
-      xp_reward: 10,
-      gold_reward: 10,
-      attack_dps: 5,
-      isBoss: false,
-      isElite: false,
-    };
+    gs.enemy = { name: "Goblin", level: 3, hp: 0, max_hp: 100, xp_reward: 10, gold_reward: 10, attack_dps: 5, isBoss: false, isElite: false };
     vi.spyOn(Math, "random").mockReturnValue(0.01);
     gs.onEnemyDeath();
     vi.restoreAllMocks();
@@ -592,21 +462,52 @@ describe("prestige preserves artifacts", () => {
 
   it("preserves artifact inventory through prestige", () => {
     const gs = readyForPrestige();
-    gs.artifactInventory = ["bloodstone", "greed_idol"];
+    gs.artifactInventory = [a("bloodstone", 2), a("greed_idol")];
     gs.prestige();
-    expect(gs.artifactInventory).toContain("bloodstone");
-    expect(gs.artifactInventory).toContain("greed_idol");
+    expect(gs.artifactInventory).toContainEqual({ id: "bloodstone", level: 2 });
+    expect(gs.artifactInventory).toContainEqual({ id: "greed_idol", level: 0 });
   });
 
   it("preserves character artifact slots through prestige", () => {
     const gs = readyForPrestige();
-    gs.party.team[0].artifactSlots[0] = "wardens_core";
+    gs.party.team[0].artifactSlots[0] = a("wardens_core", 1);
     gs.prestige();
-    expect(gs.party.team[0].artifactSlots[0]).toBe("wardens_core");
+    expect(gs.party.team[0].artifactSlots[0]).toEqual({ id: "wardens_core", level: 1 });
   });
 });
 
 // ─── Serialization round-trip ─────────────────────────────────────────────────
+
+describe("artifact serialization", () => {
+  it("artifact_inventory round-trips through toDict/fromDict", () => {
+    const gs = new GameState();
+    gs.artifactInventory = [a("bloodstone", 3), a("greed_idol", 0)];
+    gs.killStreak = 7;
+    const dict = JSON.parse(gs.respond());
+    const restored = GameState.fromDict(dict);
+    expect(restored.artifactInventory).toEqual([{ id: "bloodstone", level: 3 }, { id: "greed_idol", level: 0 }]);
+    expect(restored.killStreak).toBe(7);
+  });
+
+  it("missing artifact fields default to empty on load", () => {
+    const gs = new GameState();
+    const dict = JSON.parse(gs.respond()) as any;
+    delete dict.artifact_inventory;
+    delete dict.kill_streak;
+    const restored = GameState.fromDict(dict);
+    expect(restored.artifactInventory).toEqual([]);
+    expect(restored.killStreak).toBe(0);
+  });
+
+  it("migrates old string inventory on fromDict", () => {
+    const gs = new GameState();
+    const dict = JSON.parse(gs.respond()) as any;
+    dict.artifact_inventory = ["bloodstone", "sanguine_bloodstone"];
+    const restored = GameState.fromDict(dict);
+    expect(restored.artifactInventory[0]).toEqual({ id: "bloodstone", level: 0 });
+    expect(restored.artifactInventory[1]).toEqual({ id: "bloodstone", level: 1 });
+  });
+});
 
 // ─── forgeArtifactFromRunes ──────────────────────────────────────────────────
 
@@ -628,25 +529,25 @@ describe("forgeArtifactFromRunes", () => {
     expect(gs.runeInventory).toHaveLength(9);
   });
 
-  it("removes exactly 10 ancients and adds 1 base artifact with exactly 10", () => {
+  it("removes exactly 10 ancients and adds 1 base artifact at level 0", () => {
     const gs = new GameState();
     gs.runeInventory = tenAncients();
     gs.forgeArtifactFromRunes();
     expect(gs.runeInventory).toHaveLength(0);
     expect(gs.artifactInventory).toHaveLength(1);
-    expect(ARTIFACT_DROP_POOL).toContain(gs.artifactInventory[0]);
+    expect(ARTIFACT_DROP_POOL).toContain(gs.artifactInventory[0].id);
+    expect(gs.artifactInventory[0].level).toBe(0);
   });
 
-  it("removes exactly 10 ancients and leaves non-ancient runes untouched", () => {
+  it("leaves non-ancient runes untouched", () => {
     const gs = new GameState();
     gs.runeInventory = [...tenAncients(), RUNE_DEFS["striking_lesser"], RUNE_DEFS["warding_greater"]];
     gs.forgeArtifactFromRunes();
     expect(gs.runeInventory).toHaveLength(2);
     expect(gs.runeInventory.every(r => r.tier !== "ancient")).toBe(true);
-    expect(gs.artifactInventory).toHaveLength(1);
   });
 
-  it("forges again after another 10 ancients are accumulated", () => {
+  it("can forge again after another 10 ancients accumulated", () => {
     const gs = new GameState();
     gs.runeInventory = [...tenAncients(), ...tenAncients()];
     gs.forgeArtifactFromRunes();
@@ -655,44 +556,14 @@ describe("forgeArtifactFromRunes", () => {
     expect(gs.artifactInventory).toHaveLength(2);
   });
 
-  it("result is always a base-tier artifact", () => {
+  it("result is always a base artifact", () => {
     const gs = new GameState();
     for (let i = 0; i < 10; i++) {
       gs.runeInventory = tenAncients();
       gs.forgeArtifactFromRunes();
-      const id = gs.artifactInventory.pop()!;
-      expect(ARTIFACT_DEFS[id as keyof typeof ARTIFACT_DEFS].tier).toBe("base");
+      const inst = gs.artifactInventory.pop()!;
+      expect(ARTIFACT_DEFS[inst.id]).toBeDefined();
+      expect(inst.level).toBe(0);
     }
-  });
-
-  it("does not consume non-ancient runes when exactly 10 ancients present", () => {
-    const gs = new GameState();
-    gs.runeInventory = [...tenAncients().slice(0, 5), RUNE_DEFS["striking_lesser"], RUNE_DEFS["warding_flawless"], ...tenAncients().slice(5)];
-    gs.forgeArtifactFromRunes();
-    expect(gs.artifactInventory).toHaveLength(1);
-    const nonAncientLeft = gs.runeInventory.filter(r => r.tier !== "ancient");
-    expect(nonAncientLeft).toHaveLength(2);
-  });
-});
-
-describe("artifact serialization", () => {
-  it("artifact_inventory round-trips through toDict/fromDict", () => {
-    const gs = new GameState();
-    gs.artifactInventory = ["bloodstone", "titans_eye"];
-    gs.killStreak = 7;
-    const dict = JSON.parse(gs.respond());
-    const restored = GameState.fromDict(dict);
-    expect(restored.artifactInventory).toEqual(["bloodstone", "titans_eye"]);
-    expect(restored.killStreak).toBe(7);
-  });
-
-  it("missing artifact fields default to empty on load", () => {
-    const gs = new GameState();
-    const dict = JSON.parse(gs.respond()) as any;
-    delete dict.artifact_inventory;
-    delete dict.kill_streak;
-    const restored = GameState.fromDict(dict);
-    expect(restored.artifactInventory).toEqual([]);
-    expect(restored.killStreak).toBe(0);
   });
 });

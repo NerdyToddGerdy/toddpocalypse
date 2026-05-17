@@ -1,5 +1,6 @@
 import { Inventory, type InventoryDict } from "./inventory.js";
 import { GearItem, SET_DEFS, type GearStats, type Slot } from "./gear.js";
+import { type ArtifactInstance, LEGACY_UPGRADED_MAP, type ArtifactEffectId } from "./artifacts.js";
 
 /** A socketed rune that grants a flat stat bonus to the wearer. */
 export interface Rune {
@@ -122,7 +123,7 @@ export interface CharacterDict {
   runes?: Partial<Record<Slot, Rune>>;
   applied_set_bonuses?: Record<string, GearStats>;
   locked_slots?: string[];
-  artifact_slots?: (string | null)[];
+  artifact_slots?: ({ id: string; level: number } | null)[];
 }
 
 /** A player character or companion with class stats, equipment, and abilities. */
@@ -167,8 +168,8 @@ export class Character {
   appliedSetBonuses: Record<string, GearStats> = {};
   /** Gear slots the player has locked against automatic replacement. */
   lockedSlots: Set<Slot> = new Set();
-  /** Artifact IDs equipped in each of the 3 artifact slots (null = empty). */
-  artifactSlots: (string | null)[] = [null, null, null];
+  /** Leveled artifacts equipped in each of the 3 artifact slots (null = empty). */
+  artifactSlots: (ArtifactInstance | null)[] = [null, null, null];
   /** Seconds accumulated toward the next Mana Surge burst. */
   surgeTimer = 0;
   /** Party-wide ability effects queued to apply after the current enemy dies. */
@@ -407,7 +408,16 @@ export class Character {
     if (d.locked_slots) {
       c.lockedSlots = new Set(d.locked_slots as Slot[]);
     }
-    c.artifactSlots = (d.artifact_slots ?? [null, null, null]).map(s => s ?? null);
+    c.artifactSlots = (d.artifact_slots ?? [null, null, null]).map(s => {
+      if (!s) return null;
+      // Migrate old string format and old upgraded IDs
+      if (typeof s === "string") {
+        return LEGACY_UPGRADED_MAP[s] ?? { id: s as ArtifactEffectId, level: 0 };
+      }
+      return LEGACY_UPGRADED_MAP[s.id] !== undefined && s.level === 0
+        ? LEGACY_UPGRADED_MAP[s.id]
+        : { id: s.id as ArtifactEffectId, level: s.level ?? 0 };
+    });
     return c;
   }
 }
