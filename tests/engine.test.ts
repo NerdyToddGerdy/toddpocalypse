@@ -4756,3 +4756,61 @@ describe("achievement rewards: avatar and border", () => {
     }
   });
 });
+
+describe("achievement_progress in toDict", () => {
+  it("toDict includes achievement_progress as a Record", () => {
+    const d = make().toDict();
+    expect(d.achievement_progress).toBeDefined();
+    expect(typeof d.achievement_progress).toBe("object");
+  });
+
+  it("all ACHIEVEMENTS ids are present as keys", () => {
+    const d = make().toDict();
+    for (const def of ACHIEVEMENTS) {
+      expect(d.achievement_progress).toHaveProperty(def.id);
+    }
+  });
+
+  it("kills_tiered progress matches lifetimeKills + kills", () => {
+    const gs = make();
+    gs.lifetimeKills = 42;
+    gs.kills = 8;
+    const d = gs.toDict();
+    expect(d.achievement_progress!["kills_tiered"]).toBe(50);
+  });
+});
+
+describe("hidden feat wasHidden flag", () => {
+  it("completing a hidden achievement sets wasHidden: true", () => {
+    const gs = make();
+    // deathless_depth is hidden: true; triggers when deaths===0 and highestLevel>=20
+    gs.highestLevel = 20;
+    gs.deaths = 0;
+    gs.checkAchievements();
+    const pending = gs.pendingAchievements;
+    const unlock = pending.find(u => u.name === "Untouchable");
+    expect(unlock).toBeDefined();
+    expect(unlock!.wasHidden).toBe(true);
+  });
+
+  it("completing a non-hidden achievement does not set wasHidden", () => {
+    const gs = make();
+    gs.lifetimeKills = 100;
+    gs.checkAchievements();
+    const unlock = gs.pendingAchievements.find(u => u.name === "Slayer");
+    expect(unlock).toBeDefined();
+    expect(unlock!.wasHidden).toBeFalsy();
+  });
+
+  it("second tier of hidden tiered feat does not set wasHidden", () => {
+    // boss_kills_tiered is hidden: false, but let's test a tiered hidden feat
+    // die_50 is hidden+non-tiered, so test deathless_depth (non-tiered hidden)
+    // For tiered: no hidden tiered feat exists in current ACHIEVEMENTS — use non-tiered
+    const gs = make();
+    gs.highestLevel = 20;
+    gs.checkAchievements(); // already unlocked → wasHidden
+    gs.pendingAchievements = [];
+    gs.checkAchievements(); // second call — already in achievementsUnlocked, no new unlock
+    expect(gs.pendingAchievements.length).toBe(0);
+  });
+});

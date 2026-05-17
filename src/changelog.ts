@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.18.0";
+export const VERSION = "v2.19.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,19 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.19.0",
+    date: "2026-05-17",
+    changes: [
+      "Feat progress bars now show real progress toward the next tier milestone",
+      "Feat reward descriptions now show avatar icon+name or border name (all feat rewards are cosmetics)",
+      "Mystery feats now trigger a special 'Mystery Feat Revealed!' notification when completed",
+      "Filter tabs on the Feats panel: All / In Progress / Completed",
+      "Feats sort within categories: active progress first, completed last",
+      "Category headers show completion count (e.g. ⚔ Combat 3/7)",
+      "Fixed missing Runes category label in Feats panel",
+    ],
+  },
   {
     version: "v2.18.0",
     date: "2026-05-17",

@@ -295,6 +295,7 @@ export interface AchievementUnlock {
   tier?: AchievementTierLabel;
   name: string;
   reward?: AchievementReward;
+  wasHidden?: boolean;
 }
 
 /** The five stat categories that can be upgraded per character. */
@@ -368,6 +369,7 @@ export interface GameStateDict {
   selected_avatar?: string;
   selected_border?: string;
   lifetime_clicks?: number;
+  achievement_progress?: Record<string, number>;
 }
 
 /** Central game loop: owns all mutable state and exposes action methods that return serialized JSON. */
@@ -1405,6 +1407,7 @@ export class GameState {
       selected_avatar: this.selectedAvatar,
       selected_border: this.selectedBorder,
       lifetime_clicks: this.lifetimeClicks,
+      achievement_progress: Object.fromEntries(ACHIEVEMENTS.map(def => [def.id, def.getValue(this)])),
     };
   }
 
@@ -1457,9 +1460,10 @@ export class GameState {
         for (const tier of def.tiers) {
           const key = `${def.id}_${tier.label}`;
           if (!this.achievementsUnlocked.has(key) && val >= tier.threshold) {
+            const hadAnyTier = def.tiers.some(t2 => this.achievementsUnlocked.has(`${def.id}_${t2.label}`));
             this.achievementsUnlocked.add(key);
             this.applyReward(tier.reward);
-            const unlock: AchievementUnlock = { id: def.id, tier: tier.label, name: def.name, reward: tier.reward };
+            const unlock: AchievementUnlock = { id: def.id, tier: tier.label, name: def.name, reward: tier.reward, wasHidden: def.hidden && !hadAnyTier };
             newly.push(unlock);
             this.pendingAchievements.push(unlock);
           }
@@ -1468,7 +1472,7 @@ export class GameState {
         if (!this.achievementsUnlocked.has(def.id) && val >= 1) {
           this.achievementsUnlocked.add(def.id);
           this.applyReward(def.reward);
-          const unlock: AchievementUnlock = { id: def.id, name: def.name, reward: def.reward };
+          const unlock: AchievementUnlock = { id: def.id, name: def.name, reward: def.reward, wasHidden: def.hidden };
           newly.push(unlock);
           this.pendingAchievements.push(unlock);
         }

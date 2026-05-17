@@ -1800,7 +1800,7 @@ function renderThemePicker(state: GameStateDict): void {
 
 const CATEGORY_LABELS: Record<string, string> = {
   combat: "Combat", explorer: "Explorer", collector: "Collector",
-  wealth: "Wealth", prestige: "Prestige", guild: "Guild",
+  wealth: "Wealth", prestige: "Prestige", guild: "Guild", runes: "Runes",
 };
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -1808,9 +1808,13 @@ const CATEGORY_ICONS: Record<string, string> = {
 };
 
 let featsKey = "";
+let featsFilter: "all" | "in_progress" | "completed" = "all";
+
 function renderFeats(state: GameStateDict): void {
   const unlocked = new Set(state.achievements_unlocked ?? []);
-  const newKey = `${state.achievements_unlocked?.length}|${state.earned_title}`;
+  const progress = state.achievement_progress ?? {};
+  const progressBucket = ACHIEVEMENTS.map(def => Math.floor((progress[def.id] ?? 0) / 5) * 5).join(",");
+  const newKey = `${state.achievements_unlocked?.join(",")}|${state.earned_title}|${featsFilter}|${progressBucket}`;
   if (newKey === featsKey) return;
   featsKey = newKey;
 
@@ -1819,12 +1823,66 @@ function renderFeats(state: GameStateDict): void {
   for (const cat of categories) byCategory[cat] = [];
   for (const def of ACHIEVEMENTS) byCategory[def.category]?.push(def);
 
-  const html = categories.map(cat => {
-    const defs = byCategory[cat];
-    const rows = defs.map(def => {
-      const isDone = def.tiers
-        ? unlocked.has(`${def.id}_gold`) || (!def.tiers.some(t => t.label === "gold") && unlocked.has(`${def.id}_${def.tiers[def.tiers.length-1].label}`))
-        : unlocked.has(def.id);
+  function featRewardLabel(r: { type: string; value?: number; title?: string; cosmetic?: string }, prefix: string): string {
+    if (r.type === "gold") return prefix + `+${r.value}g`;
+    if (r.type === "title") return prefix + `"${r.title}"`;
+    if (r.type === "avatar") {
+      const a = AVATAR_DEFS.find(x => x.id === r.cosmetic);
+      return prefix + `${a?.icon ?? ""} ${a?.name ?? r.cosmetic} avatar`;
+    }
+    if (r.type === "border") {
+      const b = BORDER_DEFS.find(x => x.id === r.cosmetic);
+      return prefix + `${b?.name ?? r.cosmetic} border`;
+    }
+    return "";
+  }
+
+  function featStatus(def: typeof ACHIEVEMENTS[0]): "done" | "active" | "locked" {
+    if (def.tiers) {
+      const lastLabel = def.tiers[def.tiers.length - 1].label;
+      const isDone = unlocked.has(`${def.id}_${lastLabel}`);
+      if (isDone) return "done";
+      const hasProgress = (progress[def.id] ?? 0) > 0 || def.tiers.some(t => unlocked.has(`${def.id}_${t.label}`));
+      return hasProgress ? "active" : "locked";
+    } else {
+      if (unlocked.has(def.id)) return "done";
+      return (progress[def.id] ?? 0) > 0 ? "active" : "locked";
+    }
+  }
+
+  const filterTabs = `<div class="feats-filter-tabs">
+    <button class="feats-filter-btn${featsFilter === "all" ? " active" : ""}" data-action="feats-filter" data-filter="all">All</button>
+    <button class="feats-filter-btn${featsFilter === "in_progress" ? " active" : ""}" data-action="feats-filter" data-filter="in_progress">In Progress</button>
+    <button class="feats-filter-btn${featsFilter === "completed" ? " active" : ""}" data-action="feats-filter" data-filter="completed">Completed</button>
+  </div>`;
+
+  const categorySections = categories.map(cat => {
+    const allDefs = byCategory[cat];
+    const doneCount = allDefs.filter(def => featStatus(def) === "done").length;
+
+    // Sort: active → locked → done
+    const sorted = [...allDefs].sort((a, b) => {
+      const order = { active: 0, locked: 1, done: 2 };
+      return order[featStatus(a)] - order[featStatus(b)];
+    });
+
+    // Apply filter
+    const visible = sorted.filter(def => {
+      const st = featStatus(def);
+      if (featsFilter === "in_progress") return st === "active";
+      if (featsFilter === "completed") return st === "done";
+      return true;
+    });
+
+    if (visible.length === 0) return "";
+
+    const allDone = doneCount === allDefs.length;
+    const countCls = allDone ? " complete" : "";
+    const header = `<div class="feat-category-title">${CATEGORY_ICONS[cat]} ${CATEGORY_LABELS[cat]}<span class="feat-cat-count${countCls}">${doneCount}/${allDefs.length}</span></div>`;
+
+    const rows = visible.map(def => {
+      const status = featStatus(def);
+      const isDone = status === "done";
       const isHidden = def.hidden && !isDone && !def.tiers?.some(t => unlocked.has(`${def.id}_${t.label}`));
 
       const name = isHidden ? "???" : def.name;
@@ -1832,61 +1890,53 @@ function renderFeats(state: GameStateDict): void {
       const iconCls = isDone ? "" : " locked";
 
       let tierHtml = "";
-      let progressHtml = "";
+      let progressBarHtml = "";
       if (def.tiers && !isHidden) {
         const labels = { bronze: "B", silver: "S", gold: "G" };
         const pips = def.tiers.map(t => {
-          const key = `${def.id}_${t.label}`;
-          const done = unlocked.has(key);
+          const done = unlocked.has(`${def.id}_${t.label}`);
           const cls = done ? ` ${t.label}-done` : "";
           return `<span class="feat-tier-pip${cls}" title="${t.label}: ${t.threshold.toLocaleString()}">${labels[t.label]}</span>`;
         }).join("");
         tierHtml = `<div class="feat-tiers">${pips}</div>`;
 
-        // Show progress toward next tier
         const nextTier = def.tiers.find(t => !unlocked.has(`${def.id}_${t.label}`));
         if (nextTier) {
           const prevThreshold = def.tiers[def.tiers.indexOf(nextTier) - 1]?.threshold ?? 0;
-          const raw = 0; // We don't have current progress in state easily; skip for now
-          const pct = Math.min(100, raw);
-          progressHtml = `<div class="feat-progress-bar"><div class="feat-progress-fill" style="width:${pct}%"></div></div>`;
+          const current = progress[def.id] ?? 0;
+          const pct = prevThreshold > 0
+            ? Math.min(100, ((current - prevThreshold) / (nextTier.threshold - prevThreshold)) * 100)
+            : Math.min(100, (current / nextTier.threshold) * 100);
+          progressBarHtml = `<div class="feat-progress-bar"><div class="feat-progress-fill" style="width:${pct}%"></div></div>`;
         }
       }
 
       let rewardHtml = "";
       if (!isHidden) {
-        const rewards = def.tiers ? def.tiers.filter(t => t.reward).map(t => {
-          const r = t.reward!;
-          if (r.type === "gold") return `${t.label}: +${r.value}g`;
-          if (r.type === "prestige_points") return `${t.label}: +${r.value}✦`;
-          if (r.type === "title") return `${t.label}: "${r.title}"`;
-          return "";
-        }) : def.reward ? [
-          def.reward.type === "gold" ? `+${def.reward.value}g` :
-          def.reward.type === "prestige_points" ? `+${def.reward.value}✦` :
-          def.reward.type === "title" ? `"${def.reward.title}"` : ""
-        ] : [];
+        const rewards = def.tiers
+          ? def.tiers.filter(t => t.reward).map(t => featRewardLabel(t.reward!, `${t.label}: `))
+          : def.reward ? [featRewardLabel(def.reward, "")] : [];
         if (rewards.filter(Boolean).length) {
           rewardHtml = `<div class="feat-reward">${rewards.filter(Boolean).join(" · ")}</div>`;
         }
       }
 
       const nameCls = isHidden ? " locked-hidden" : "";
-      return `<div class="feat-row">
+      const doneCls = isDone ? " feat-done" : "";
+      return `<div class="feat-row${doneCls}">
         <div class="feat-icon${iconCls}">${isDone ? "✅" : (isHidden ? "❓" : "🔲")}</div>
         <div class="feat-info">
           <div class="feat-name${nameCls}">${name}</div>
           <div class="feat-desc">${desc}</div>
-          ${rewardHtml}${tierHtml}
+          ${rewardHtml}${tierHtml}${progressBarHtml}
         </div>
       </div>`;
     }).join("");
 
-    return `<div class="feat-category">
-      <div class="feat-category-title">${CATEGORY_ICONS[cat]} ${CATEGORY_LABELS[cat]}</div>
-      ${rows}
-    </div>`;
-  }).join("");
+    return `<div class="feat-category">${header}${rows}</div>`;
+  }).filter(Boolean).join("");
+
+  const noResults = `<div class="feat-empty">No feats match this filter.</div>`;
 
   const earnedTitles: string[] = (state as any).earned_titles ?? [];
   const titleHtml = earnedTitles.length > 0
@@ -1901,7 +1951,7 @@ function renderFeats(state: GameStateDict): void {
       </div>`
     : "";
 
-  $("feats-content").innerHTML = titleHtml + html;
+  $("feats-content").innerHTML = titleHtml + filterTabs + (categorySections || noResults);
 
   // Badge: show count of pending toasts as a brief notification
   const badge = document.getElementById("stab-feats-badge");
@@ -1926,11 +1976,14 @@ function showAchievementToasts(unlocks: AchievementUnlock[]): void {
       const rewardText = !r ? "" :
         r.type === "gold" ? `+${r.value}g` :
         r.type === "prestige_points" ? `+${r.value} prestige point${(r.value ?? 1) > 1 ? "s" : ""}` :
-        r.type === "title" ? `Title unlocked: "${r.title}"` : "";
+        r.type === "title" ? `Title unlocked: "${r.title}"` :
+        r.type === "avatar" ? (() => { const a = AVATAR_DEFS.find(x => x.id === r.cosmetic); return `Avatar: ${a?.icon ?? ""} ${a?.name ?? r.cosmetic}`; })() :
+        r.type === "border" ? (() => { const b = BORDER_DEFS.find(x => x.id === r.cosmetic); return `Border: ${b?.name ?? r.cosmetic}`; })() : "";
       const tierTag = u.tier ? ` <span style="font-size:0.6rem;color:var(--muted)">(${u.tier})</span>` : "";
+      const toastTitle = u.wasHidden ? "Mystery Feat Revealed!" : "Feat Unlocked!";
       const el = document.createElement("div");
       el.className = "achievement-toast";
-      el.innerHTML = `<div class="toast-title">Feat Unlocked!</div><div class="toast-name">${u.name}${tierTag}</div>${rewardText ? `<div class="toast-reward">${rewardText}</div>` : ""}`;
+      el.innerHTML = `<div class="toast-title">${toastTitle}</div><div class="toast-name">${u.name}${tierTag}</div>${rewardText ? `<div class="toast-reward">${rewardText}</div>` : ""}`;
       container.appendChild(el);
       setTimeout(() => el.remove(), 3200);
     }, i * 400);
@@ -2990,6 +3043,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     else if (action === "set-title") {
       call("setEarnedTitle", btn.dataset.title ?? "");
+    }
+    else if (action === "feats-filter") {
+      featsFilter = (btn.dataset.filter as "all" | "in_progress" | "completed") ?? "all";
+      featsKey = "";
+      if (game) renderFeats(JSON.parse(game.respond()) as GameStateDict);
     }
     else if (action === "open-profile-picker") {
       profilePickerOpen = !profilePickerOpen;

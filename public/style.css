@@ -4459,3 +4459,12 @@ footer {
   height: 28px;
   border-radius: 50%;
 }
+
+/* ── Feats Panel Revamp ────────────────────────────────────────────────── */
+.feats-filter-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.feats-filter-btn { padding: 4px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-size: 0.78rem; color: var(--text); }
+.feats-filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
+.feat-cat-count { font-weight: 400; color: var(--muted); margin-left: 6px; font-size: 0.68rem; }
+.feat-cat-count.complete { color: var(--accent2, #4ade80); }
+.feat-row.feat-done { opacity: 0.5; }
+.feat-empty { color: var(--muted); font-size: 0.8rem; text-align: center; padding: 20px 0; }
