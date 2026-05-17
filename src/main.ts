@@ -1636,12 +1636,9 @@ function renderSkillButton(state: GameStateDict): void {
   skillKey = newKey;
 
   const btn = $("skill-btn") as HTMLButtonElement;
-  const bar = $("skill-cooldown-bar");
-  const fill = $("skill-cooldown-fill");
 
   if (!skillId) {
     btn.hidden = true;
-    bar.hidden = true;
     return;
   }
 
@@ -1657,14 +1654,6 @@ function renderSkillButton(state: GameStateDict): void {
   btn.dataset.skillState = encodeURIComponent(JSON.stringify({ remaining, expiry, totalCooldown, isActive, onCooldown }));
   btn.disabled = onCooldown;
   btn.className = isActive ? "active" : "";
-
-  if (onCooldown) {
-    const pct = Math.min(100, ((totalCooldown - remaining) / totalCooldown) * 100);
-    fill.style.width = pct + "%";
-    bar.hidden = false;
-  } else {
-    bar.hidden = true;
-  }
 }
 
 /** Renders skill buttons for companion party members below the attack button. */
@@ -1685,11 +1674,9 @@ function renderCompanionSkills(state: GameStateDict): void {
     const totalCooldown = SKILL_DEFS[skillId]?.cooldownKills ?? 30;
     const isActive = expiry > 0;
     const onCooldown = remaining > 0 && !isActive;
-    const pct = onCooldown ? Math.min(100, ((totalCooldown - remaining) / totalCooldown) * 100) : 0;
     const label = SKILL_NAMES[skillId] ?? skillId;
     return `<div class="companion-skill-cell">
       <button class="companion-skill-btn${isActive ? " active" : ""}" data-action="activate-companion-skill" data-skill="${skillId}" data-active-skill="${skillId}" data-skill-state="${encodeURIComponent(JSON.stringify({ remaining, expiry, totalCooldown, isActive, onCooldown }))}"${onCooldown ? " disabled" : ""}>${label}</button>
-      ${onCooldown ? `<div class="skill-cooldown-bar companion-cooldown-bar"><div class="skill-cooldown-fill" style="width:${pct}%"></div></div>` : ""}
     </div>`;
   }).join("");
 }

@@ -2255,21 +2255,6 @@ main {
     to   { box-shadow: 0 0 14px var(--accent2, #a78bfa); }
 }
 
-#skill-cooldown-bar {
-    width: 100%;
-    height: 4px;
-    background: var(--surface2);
-    border-radius: 2px;
-    margin-top: 3px;
-    overflow: hidden;
-}
-#skill-cooldown-fill {
-    height: 100%;
-    background: var(--accent2, #a78bfa);
-    border-radius: 2px;
-    transition: width 0.5s linear;
-}
-
 /* ── Companion skill buttons ── */
 #companion-skills { display: flex; flex-direction: row; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 
@@ -2302,14 +2287,6 @@ main {
     box-shadow: 0 0 8px var(--accent2, #a78bfa);
     animation: skill-pulse 1s ease-in-out infinite alternate;
 }
-.companion-cooldown-bar {
-    width: 100%;
-    height: 4px;
-    background: var(--surface2);
-    border-radius: 2px;
-    overflow: hidden;
-}
-
 /* ── Stats modal ── */
 #stats-modal, #party-class-modal {
     display: none;
