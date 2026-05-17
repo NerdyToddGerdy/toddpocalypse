@@ -133,7 +133,7 @@ function call<K extends keyof GameState>(method: K, ...args: any[]): void {
   }
 }
 
-import { KILLS_PER_LEVEL, killsForFloor } from "./engine.js";
+import { KILLS_PER_LEVEL, killsForFloor, CORRUPTION_FLOOR, CORRUPTION_RATE_PER_FLOOR, CORRUPTION_HEAL_REDUCTION_PER_FLOOR } from "./engine.js";
 
 /** Full re-render of all UI panels from a GameStateDict snapshot. */
 function render(state: GameStateDict): void {
@@ -191,6 +191,18 @@ function render(state: GameStateDict): void {
   $("stat-best").textContent = String(state.highest_level);
   $("stat-kills").textContent = String(state.kills);
   $("stat-deaths").textContent = String(state.deaths);
+
+  const corruptionDepth = Math.max(0, state.dungeon_level - CORRUPTION_FLOOR);
+  const totalCorruptionDps = corruptionDepth > 0
+    ? state.party.reduce((s, c) => s + c.max_health * corruptionDepth * CORRUPTION_RATE_PER_FLOOR, 0)
+    : 0;
+  const corruptionEl = $("stat-corruption");
+  corruptionEl.hidden = totalCorruptionDps <= 0;
+  if (totalCorruptionDps > 0) {
+    $("stat-corruption-dps").textContent = formatNumber(Math.round(totalCorruptionDps));
+    const healReductionPct = Math.round(Math.min(90, corruptionDepth * CORRUPTION_HEAL_REDUCTION_PER_FLOOR * 100));
+    corruptionEl.title = `Dungeon corruption: ${formatNumber(Math.round(totalCorruptionDps))} damage/s to all party members. Lifesteal reduced by ${healReductionPct}%.`;
+  }
 
   const aliveMembers = state.party.filter(c => c.health > 0);
   const totalHp = aliveMembers.reduce((s, c) => s + Math.ceil(c.health), 0);

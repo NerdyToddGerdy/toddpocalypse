@@ -192,6 +192,13 @@ export const GUILD_HALL_DUNGEON_REQ: Record<string, number> = {
 };
 
 /** Cooldown (ms) and duration (kills) and class requirement for each active combat skill. */
+/** Floor at which dungeon corruption begins dealing passive damage to the party. */
+export const CORRUPTION_FLOOR = 25;
+/** Fraction of a member's maxHealth lost per second per floor of depth beyond CORRUPTION_FLOOR. */
+export const CORRUPTION_RATE_PER_FLOOR = 0.003;
+/** Lifesteal is reduced by this fraction per floor of depth, capped at 90%. */
+export const CORRUPTION_HEAL_REDUCTION_PER_FLOOR = 0.06;
+
 export const BATTLE_CRY_MULT    = 2.0;
 export const SHADOW_STRIKE_MULT = 3.0;
 export const ARCANE_SURGE_MULT  = 3.0;
@@ -580,12 +587,17 @@ export class GameState {
       return this.respond();
     }
 
-    // Lifesteal: heal the first injured alive character proportionally to damage dealt
+    // Corruption depth used for both lifesteal reduction and damage below
+    const corruptionDepth = Math.max(0, this.dungeonLevel - CORRUPTION_FLOOR);
+    const healReduction = Math.min(0.90, corruptionDepth * CORRUPTION_HEAL_REDUCTION_PER_FLOOR);
+
+    // Lifesteal: heal the first injured alive character — reduced by corruption at depth
     const partyLifesteal = this.party.team.reduce((s, c) => c.isAlive() ? s + c.lifesteal : s, 0);
     if (damageDealt > 0 && partyLifesteal > 0) {
+      const effectiveLifesteal = partyLifesteal * (1 - healReduction);
       const healTarget = this.party.team.find(c => c.isAlive() && c.health < c.maxHealth);
       if (healTarget) {
-        healTarget.health = Math.min(healTarget.maxHealth, healTarget.health + damageDealt * partyLifesteal);
+        healTarget.health = Math.min(healTarget.maxHealth, healTarget.health + damageDealt * effectiveLifesteal);
       }
     }
 
@@ -601,6 +613,15 @@ export class GameState {
       target.health -= this.enemy.attack_dps * partySizeMult * dt * (1 - totalDmgReduction);
       target.health = Math.max(0, target.health);
     }
+
+    // Dungeon corruption: all living members lose % of maxHealth per second, scaling with floor depth
+    if (corruptionDepth > 0) {
+      for (const c of this.party.team) {
+        if (!c.isAlive()) continue;
+        c.health = Math.max(0, c.health - c.maxHealth * corruptionDepth * CORRUPTION_RATE_PER_FLOOR * dt);
+      }
+    }
+
     if (this.party.team.every(c => !c.isAlive())) {
       this.onPlayerDeath();
     }

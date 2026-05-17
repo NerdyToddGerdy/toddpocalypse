@@ -12,6 +12,9 @@ import {
   killsForFloor, prestigeUpgradeCost, ventureUnlockLevel,
   STASH_TIER_COSTS, STASH_SIZES,
   DPS_BONUS_PER_LEVEL,
+  CORRUPTION_FLOOR,
+  CORRUPTION_RATE_PER_FLOOR,
+  CORRUPTION_HEAL_REDUCTION_PER_FLOOR,
   ARTIFACT_DEFS, ARTIFACT_DROP_POOL,
   AVATAR_DEFS, BORDER_DEFS,
   ACHIEVEMENTS,
@@ -374,6 +377,60 @@ describe("party combat (multi-member HP)", () => {
     const dmgRogueDead = 999_999 - gs.enemy.hp;
 
     expect(dmgRogueDead).toBeLessThan(dmgRogueAlive);
+  });
+});
+
+describe("dungeon corruption", () => {
+  function makeDeepGs(floor: number) {
+    const gs = make();
+    gs.dungeonLevel = floor;
+    gs.enemy.hp = gs.enemy.max_hp = 999_999;
+    gs.enemy.attack_dps = 0; // isolate corruption
+    // give all members full HP
+    for (const c of gs.party.team) { c.health = c.maxHealth; }
+    return gs;
+  }
+
+  it("deals no corruption at or below CORRUPTION_FLOOR", () => {
+    const gs = makeDeepGs(CORRUPTION_FLOOR);
+    const before = gs.party.team.map(c => c.health);
+    gs.tick(1.0);
+    gs.party.team.forEach((c, i) => expect(c.health).toBe(before[i]));
+  });
+
+  it("deals corruption damage to all living members above CORRUPTION_FLOOR", () => {
+    const gs = makeDeepGs(CORRUPTION_FLOOR + 1);
+    const before = gs.party.team.map(c => c.health);
+    gs.tick(1.0);
+    gs.party.team.forEach((c, i) => expect(c.health).toBeLessThan(before[i]));
+  });
+
+  it("corruption scales with floor depth", () => {
+    const gs30 = makeDeepGs(30);
+    const gs40 = makeDeepGs(40);
+    gs30.tick(1.0);
+    gs40.tick(1.0);
+    const dmg30 = gs30.party.team[0].maxHealth - gs30.party.team[0].health;
+    const dmg40 = gs40.party.team[0].maxHealth - gs40.party.team[0].health;
+    expect(dmg40).toBeGreaterThan(dmg30);
+  });
+
+  it("corruption can kill party members and trigger onPlayerDeath", () => {
+    const gs = makeDeepGs(60);
+    for (const c of gs.party.team) c.health = 0.1;
+    gs.tick(1.0);
+    expect(gs.deaths).toBe(1);
+  });
+
+  it("CORRUPTION_HEAL_REDUCTION_PER_FLOOR produces >0 reduction at depth 1", () => {
+    const reduction = Math.min(0.90, 1 * CORRUPTION_HEAL_REDUCTION_PER_FLOOR);
+    expect(reduction).toBeGreaterThan(0);
+    expect(reduction).toBeLessThanOrEqual(0.90);
+  });
+
+  it("heal reduction caps at 90% regardless of floor depth", () => {
+    const reduction = Math.min(0.90, 100 * CORRUPTION_HEAL_REDUCTION_PER_FLOOR);
+    expect(reduction).toBe(0.90);
   });
 });
 

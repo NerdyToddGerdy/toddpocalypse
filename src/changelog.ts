@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.22.5";
+export const VERSION = "v2.23.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.23.0",
+    date: "2026-05-17",
+    changes: [
+      "Dungeon corruption: below floor 25, all party members take passive damage scaling with depth (% of maxHealth/s)",
+      "Corruption reduces lifesteal effectiveness by 6% per floor of depth, capped at 90% — deep floors punish healing-heavy builds",
+      "A pulsing ☠ Corruption indicator in the stat bar shows total damage/s and lifesteal reduction when active",
+    ],
+  },
   {
     version: "v2.22.5",
     date: "2026-05-17",
