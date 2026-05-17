@@ -1241,9 +1241,18 @@ function renderArtifactPanel(state: GameStateDict): void {
     return `${def?.icon ?? "✨"} ${def?.name ?? inst.id}${inst.level > 0 ? ` <span class="artifact-level-badge">+${inst.level}</span>` : ""}`;
   }
 
+  const sortedArtifactIndices = artifactInv.map((_, i) => i).sort((a, b) => {
+    const defA = ARTIFACT_DEFS[artifactInv[a].id as keyof typeof ARTIFACT_DEFS];
+    const defB = ARTIFACT_DEFS[artifactInv[b].id as keyof typeof ARTIFACT_DEFS];
+    const nameCmp = (defA?.name ?? artifactInv[a].id).localeCompare(defB?.name ?? artifactInv[b].id);
+    if (nameCmp !== 0) return nameCmp;
+    return artifactInv[b].level - artifactInv[a].level; // higher level first within same name
+  });
+
   const itemsHtml = artifactInv.length === 0
     ? `<div class="artifact-empty">No artifacts in inventory.</div>`
-    : artifactInv.map((inst, i) => {
+    : sortedArtifactIndices.map(i => {
+        const inst = artifactInv[i];
         const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
         if (!def) return "";
         const sellVal = def.sellValue * (inst.level + 1);
