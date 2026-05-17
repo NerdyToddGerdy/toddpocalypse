@@ -875,13 +875,10 @@ let profilePickerTab: "avatar" | "border" | "title" = "avatar";
 let profileWidgetKey = "";
 
 function renderProfileWidget(state: GameStateDict): void {
-  const earnedAvatars = new Set<string>(state.earned_avatars ?? ["default"]);
-  const earnedBorders = new Set<string>(state.earned_borders ?? ["none"]);
   const selectedAvatar = state.selected_avatar ?? "default";
   const selectedBorder = state.selected_border ?? "none";
-  const earnedTitles: string[] = (state.earned_titles as string[] | undefined) ?? [];
   const selectedTitle = state.earned_title ?? "nobody";
-  const newKey = `${selectedAvatar}|${selectedBorder}|${selectedTitle}|${earnedTitles.join(",")}|${profilePickerOpen}|${profilePickerTab}`;
+  const newKey = `${selectedAvatar}|${selectedBorder}|${selectedTitle}|${profilePickerOpen}`;
   if (newKey === profileWidgetKey) return;
   profileWidgetKey = newKey;
 
@@ -894,16 +891,19 @@ function renderProfileWidget(state: GameStateDict): void {
     </div>
     <span class="header-avatar-label">${selectedTitle}</span>`;
 
-  const dropdown = $("profile-picker-dropdown");
-  if (!profilePickerOpen) {
-    dropdown.hidden = true;
-    return;
-  }
+  $("profile-picker-dropdown").hidden = !profilePickerOpen;
+}
 
+function renderCustomizeModal(state: GameStateDict): void {
+  const earnedAvatars = new Set<string>(state.earned_avatars ?? ["default"]);
+  const earnedBorders = new Set<string>(state.earned_borders ?? ["none"]);
+  const selectedAvatar = state.selected_avatar ?? "default";
+  const selectedBorder = state.selected_border ?? "none";
+  const earnedTitles: string[] = (state.earned_titles as string[] | undefined) ?? [];
+  const selectedTitle = state.earned_title ?? "nobody";
   const allTitles = ["nobody", ...earnedTitles];
 
-  dropdown.hidden = false;
-  dropdown.innerHTML = `
+  $("customize-picker-content").innerHTML = `
     <div class="profile-picker-tabs">
       <button class="profile-tab-btn ${profilePickerTab === "avatar" ? "active" : ""}" data-action="profile-tab" data-tab="avatar">Avatar</button>
       <button class="profile-tab-btn ${profilePickerTab === "border" ? "active" : ""}" data-action="profile-tab" data-tab="border">Border</button>
@@ -941,7 +941,7 @@ function renderProfileWidget(state: GameStateDict): void {
 
 /** Renders the Prestige Shop item list, marking purchased one-time items and unaffordable items. */
 function renderPrestigeShop(state: GameStateDict): void {
-  const newKey = JSON.stringify(state.prestige_upgrades) + "|" + state.prestige_points + "|" + state.highest_level + "|" + JSON.stringify(state.auto_sell_qualities) + "|" + state.dungeon_index;
+  const newKey = JSON.stringify(state.prestige_upgrades) + "|" + state.prestige_points + "|" + state.highest_level + "|" + JSON.stringify(state.auto_sell_qualities) + "|" + state.dungeon_index + "|" + state.auto_prestige_enabled + "|" + state.auto_prestige_threshold;
   if (newKey === prestigeKey) return;
   prestigeKey = newKey;
 
@@ -1015,7 +1015,20 @@ function renderPrestigeShop(state: GameStateDict): void {
     })
     .join("");
 
-  $("prestige-shop-items").innerHTML = partyMembersCard + normalItems;
+  const guildUps = state.guild_upgrades as Record<string, number>;
+  const eternalUnlocked = (guildUps["eternal_cycle"] ?? 0) >= 1;
+  const autoEnabled = state.auto_prestige_enabled ?? false;
+  const autoThreshold = state.auto_prestige_threshold ?? 5;
+  const eternalRow = eternalUnlocked ? `<div class="prestige-setting-row">
+    <div class="prestige-setting-label">⟳ Eternal Cycle</div>
+    <div class="prestige-setting-desc">Auto-prestige when a run would yield at least <strong>${autoThreshold}</strong> pt${autoThreshold !== 1 ? "s" : ""}.</div>
+    <div class="prestige-auto-controls">
+      <input type="number" class="prestige-auto-threshold" data-action="set-auto-prestige-threshold" value="${autoThreshold}" min="1" max="99" style="width:48px;text-align:center" />
+      <button class="prestige-buy-btn ${autoEnabled ? "auto-prestige-active" : ""}" data-action="toggle-auto-prestige">${autoEnabled ? "ON" : "OFF"}</button>
+    </div>
+  </div>` : "";
+
+  $("prestige-shop-items").innerHTML = eternalRow + partyMembersCard + normalItems;
 }
 
 /** Enables/disables the Venture button based on whether the player has reached floor 40. */
@@ -1082,7 +1095,7 @@ function renderGuildHall(state: GameStateDict): void {
     return state.gold >= costs[stacks] ? "yes" : "no";
   }).join(",");
   const runeInvKey = JSON.stringify(state.rune_inventory ?? []);
-  const newKey = JSON.stringify(state.guild_upgrades) + "|" + affordKey + "|" + state.dungeon_index + "|" + runeInvKey + "|" + JSON.stringify(state.party.map(c => c.runes)) + "|" + state.auto_prestige_enabled + "|" + state.auto_prestige_threshold;
+  const newKey = JSON.stringify(state.guild_upgrades) + "|" + affordKey + "|" + state.dungeon_index + "|" + runeInvKey + "|" + JSON.stringify(state.party.map(c => c.runes));
   if (newKey === guildKey) return;
   guildKey = newKey;
 
@@ -1103,21 +1116,6 @@ function renderGuildHall(state: GameStateDict): void {
     const stackLabel = costs.length > 1 ? (atMax ? ` (${stacks}/${costs.length})` : stacks > 0 ? ` (${stacks}/${costs.length})` : "") : atMax ? " ✓" : "";
     const preview = atMax ? "" : guildUpgradePreview(type, stacks, state.loot_max);
     const currentStat = guildCurrentStat(type, stacks, state.loot_max);
-
-    if (type === "eternal_cycle" && atMax) {
-      const autoEnabled = state.auto_prestige_enabled ?? false;
-      const autoThreshold = state.auto_prestige_threshold ?? 5;
-      return `<div class="prestige-item prestige-auto-card">
-        <div class="prestige-item-meta">
-          <div class="prestige-item-name">${meta.icon} ${meta.name} ✓</div>
-          <div class="prestige-item-desc">Auto-prestige when a run yields at least <strong>${autoThreshold}</strong> pt${autoThreshold !== 1 ? "s" : ""}.</div>
-        </div>
-        <div class="prestige-auto-controls">
-          <input type="number" class="prestige-auto-threshold" data-action="set-auto-prestige-threshold" value="${autoThreshold}" min="1" max="99" style="width:48px;text-align:center" />
-          <button class="prestige-buy-btn ${autoEnabled ? "auto-prestige-active" : ""}" data-action="toggle-auto-prestige">${autoEnabled ? "ON" : "OFF"}</button>
-        </div>
-      </div>`;
-    }
 
     return `<div class="prestige-item">
       <div class="prestige-item-meta">
@@ -3267,11 +3265,31 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     else if (action === "open-profile-picker") {
       profilePickerOpen = !profilePickerOpen;
+      profileWidgetKey = "";
       if (game) renderProfileWidget(JSON.parse(game.respond()) as GameStateDict);
+    }
+    else if (action === "open-customize-modal") {
+      profilePickerOpen = false;
+      profileWidgetKey = "";
+      if (game) renderProfileWidget(JSON.parse(game.respond()) as GameStateDict);
+      $("customize-modal").classList.add("open");
+      if (game) renderCustomizeModal(JSON.parse(game.respond()) as GameStateDict);
+    }
+    else if (action === "open-settings-modal") {
+      profilePickerOpen = false;
+      profileWidgetKey = "";
+      if (game) renderProfileWidget(JSON.parse(game.respond()) as GameStateDict);
+      openSettings();
+    }
+    else if (action === "open-about-modal") {
+      profilePickerOpen = false;
+      profileWidgetKey = "";
+      if (game) renderProfileWidget(JSON.parse(game.respond()) as GameStateDict);
+      $("about-modal").classList.add("open");
     }
     else if (action === "profile-tab") {
       profilePickerTab = (btn.dataset.tab as "avatar" | "border" | "title") ?? "avatar";
-      if (game) renderProfileWidget(JSON.parse(game.respond()) as GameStateDict);
+      if (game) renderCustomizeModal(JSON.parse(game.respond()) as GameStateDict);
     }
     else if (action === "set-avatar") {
       call("setAvatar", btn.dataset.avatarId!);
@@ -3284,10 +3302,17 @@ document.addEventListener("DOMContentLoaded", () => {
   // Settings modal
   function openSettings(): void { $("settings-modal").classList.add("open"); }
   function closeSettings(): void { $("settings-modal").classList.remove("open"); }
-  $("settings-open-btn").addEventListener("click", openSettings);
   $("settings-modal-close").addEventListener("click", closeSettings);
   $("settings-modal").addEventListener("click", (e) => { if (e.target === $("settings-modal")) closeSettings(); });
   document.getElementById("mobile-settings-tab-btn")?.addEventListener("click", openSettings);
+
+  // Customize modal
+  $("customize-modal-close").addEventListener("click", () => $("customize-modal").classList.remove("open"));
+  $("customize-modal").addEventListener("click", (e) => { if (e.target === $("customize-modal")) $("customize-modal").classList.remove("open"); });
+
+  // About modal
+  $("about-modal-close").addEventListener("click", () => $("about-modal").classList.remove("open"));
+  $("about-modal").addEventListener("click", (e) => { if (e.target === $("about-modal")) $("about-modal").classList.remove("open"); });
 
   // Combat log history modal
   document.getElementById("log-history-btn")?.addEventListener("click", () => {

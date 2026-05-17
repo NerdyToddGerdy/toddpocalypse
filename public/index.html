@@ -69,10 +69,13 @@
     </div>
   </div>
   <div id="header-avatar-area">
-    <button id="header-avatar-btn" data-action="open-profile-picker" title="Profile &amp; Cosmetics"></button>
-    <div id="profile-picker-dropdown" hidden></div>
+    <button id="header-avatar-btn" data-action="open-profile-picker" title="Profile"></button>
+    <div id="profile-picker-dropdown" hidden>
+      <button class="profile-menu-item" data-action="open-customize-modal">🎨 Customize</button>
+      <button class="profile-menu-item" data-action="open-settings-modal">⚙ Settings</button>
+      <button class="profile-menu-item" data-action="open-about-modal">📖 About</button>
+    </div>
   </div>
-  <button id="settings-open-btn" title="Settings" aria-label="Settings">⚙</button>
 </header>
 
 <main>
@@ -376,11 +379,6 @@
         <div id="import-save-msg" class="cloud-status" hidden></div>
       </div>
       <div class="settings-row">
-        <div class="settings-label">Visual Theme</div>
-        <div class="settings-desc">Choose your fantasy aesthetic.</div>
-        <div id="theme-picker"></div>
-      </div>
-      <div class="settings-row">
         <div class="settings-label">Hard Reset</div>
         <div class="settings-desc">Permanently deletes all save data and restarts the game.</div>
         <button id="hard-reset-btn" class="danger-btn">Reset Game</button>
@@ -390,43 +388,36 @@
           <button id="hard-reset-no" class="secondary-btn">Cancel</button>
         </div>
       </div>
-      <div class="settings-row credits-row">
-        <div class="settings-label">Credits</div>
-        <div class="credits-list">
-          <div class="credit-entry">
-            <span class="credit-name">Todd Gerdy</span>
-            <span class="credit-role">Design, Development</span>
-          </div>
-          <div class="credit-entry">
-            <span class="credit-name">Claude (Anthropic)</span>
-            <span class="credit-role">AI Pair Programmer</span>
-          </div>
-          <div class="credit-entry">
-            <span class="credit-name">Jeremy</span>
-            <span class="credit-role">Art</span>
-          </div>
-          <div class="credit-entry">
-            <span class="credit-name">Jeremy</span>
-            <span class="credit-role">Testing</span>
-          </div>
-          <div class="credit-entry">
-            <span class="credit-name">The Spider Knight</span>
-            <span class="credit-role">Testing</span>
-          </div>
-          <div class="credit-entry">
-            <span class="credit-name">Feyla</span>
-            <span class="credit-role">Testing</span>
-          </div>
-          <div class="credit-entry">
-            <span class="credit-name">asphaltbuffet</span>
-            <span class="credit-role">Testing</span>
-          </div>
-          <div class="credit-entry">
-            <span class="credit-name">peeplover23</span>
-            <span class="credit-role">Testing</span>
-          </div>
-        </div>
+    </div>
+  </div>
+</div>
+
+<!-- Customize modal -->
+<div id="customize-modal" aria-modal="true" role="dialog" aria-labelledby="customize-modal-title">
+  <div id="customize-modal-box">
+    <div id="customize-modal-header">
+      <h2 id="customize-modal-title">🎨 Customize</h2>
+      <button id="customize-modal-close" aria-label="Close">✕</button>
+    </div>
+    <div id="customize-modal-body">
+      <div id="customize-picker-content"></div>
+      <div class="settings-row">
+        <div class="settings-label">Visual Theme</div>
+        <div class="settings-desc">Choose your fantasy aesthetic.</div>
+        <div id="theme-picker"></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- About modal -->
+<div id="about-modal" aria-modal="true" role="dialog" aria-labelledby="about-modal-title">
+  <div id="about-modal-box">
+    <div id="about-modal-header">
+      <h2 id="about-modal-title">📖 About</h2>
+      <button id="about-modal-close" aria-label="Close">✕</button>
+    </div>
+    <div id="about-modal-body">
       <div class="settings-row about-row">
         <div class="settings-label">About</div>
         <p class="about-text">
@@ -441,6 +432,19 @@
           knowing what to ask, when to push back, and how to stay in the driver's seat while letting
           AI handle the heavy lifting.
         </p>
+      </div>
+      <div class="settings-row credits-row">
+        <div class="settings-label">Credits</div>
+        <div class="credits-list">
+          <div class="credit-entry"><span class="credit-name">Todd Gerdy</span><span class="credit-role">Design, Development</span></div>
+          <div class="credit-entry"><span class="credit-name">Claude (Anthropic)</span><span class="credit-role">AI Pair Programmer</span></div>
+          <div class="credit-entry"><span class="credit-name">Jeremy</span><span class="credit-role">Art</span></div>
+          <div class="credit-entry"><span class="credit-name">Jeremy</span><span class="credit-role">Testing</span></div>
+          <div class="credit-entry"><span class="credit-name">The Spider Knight</span><span class="credit-role">Testing</span></div>
+          <div class="credit-entry"><span class="credit-name">Feyla</span><span class="credit-role">Testing</span></div>
+          <div class="credit-entry"><span class="credit-name">asphaltbuffet</span><span class="credit-role">Testing</span></div>
+          <div class="credit-entry"><span class="credit-name">peeplover23</span><span class="credit-role">Testing</span></div>
+        </div>
       </div>
     </div>
   </div>

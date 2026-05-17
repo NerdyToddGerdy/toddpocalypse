@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.26.3";
+export const VERSION = "v2.27.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,16 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.27.0",
+    date: "2026-05-17",
+    changes: [
+      "Avatar button opens a 3-item dropdown menu: Customize, Settings, About",
+      "Customize modal: avatar, border, and title pickers (moved from inline dropdown)",
+      "About modal: game description and credits",
+      "Visual theme picker moved into the Customize modal",
+    ],
+  },
   {
     version: "v2.26.3",
     date: "2026-05-17",
