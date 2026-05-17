@@ -183,6 +183,28 @@ function render(state: GameStateDict): void {
   ($("enemy-hp-bar") as HTMLElement).style.width = pct + "%";
   $("enemy-hp-text").textContent = `${formatNumber(Math.ceil(enemy.hp))} / ${formatNumber(enemy.max_hp)}`;
 
+  // Enrage bar (boss/elite only)
+  const enrageEl = $("enemy-enrage-bar-wrap") as HTMLElement;
+  if (enrageEl) {
+    const enrageTime = state.boss_enrage_time ?? 0;
+    const enrageMult = state.boss_enrage_mult ?? 1;
+    const wantsEnrage = enemy.is_boss || !!enemy.is_elite;
+    enrageEl.hidden = !wantsEnrage;
+    if (wantsEnrage) {
+      const isEnraged = enrageMult > 1;
+      const BOSS_ENRAGE_TRIGGER = 20;
+      const fillPct = isEnraged ? 100 : Math.min(100, (enrageTime / BOSS_ENRAGE_TRIGGER) * 100);
+      ($("enemy-enrage-bar") as HTMLElement).style.width = fillPct + "%";
+      $("enemy-enrage-label").textContent = isEnraged
+        ? `⚡ ENRAGED ${enrageMult.toFixed(2)}×`
+        : `Enrage in ${Math.ceil(BOSS_ENRAGE_TRIGGER - enrageTime)}s`;
+      enrageEl.classList.toggle("enraged", isEnraged);
+      portraitInner.classList.toggle("enraged", isEnraged);
+    } else {
+      portraitInner.classList.remove("enraged");
+    }
+  }
+
   $("stat-gold").textContent = formatNumber(state.gold);
   const partyGoldEl = $("stat-party-gold-bonus");
   if (partyGoldEl) {

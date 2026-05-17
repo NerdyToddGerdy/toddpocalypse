@@ -207,6 +207,13 @@ export const CORRUPTION_HEAL_REDUCTION_PER_FLOOR = 0.06;
 /** Fraction by which enemy attack DPS is reduced while Entangle is active. */
 export const ENTANGLE_REDUCTION = 0.60;
 
+/** Seconds into a boss/elite fight before enrage triggers. */
+export const BOSS_ENRAGE_TRIGGER = 20;
+/** Seconds between enrage multiplier steps after trigger. */
+export const BOSS_ENRAGE_STEP = 10;
+/** Maximum enrage multiplier. */
+export const BOSS_ENRAGE_CAP = 5;
+
 export const BATTLE_CRY_MULT    = 2.0;
 export const SHADOW_STRIKE_MULT = 3.0;
 export const ARCANE_SURGE_MULT  = 3.0;
@@ -397,6 +404,8 @@ export interface GameStateDict {
   achievement_progress?: Record<string, number>;
   auto_prestige_enabled?: boolean;
   auto_prestige_threshold?: number;
+  boss_enrage_time?: number;
+  boss_enrage_mult?: number;
 }
 
 /** Central game loop: owns all mutable state and exposes action methods that return serialized JSON. */
@@ -513,6 +522,7 @@ export class GameState {
   selectedBorder = "none";
   /** Whether auto-prestige fires automatically when prestige is available and threshold is met. */
   autoPrestigeEnabled = false;
+  bossEncounterTime = 0;
   /** Minimum prestige_points_preview required to trigger auto-prestige. */
   autoPrestigeThreshold = 5;
 
@@ -602,6 +612,11 @@ export class GameState {
       return this.respond();
     }
 
+    // Boss enrage timer: accumulate time on boss/elite encounters
+    if (this.enemy.isBoss || this.enemy.isElite) {
+      this.bossEncounterTime += dt;
+    }
+
     // Corruption: scales with floor depth × dungeon number (dungeon 2+ only)
     const corruptionDepth = this.dungeonIndex >= 1 ? Math.max(0, this.dungeonLevel - CORRUPTION_FLOOR) : 0;
     const corruptionMult = Math.min(20, corruptionDepth * this.dungeonIndex);
@@ -628,7 +643,7 @@ export class GameState {
       if (coreSlot) artifactDmgReduction = ARTIFACT_DEFS[coreSlot.id].effectValue * (coreSlot.level + 1);
       const totalDmgReduction = Math.min(0.50, target.damageReduction + artifactDmgReduction);
       const entangleMult = (this.activeEffects["skill_entangle"] ?? 0) > 0 ? (1 - ENTANGLE_REDUCTION) : 1.0;
-      target.health -= this.enemy.attack_dps * entangleMult * partySizeMult * dt * (1 - totalDmgReduction);
+      target.health -= this.enemy.attack_dps * entangleMult * this.bossEnrageMult * partySizeMult * dt * (1 - totalDmgReduction);
       target.health = Math.max(0, target.health);
     }
 
@@ -936,6 +951,13 @@ export class GameState {
     }
     this.addLog(`${charName}: ${ut} upgraded!`);
     return this.respond();
+  }
+
+  /** Attack multiplier applied to boss/elite after BOSS_ENRAGE_TRIGGER seconds. */
+  get bossEnrageMult(): number {
+    if (this.bossEncounterTime < BOSS_ENRAGE_TRIGGER) return 1.0;
+    const stacks = Math.floor((this.bossEncounterTime - BOSS_ENRAGE_TRIGGER) / BOSS_ENRAGE_STEP) + 1;
+    return Math.min(BOSS_ENRAGE_CAP, 1.5 ** stacks);
   }
 
   /** Calculates how many prestige points the player would earn if they prestiged right now. */
@@ -1488,6 +1510,8 @@ export class GameState {
       achievement_progress: Object.fromEntries(ACHIEVEMENTS.map(def => [def.id, def.getValue(this)])),
       auto_prestige_enabled: this.autoPrestigeEnabled,
       auto_prestige_threshold: this.autoPrestigeThreshold,
+      boss_enrage_time: this.bossEncounterTime,
+      boss_enrage_mult: this.bossEnrageMult,
     };
   }
 
@@ -1610,6 +1634,7 @@ export class GameState {
 
   /** Handles enemy defeat: awards XP/gold/loot, applies pending party abilities, and advances the floor. */
   onEnemyDeath(): void {
+    this.bossEncounterTime = 0;
     for (const key of Object.keys(this.activeEffects)) {
       this.activeEffects[key] -= 1;
       if (this.activeEffects[key] <= 0) delete this.activeEffects[key];
@@ -2065,6 +2090,7 @@ export class GameState {
     gs.selectedBorder = d.selected_border ?? "none";
     gs.autoPrestigeEnabled = d.auto_prestige_enabled ?? false;
     gs.autoPrestigeThreshold = d.auto_prestige_threshold ?? 5;
+    gs.bossEncounterTime = d.boss_enrage_time ?? 0;
 
     // Backfill cosmetic rewards for saves predating the avatar/border reward system
     for (const def of ACHIEVEMENTS) {

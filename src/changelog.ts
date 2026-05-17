@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.24.8";
+export const VERSION = "v2.25.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.25.0",
+    date: "2026-05-17",
+    changes: [
+      "Boss and elite enemies enrage after 20 seconds — attack multiplies by 1.5× every 10s, capped at 5×",
+      "Enrage progress bar appears below enemy HP during boss/elite fights",
+      "Portrait glows red and pulses when an enemy is enraged",
+    ],
+  },
   {
     version: "v2.24.8",
     date: "2026-05-17",

@@ -19,6 +19,9 @@ import {
   AVATAR_DEFS, BORDER_DEFS,
   ACHIEVEMENTS,
   formatNumber,
+  BOSS_ENRAGE_TRIGGER,
+  BOSS_ENRAGE_STEP,
+  BOSS_ENRAGE_CAP,
 } from "../src/engine.js";
 import { Character, CLASS_ABILITIES } from "../src/character.js";
 import { GearItem, getItem, getSetItem, SET_DEFS, type Slot } from "../src/gear.js";
@@ -1142,6 +1145,78 @@ describe("boss fight", () => {
     for (let i = 0; i < KILLS_PER_LEVEL; i++) gs.onEnemyDeath();
     expect(gs.enemy.isBoss).toBe(true);
     expect(gs.dungeonLevel).toBe(2);
+  });
+});
+
+describe("boss enrage", () => {
+  function atBoss(): GameState {
+    const gs = make();
+    for (let i = 0; i < KILLS_PER_LEVEL; i++) gs.onEnemyDeath();
+    return gs;
+  }
+
+  it("bossEncounterTime starts at 0", () => {
+    expect(make().bossEncounterTime).toBe(0);
+  });
+
+  it("bossEncounterTime does not increment for normal enemy", () => {
+    const gs = make();
+    gs.enemy.attack_dps = 0;
+    gs.tick(5);
+    expect(gs.bossEncounterTime).toBe(0);
+  });
+
+  it("bossEncounterTime increments during boss tick", () => {
+    const gs = atBoss();
+    gs.enemy.attack_dps = 0;
+    gs.tick(5);
+    expect(gs.bossEncounterTime).toBeCloseTo(5);
+  });
+
+  it("bossEncounterTime resets when boss dies", () => {
+    const gs = atBoss();
+    gs.bossEncounterTime = 25;
+    gs.onEnemyDeath();
+    expect(gs.bossEncounterTime).toBe(0);
+  });
+
+  it("enrage mult is 1.0 below trigger threshold", () => {
+    const gs = make();
+    gs.bossEncounterTime = BOSS_ENRAGE_TRIGGER - 0.1;
+    expect(gs.bossEnrageMult).toBe(1.0);
+  });
+
+  it("enrage mult is 1.5× at trigger threshold", () => {
+    const gs = make();
+    gs.bossEncounterTime = BOSS_ENRAGE_TRIGGER;
+    expect(gs.bossEnrageMult).toBeCloseTo(1.5);
+  });
+
+  it("enrage mult increases each step interval", () => {
+    const gs = make();
+    gs.bossEncounterTime = BOSS_ENRAGE_TRIGGER + BOSS_ENRAGE_STEP;
+    expect(gs.bossEnrageMult).toBeCloseTo(2.25);
+  });
+
+  it("enrage mult is capped at BOSS_ENRAGE_CAP", () => {
+    const gs = make();
+    gs.bossEncounterTime = 9999;
+    expect(gs.bossEnrageMult).toBe(BOSS_ENRAGE_CAP);
+  });
+
+  it("toDict includes boss_enrage_time and boss_enrage_mult", () => {
+    const gs = atBoss();
+    gs.bossEncounterTime = 20;
+    const d = gs.toDict();
+    expect(d.boss_enrage_time).toBeCloseTo(20);
+    expect(d.boss_enrage_mult).toBeCloseTo(1.5);
+  });
+
+  it("fromDict restores bossEncounterTime", () => {
+    const gs = atBoss();
+    gs.bossEncounterTime = 25;
+    const gs2 = GameState.fromDict(gs.toDict());
+    expect(gs2.bossEncounterTime).toBeCloseTo(25);
   });
 });
 
