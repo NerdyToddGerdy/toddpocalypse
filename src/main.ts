@@ -88,6 +88,7 @@ let artifactModalSlotIdx: number = -1;    // slot index when viewing equipped
 let artifactModalFuelSelected: Set<number> = new Set();
 let upgradeKey: string | null = null;
 let partyStructKey: string | null = null;
+let partyLootKey: string | null = null;
 let prevEquipJsonByChar: string[] = [];
 let prevLevelsByChar: number[] = [];
 let prestigeKey: string | null = null;
@@ -365,10 +366,11 @@ function renderParty(state: GameStateDict): void {
 
   // Structure key: things that require a full DOM rebuild.
   // Health and XP are intentionally excluded — they are updated in-place below.
+  const newLootKey = state.loot_pool.map(i => i.slot + i.name).join("|");
+  // Health, XP, and loot pool are intentionally excluded — they are updated in-place below.
   const newStructKey = JSON.stringify(
     state.party.map((c) => [c.level, c.dps, JSON.stringify(c.equipment), c.abilities.join(","), JSON.stringify(c.runes ?? {}), JSON.stringify((c as any).applied_set_bonuses ?? {}), JSON.stringify((c as any).locked_slots ?? []), JSON.stringify((c as any).artifact_slots ?? [])])
-  ) + "|" + state.loot_pool.map(i => i.slot + i.name).join("|")
-    + "|" + (state.earned_title ?? "");
+  ) + "|" + (state.earned_title ?? "");
 
   if (newStructKey !== partyStructKey) {
     // Detect changed gear slots for the flash animation
@@ -387,6 +389,7 @@ function renderParty(state: GameStateDict): void {
     prevEquipJsonByChar = state.party.map(c => JSON.stringify(c.equipment));
     prevLevelsByChar = state.party.map(c => c.level);
     partyStructKey = newStructKey;
+    partyLootKey = newLootKey;
 
     if (partyH2) partyH2.dataset.party = encodeURIComponent(JSON.stringify(state.party));
 
@@ -460,9 +463,9 @@ function renderParty(state: GameStateDict): void {
       const artifactBadgesHtml = artifactSlots.map((inst, si) => {
         if (!inst) return `<span class="char-artifact-badge empty" title="Artifact slot ${si + 1}: empty">·</span>`;
         const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
-        const lvlLabel = inst.level > 0 ? ` +${inst.level}` : "";
         const statLabel = def ? artifactStatLabel(def.id, inst.level) : "";
-        return `<span class="char-artifact-badge filled${inst.level > 0 ? " upgraded" : ""}" title="${def?.name ?? inst.id}${lvlLabel}&#10;${statLabel}">${def?.icon ?? "✨"}${inst.level > 0 ? `<sup>+${inst.level}</sup>` : ""}</span>`;
+        const artifactJson = encodeURIComponent(JSON.stringify({ id: inst.id, level: inst.level, name: def?.name ?? inst.id, icon: def?.icon ?? "✨", stat: statLabel }));
+        return `<span class="char-artifact-badge filled${inst.level > 0 ? " upgraded" : ""}" data-artifact="${artifactJson}">${def?.icon ?? "✨"}${inst.level > 0 ? `<sup>+${inst.level}</sup>` : ""}</span>`;
       }).join("");
 
       const hpPct = Math.max(0, Math.round((c.health / c.max_health) * 100));
@@ -567,6 +570,44 @@ function renderParty(state: GameStateDict): void {
     const xpNumbers = card.querySelector<HTMLElement>(".xp-numbers");
     if (xpNumbers) xpNumbers.textContent = `${c.xp} / ${c.xp_to_next} XP`;
   });
+
+  // In-place loot row updates — only patch empty gear slot rows when loot pool changes
+  if (newLootKey !== partyLootKey) {
+    partyLootKey = newLootKey;
+    const lootBySlot = new Map<string, { item: GearItemDict; idx: number }[]>();
+    state.loot_pool.forEach((item, idx) => {
+      const slot = item.slot === "ring2" ? "ring1" : item.slot;
+      if (!lootBySlot.has(slot)) lootBySlot.set(slot, []);
+      lootBySlot.get(slot)!.push({ item: item as GearItemDict, idx });
+    });
+    const lootCards = partyEl.querySelectorAll<HTMLElement>(".char-card");
+    state.party.forEach((c, ci) => {
+      const card = lootCards[ci];
+      if (!card) return;
+      const lockedSlots = new Set<string>((c as any).locked_slots ?? []);
+      card.querySelectorAll<HTMLElement>(".gear-row.empty").forEach(row => {
+        const slot = row.dataset.slot;
+        if (!slot) return;
+        const locked = lockedSlots.has(slot);
+        const matchSlot = slot === "ring2" ? "ring1" : slot;
+        const options = lootBySlot.get(matchSlot) ?? [];
+        const lockBtn = `<button class="gear-lock-btn${locked ? " locked" : ""}" data-action="toggle-gear-lock" data-char="${ci}" data-slot="${slot}" title="${locked ? "Locked — click to unlock" : "Click to lock"}">${locked ? "🔒" : "🔓"}</button>`;
+        let newRowHtml: string;
+        if (options.length > 0) {
+          const optHtml = options.map(({ item: li, idx }) => {
+            const qc = qualityClass(li.quality);
+            return `<option value="${idx}" class="${qc}">${(li as any).short_name ?? li.name} (${formatStats(li.stats ?? { dps: li.damage })})</option>`;
+          }).join("");
+          newRowHtml = `<div class="gear-row empty gear-row-equip${locked ? " gear-locked" : ""}" data-slot="${slot}"><span class="gear-icon">${SLOT_ICONS[slot]}</span><select class="gear-loot-select">${optHtml}</select><button class="gear-equip-from-slot-btn" data-action="equip-loot-on-char" data-char="${ci}" data-slot="${slot}">Equip</button>${lockBtn}</div>`;
+        } else {
+          newRowHtml = `<div class="gear-row empty${locked ? " gear-locked" : ""}" data-slot="${slot}"><span class="gear-icon">${SLOT_ICONS[slot]}</span><span class="gear-slot-label">${slotLabel(slot)}</span>${lockBtn}</div>`;
+        }
+        const tmp = document.createElement("div");
+        tmp.innerHTML = newRowHtml;
+        row.replaceWith(tmp.firstElementChild!);
+      });
+    });
+  }
 }
 
 function applySlotHighlight(): void {
@@ -2255,7 +2296,7 @@ function buildSkillTooltipHTML(a: AbilityCardData): string {
     <div class="tt-stat-row"><span class="tt-stat-label">${a.desc}</span></div>`;
 }
 
-const TOOLTIP_SELECTORS = ".gear-row.filled[data-item], .loot-item[data-item], .char-name[data-char], #party-panel h2[data-party], [data-active-skill], .char-dps[data-dps], .tt-rune-slot[data-rune]";
+const TOOLTIP_SELECTORS = ".gear-row.filled[data-item], .loot-item[data-item], .char-name[data-char], #party-panel h2[data-party], [data-active-skill], .char-dps[data-dps], .tt-rune-slot[data-rune], .char-artifact-badge[data-artifact]";
 
 function buildActiveSkillTooltipHTML(skillId: string, skillState?: { remaining: number; expiry: number; totalCooldown: number; isActive: boolean; onCooldown: boolean }): string {
   const name = SKILL_NAMES[skillId] ?? skillId;
@@ -2289,18 +2330,28 @@ function buildDpsTooltipHTML(d: { total: number; base: number; gear: number; run
   `;
 }
 
+function buildArtifactTooltipHTML(a: { id: string; level: number; name: string; icon: string; stat: string }): string {
+  const lvlLabel = a.level > 0 ? ` +${a.level}` : "";
+  return `
+    <span class="tt-name">${a.icon} ${a.name}${lvlLabel}</span>
+    <div class="tt-divider"></div>
+    <div class="tt-stats"><div class="tt-stat-row"><span class="tt-stat-label">${a.stat || "No effect"}</span></div></div>
+  `;
+}
+
 function getTooltipContent(el: HTMLElement): string | null {
   try {
     if (el.dataset.activeSkill) {
       const skillState = el.dataset.skillState ? JSON.parse(decodeURIComponent(el.dataset.skillState)) : undefined;
       return buildActiveSkillTooltipHTML(el.dataset.activeSkill, skillState);
     }
-    if (el.dataset.dps)   return buildDpsTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.dps)));
-    if (el.dataset.item)  return buildTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.item)) as GearItemDict);
-    if (el.dataset.rune)  return buildRuneTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.rune)));
-    if (el.dataset.char)  return buildCharTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.char)) as CharDict);
-    if (el.dataset.party) return buildPartyTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.party)) as CharDict[]);
-    if (el.dataset.skill) return buildSkillTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.skill)) as AbilityCardData);
+    if (el.dataset.dps)      return buildDpsTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.dps)));
+    if (el.dataset.item)     return buildTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.item)) as GearItemDict);
+    if (el.dataset.rune)     return buildRuneTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.rune)));
+    if (el.dataset.char)     return buildCharTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.char)) as CharDict);
+    if (el.dataset.party)    return buildPartyTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.party)) as CharDict[]);
+    if (el.dataset.skill)    return buildSkillTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.skill)) as AbilityCardData);
+    if (el.dataset.artifact) return buildArtifactTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.artifact)));
   } catch { /* ignore */ }
   return null;
 }

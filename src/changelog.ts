@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.22.3";
+export const VERSION = "v2.22.4";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.22.4",
+    date: "2026-05-17",
+    changes: [
+      "Artifact badges on char cards now show a rich hover tooltip with name, level, and current stat effect",
+      "Party cards no longer rebuild the full DOM on every kill — only HP/XP and empty gear slot dropdowns update in-place",
+    ],
+  },
   {
     version: "v2.22.3",
     date: "2026-05-17",
