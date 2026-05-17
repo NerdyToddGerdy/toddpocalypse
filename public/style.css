@@ -3507,6 +3507,41 @@ footer {
 .rune-sell-btn      { background: #374151; color: #fbbf24; border: 1px solid #4b5563; }
 .rune-sell-all-btn  { background: #374151; color: #fbbf24; border: 1px solid #4b5563; font-size: 0.7rem; text-transform: none; letter-spacing: 0; }
 .rune-brand-btn:hover, .rune-sell-btn:hover, .rune-sell-all-btn:hover { filter: brightness(1.15); }
+.rune-forge-artifact-row {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 6px 8px;
+    background: rgba(167,139,250,0.08);
+    border: 1px solid #a78bfa55;
+    border-radius: 6px;
+}
+.rune-forge-artifact-label {
+    font-size: 0.73rem;
+    font-weight: 700;
+    color: #a78bfa;
+    white-space: nowrap;
+}
+.rune-forge-artifact-cost {
+    font-size: 0.7rem;
+    color: var(--muted);
+    flex: 1;
+}
+.rune-forge-artifact-btn {
+    font-size: 0.73rem;
+    padding: 3px 12px;
+    background: #7c3aed;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.rune-forge-artifact-btn:hover { filter: brightness(1.2); }
+
 .rune-combine-section {
     margin-top: 8px;
     display: flex;

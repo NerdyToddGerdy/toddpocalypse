@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.14.4";
+export const VERSION = "v2.14.5";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.14.5",
+    date: "2026-05-16",
+    changes: [
+      "Rune sink: trade 10 ancient runes (any mix of types) for a random base artifact — Forge button appears in the Runes panel when you have enough",
+    ],
+  },
   {
     version: "v2.14.4",
     date: "2026-05-16",

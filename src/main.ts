@@ -1086,11 +1086,21 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
           ? `<div class="rune-combine-hint">Rune Forge Tier 4 unlocks combining flawless runes into ancient.</div>`
           : "";
 
+  const ancientCount = runeInv.filter((r: any) => r.tier === "ancient").length;
+  const forgeArtifactHtml = ancientCount >= 10
+    ? `<div class="rune-forge-artifact-row">
+         <span class="rune-forge-artifact-label">✨ Forge Artifact</span>
+         <span class="rune-forge-artifact-cost">10× Ancient rune (${ancientCount} available)</span>
+         <button class="rune-forge-artifact-btn" data-action="forge-artifact-from-runes">Forge</button>
+       </div>`
+    : "";
+
   el.innerHTML = `<div class="rune-inv-section">
     <div class="rune-inv-title">
       <span>🔮 Runes (${runeInv.length})</span>
       ${runeInv.length > 0 ? `<button class="rune-sell-all-btn" data-action="sell-all-runes">Sell All (${sellAllVal}g)</button>` : ""}
     </div>
+    ${forgeArtifactHtml}
     ${combineHtml}
     <div class="rune-inv-items">${items}</div>
   </div>`;
@@ -2581,6 +2591,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     else if (action === "sell-all-runes") {
       call("sellAllRunes");
+    }
+    else if (action === "forge-artifact-from-runes") {
+      call("forgeArtifactFromRunes");
     }
     else if (action === "equip-artifact") {
       const invIdx = parseInt(btn.dataset.invIdx!, 10);

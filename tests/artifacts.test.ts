@@ -3,7 +3,7 @@ import {
   ARTIFACT_DEFS, ARTIFACT_DROP_POOL,
   canCombineArtifacts, getCombineResult, artifactSellValue,
 } from "../src/artifacts.js";
-import { GameState } from "../src/engine.js";
+import { GameState, RUNE_DEFS } from "../src/engine.js";
 import { Character } from "../src/character.js";
 
 // ─── Artifact definitions ────────────────────────────────────────────────────
@@ -607,6 +607,73 @@ describe("prestige preserves artifacts", () => {
 });
 
 // ─── Serialization round-trip ─────────────────────────────────────────────────
+
+// ─── forgeArtifactFromRunes ──────────────────────────────────────────────────
+
+describe("forgeArtifactFromRunes", () => {
+  const ancient = (type: string) => RUNE_DEFS[`${type}_ancient`];
+  const tenAncients = () => [
+    ancient("striking"), ancient("striking"),
+    ancient("warding"),  ancient("warding"),
+    ancient("swiftness"), ancient("swiftness"),
+    ancient("greed"),    ancient("greed"),
+    ancient("fortune"),  ancient("wrath"),
+  ];
+
+  it("does nothing with fewer than 10 ancient runes", () => {
+    const gs = new GameState();
+    gs.runeInventory = tenAncients().slice(0, 9);
+    gs.forgeArtifactFromRunes();
+    expect(gs.artifactInventory).toHaveLength(0);
+    expect(gs.runeInventory).toHaveLength(9);
+  });
+
+  it("removes exactly 10 ancients and adds 1 base artifact with exactly 10", () => {
+    const gs = new GameState();
+    gs.runeInventory = tenAncients();
+    gs.forgeArtifactFromRunes();
+    expect(gs.runeInventory).toHaveLength(0);
+    expect(gs.artifactInventory).toHaveLength(1);
+    expect(ARTIFACT_DROP_POOL).toContain(gs.artifactInventory[0]);
+  });
+
+  it("removes exactly 10 ancients and leaves non-ancient runes untouched", () => {
+    const gs = new GameState();
+    gs.runeInventory = [...tenAncients(), RUNE_DEFS["striking_lesser"], RUNE_DEFS["warding_greater"]];
+    gs.forgeArtifactFromRunes();
+    expect(gs.runeInventory).toHaveLength(2);
+    expect(gs.runeInventory.every(r => r.tier !== "ancient")).toBe(true);
+    expect(gs.artifactInventory).toHaveLength(1);
+  });
+
+  it("forges again after another 10 ancients are accumulated", () => {
+    const gs = new GameState();
+    gs.runeInventory = [...tenAncients(), ...tenAncients()];
+    gs.forgeArtifactFromRunes();
+    gs.forgeArtifactFromRunes();
+    expect(gs.runeInventory).toHaveLength(0);
+    expect(gs.artifactInventory).toHaveLength(2);
+  });
+
+  it("result is always a base-tier artifact", () => {
+    const gs = new GameState();
+    for (let i = 0; i < 10; i++) {
+      gs.runeInventory = tenAncients();
+      gs.forgeArtifactFromRunes();
+      const id = gs.artifactInventory.pop()!;
+      expect(ARTIFACT_DEFS[id as keyof typeof ARTIFACT_DEFS].tier).toBe("base");
+    }
+  });
+
+  it("does not consume non-ancient runes when exactly 10 ancients present", () => {
+    const gs = new GameState();
+    gs.runeInventory = [...tenAncients().slice(0, 5), RUNE_DEFS["striking_lesser"], RUNE_DEFS["warding_flawless"], ...tenAncients().slice(5)];
+    gs.forgeArtifactFromRunes();
+    expect(gs.artifactInventory).toHaveLength(1);
+    const nonAncientLeft = gs.runeInventory.filter(r => r.tier !== "ancient");
+    expect(nonAncientLeft).toHaveLength(2);
+  });
+});
 
 describe("artifact serialization", () => {
   it("artifact_inventory round-trips through toDict/fromDict", () => {

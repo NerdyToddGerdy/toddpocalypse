@@ -1100,6 +1100,20 @@ export class GameState {
     return this.respond();
   }
 
+  /** Consumes 10 ancient runes (any types) and adds one random base artifact. */
+  forgeArtifactFromRunes(): string {
+    const ancientIdxs: number[] = [];
+    for (let i = 0; i < this.runeInventory.length && ancientIdxs.length < 10; i++) {
+      if (this.runeInventory[i].tier === "ancient") ancientIdxs.push(i);
+    }
+    if (ancientIdxs.length < 10) return this.respond();
+    for (let i = ancientIdxs.length - 1; i >= 0; i--) this.runeInventory.splice(ancientIdxs[i], 1);
+    const id = ARTIFACT_DROP_POOL[Math.floor(Math.random() * ARTIFACT_DROP_POOL.length)];
+    this.artifactInventory.push(id);
+    this.addLog(`Forged ${ARTIFACT_DEFS[id]?.name ?? id} from 10 ancient runes!`);
+    return this.respond();
+  }
+
   /** Sells all runes in the inventory. Returns serialized JSON. */
   sellAllRunes(): string {
     if (this.runeInventory.length === 0) return this.respond();
