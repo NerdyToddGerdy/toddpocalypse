@@ -265,7 +265,7 @@ function render(state: GameStateDict): void {
   renderThemePicker(state);
   renderFeats(state);
   showAchievementToasts(state.pending_achievements ?? []);
-  applyAutoAttackState();
+  updateAutoAttackButton();
   updatePrestigeButton(state);
   updateVentureButton(state);
   updateLifetimeStats(state);
@@ -2819,23 +2819,28 @@ function isAutoAttackUnlocked(): boolean {
   return ((state.guild_upgrades as Record<string, number>)["auto_attack"] ?? 0) >= 1;
 }
 
-function applyAutoAttackState(): void {
+function updateAutoAttackButton(): void {
   const btn = document.getElementById("auto-attack-btn") as HTMLButtonElement | null;
-  if (btn) {
-    const unlocked = isAutoAttackUnlocked();
-    btn.disabled = !unlocked;
-    btn.title = unlocked ? "Toggle auto-attack (fires every second)" : "Unlock Auto-Attack in the Guild Hall";
-    btn.textContent = autoAttackEnabled && unlocked ? "⚔ AUTO ON" : "⚔ AUTO";
-    btn.classList.toggle("active", autoAttackEnabled && unlocked);
-    if (!unlocked && autoAttackEnabled) {
-      autoAttackEnabled = false;
-      localStorage.setItem("autoAttack", "0");
-    }
+  if (!btn) return;
+  const unlocked = isAutoAttackUnlocked();
+  btn.disabled = !unlocked;
+  btn.title = unlocked ? "Toggle auto-attack (fires every second)" : "Unlock Auto-Attack in the Guild Hall";
+  btn.textContent = autoAttackEnabled && unlocked ? "⚔ AUTO ON" : "⚔ AUTO";
+  btn.classList.toggle("active", autoAttackEnabled && unlocked);
+  if (!unlocked && autoAttackEnabled) {
+    autoAttackEnabled = false;
+    localStorage.setItem("autoAttack", "0");
+    clearInterval(autoAttackIntervalId);
+    autoAttackIntervalId = undefined;
   }
+}
+
+function applyAutoAttackState(): void {
+  updateAutoAttackButton();
   clearInterval(autoAttackIntervalId);
-  if (autoAttackEnabled && isAutoAttackUnlocked()) {
-    autoAttackIntervalId = setInterval(() => { if (game) call("click", true); }, 1000) as unknown as number;
-  }
+  autoAttackIntervalId = autoAttackEnabled && isAutoAttackUnlocked()
+    ? setInterval(() => { if (game) call("click", true); }, 1000) as unknown as number
+    : undefined;
 }
 
 function initPartyGearToggle(): void {
