@@ -4039,6 +4039,33 @@ footer {
 .artifact-slot-name { font-weight: 600; color: var(--text); flex: 1; }
 .artifact-slot-desc { font-size: 0.7rem; color: var(--muted); }
 .artifact-slot-empty-label { color: var(--border); font-style: italic; }
+.artifact-brand-row {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 4px;
+}
+.artifact-inv-select {
+    flex: 1;
+    font-size: 0.68rem;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 3px;
+}
+.artifact-slot-equip-btn {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    background: var(--accent2);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.artifact-slot-equip-btn:hover { filter: brightness(1.15); }
 .artifact-unequip-btn {
     margin-left: auto;
     background: none;

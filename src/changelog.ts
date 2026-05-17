@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.14.2";
+export const VERSION = "v2.14.3";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.14.3",
+    date: "2026-05-16",
+    changes: [
+      "Artifact inventory no longer flickers every tick — render cache prevents DOM rewrite when nothing changed, making the equip dropdown selectable",
+      "Party Artifacts panel: empty slots now show an inline artifact dropdown + Equip button (matching the Rune panel UX) instead of static 'equip from Artifacts tab' text",
+    ],
+  },
   {
     version: "v2.14.2",
     date: "2026-05-16",

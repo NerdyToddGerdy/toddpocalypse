@@ -80,6 +80,7 @@ let logKey: string | null = null;
 let lootKey: string | null = null;
 let autoSellKey: string | null = null;
 let stashKey: string | null = null;
+let artifactKey: string | null = null;
 let upgradeKey: string | null = null;
 let partyStructKey: string | null = null;
 let prevEquipJsonByChar: string[] = [];
@@ -1103,6 +1104,10 @@ function renderArtifactPanel(state: GameStateDict): void {
   const artifactInv: string[] = (state as any).artifact_inventory ?? [];
   const party = state.party;
 
+  const newArtKey = artifactInv.join(",") + "|" + party.map((c: any) => (c.artifact_slots ?? []).join(",")).join("|");
+  if (newArtKey === artifactKey) return;
+  artifactKey = newArtKey;
+
   const hasAnyArtifact = artifactInv.length > 0 || party.some((c: any) => c.artifact_slots?.some((s: any) => s !== null));
 
   // Sub-tab button + party panel tab visibility
@@ -1174,9 +1179,17 @@ function renderArtifactPanel(state: GameStateDict): void {
 
   invEl.innerHTML = (combineHtml ? `<div class="artifact-combine-section">${combineHtml}</div><hr class="artifact-divider">` : "") + itemsHtml;
 
-  // Party panel equipped artifacts (read-only list + unequip buttons)
+  // Party panel equipped artifacts (list + inline equip for empty slots)
   const partyArtEl = document.getElementById("party-artifact-panel");
   if (partyArtEl) {
+    const artifactOptions = artifactInv.length === 0
+      ? `<option value="">— no artifacts —</option>`
+      : artifactInv.map((id, i) => {
+          const def = ARTIFACT_DEFS[id as keyof typeof ARTIFACT_DEFS];
+          return `<option value="${i}">${def?.icon ?? "✨"} ${def?.name ?? id}</option>`;
+        }).join("");
+    const hasArtifacts = artifactInv.length > 0;
+
     const charBlocks = party.map((c: any, charIdx: number) => {
       const slots: (string | null)[] = c.artifact_slots ?? [null, null, null];
       const slotRows = slots.map((slotId, slotIdx) => {
@@ -1189,7 +1202,14 @@ function renderArtifactPanel(state: GameStateDict): void {
             <button class="artifact-unequip-btn" data-action="unequip-artifact" data-char-idx="${charIdx}" data-slot-idx="${slotIdx}" title="Unequip">✕</button>
           </div>`;
         }
-        return `<div class="artifact-slot empty"><span class="artifact-slot-empty-label">empty — equip from ✨ Artifacts tab</span></div>`;
+        return `<div class="artifact-slot empty">
+          ${hasArtifacts
+            ? `<div class="artifact-brand-row">
+                 <select class="artifact-inv-select">${artifactOptions}</select>
+                 <button class="artifact-slot-equip-btn" data-action="equip-artifact-slot" data-char-idx="${charIdx}" data-slot-idx="${slotIdx}">Equip</button>
+               </div>`
+            : `<span class="artifact-slot-empty-label">empty</span>`}
+        </div>`;
       }).join("");
       return `<div class="artifact-char-block">
         <div class="artifact-char-name">${c.name}</div>
@@ -2561,6 +2581,15 @@ document.addEventListener("DOMContentLoaded", () => {
       if (sel && sel.value) {
         const [charIdx, slotIdx] = sel.value.split(":").map(Number);
         call("equipArtifact", charIdx, slotIdx, invIdx);
+      }
+    }
+    else if (action === "equip-artifact-slot") {
+      const charIdx = parseInt(btn.dataset.charIdx!, 10);
+      const slotIdx = parseInt(btn.dataset.slotIdx!, 10);
+      const slot = btn.closest(".artifact-slot")!;
+      const sel = slot.querySelector(".artifact-inv-select") as HTMLSelectElement;
+      if (sel && sel.value !== "") {
+        call("equipArtifact", charIdx, slotIdx, parseInt(sel.value, 10));
       }
     }
     else if (action === "unequip-artifact") {
