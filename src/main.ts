@@ -34,6 +34,7 @@ const GUILD_HALL_META: Record<string, { icon: string; name: string; desc: string
   skill_consecrate:    { icon: "🙏", name: "Consecrate",       desc: "Paladin: immediately heals all party members for 50% max HP. 15-kill cooldown.", dungeonReq: 1 },
   skill_volley:        { icon: "🏹", name: "Volley",           desc: "Ranger: ×2.5 party DPS for 6 kills. 15-kill cooldown.", dungeonReq: 1 },
   skill_entangle:      { icon: "🌿", name: "Entangle",         desc: "Druid: reduces enemy attack by 60% for 8 kills. 20-kill cooldown. Dungeon 3+.", dungeonReq: 2 },
+  auto_attack:         { icon: "⚔", name: "Auto-Attack",      desc: "Automatically fires a click attack every second. Toggle the AUTO button next to the Attack button." },
   rune_forge:          { icon: "🔮", name: "Rune Forge",       desc: "Socket runes into gear slots for flat stat bonuses. Bosses drop runes at 20%, elites at 10%. Tier 2: recover replaced runes + combine 2 lessers → greater. Tier 3: combine 2 greaters → flawless. Tier 4: combine 2 flawless → ancient." },
 };
 
@@ -104,6 +105,8 @@ let hoveredLootSlot: string | null = null;
 const fullLog: string[] = []; // persistent combat log history (last 200 entries)
 const flashStartTimes = new Map<string, number>(); // "ci:slot" → ms timestamp when flash began
 let bossPortraitShowing = false;
+let autoAttackEnabled = localStorage.getItem("autoAttack") === "1";
+let autoAttackIntervalId: number | undefined;
 let lastTickSaveTime = 0;
 const TICK_SAVE_INTERVAL_MS = 5000;
 let gameLoopId: number | undefined;
@@ -262,6 +265,7 @@ function render(state: GameStateDict): void {
   renderThemePicker(state);
   renderFeats(state);
   showAchievementToasts(state.pending_achievements ?? []);
+  applyAutoAttackState();
   updatePrestigeButton(state);
   updateVentureButton(state);
   updateLifetimeStats(state);
@@ -2783,6 +2787,7 @@ function startGame(name: string, characterClass: string): void {
   render(JSON.parse(game.respond()));
   clearInterval(gameLoopId);
   gameLoopId = setInterval(() => { call("tick", 0.1); }, 100);
+  applyAutoAttackState();
 }
 
 /** Restores a GameState from a saved snapshot, hides the creation overlay, and starts the game loop. */
@@ -2805,6 +2810,32 @@ function continueGame(saved: GameStateDict): void {
   render(JSON.parse(game.respond()));
   clearInterval(gameLoopId);
   gameLoopId = setInterval(() => { call("tick", 0.1); }, 100);
+  applyAutoAttackState();
+}
+
+function isAutoAttackUnlocked(): boolean {
+  if (!game) return false;
+  const state = JSON.parse(game.respond()) as GameStateDict;
+  return ((state.guild_upgrades as Record<string, number>)["auto_attack"] ?? 0) >= 1;
+}
+
+function applyAutoAttackState(): void {
+  const btn = document.getElementById("auto-attack-btn") as HTMLButtonElement | null;
+  if (btn) {
+    const unlocked = isAutoAttackUnlocked();
+    btn.disabled = !unlocked;
+    btn.title = unlocked ? "Toggle auto-attack (fires every second)" : "Unlock Auto-Attack in the Guild Hall";
+    btn.textContent = autoAttackEnabled && unlocked ? "⚔ AUTO ON" : "⚔ AUTO";
+    btn.classList.toggle("active", autoAttackEnabled && unlocked);
+    if (!unlocked && autoAttackEnabled) {
+      autoAttackEnabled = false;
+      localStorage.setItem("autoAttack", "0");
+    }
+  }
+  clearInterval(autoAttackIntervalId);
+  if (autoAttackEnabled && isAutoAttackUnlocked()) {
+    autoAttackIntervalId = setInterval(() => { if (game) call("click", true); }, 1000) as unknown as number;
+  }
 }
 
 function initPartyGearToggle(): void {
@@ -3070,6 +3101,11 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (action === "sell") call("sellLoot", idx);
     else if (action === "upgrade") call("buyUpgrade", btn.dataset.char!, btn.dataset.type!);
     else if (action === "attack") call("click", true);
+    else if (action === "toggle-auto-attack") {
+      autoAttackEnabled = !autoAttackEnabled;
+      localStorage.setItem("autoAttack", autoAttackEnabled ? "1" : "0");
+      applyAutoAttackState();
+    }
     else if (action === "equip-all") call("equipAll");
     else if (action === "sell-all") call("sellAll");
     else if (action === "prestige") {

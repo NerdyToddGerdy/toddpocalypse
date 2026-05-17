@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.25.1";
+export const VERSION = "v2.26.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.26.0",
+    date: "2026-05-17",
+    changes: [
+      "Auto-Attack: unlock in the Guild Hall (3,000g) then toggle the AUTO button next to Attack",
+      "Auto-Attack fires a full-damage click every second while enabled; persists across reloads",
+    ],
+  },
   {
     version: "v2.25.1",
     date: "2026-05-17",
