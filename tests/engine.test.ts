@@ -15,6 +15,7 @@ import {
   ARTIFACT_DEFS, ARTIFACT_DROP_POOL,
   AVATAR_DEFS, BORDER_DEFS,
   ACHIEVEMENTS,
+  formatNumber,
 } from "../src/engine.js";
 import { Character } from "../src/character.js";
 import { GearItem, getItem, getSetItem, SET_DEFS, type Slot } from "../src/gear.js";
@@ -4885,4 +4886,21 @@ describe("title default nobody", () => {
     const gs2 = GameState.fromDict(dict);
     expect(gs2.earnedTitle).toBe("nobody");
   });
+});
+
+// ─── formatNumber ─────────────────────────────────────────────────────────────
+
+describe("formatNumber", () => {
+  it("0 → '0'",        () => expect(formatNumber(0)).toBe("0"));
+  it("999 → '999'",    () => expect(formatNumber(999)).toBe("999"));
+  it("1000 → '1,000'", () => expect(formatNumber(1000)).toBe("1,000"));
+  it("9999 → '9,999'", () => expect(formatNumber(9999)).toBe("9,999"));
+  it("10000 → '10k'",  () => expect(formatNumber(10000)).toBe("10k"));
+  it("10500 → '10.5k'",() => expect(formatNumber(10500)).toBe("10.5k"));
+  it("100000 → '100k'",() => expect(formatNumber(100000)).toBe("100k"));
+  it("1000000 → '1m'", () => expect(formatNumber(1000000)).toBe("1m"));
+  it("1500000 → '1.5m'",()=> expect(formatNumber(1500000)).toBe("1.5m"));
+  it("1000000000 → '1b'",()=> expect(formatNumber(1000000000)).toBe("1b"));
+  it("floats are floored for < 10k", () => expect(formatNumber(9999.9)).toBe("9,999"));
+  it("floats work in shorthand range", () => expect(formatNumber(12345)).toBe("12.3k"));
 });

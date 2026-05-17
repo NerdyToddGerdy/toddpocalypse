@@ -9,6 +9,15 @@ export type { ArtifactInstance };
 export { ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT };
 export const ELITE_SPAWN_CHANCE = 0.15;
 
+/** Formats a number with commas below 10,000 and shorthand (k/m/b) above. */
+export function formatNumber(n: number): string {
+  const v = Math.floor(n);
+  if (v < 10_000) return v.toLocaleString("en-US");
+  if (v < 1_000_000) return (v / 1_000).toFixed(1).replace(/\.0$/, "") + "k";
+  if (v < 1_000_000_000) return (v / 1_000_000).toFixed(1).replace(/\.0$/, "") + "m";
+  return (v / 1_000_000_000).toFixed(1).replace(/\.0$/, "") + "b";
+}
+
 /** Base number of kills required to reach the boss on floor 1. */
 export const KILLS_PER_LEVEL = 5;
 

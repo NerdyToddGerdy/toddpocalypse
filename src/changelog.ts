@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.21.1";
+export const VERSION = "v2.22.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.22.0",
+    date: "2026-05-17",
+    changes: [
+      "Numbers now use commas below 10,000 (e.g. 9,999) and shorthand above (10k, 1.5m, 2b) — applied to gold, sell values, upgrade costs, prestige points, feat thresholds, and reward text",
+    ],
+  },
   {
     version: "v2.21.1",
     date: "2026-05-17",

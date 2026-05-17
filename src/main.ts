@@ -1,4 +1,4 @@
-import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock, ARTIFACT_DEFS, artifactFuelValue, artifactStatLabel, AVATAR_DEFS, BORDER_DEFS } from "./engine.js";
+import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock, ARTIFACT_DEFS, artifactFuelValue, artifactStatLabel, AVATAR_DEFS, BORDER_DEFS, formatNumber } from "./engine.js";
 import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, SET_DEFS, type GearStats, type GearItemDict } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
@@ -178,7 +178,7 @@ function render(state: GameStateDict): void {
   ($("enemy-hp-bar") as HTMLElement).style.width = pct + "%";
   $("enemy-hp-text").textContent = `${Math.ceil(enemy.hp)} / ${enemy.max_hp}`;
 
-  $("stat-gold").textContent = String(Math.floor(state.gold));
+  $("stat-gold").textContent = formatNumber(state.gold);
   const partyGoldEl = $("stat-party-gold-bonus");
   if (partyGoldEl) {
     const bonus = (state.party.length - 1) * 20;
@@ -638,7 +638,7 @@ function renderLoot(state: GameStateDict): void {
     <div class="loot-dmg ${triCls || qc}">${formatLootStats(tri, item.stats ?? { dps: item.damage })}</div>
     <div class="loot-btns">
       <button class="equip-btn" data-action="equip" data-idx="${i}">Equip</button>
-      <button class="sell-btn"  data-action="sell"  data-idx="${i}">${item.sell_value}g</button>
+      <button class="sell-btn"  data-action="sell"  data-idx="${i}">${formatNumber(item.sell_value)}g</button>
       ${stashUnlocked ? `<button class="stash-loot-btn" data-action="stash-loot" data-idx="${i}" ${stashFull ? "disabled" : ""}>📦</button>` : ""}
     </div>
   </div>
@@ -701,7 +701,7 @@ function renderStash(state: GameStateDict): void {
   <div class="stash-item-btns">
     ${charSel}
     <button class="stash-equip-btn" data-action="equip-from-stash" data-stash-idx="${idx}">Equip</button>
-    <button class="stash-sell-btn" data-action="sell-from-stash" data-stash-idx="${idx}">${item.sell_value}g</button>
+    <button class="stash-sell-btn" data-action="sell-from-stash" data-stash-idx="${idx}">${formatNumber(item.sell_value)}g</button>
   </div>
 </div>`;
   }).join("");
@@ -726,7 +726,7 @@ function renderUpgrades(state: GameStateDict): void {
                   data-action="upgrade"
                   data-char="${c.name}"
                   data-type="${utype}"
-                  data-cost="${u.cost}">${u.cost}g</button>
+                  data-cost="${u.cost}">${formatNumber(u.cost)}g</button>
             </div>`;
           })
           .join("");
@@ -860,7 +860,7 @@ function renderPrestigeShop(state: GameStateDict): void {
   prestigeKey = newKey;
 
   const pts = state.prestige_points;
-  $("prestige-points-display").textContent = pts === 1 ? "(1 pt)" : pts > 0 ? `(${pts} pts)` : "";
+  $("prestige-points-display").textContent = pts === 1 ? "(1 pt)" : pts > 0 ? `(${formatNumber(pts)} pts)` : "";
 
   const ups = state.prestige_upgrades as Record<string, number>;
   const guildUpgrades = state.guild_upgrades as Record<string, number>;
@@ -898,7 +898,7 @@ function renderPrestigeShop(state: GameStateDict): void {
         <div class="prestige-item-desc">${meta.desc}</div>
         ${currentStat ? `<div class="shop-current-stat">${currentStat}</div>` : ""}
       </div>
-      <button class="prestige-buy-btn" data-action="buy-prestige" data-type="${type}" ${disabled ? "disabled" : ""}>${atMax ? "Owned" : cost + "pt"}</button>
+      <button class="prestige-buy-btn" data-action="buy-prestige" data-type="${type}" ${disabled ? "disabled" : ""}>${atMax ? "Owned" : formatNumber(cost) + "pt"}</button>
     </div>`;
     })
     .join("");
@@ -996,7 +996,7 @@ function renderGuildHall(state: GameStateDict): void {
         ${currentStat ? `<div class="shop-current-stat">${currentStat}</div>` : ""}
         ${preview ? `<div class="guild-preview">→ ${preview}</div>` : ""}
       </div>
-      <button class="guild-buy-btn" data-action="buy-guild" data-type="${type}" ${disabled ? "disabled" : ""}>${atMax ? "Owned" : nextCost.toLocaleString() + "g"}</button>
+      <button class="guild-buy-btn" data-action="buy-guild" data-type="${type}" ${disabled ? "disabled" : ""}>${atMax ? "Owned" : formatNumber(nextCost) + "g"}</button>
     </div>`;
   }).join("");
 
@@ -1137,7 +1137,7 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
             <span class="rune-stat">+${rune.value} ${statLabel}</span>
             <div class="rune-item-btns">
               <button class="rune-brand-btn" data-action="brand-rune" data-rune-id="${rune.id}" data-rune-idx="${i}">Brand</button>
-              <button class="rune-sell-btn" data-action="sell-rune" data-rune-idx="${i}">${sellVal}g</button>
+              <button class="rune-sell-btn" data-action="sell-rune" data-rune-idx="${i}">${formatNumber(sellVal)}g</button>
             </div>
           </div>
         </div>`;
@@ -1184,7 +1184,7 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
   el.innerHTML = `<div class="rune-inv-section">
     <div class="rune-inv-title">
       <span>🔮 Runes (${runeInv.length})</span>
-      ${runeInv.length > 0 ? `<button class="rune-sell-all-btn" data-action="sell-all-runes">Sell All (${sellAllVal}g)</button>` : ""}
+      ${runeInv.length > 0 ? `<button class="rune-sell-all-btn" data-action="sell-all-runes">Sell All (${formatNumber(sellAllVal)}g)</button>` : ""}
     </div>
     ${forgeArtifactHtml}
     ${combineHtml}
@@ -1271,7 +1271,7 @@ function renderArtifactPanel(state: GameStateDict): void {
             <div class="artifact-inv-name">${def.name}${inst.level > 0 ? ` <span class="artifact-level-badge">+${inst.level}</span>` : ""}</div>
             <div class="artifact-inv-desc">${def.desc}</div>
           </div>
-          <button class="artifact-sell-btn" data-action="sell-artifact" data-inv-idx="${i}" title="Sell for ${sellVal}g">${sellVal}g</button>
+          <button class="artifact-sell-btn" data-action="sell-artifact" data-inv-idx="${i}" title="Sell for ${formatNumber(sellVal)}g">${formatNumber(sellVal)}g</button>
         </div>`;
       }).join("");
 
@@ -1453,7 +1453,7 @@ function renderArtifactModalBody(state: GameStateDict): void {
           Unequip → return to inventory
         </button>
         <button class="artifact-sell-btn amodal-sell-btn" data-action="modal-sell-equipped-artifact" data-char-idx="${artifactModalCharIdx}" data-slot-idx="${artifactModalSlotIdx}">
-          Sell for ${def.sellValue * (inst.level + 1)}g
+          Sell for ${formatNumber(def.sellValue * (inst.level + 1))}g
         </button>
       </div>`;
   } else {
@@ -1476,7 +1476,7 @@ function renderArtifactModalBody(state: GameStateDict): void {
       ${equipSection}
       <div class="amodal-section amodal-sell-section">
         <button class="artifact-sell-btn amodal-sell-btn" data-action="sell-artifact" data-inv-idx="${artifactModalTargetIdx}">
-          Sell for ${def.sellValue * (inst.level + 1)}g
+          Sell for ${formatNumber(def.sellValue * (inst.level + 1))}g
         </button>
       </div>`;
   }
@@ -1854,7 +1854,7 @@ function renderFeats(state: GameStateDict): void {
   for (const def of ACHIEVEMENTS) byCategory[def.category]?.push(def);
 
   function featRewardLabel(r: { type: string; value?: number; title?: string; cosmetic?: string }, prefix: string): string {
-    if (r.type === "gold") return prefix + `+${r.value}g`;
+    if (r.type === "gold") return prefix + `+${formatNumber(r.value ?? 0)}g`;
     if (r.type === "title") return prefix + `"${r.title}"`;
     if (r.type === "avatar") {
       const a = AVATAR_DEFS.find(x => x.id === r.cosmetic);
@@ -1921,7 +1921,7 @@ function renderFeats(state: GameStateDict): void {
         const pips = def.tiers.map(t => {
           const done = unlocked.has(`${def.id}_${t.label}`);
           const cls = done ? ` ${t.label}-done` : "";
-          return `<span class="feat-tier-pip${cls}" title="${t.label}: ${t.threshold.toLocaleString()}">${labels[t.label]}</span>`;
+          return `<span class="feat-tier-pip${cls}" title="${t.label}: ${formatNumber(t.threshold)}">${labels[t.label]}</span>`;
         }).join("");
         tierHtml = `<div class="feat-tiers">${pips}</div>`;
 
@@ -1986,7 +1986,7 @@ function showAchievementToasts(unlocks: AchievementUnlock[]): void {
     setTimeout(() => {
       const r = u.reward;
       const rewardText = !r ? "" :
-        r.type === "gold" ? `+${r.value}g` :
+        r.type === "gold" ? `+${formatNumber(r.value ?? 0)}g` :
         r.type === "prestige_points" ? `+${r.value} prestige point${(r.value ?? 1) > 1 ? "s" : ""}` :
         r.type === "title" ? `Title unlocked: "${r.title}"` :
         r.type === "avatar" ? (() => { const a = AVATAR_DEFS.find(x => x.id === r.cosmetic); return `Avatar: ${a?.icon ?? ""} ${a?.name ?? r.cosmetic}`; })() :
@@ -2075,7 +2075,7 @@ function buildTooltipHTML(item: GearItemDict): string {
     <div class="tt-divider"></div>
     <div class="tt-stats">${statRows || '<div class="tt-stat-row"><span class="tt-stat-label">No stats</span></div>'}</div>
     <div class="tt-divider"></div>
-    <div class="tt-sell">Sell: ${item.sell_value}g</div>
+    <div class="tt-sell">Sell: ${formatNumber(item.sell_value)}g</div>
   `;
 }
 
