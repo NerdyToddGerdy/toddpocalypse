@@ -739,17 +739,30 @@ export class GameState {
   }
 
   /** Levels up an artifact in the inventory, consuming (level+1) same-type copies as fuel. */
-  levelUpArtifact(invIdx: number): string {
+  levelUpArtifact(invIdx: number, explicitFuelIdxs?: number[]): string {
     if (invIdx < 0 || invIdx >= this.artifactInventory.length) return this.respond();
     const target = this.artifactInventory[invIdx];
     const cost = artifactUpgradeCost(target.level);
-    const fuelIdxs: number[] = [];
-    for (let i = 0; i < this.artifactInventory.length; i++) {
-      if (i !== invIdx && this.artifactInventory[i].id === target.id) fuelIdxs.push(i);
-      if (fuelIdxs.length >= cost) break;
+
+    let fuelIdxs: number[];
+    if (explicitFuelIdxs !== undefined) {
+      // Validate every provided index: must exist, be same type, and not be the target
+      const valid = explicitFuelIdxs.every(
+        fi => fi !== invIdx && fi >= 0 && fi < this.artifactInventory.length && this.artifactInventory[fi].id === target.id
+      );
+      if (!valid || explicitFuelIdxs.length !== cost) return this.respond();
+      fuelIdxs = [...explicitFuelIdxs].sort((a, b) => b - a); // highest first for safe splicing
+    } else {
+      fuelIdxs = [];
+      for (let i = 0; i < this.artifactInventory.length; i++) {
+        if (i !== invIdx && this.artifactInventory[i].id === target.id) fuelIdxs.push(i);
+        if (fuelIdxs.length >= cost) break;
+      }
+      if (fuelIdxs.length < cost) return this.respond();
+      fuelIdxs.sort((a, b) => b - a);
     }
-    if (fuelIdxs.length < cost) return this.respond();
-    for (let i = fuelIdxs.length - 1; i >= 0; i--) this.artifactInventory.splice(fuelIdxs[i], 1);
+
+    for (const fi of fuelIdxs) this.artifactInventory.splice(fi, 1);
     // target index may have shifted if any fuel came before it
     const newIdx = this.artifactInventory.indexOf(target);
     if (newIdx >= 0) this.artifactInventory[newIdx].level += 1;

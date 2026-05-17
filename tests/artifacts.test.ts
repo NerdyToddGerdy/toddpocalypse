@@ -238,6 +238,61 @@ describe("levelUpArtifact", () => {
   });
 });
 
+// ─── levelUpArtifact with explicit fuel selection ────────────────────────────
+
+describe("levelUpArtifact (explicit fuel)", () => {
+  it("uses specified fuel indices instead of auto-selecting", () => {
+    const gs = new GameState();
+    // idx 0 = target, idx 1 = ignored fuel, idx 2 = chosen fuel
+    gs.artifactInventory = [a("bloodstone"), a("bloodstone"), a("bloodstone")];
+    gs.levelUpArtifact(0, [2]); // cost=1, use idx 2
+    expect(gs.artifactInventory).toHaveLength(2); // target + idx 1 remain
+    expect(gs.artifactInventory[0].level).toBe(1);
+    expect(gs.artifactInventory[1].level).toBe(0); // idx 1 untouched
+  });
+
+  it("can use a higher-level artifact as a single fuel slot", () => {
+    const gs = new GameState();
+    gs.artifactInventory = [a("bloodstone", 1), a("bloodstone", 2), a("bloodstone", 0)];
+    // target=idx 0 (level 1, costs 2 fuel), use idx 1 (level 2) + idx 2 (level 0)
+    gs.levelUpArtifact(0, [1, 2]);
+    expect(gs.artifactInventory).toHaveLength(1);
+    expect(gs.artifactInventory[0].level).toBe(2);
+  });
+
+  it("noop when explicit fuel count does not match cost", () => {
+    const gs = new GameState();
+    gs.artifactInventory = [a("bloodstone", 1), a("bloodstone"), a("bloodstone"), a("bloodstone")];
+    gs.levelUpArtifact(0, [1]); // cost=2, only 1 provided
+    expect(gs.artifactInventory).toHaveLength(4); // no change
+    expect(gs.artifactInventory[0].level).toBe(1);
+  });
+
+  it("noop when fuel idx contains wrong artifact type", () => {
+    const gs = new GameState();
+    gs.artifactInventory = [a("bloodstone"), a("berserkers_eye")];
+    gs.levelUpArtifact(0, [1]); // berserkers_eye cannot fuel bloodstone
+    expect(gs.artifactInventory).toHaveLength(2);
+    expect(gs.artifactInventory[0].level).toBe(0);
+  });
+
+  it("noop when fuel idx equals the target idx", () => {
+    const gs = new GameState();
+    gs.artifactInventory = [a("bloodstone"), a("bloodstone")];
+    gs.levelUpArtifact(0, [0]); // can't use itself as fuel
+    expect(gs.artifactInventory).toHaveLength(2);
+    expect(gs.artifactInventory[0].level).toBe(0);
+  });
+
+  it("noop when a fuel idx is out of bounds", () => {
+    const gs = new GameState();
+    gs.artifactInventory = [a("bloodstone"), a("bloodstone")];
+    gs.levelUpArtifact(0, [99]); // idx 99 doesn't exist
+    expect(gs.artifactInventory).toHaveLength(2);
+    expect(gs.artifactInventory[0].level).toBe(0);
+  });
+});
+
 // ─── sellArtifact ────────────────────────────────────────────────────────────
 
 describe("sellArtifact", () => {

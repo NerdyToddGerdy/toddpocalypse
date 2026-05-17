@@ -82,6 +82,8 @@ let autoSellKey: string | null = null;
 let stashKey: string | null = null;
 let artifactKey: string | null = null;
 let artifactModalArtId: string | null = null;
+let artifactModalTargetIdx: number = -1;
+let artifactModalFuelSelected: Set<number> = new Set();
 let upgradeKey: string | null = null;
 let partyStructKey: string | null = null;
 let prevEquipJsonByChar: string[] = [];
@@ -1239,12 +1241,16 @@ function openArtifactModal(invIdx: number, state: GameStateDict): void {
   const inst = inv[invIdx];
   if (!inst) return;
   artifactModalArtId = inst.id;
+  artifactModalTargetIdx = invIdx;
+  artifactModalFuelSelected = new Set();
   renderArtifactModalBody(state);
   $("artifact-detail-modal").classList.add("open");
 }
 
 function closeArtifactModal(): void {
   artifactModalArtId = null;
+  artifactModalTargetIdx = -1;
+  artifactModalFuelSelected = new Set();
   $("artifact-detail-modal").classList.remove("open");
 }
 
@@ -1255,21 +1261,36 @@ function renderArtifactModalBody(state: GameStateDict): void {
 
   const inv: { id: string; level: number }[] = (state as any).artifact_inventory ?? [];
   const party = state.party;
-  const copies = inv.map((a, i) => ({ ...a, invIdx: i })).filter(a => a.id === artifactModalArtId);
-  if (copies.length === 0) { closeArtifactModal(); return; }
 
-  const primary = [...copies].sort((a, b) => b.level - a.level)[0];
-  const def = ARTIFACT_DEFS[primary.id as keyof typeof ARTIFACT_DEFS];
+  // Remap: if the target index shifted (after a level-up), find the new position by scanning
+  const target = inv[artifactModalTargetIdx];
+  if (!target || target.id !== artifactModalArtId) {
+    // Target was consumed or index is stale — find any remaining copy
+    const anyIdx = inv.findIndex(a => a.id === artifactModalArtId);
+    if (anyIdx < 0) { closeArtifactModal(); return; }
+    artifactModalTargetIdx = anyIdx;
+    artifactModalFuelSelected = new Set();
+  }
+
+  const inst = inv[artifactModalTargetIdx];
+  const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
   if (!def) { closeArtifactModal(); return; }
 
   const titleEl = document.getElementById("artifact-detail-title");
   if (titleEl) titleEl.textContent = def.name;
 
-  const cost = primary.level + 1;
-  const fuelCount = copies.filter(c => c.invIdx !== primary.invIdx).length;
-  const canLevel = fuelCount >= cost;
-  const needMore = cost - fuelCount;
-  const levelBadge = primary.level > 0 ? ` <span class="artifact-level-badge">+${primary.level}</span>` : "";
+  const cost = inst.level + 1;
+  // All other copies of this type are potential fuel
+  const fuelCandidates = inv.map((a, i) => ({ ...a, invIdx: i })).filter(a => a.id === artifactModalArtId && a.invIdx !== artifactModalTargetIdx);
+
+  // Remove any stale selections (indices that no longer exist or are now the target)
+  for (const fi of artifactModalFuelSelected) {
+    if (!fuelCandidates.some(c => c.invIdx === fi)) artifactModalFuelSelected.delete(fi);
+  }
+
+  const selectedCount = artifactModalFuelSelected.size;
+  const canLevel = selectedCount === cost;
+  const levelBadge = inst.level > 0 ? ` <span class="artifact-level-badge">+${inst.level}</span>` : "";
 
   const charSlotOptions = party.map((c: any, ci: number) => {
     const slots: ({ id: string; level: number } | null)[] = c.artifact_slots ?? [null, null, null];
@@ -1278,15 +1299,25 @@ function renderArtifactModalBody(state: GameStateDict): void {
     ).join("");
   }).join("");
   const hasOpenSlot = charSlotOptions.includes("<option");
+  const sellVal = def.sellValue * (inst.level + 1);
 
-  const sellVal = def.sellValue * (primary.level + 1);
+  const fuelListHtml = fuelCandidates.length === 0
+    ? `<div class="amodal-no-fuel">No other copies in inventory.</div>`
+    : fuelCandidates.map(c => {
+        const checked = artifactModalFuelSelected.has(c.invIdx) ? " checked" : "";
+        const lvlLabel = c.level > 0 ? ` <span class="artifact-level-badge">+${c.level}</span>` : "";
+        return `<label class="amodal-fuel-item">
+          <input type="checkbox" class="amodal-fuel-check" data-fuel-idx="${c.invIdx}"${checked}>
+          <span class="amodal-fuel-label">${def.icon} ${def.name}${lvlLabel}</span>
+        </label>`;
+      }).join("");
 
   const equipSection = hasOpenSlot ? `
     <div class="amodal-section">
       <div class="amodal-section-title">Equip to Hero</div>
       <div class="amodal-equip-row">
         <select class="artifact-char-slot-select">${charSlotOptions}</select>
-        <button class="artifact-equip-btn" data-action="equip-artifact" data-inv-idx="${primary.invIdx}">Equip</button>
+        <button class="artifact-equip-btn" data-action="equip-artifact" data-inv-idx="${artifactModalTargetIdx}">Equip</button>
       </div>
     </div>` : "";
 
@@ -1295,26 +1326,51 @@ function renderArtifactModalBody(state: GameStateDict): void {
       <span class="amodal-icon">${def.icon}</span>
       <div>
         <div class="amodal-name">${def.name}${levelBadge}</div>
-        <div class="amodal-copies">${copies.length} in inventory</div>
+        <div class="amodal-copies">${inv.filter(a => a.id === artifactModalArtId).length} in inventory</div>
       </div>
     </div>
     <div class="amodal-desc">${def.desc}</div>
     <div class="amodal-section">
-      <div class="amodal-section-title">Level Up to +${primary.level + 1}</div>
-      <div class="amodal-fuel-info">
-        Costs <strong>${cost}×</strong> ${def.name}&ensp;·&ensp;
-        ${canLevel
-          ? `<span class="amodal-fuel-ready">✓ ${fuelCount} available</span>`
-          : `<span class="amodal-fuel-short">need ${needMore} more (have ${fuelCount})</span>`}
+      <div class="amodal-section-title">Level Up to +${inst.level + 1}</div>
+      <div class="amodal-fuel-header">
+        <span>Select <strong>${cost}</strong> to sacrifice as fuel</span>
+        <span id="amodal-sel-count" class="${canLevel ? "amodal-fuel-ready" : "amodal-fuel-short"}">${selectedCount}/${cost} selected</span>
       </div>
-      <button class="amodal-levelup-btn" data-action="modal-level-up-artifact" data-inv-idx="${primary.invIdx}"${canLevel ? "" : " disabled"}>
-        ⬆ Level Up to +${primary.level + 1}
+      <div class="amodal-fuel-list">${fuelListHtml}</div>
+      <button class="amodal-levelup-btn" data-action="modal-level-up-artifact" data-inv-idx="${artifactModalTargetIdx}"${canLevel ? "" : " disabled"}>
+        ⬆ Level Up to +${inst.level + 1}
       </button>
     </div>
     ${equipSection}
     <div class="amodal-section amodal-sell-section">
-      <button class="artifact-sell-btn amodal-sell-btn" data-action="sell-artifact" data-inv-idx="${primary.invIdx}">Sell for ${sellVal}g</button>
+      <button class="artifact-sell-btn amodal-sell-btn" data-action="sell-artifact" data-inv-idx="${artifactModalTargetIdx}">Sell for ${sellVal}g</button>
     </div>`;
+
+  // Wire checkboxes (can't use data-action delegation for checkbox change)
+  el.querySelectorAll<HTMLInputElement>(".amodal-fuel-check").forEach(cb => {
+    cb.addEventListener("change", () => {
+      const fi = parseInt(cb.dataset.fuelIdx!, 10);
+      if (cb.checked) {
+        if (artifactModalFuelSelected.size < cost) {
+          artifactModalFuelSelected.add(fi);
+        } else {
+          cb.checked = false; // reject — already at limit
+        }
+      } else {
+        artifactModalFuelSelected.delete(fi);
+      }
+      // Update count display and button state without full re-render
+      const sel = artifactModalFuelSelected.size;
+      const ready = sel === cost;
+      const countEl = document.getElementById("amodal-sel-count");
+      if (countEl) {
+        countEl.textContent = `${sel}/${cost} selected`;
+        countEl.className = ready ? "amodal-fuel-ready" : "amodal-fuel-short";
+      }
+      const lvlBtn = el.querySelector<HTMLButtonElement>(".amodal-levelup-btn");
+      if (lvlBtn) lvlBtn.disabled = !ready;
+    });
+  });
 }
 
 function findCombinePairs(runeInv: any[], maxTier: "lesser" | "greater" | "flawless" | "ancient" = "lesser"): { id1: string; id2: string; type: string; tier: string; name: string; result: string }[] {
@@ -2681,7 +2737,10 @@ document.addEventListener("DOMContentLoaded", () => {
       closeArtifactModal();
     }
     else if (action === "modal-level-up-artifact") {
-      call("levelUpArtifact", parseInt(btn.dataset.invIdx!, 10));
+      const targetIdx = parseInt(btn.dataset.invIdx!, 10);
+      const fuelIdxs = [...artifactModalFuelSelected];
+      artifactModalFuelSelected = new Set();
+      call("levelUpArtifact", targetIdx, fuelIdxs);
     }
     else if (action === "equip-artifact") {
       const invIdx = parseInt(btn.dataset.invIdx!, 10);
