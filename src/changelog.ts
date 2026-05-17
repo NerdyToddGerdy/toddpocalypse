@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.17.0";
+export const VERSION = "v2.18.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,17 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.18.0",
+    date: "2026-05-17",
+    changes: [
+      "Feat rewards are now cosmetic: avatars and borders replace prestige point grants (prestige points come from prestiging, not from feats)",
+      "Player profile widget in the Prestige panel shows your active avatar, border, and title — click Customize to pick from earned unlocks",
+      "10 avatars and 8 borders unlockable through achievements",
+      "New feat: Clicking Maniac — earn border and avatar rewards for lifetime click milestones (100 / 1,000 / 10,000 clicks)",
+      "Die-hard feat now tracks lifetime deaths across all prestige runs, not just the current run",
+    ],
+  },
   {
     version: "v2.17.0",
     date: "2026-05-17",

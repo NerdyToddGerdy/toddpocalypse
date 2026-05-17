@@ -13,11 +13,13 @@ import {
   STASH_TIER_COSTS, STASH_SIZES,
   DPS_BONUS_PER_LEVEL,
   ARTIFACT_DEFS, ARTIFACT_DROP_POOL,
+  AVATAR_DEFS, BORDER_DEFS,
+  ACHIEVEMENTS,
 } from "../src/engine.js";
 import { Character } from "../src/character.js";
 import { GearItem, getItem, getSetItem, SET_DEFS, type Slot } from "../src/gear.js";
 import { RUNE_DEFS } from "../src/engine.js";
-import { generateEliteEnemy } from "../src/dungeon.js";
+import { generateEliteEnemy, ENEMY_NOUNS } from "../src/dungeon.js";
 
 function make(): GameState {
   return new GameState();
@@ -4578,5 +4580,179 @@ describe("combineAllRunes prestige upgrade", () => {
     ];
     gs.combineAllRunes();
     expect(gs.lifetimeRunesCombined).toBe(2);
+  });
+});
+
+describe("AVATAR_DEFS / BORDER_DEFS", () => {
+  it("AVATAR_DEFS has at least 10 entries", () => {
+    expect(AVATAR_DEFS.length).toBeGreaterThanOrEqual(10);
+  });
+
+  it("every AVATAR_DEF has id, icon, name", () => {
+    for (const a of AVATAR_DEFS) {
+      expect(a.id).toBeTruthy();
+      expect(a.icon).toBeTruthy();
+      expect(a.name).toBeTruthy();
+    }
+  });
+
+  it("BORDER_DEFS has at least 8 entries", () => {
+    expect(BORDER_DEFS.length).toBeGreaterThanOrEqual(8);
+  });
+
+  it("every BORDER_DEF has id, cssClass, name", () => {
+    for (const b of BORDER_DEFS) {
+      expect(b.id).toBeTruthy();
+      expect(b.cssClass).toBeTruthy();
+      expect(b.name).toBeTruthy();
+    }
+  });
+
+  it("new GameState has 'default' in earnedAvatars", () => {
+    expect(make().earnedAvatars.has("default")).toBe(true);
+  });
+
+  it("new GameState has 'none' in earnedBorders", () => {
+    expect(make().earnedBorders.has("none")).toBe(true);
+  });
+
+  it("new GameState selectedAvatar is 'default'", () => {
+    expect(make().selectedAvatar).toBe("default");
+  });
+
+  it("new GameState selectedBorder is 'none'", () => {
+    expect(make().selectedBorder).toBe("none");
+  });
+});
+
+describe("lifetimeClicks", () => {
+  it("starts at 0", () => {
+    expect(make().lifetimeClicks).toBe(0);
+  });
+
+  it("increments on each click() call", () => {
+    const gs = make();
+    gs.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "common", "valor", { dps: 1 }, 1));
+    gs.click();
+    expect(gs.lifetimeClicks).toBe(1);
+    gs.click();
+    expect(gs.lifetimeClicks).toBe(2);
+  });
+
+  it("persists through prestige", () => {
+    const gs = withHighLevel(20);
+    gs.lifetimeClicks = 500;
+    gs.prestige();
+    expect(gs.lifetimeClicks).toBe(500);
+  });
+
+  it("serializes and restores via toDict/fromDict", () => {
+    const gs = make();
+    gs.lifetimeClicks = 42;
+    const restored = GameState.fromDict(JSON.parse(gs.respond()));
+    expect(restored.lifetimeClicks).toBe(42);
+  });
+});
+
+describe("clicks_tiered achievement", () => {
+  it("bronze fires at 100 clicks", () => {
+    const gs = make();
+    gs.lifetimeClicks = 100;
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("clicks_tiered_bronze")).toBe(true);
+  });
+
+  it("silver fires at 1000 clicks", () => {
+    const gs = make();
+    gs.lifetimeClicks = 1000;
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("clicks_tiered_silver")).toBe(true);
+  });
+
+  it("gold fires at 10000 clicks", () => {
+    const gs = make();
+    gs.lifetimeClicks = 10_000;
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("clicks_tiered_gold")).toBe(true);
+  });
+
+  it("bronze reward grants border", () => {
+    const gs = make();
+    gs.lifetimeClicks = 100;
+    gs.checkAchievements();
+    expect(gs.earnedBorders.size).toBeGreaterThan(1); // more than just "none"
+  });
+});
+
+describe("setAvatar / setBorder", () => {
+  it("setAvatar updates selectedAvatar when earned", () => {
+    const gs = make();
+    gs.earnedAvatars.add("dragon");
+    gs.setAvatar("dragon");
+    expect(gs.selectedAvatar).toBe("dragon");
+  });
+
+  it("setAvatar is noop when avatar not earned", () => {
+    const gs = make();
+    gs.setAvatar("dragon");
+    expect(gs.selectedAvatar).toBe("default");
+  });
+
+  it("setBorder updates selectedBorder when earned", () => {
+    const gs = make();
+    gs.earnedBorders.add("gold");
+    gs.setBorder("gold");
+    expect(gs.selectedBorder).toBe("gold");
+  });
+
+  it("setBorder is noop when border not earned", () => {
+    const gs = make();
+    gs.setBorder("gold");
+    expect(gs.selectedBorder).toBe("none");
+  });
+
+  it("avatar/border persist via toDict/fromDict", () => {
+    const gs = make();
+    gs.earnedAvatars.add("skull");
+    gs.earnedBorders.add("blood");
+    gs.selectedAvatar = "skull";
+    gs.selectedBorder = "blood";
+    const restored = GameState.fromDict(JSON.parse(gs.respond()));
+    expect(restored.selectedAvatar).toBe("skull");
+    expect(restored.selectedBorder).toBe("blood");
+    expect(restored.earnedAvatars.has("skull")).toBe(true);
+    expect(restored.earnedBorders.has("blood")).toBe(true);
+  });
+});
+
+describe("achievement rewards: avatar and border", () => {
+  it("avatar reward adds to earnedAvatars", () => {
+    const gs = make();
+    // kill_all_types → avatar: "dragon" (after prestige_points removed)
+    // Trigger by setting enough enemy types
+    for (const noun of ENEMY_NOUNS) {
+      gs.lifetimeEnemyKills[`Test ${noun}`] = 1;
+    }
+    gs.checkAchievements();
+    expect(gs.earnedAvatars.has("dragon")).toBe(true);
+  });
+
+  it("border reward adds to earnedBorders", () => {
+    const gs = make();
+    // boss_kills_tiered bronze → border: "iron"
+    gs.lifetimeBossKills = 10;
+    gs.checkAchievements();
+    expect(gs.earnedBorders.has("iron")).toBe(true);
+  });
+
+  it("ACHIEVEMENTS contains no reward of type prestige_points", () => {
+    for (const def of ACHIEVEMENTS) {
+      if (def.reward) expect(def.reward.type).not.toBe("prestige_points");
+      if (def.tiers) {
+        for (const tier of def.tiers) {
+          if (tier.reward) expect(tier.reward.type).not.toBe("prestige_points");
+        }
+      }
+    }
   });
 });

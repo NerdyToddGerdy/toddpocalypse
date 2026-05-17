@@ -1,4 +1,4 @@
-import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock, ARTIFACT_DEFS, artifactFuelValue } from "./engine.js";
+import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock, ARTIFACT_DEFS, artifactFuelValue, AVATAR_DEFS, BORDER_DEFS } from "./engine.js";
 import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, SET_DEFS, type GearStats, type GearItemDict } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
@@ -787,11 +787,67 @@ function renderAutoSellerConfig(state: GameStateDict): string {
   return `<div class="auto-seller-config">${rows}${nextTier}</div>`;
 }
 
+let profilePickerOpen = false;
+let profilePickerTab: "avatar" | "border" = "avatar";
+
+function renderProfileWidget(state: GameStateDict): void {
+  const earnedAvatars = new Set<string>(state.earned_avatars ?? ["default"]);
+  const earnedBorders = new Set<string>(state.earned_borders ?? ["none"]);
+  const selectedAvatar = state.selected_avatar ?? "default";
+  const selectedBorder = state.selected_border ?? "none";
+  const avatarDef = AVATAR_DEFS.find(a => a.id === selectedAvatar) ?? AVATAR_DEFS[0];
+  const borderDef = BORDER_DEFS.find(b => b.id === selectedBorder) ?? BORDER_DEFS[0];
+  const earnedTitle = (state.earned_titles as string[] | undefined)?.[0] ?? "";
+
+  const pickerHtml = profilePickerOpen ? `
+    <div class="profile-picker">
+      <div class="profile-picker-tabs">
+        <button class="profile-tab-btn ${profilePickerTab === "avatar" ? "active" : ""}" data-action="profile-tab" data-tab="avatar">Avatar</button>
+        <button class="profile-tab-btn ${profilePickerTab === "border" ? "active" : ""}" data-action="profile-tab" data-tab="border">Border</button>
+      </div>
+      <div class="profile-picker-grid">
+        ${profilePickerTab === "avatar"
+          ? AVATAR_DEFS.map(a => {
+              const earned = earnedAvatars.has(a.id);
+              const active = a.id === selectedAvatar;
+              return `<button class="profile-pick-btn ${earned ? "" : "locked"} ${active ? "active" : ""}" data-action="set-avatar" data-avatar-id="${a.id}" ${earned ? "" : "disabled"}>
+                <span class="pick-icon">${a.icon}</span>
+                <span class="pick-name">${a.name}</span>
+              </button>`;
+            }).join("")
+          : BORDER_DEFS.map(b => {
+              const earned = earnedBorders.has(b.id);
+              const active = b.id === selectedBorder;
+              return `<button class="profile-pick-btn ${b.cssClass} ${earned ? "" : "locked"} ${active ? "active" : ""}" data-action="set-border" data-border-id="${b.id}" ${earned ? "" : "disabled"}>
+                <div class="pick-border-preview ${b.cssClass}"></div>
+                <span class="pick-name">${b.name}</span>
+              </button>`;
+            }).join("")
+        }
+      </div>
+    </div>` : "";
+
+  $("player-profile-widget").innerHTML = `
+    <div class="player-profile">
+      <div class="profile-avatar-wrap ${borderDef.cssClass}">
+        <span class="profile-avatar-icon">${avatarDef.icon}</span>
+      </div>
+      <div class="profile-info">
+        ${earnedTitle ? `<div class="profile-title">${earnedTitle}</div>` : ""}
+        <div class="profile-avatar-name">${avatarDef.name}</div>
+      </div>
+      <button class="profile-customize-btn" data-action="open-profile-picker">Customize</button>
+    </div>
+    ${pickerHtml}`;
+}
+
 /** Renders the Prestige Shop item list, marking purchased one-time items and unaffordable items. */
 function renderPrestigeShop(state: GameStateDict): void {
-  const newKey = JSON.stringify(state.prestige_upgrades) + "|" + state.prestige_points + "|" + state.highest_level + "|" + JSON.stringify(state.auto_sell_qualities) + "|" + state.dungeon_index;
+  const newKey = JSON.stringify(state.prestige_upgrades) + "|" + state.prestige_points + "|" + state.highest_level + "|" + JSON.stringify(state.auto_sell_qualities) + "|" + state.dungeon_index + "|" + state.selected_avatar + "|" + state.selected_border + "|" + JSON.stringify(state.earned_avatars) + "|" + JSON.stringify(state.earned_titles);
   if (newKey === prestigeKey) return;
   prestigeKey = newKey;
+
+  renderProfileWidget(state);
 
   const pts = state.prestige_points;
   $("prestige-points-display").textContent = pts === 1 ? "(1 pt)" : pts > 0 ? `(${pts} pts)` : "";
@@ -2934,6 +2990,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     else if (action === "set-title") {
       call("setEarnedTitle", btn.dataset.title ?? "");
+    }
+    else if (action === "open-profile-picker") {
+      profilePickerOpen = !profilePickerOpen;
+      if (game) renderProfileWidget(JSON.parse(game.respond()) as GameStateDict);
+    }
+    else if (action === "profile-tab") {
+      profilePickerTab = (btn.dataset.tab as "avatar" | "border") ?? "avatar";
+      if (game) renderProfileWidget(JSON.parse(game.respond()) as GameStateDict);
+    }
+    else if (action === "set-avatar") {
+      call("setAvatar", btn.dataset.avatarId!);
+    }
+    else if (action === "set-border") {
+      call("setBorder", btn.dataset.borderId!);
     }
   });
 

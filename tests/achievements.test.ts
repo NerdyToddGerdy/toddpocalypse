@@ -189,12 +189,11 @@ describe("achievement rewards", () => {
     expect(gs.gold).toBeGreaterThan(before);
   });
 
-  it("prestige_points reward adds to gs.prestigePoints", () => {
+  it("border reward adds to earnedBorders", () => {
     const gs = make();
-    const before = gs.prestigePoints;
-    gs.lifetimeBestLevel = 25; // depth_tiered silver → 1 PP
+    gs.lifetimeBestLevel = 25; // depth_tiered silver → border reward
     gs.checkAchievements();
-    expect(gs.prestigePoints).toBeGreaterThan(before);
+    expect(gs.earnedBorders.size).toBeGreaterThan(1); // more than just "none"
   });
 
   it("title reward sets gs.earnedTitle", () => {
