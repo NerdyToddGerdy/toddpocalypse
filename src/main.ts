@@ -361,7 +361,7 @@ function renderParty(state: GameStateDict): void {
   // Structure key: things that require a full DOM rebuild.
   // Health and XP are intentionally excluded — they are updated in-place below.
   const newStructKey = JSON.stringify(
-    state.party.map((c) => [c.level, c.dps, JSON.stringify(c.equipment), c.abilities.join(","), JSON.stringify(c.runes ?? {}), JSON.stringify((c as any).applied_set_bonuses ?? {}), JSON.stringify((c as any).locked_slots ?? [])])
+    state.party.map((c) => [c.level, c.dps, JSON.stringify(c.equipment), c.abilities.join(","), JSON.stringify(c.runes ?? {}), JSON.stringify((c as any).applied_set_bonuses ?? {}), JSON.stringify((c as any).locked_slots ?? []), JSON.stringify((c as any).artifact_slots ?? [])])
   ) + "|" + state.loot_pool.map(i => i.slot + i.name).join("|")
     + "|" + (state.earned_title ?? "");
 
@@ -451,6 +451,13 @@ function renderParty(state: GameStateDict): void {
         const runeJson = encodeURIComponent(JSON.stringify({ ...(rune as object), slotLabel: SLOT_LABELS[slot] ?? slot }));
         return `<span class="tt-rune-slot ${tierClass}" data-rune="${runeJson}"></span>`;
       }).join("");
+      const artifactSlots: (string | null)[] = (c as any).artifact_slots ?? [null, null, null];
+      const artifactBadgesHtml = artifactSlots.map((id, si) => {
+        if (!id) return `<span class="char-artifact-badge empty" title="Artifact slot ${si + 1}: empty">·</span>`;
+        const def = ARTIFACT_DEFS[id as keyof typeof ARTIFACT_DEFS];
+        return `<span class="char-artifact-badge filled${def?.tier === "upgraded" ? " upgraded" : ""}" title="${def?.name ?? id}: ${def?.desc ?? ""}">${def?.icon ?? "✨"}</span>`;
+      }).join("");
+
       const hpPct = Math.max(0, Math.round((c.health / c.max_health) * 100));
       const hpLow = hpPct <= 25;
       const xpPct = Math.round((c.xp / c.xp_to_next) * 100);
@@ -479,6 +486,7 @@ function renderParty(state: GameStateDict): void {
       <div class="char-class">${c.character_class}</div>${ci === 0 && state.earned_title ? `<div class="char-title">${state.earned_title}</div>` : ""}
       <div class="char-dps" data-dps="${dpsData}">${c.dps.toFixed(1)} DPS</div>
       <div class="char-rune-row">${runeRowHtml}</div>
+      ${artifactSlots.some(Boolean) ? `<div class="char-artifact-row">${artifactBadgesHtml}</div>` : ""}
       ${abilitiesHtml ? `<div class="char-abilities">${abilitiesHtml}</div>` : ""}
     </div>
     <img class="hero-sprite" src="${heroImg}" alt="${c.character_class}">

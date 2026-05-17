@@ -513,7 +513,8 @@ main {
 
 #party-panel.gear-hidden .char-gear,
 #party-panel.gear-hidden .char-abilities,
-#party-panel.gear-hidden .char-rune-row {
+#party-panel.gear-hidden .char-rune-row,
+#party-panel.gear-hidden .char-artifact-row {
     display: none;
 }
 
@@ -624,6 +625,34 @@ main {
   margin: 3px 0 0;
 }
 .tt-rune-slot[data-rune] { cursor: help; }
+
+.char-artifact-row {
+  display: flex;
+  gap: 4px;
+  margin: 3px 0 0;
+}
+.char-artifact-badge {
+  font-size: 0.8rem;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: default;
+}
+.char-artifact-badge.empty {
+  color: var(--border);
+  border-color: var(--border);
+  font-size: 0.65rem;
+  padding: 2px 5px;
+}
+.char-artifact-badge.filled {
+  background: rgba(167,139,250,0.12);
+  border-color: #a78bfa55;
+}
+.char-artifact-badge.filled.upgraded {
+  background: rgba(251,191,36,0.12);
+  border-color: #fbbf2455;
+}
 
 .ability-badge {
   font-size: 0.62rem;
