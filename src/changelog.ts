@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.15.2";
+export const VERSION = "v2.15.3";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.15.3",
+    date: "2026-05-16",
+    changes: [
+      "Clicking an equipped artifact slot opens the detail modal showing artifact stats and an Unequip button",
+      "Modal notes how many other copies of that artifact are in inventory when viewing an equipped one",
+    ],
+  },
   {
     version: "v2.15.2",
     date: "2026-05-16",

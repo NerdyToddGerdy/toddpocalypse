@@ -4330,7 +4330,30 @@ footer {
     font-size: 0.8rem;
     padding: 5px 14px;
 }
-/* Clickable artifact rows */
+/* Clickable artifact rows and slots */
 .artifact-inv-row { cursor: pointer; transition: background 0.1s; }
 .artifact-inv-row:hover { background: rgba(255,255,255,0.04); }
 .artifact-inv-row--levelup { border-left: 2px solid #7c3aed; }
+.artifact-slot.filled { cursor: pointer; transition: background 0.1s; }
+.artifact-slot.filled:hover { background: rgba(255,255,255,0.04); }
+.amodal-equipped-note {
+    font-size: 0.75rem;
+    color: var(--muted);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 6px 10px;
+}
+.amodal-unequip-btn {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.06);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-align: center;
+}
+.amodal-unequip-btn:hover { background: rgba(255,255,255,0.1); }

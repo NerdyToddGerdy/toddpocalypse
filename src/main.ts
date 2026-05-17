@@ -82,7 +82,9 @@ let autoSellKey: string | null = null;
 let stashKey: string | null = null;
 let artifactKey: string | null = null;
 let artifactModalArtId: string | null = null;
-let artifactModalTargetIdx: number = -1;
+let artifactModalTargetIdx: number = -1;  // inv index; -1 = viewing an equipped artifact
+let artifactModalCharIdx: number = -1;    // char index when viewing equipped
+let artifactModalSlotIdx: number = -1;    // slot index when viewing equipped
 let artifactModalFuelSelected: Set<number> = new Set();
 let upgradeKey: string | null = null;
 let partyStructKey: string | null = null;
@@ -1209,7 +1211,7 @@ function renderArtifactPanel(state: GameStateDict): void {
       const slotRows = slots.map((inst, slotIdx) => {
         if (inst) {
           const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
-          return `<div class="artifact-slot filled">
+          return `<div class="artifact-slot filled" data-action="open-equipped-artifact-modal" data-char-idx="${charIdx}" data-slot-idx="${slotIdx}" role="button" tabindex="0">
             <span class="artifact-slot-icon">${def?.icon ?? "✨"}</span>
             <span class="artifact-slot-name">${def?.name ?? inst.id}${inst.level > 0 ? ` <span class="artifact-level-badge">+${inst.level}</span>` : ""}</span>
             <span class="artifact-slot-desc">${def?.desc ?? ""}</span>
@@ -1250,8 +1252,22 @@ function openArtifactModal(invIdx: number, state: GameStateDict): void {
 function closeArtifactModal(): void {
   artifactModalArtId = null;
   artifactModalTargetIdx = -1;
+  artifactModalCharIdx = -1;
+  artifactModalSlotIdx = -1;
   artifactModalFuelSelected = new Set();
   $("artifact-detail-modal").classList.remove("open");
+}
+
+function openEquippedArtifactModal(charIdx: number, slotIdx: number, state: GameStateDict): void {
+  const inst = (state.party[charIdx] as any)?.artifact_slots?.[slotIdx];
+  if (!inst) return;
+  artifactModalArtId = inst.id;
+  artifactModalTargetIdx = -1;
+  artifactModalCharIdx = charIdx;
+  artifactModalSlotIdx = slotIdx;
+  artifactModalFuelSelected = new Set();
+  renderArtifactModalBody(state);
+  $("artifact-detail-modal").classList.add("open");
 }
 
 function renderArtifactModalBody(state: GameStateDict): void {
@@ -1262,6 +1278,42 @@ function renderArtifactModalBody(state: GameStateDict): void {
   const inv: { id: string; level: number }[] = (state as any).artifact_inventory ?? [];
   const party = state.party;
 
+  // ── Equipped artifact view ──────────────────────────────────────────────────
+  if (artifactModalTargetIdx === -1 && artifactModalCharIdx >= 0) {
+    const char = party[artifactModalCharIdx] as any;
+    const inst: { id: string; level: number } | null = char?.artifact_slots?.[artifactModalSlotIdx] ?? null;
+    if (!inst || inst.id !== artifactModalArtId) { closeArtifactModal(); return; }
+    const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
+    if (!def) { closeArtifactModal(); return; }
+
+    const titleEl = document.getElementById("artifact-detail-title");
+    if (titleEl) titleEl.textContent = def.name;
+
+    const levelBadge = inst.level > 0 ? ` <span class="artifact-level-badge">+${inst.level}</span>` : "";
+    const invCopies = inv.filter(a => a.id === inst.id).length;
+    const invNote = invCopies > 0
+      ? `<div class="amodal-equipped-note">${invCopies} more cop${invCopies === 1 ? "y" : "ies"} in inventory — unequip to level up or sell</div>`
+      : "";
+
+    el.innerHTML = `
+      <div class="amodal-hero-row">
+        <span class="amodal-icon">${def.icon}</span>
+        <div>
+          <div class="amodal-name">${def.name}${levelBadge}</div>
+          <div class="amodal-copies">Equipped on ${char.name}, slot ${artifactModalSlotIdx + 1}</div>
+        </div>
+      </div>
+      <div class="amodal-desc">${def.desc}</div>
+      ${invNote}
+      <div class="amodal-section amodal-sell-section">
+        <button class="amodal-unequip-btn" data-action="modal-unequip-artifact" data-char-idx="${artifactModalCharIdx}" data-slot-idx="${artifactModalSlotIdx}">
+          Unequip → return to inventory
+        </button>
+      </div>`;
+    return;
+  }
+
+  // ── Inventory artifact view ─────────────────────────────────────────────────
   // Remap: if the target index shifted (after a level-up), find the new position by scanning
   const target = inv[artifactModalTargetIdx];
   if (!target || target.id !== artifactModalArtId) {
@@ -2732,6 +2784,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     else if (action === "open-artifact-modal") {
       if (game) openArtifactModal(parseInt(btn.dataset.invIdx!, 10), JSON.parse(game.respond()) as GameStateDict);
+    }
+    else if (action === "open-equipped-artifact-modal") {
+      if (game) openEquippedArtifactModal(parseInt(btn.dataset.charIdx!, 10), parseInt(btn.dataset.slotIdx!, 10), JSON.parse(game.respond()) as GameStateDict);
+    }
+    else if (action === "modal-unequip-artifact") {
+      call("unequipArtifact", parseInt(btn.dataset.charIdx!, 10), parseInt(btn.dataset.slotIdx!, 10));
+      closeArtifactModal();
     }
     else if (action === "close-artifact-modal") {
       closeArtifactModal();
