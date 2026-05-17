@@ -2041,6 +2041,10 @@ main {
 }
 .prestige-buy-btn:hover:not(:disabled) { background: var(--accent); color: #1a1005; }
 .prestige-buy-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.prestige-buy-btn.auto-prestige-active { background: var(--accent); color: #1a1005; }
+.prestige-auto-card .prestige-item-meta { flex: 1; }
+.prestige-auto-controls { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.prestige-auto-threshold { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 4px; padding: 4px 6px; font-size: 0.72rem; }
 
 /* ── Venture button ── */
 #venture-btn {

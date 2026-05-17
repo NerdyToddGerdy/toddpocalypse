@@ -10,6 +10,7 @@ const HERO_IMG: Record<string, string> = {
   mage:    "hero_mage.png",
   paladin: "hero_paladin.png",
   ranger:  "hero_ranger.png",
+  druid:   "hero_fighter.png",
 };
 
 const CLASS_DESCS: Record<string, string> = {
@@ -18,18 +19,21 @@ const CLASS_DESCS: Record<string, string> = {
   mage: "Gains +5% XP rate every level. Slow start, fast late-game.",
   paladin: "Tank/healer. 25% damage reduction at Lv5, heals party on kill at Lv10.",
   ranger: "Gains +0.2 click damage every level. 30% crit chance at Lv5, +60% DPS at Lv10.",
+  druid: "Nature warden. Party lifesteal at Lv5, +40% passive DPS at Lv10, party heal per kill at Lv20.",
 };
 
 const GUILD_HALL_META: Record<string, { icon: string; name: string; desc: string; dungeonReq?: number }> = {
-  companion_hall:      { icon: "🏰", name: "Companion Hall",   desc: "Unlock Party Slot IV (stack 1) and Slot V (stack 2) in the Prestige Shop." },
+  companion_hall:      { icon: "🏰", name: "Companion Hall",   desc: "Unlock Party Slot IV (stack 1), Slot V (stack 2), and Slot VI (stack 3) in the Prestige Shop." },
   expanded_armory:     { icon: "🗄", name: "Expanded Armory",  desc: "+2 loot chest capacity per stack (max 14)." },
   class_paladin:       { icon: "🛡", name: "Recruit: Paladin", desc: "Unlock Paladin as a recruitable class for companions." },
   class_ranger:        { icon: "🏹", name: "Recruit: Ranger",  desc: "Unlock Ranger as a recruitable class for companions." },
+  class_druid:         { icon: "🌿", name: "Recruit: Druid",   desc: "Unlock Druid as a recruitable class. Dungeon 3+.", dungeonReq: 2 },
   skill_battle_cry:    { icon: "📯", name: "Battle Cry",       desc: "Fighter: ×2 party DPS for 8 kills. 20-kill cooldown." },
   skill_shadow_strike: { icon: "🌑", name: "Shadow Strike",    desc: "Rogue: ×3 all damage (tick + click) for 5 kills. 20-kill cooldown." },
   skill_arcane_surge:  { icon: "⚡", name: "Arcane Surge",     desc: "Mage: ×3 DPS for 6 kills. 25-kill cooldown." },
   skill_consecrate:    { icon: "🙏", name: "Consecrate",       desc: "Paladin: immediately heals all party members for 50% max HP. 15-kill cooldown.", dungeonReq: 1 },
   skill_volley:        { icon: "🏹", name: "Volley",           desc: "Ranger: ×2.5 party DPS for 6 kills. 15-kill cooldown.", dungeonReq: 1 },
+  skill_entangle:      { icon: "🌿", name: "Entangle",         desc: "Druid: reduces enemy attack by 60% for 8 kills. 20-kill cooldown. Dungeon 3+.", dungeonReq: 2 },
   rune_forge:          { icon: "🔮", name: "Rune Forge",       desc: "Socket runes into gear slots for flat stat bonuses. Bosses drop runes at 20%, elites at 10%. Tier 2: recover replaced runes + combine 2 lessers → greater. Tier 3: combine 2 greaters → flawless. Tier 4: combine 2 flawless → ancient." },
 };
 
@@ -808,6 +812,7 @@ const PRESTIGE_SHOP_META: Record<string, { icon: string; name: string; desc: str
   party_slot_3:  { icon: "👥", name: "Party Slot III", desc: "Add a 3rd member. Requires Slot II.", max: 1 },
   party_slot_4:  { icon: "👥", name: "Party Slot IV",  desc: "Add a 4th member. Requires Slot III + Companion Hall.", max: 1, guildReq: 1 },
   party_slot_5:  { icon: "👥", name: "Party Slot V",   desc: "Add a 5th member. Requires Slot IV + Companion Hall II.", max: 1, guildReq: 2 },
+  party_slot_6:  { icon: "👥", name: "Party Slot VI",  desc: "Add a 6th member. Requires Slot V + Companion Hall III.", max: 1, guildReq: 3 },
   starting_gold:    { icon: "💰", name: "Starting Gold",    desc: "+250g at the start of each run.", max: Infinity },
   xp_bonus:         { icon: "✨", name: "XP Bonus",         desc: "+10% XP gain for all party members.", max: Infinity },
   gold_bonus:       { icon: "🪙", name: "Gold Bonus",       desc: "+10% gold from kills per stack.", max: Infinity },
@@ -909,7 +914,7 @@ function renderProfileWidget(state: GameStateDict): void {
 
 /** Renders the Prestige Shop item list, marking purchased one-time items and unaffordable items. */
 function renderPrestigeShop(state: GameStateDict): void {
-  const newKey = JSON.stringify(state.prestige_upgrades) + "|" + state.prestige_points + "|" + state.highest_level + "|" + JSON.stringify(state.auto_sell_qualities) + "|" + state.dungeon_index;
+  const newKey = JSON.stringify(state.prestige_upgrades) + "|" + state.prestige_points + "|" + state.highest_level + "|" + JSON.stringify(state.auto_sell_qualities) + "|" + state.dungeon_index + "|" + state.auto_prestige_enabled + "|" + state.auto_prestige_threshold;
   if (newKey === prestigeKey) return;
   prestigeKey = newKey;
 
@@ -919,8 +924,52 @@ function renderPrestigeShop(state: GameStateDict): void {
   const ups = state.prestige_upgrades as Record<string, number>;
   const guildUpgrades = state.guild_upgrades as Record<string, number>;
   const companionHall = guildUpgrades["companion_hall"] ?? 0;
-  $("prestige-shop-items").innerHTML = Object.entries(PRESTIGE_SHOP_META)
+
+  // --- Party Members unified card ---
+  const PARTY_SLOT_KEYS = ["party_slot_2","party_slot_3","party_slot_4","party_slot_5","party_slot_6"];
+  const partySlotOwned = PARTY_SLOT_KEYS.filter(k => (ups[k] ?? 0) > 0).length;
+  const nextSlotKey = PARTY_SLOT_KEYS[partySlotOwned] as string | undefined;
+  const nextSlotCost = nextSlotKey ? prestigeUpgradeCost(nextSlotKey, 0) : Infinity;
+  const partySlotAtMax = partySlotOwned >= PARTY_SLOT_KEYS.length;
+  const partySlotPrereqMissing = !partySlotAtMax && (
+    (partySlotOwned >= 2 && companionHall < 1) ||
+    (partySlotOwned >= 3 && companionHall < 2) ||
+    (partySlotOwned >= 4 && companionHall < 3)
+  );
+  const partySlotCanAfford = pts >= nextSlotCost;
+  const partySlotDisabled = partySlotAtMax || partySlotPrereqMissing || !partySlotCanAfford;
+  const partySlotLabel = partySlotAtMax
+    ? "Full (6/6)"
+    : partySlotPrereqMissing
+      ? `Locked (need Hall ${partySlotOwned >= 4 ? "III" : partySlotOwned >= 3 ? "II" : "I"})`
+      : `${formatNumber(nextSlotCost)}pt`;
+  const partyMembersCard = `<div class="prestige-item">
+    <div class="prestige-item-meta">
+      <div class="prestige-item-name">👥 Party Members${partySlotOwned > 0 ? ` (${partySlotOwned + 1}/6)` : ""}</div>
+      <div class="prestige-item-desc">Recruit a new companion (you choose their class). Slots 4+ require Companion Hall upgrades.</div>
+    </div>
+    <button class="prestige-buy-btn" data-action="buy-prestige" data-type="${nextSlotKey ?? ""}" ${partySlotDisabled ? "disabled" : ""}>${partySlotLabel}</button>
+  </div>`;
+
+  // --- Auto-prestige (Eternal Cycle) card ---
+  const autoEnabled = state.auto_prestige_enabled ?? false;
+  const autoThreshold = state.auto_prestige_threshold ?? 5;
+  const autoCard = `<div class="prestige-item prestige-auto-card">
+    <div class="prestige-item-meta">
+      <div class="prestige-item-name">⟳ Eternal Cycle</div>
+      <div class="prestige-item-desc">Automatically prestige when the run would yield at least <strong>${autoThreshold}</strong> point${autoThreshold !== 1 ? "s" : ""}.</div>
+    </div>
+    <div class="prestige-auto-controls">
+      <input type="number" class="prestige-auto-threshold" data-action="set-auto-prestige-threshold" value="${autoThreshold}" min="1" max="99" style="width:48px;text-align:center" />
+      <button class="prestige-buy-btn ${autoEnabled ? "auto-prestige-active" : ""}" data-action="toggle-auto-prestige">${autoEnabled ? "ON" : "OFF"}</button>
+    </div>
+  </div>`;
+
+  // --- Normal items (excluding party_slot_*) ---
+  const partySlotSet = new Set(PARTY_SLOT_KEYS);
+  const normalItems = Object.entries(PRESTIGE_SHOP_META)
     .filter(([type, meta]) => {
+      if (partySlotSet.has(type)) return false;
       const guildReq = meta.guildReq ?? 0;
       if (guildReq > 0 && companionHall < guildReq) return false;
       const dungeonReq = meta.dungeonReq ?? 0;
@@ -937,11 +986,7 @@ function renderPrestigeShop(state: GameStateDict): void {
       return a.cost - b.cost;
     })
     .map(({ type, meta, owned, cost, atMax }) => {
-      const prereqMissing = (type === "smart_seller" && !(ups["auto_seller"] > 0))
-        || (type === "party_slot_3" && !(ups["party_slot_2"] > 0))
-        || (type === "party_slot_4" && !(ups["party_slot_3"] > 0))
-        || (type === "party_slot_5" && !(ups["party_slot_4"] > 0))
-;
+      const prereqMissing = (type === "smart_seller" && !(ups["auto_seller"] > 0));
       const canAfford = pts >= cost;
       const disabled = atMax || prereqMissing || !canAfford;
       const ownedLabel = atMax ? " ✓" : owned > 0 ? ` (${owned})` : "";
@@ -956,6 +1001,8 @@ function renderPrestigeShop(state: GameStateDict): void {
     </div>`;
     })
     .join("");
+
+  $("prestige-shop-items").innerHTML = autoCard + partyMembersCard + normalItems;
 }
 
 /** Enables/disables the Venture button based on whether the player has reached floor 40. */
@@ -995,7 +1042,7 @@ function guildCurrentStat(type: string, stacks: number, lootMax: number): string
   if (stacks <= 0) return "";
   switch (type) {
     case "expanded_armory": return `Current: ${lootMax} loot slots`;
-    case "companion_hall":  return stacks >= 2 ? "Current: Party Slots IV + V unlocked" : "Current: Party Slot IV unlocked";
+    case "companion_hall":  return stacks >= 3 ? "Current: Party Slots IV + V + VI unlocked" : stacks >= 2 ? "Current: Party Slots IV + V unlocked" : "Current: Party Slot IV unlocked";
     case "rune_forge":      return `Current: Forge Tier ${stacks}`;
     default: return "";
   }
@@ -1008,7 +1055,7 @@ function guildUpgradePreview(type: string, stacks: number, lootMax: number): str
     return `Loot chest: ${cur} → ${cur + 2} slots`;
   }
   if (type === "companion_hall") {
-    return stacks === 0 ? "Unlocks: Party Slot IV" : "Unlocks: Party Slot V";
+    return stacks === 0 ? "Unlocks: Party Slot IV" : stacks === 1 ? "Unlocks: Party Slot V" : "Unlocks: Party Slot VI";
   }
   return "";
 }
@@ -2469,8 +2516,10 @@ function openPartyClassModal(slotType: string): void {
   const guildUpgrades = game ? (JSON.parse(game.respond()) as GameStateDict).guild_upgrades : {};
   const paladinBtn = document.getElementById("party-class-paladin");
   const rangerBtn = document.getElementById("party-class-ranger");
+  const druidBtn = document.getElementById("party-class-druid");
   if (paladinBtn) paladinBtn.hidden = !((guildUpgrades["class_paladin"] ?? 0) > 0);
   if (rangerBtn) rangerBtn.hidden = !((guildUpgrades["class_ranger"] ?? 0) > 0);
+  if (druidBtn) druidBtn.hidden = !((guildUpgrades["class_druid"] ?? 0) > 0);
 
   picker.querySelectorAll(".class-btn").forEach((b) => b.classList.remove("selected"));
   (picker.querySelector(".class-btn:not([hidden])") as HTMLElement)?.classList.add("selected");
@@ -2999,11 +3048,23 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     else if (action === "buy-prestige") {
       const type = btn.dataset.type!;
-      if (type === "party_slot_2" || type === "party_slot_3" || type === "party_slot_4" || type === "party_slot_5") {
+      if (!type) return;
+      if (type.startsWith("party_slot_")) {
         openPartyClassModal(type);
       } else {
         call("buyPrestigeUpgrade", type);
       }
+    }
+    else if (action === "toggle-auto-prestige") {
+      if (!game) return;
+      const state = JSON.parse(game.respond()) as GameStateDict;
+      const enabled = !(state.auto_prestige_enabled ?? false);
+      const threshold = state.auto_prestige_threshold ?? 5;
+      const json = game.setAutoPrestige(enabled, threshold);
+      render(JSON.parse(json) as GameStateDict);
+    }
+    else if (action === "set-auto-prestige-threshold") {
+      // handled on change event below
     }
     else if (action === "buy-guild") {
       call("buyGuildUpgrade", btn.dataset.type!);
@@ -3172,6 +3233,17 @@ document.addEventListener("DOMContentLoaded", () => {
       profileWidgetKey = "";
       if (game) renderProfileWidget(JSON.parse(game.respond()) as GameStateDict);
     }
+  });
+
+  // Auto-prestige threshold input (delegated change)
+  document.addEventListener("change", (e) => {
+    const input = (e.target as HTMLElement).closest<HTMLInputElement>(".prestige-auto-threshold");
+    if (!input || !game) return;
+    const state = JSON.parse(game.respond()) as GameStateDict;
+    const threshold = Math.max(1, parseInt(input.value, 10) || 1);
+    const enabled = state.auto_prestige_enabled ?? false;
+    const json = game.setAutoPrestige(enabled, threshold);
+    render(JSON.parse(json) as GameStateDict);
   });
 
   document.getElementById("artifact-detail-close")?.addEventListener("click", closeArtifactModal);

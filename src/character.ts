@@ -60,6 +60,11 @@ export const CLASS_ABILITIES: Record<string, AbilityMeta[]> = {
     { level: 10, id: "swift_quiver",    name: "Swift Quiver",    desc: "Passive DPS +60%",               icon: "🏹" },
     { level: 20, id: "hunters_mark",    name: "Hunter's Mark",   desc: "Enemy takes +20% dmg",           icon: "🎯" },
   ],
+  druid: [
+    { level: 5,  id: "regrowth",        name: "Regrowth",        desc: "Party gains 5% lifesteal",       icon: "🌿" },
+    { level: 10, id: "thornwall",       name: "Thornwall",       desc: "Passive DPS +40%",               icon: "🌱" },
+    { level: 20, id: "wild_growth",     name: "Wild Growth",     desc: "Party heals 2% max HP per kill", icon: "🍀" },
+  ],
 };
 
 /** Base idle DPS per class before any level-ups or gear. */
@@ -69,6 +74,7 @@ const BASE_DPS: Record<string, number> = {
   mage: 1.0,
   paladin: 1.7,
   ranger: 1.5,
+  druid: 1.3,
 };
 
 /** Per-level-up stat bonuses for each class. */
@@ -88,6 +94,7 @@ const LEVEL_UP: Record<string, LevelUpBonuses> = {
   mage:    { dpsMult: 1.1,  clickBonus: 0.0, xpMultiplier: 0.05 },
   paladin: { dpsMult: 1.16, clickBonus: 0.0, xpMultiplier: 0.0 },
   ranger:  { dpsMult: 1.18, clickBonus: 0.2, xpMultiplier: 0.0 },
+  druid:   { dpsMult: 1.13, clickBonus: 0.0, xpMultiplier: 0.0 },
 };
 
 /** HP gained per character level-up. */

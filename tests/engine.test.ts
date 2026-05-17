@@ -20,7 +20,7 @@ import {
   ACHIEVEMENTS,
   formatNumber,
 } from "../src/engine.js";
-import { Character } from "../src/character.js";
+import { Character, CLASS_ABILITIES } from "../src/character.js";
 import { GearItem, getItem, getSetItem, SET_DEFS, type Slot } from "../src/gear.js";
 import { RUNE_DEFS } from "../src/engine.js";
 import { generateEliteEnemy, ENEMY_NOUNS } from "../src/dungeon.js";
@@ -2530,7 +2530,7 @@ describe("venture", () => {
     const gs = withVentureReady();
     expect(gs.prestigeUpgrades["party_slot_2"]).toBeGreaterThan(0);
     gs.venture();
-    expect(gs.prestigeUpgrades["party_slot_2"]).toBe(0);
+    expect(gs.prestigeUpgrades["party_slot_2"] ?? 0).toBe(0);
     expect(gs.prestigeUpgrades["party_slot_3"] ?? 0).toBe(0);
   });
 
@@ -3463,6 +3463,70 @@ describe("dungeon 2 content", () => {
     gs.onEnemyDeath();
     // Only the COMBAT_HEAL_FRACTION missing-HP heal, no consecrate burst
     expect(player.health).toBeLessThan(15);
+  });
+});
+
+describe("druid class", () => {
+  it("druid exists in CLASS_ABILITIES with 3 abilities", () => {
+    expect(CLASS_ABILITIES["druid"]).toBeDefined();
+    expect(CLASS_ABILITIES["druid"].length).toBe(3);
+  });
+
+  it("druid regrowth ability adds party lifesteal in tick", () => {
+    const gs = make();
+    gs.enemy.hp = gs.enemy.max_hp = 999_999;
+    gs.enemy.attack_dps = 0;
+    const druid = new Character("Druid", "druid");
+    druid.abilities.push("regrowth");
+    druid.equipItem(new GearItem("main_hand" as Slot, "staff", "legendary", "valor"));
+    gs.party.team.push(druid);
+    for (const c of gs.party.team) c.health = 1;
+    gs.tick(1.0);
+    // with regrowth lifesteal, at least one party member should have been healed
+    const healed = gs.party.team.some(c => c.health > 1);
+    expect(healed).toBe(true);
+  });
+
+  it("druid wild_growth heals party on kill", () => {
+    const gs = make();
+    const druid = new Character("Druid", "druid");
+    druid.abilities.push("wild_growth");
+    gs.party.team.push(druid);
+    for (const c of gs.party.team) { c.health = 1; c.maxHealth = 100; }
+    gs.enemy = { name: "Mob", level: 1, hp: 0, max_hp: 1, xp_reward: 0, gold_reward: 0, attack_dps: 0, isBoss: false };
+    gs.onEnemyDeath();
+    for (const c of gs.party.team) expect(c.health).toBeGreaterThan(1);
+  });
+
+  it("skill_entangle reduces enemy attack DPS while active", () => {
+    // Single-member party so the target is always deterministic
+    const gs = make();
+    gs.enemy.hp = gs.enemy.max_hp = 999_999;
+    gs.enemy.attack_dps = 1000;
+    const member = gs.party.team[0];
+    member.health = member.maxHealth = 10_000;
+    // Without entangle
+    gs.tick(1.0);
+    const dmgWithout = 10_000 - member.health;
+    // Reset and activate entangle
+    member.health = 10_000;
+    gs.activeEffects["skill_entangle"] = 8;
+    gs.tick(1.0);
+    const dmgWith = 10_000 - member.health;
+    expect(dmgWith).toBeLessThan(dmgWithout);
+  });
+
+  it("party_slot_6 exists in PRESTIGE_SHOP_COSTS", () => {
+    expect(PRESTIGE_SHOP_COSTS["party_slot_6"]).toBeDefined();
+  });
+
+  it("class_druid exists in GUILD_HALL_COSTS", () => {
+    expect(GUILD_HALL_COSTS["class_druid"]).toBeDefined();
+  });
+
+  it("skill_entangle exists in SKILL_DEFS with class druid", () => {
+    expect(SKILL_DEFS["skill_entangle"]).toBeDefined();
+    expect(SKILL_DEFS["skill_entangle"].class).toBe("druid");
   });
 });
 

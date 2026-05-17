@@ -107,6 +107,7 @@ export const PRESTIGE_SHOP_COSTS: Record<string, number> = {
   party_slot_3: 3,
   party_slot_4: 4,
   party_slot_5: 5,
+  party_slot_6: 6,
   starting_gold: 1,
   xp_bonus: 1,
   gold_bonus: 1,
@@ -145,15 +146,17 @@ export function prestigeUpgradeCost(type: string, currentStacks: number): number
 
 /** Gold cost for each stack of every Guild Hall upgrade. */
 export const GUILD_HALL_COSTS: Record<string, number[]> = {
-  companion_hall:      [5_000, 8_000],
+  companion_hall:      [5_000, 8_000, 12_000],
   expanded_armory:     [1_000, 2_000, 3_000],
   class_paladin:       [4_000],
   class_ranger:        [4_000],
+  class_druid:         [6_000],
   skill_battle_cry:    [2_500],
   skill_shadow_strike: [2_500],
   skill_arcane_surge:  [2_500],
   skill_consecrate:    [5_000],
   skill_volley:        [5_000],
+  skill_entangle:      [5_000],
   rune_forge:          [5_000, 10_000, 20_000, 40_000],
 };
 
@@ -189,6 +192,8 @@ export const RUNE_DEFS: Record<string, Rune> = {
 export const GUILD_HALL_DUNGEON_REQ: Record<string, number> = {
   skill_consecrate: 1,
   skill_volley: 1,
+  class_druid: 2,
+  skill_entangle: 2,
 };
 
 /** Cooldown (ms) and duration (kills) and class requirement for each active combat skill. */
@@ -198,6 +203,9 @@ export const CORRUPTION_FLOOR = 20;
 export const CORRUPTION_RATE_PER_FLOOR = 0.003;
 /** Lifesteal is reduced by this fraction per floor of depth, capped at 90%. */
 export const CORRUPTION_HEAL_REDUCTION_PER_FLOOR = 0.06;
+
+/** Fraction by which enemy attack DPS is reduced while Entangle is active. */
+export const ENTANGLE_REDUCTION = 0.60;
 
 export const BATTLE_CRY_MULT    = 2.0;
 export const SHADOW_STRIKE_MULT = 3.0;
@@ -210,6 +218,7 @@ export const SKILL_DEFS: Record<string, { cooldownKills: number; durationKills: 
   skill_arcane_surge:  { cooldownKills: 25, durationKills: 6, class: "mage" },
   skill_consecrate:    { cooldownKills: 15, durationKills: 0, class: "paladin" },
   skill_volley:        { cooldownKills: 15, durationKills: 6, class: "ranger" },
+  skill_entangle:      { cooldownKills: 20, durationKills: 8, class: "druid" },
 };
 
 /** Fraction of missing HP restored after each enemy kill. */
@@ -386,6 +395,8 @@ export interface GameStateDict {
   selected_border?: string;
   lifetime_clicks?: number;
   achievement_progress?: Record<string, number>;
+  auto_prestige_enabled?: boolean;
+  auto_prestige_threshold?: number;
 }
 
 /** Central game loop: owns all mutable state and exposes action methods that return serialized JSON. */
@@ -500,6 +511,10 @@ export class GameState {
   selectedAvatar = "default";
   /** Currently active border ID. */
   selectedBorder = "none";
+  /** Whether auto-prestige fires automatically when prestige is available and threshold is met. */
+  autoPrestigeEnabled = false;
+  /** Minimum prestige_points_preview required to trigger auto-prestige. */
+  autoPrestigeThreshold = 5;
 
   /** Current loot chest capacity, expanding with Expanded Armory guild upgrades. */
   get lootMax(): number { return 8 + 2 * (this.guildUpgrades["expanded_armory"] ?? 0); }
@@ -593,7 +608,8 @@ export class GameState {
     const healReduction = Math.min(0.90, corruptionMult * CORRUPTION_HEAL_REDUCTION_PER_FLOOR);
 
     // Lifesteal: heal the first injured alive character — reduced by corruption at depth
-    const partyLifesteal = this.party.team.reduce((s, c) => c.isAlive() ? s + c.lifesteal : s, 0);
+    const regrowthBonus = this.party.team.some(c => c.isAlive() && c.abilities.includes("regrowth")) ? 0.05 : 0;
+    const partyLifesteal = this.party.team.reduce((s, c) => c.isAlive() ? s + c.lifesteal : s, 0) + regrowthBonus;
     if (damageDealt > 0 && partyLifesteal > 0) {
       const effectiveLifesteal = partyLifesteal * (1 - healReduction);
       const healTarget = this.party.team.find(c => c.isAlive() && c.health < c.maxHealth);
@@ -611,7 +627,8 @@ export class GameState {
       const coreSlot = target.artifactSlots.find(s => s?.id === "wardens_core");
       if (coreSlot) artifactDmgReduction = ARTIFACT_DEFS[coreSlot.id].effectValue * (coreSlot.level + 1);
       const totalDmgReduction = Math.min(0.50, target.damageReduction + artifactDmgReduction);
-      target.health -= this.enemy.attack_dps * partySizeMult * dt * (1 - totalDmgReduction);
+      const entangleMult = (this.activeEffects["skill_entangle"] ?? 0) > 0 ? (1 - ENTANGLE_REDUCTION) : 1.0;
+      target.health -= this.enemy.attack_dps * entangleMult * partySizeMult * dt * (1 - totalDmgReduction);
       target.health = Math.max(0, target.health);
     }
 
@@ -625,6 +642,11 @@ export class GameState {
 
     if (this.party.team.every(c => !c.isAlive())) {
       this.onPlayerDeath();
+    }
+    // Auto-prestige: fire when enabled and preview meets threshold
+    if (this.autoPrestigeEnabled && this.highestLevel >= PRESTIGE_UNLOCK_LEVEL &&
+        this.prestigePointsPreview() >= this.autoPrestigeThreshold) {
+      return this.prestige();
     }
     return this.respond();
   }
@@ -930,16 +952,10 @@ export class GameState {
 
     this.dungeonIndex += 1;
     this.prestigePoints = 0;
-    // Reset party slots so fresh companions can be recruited in the new dungeon
-    this.prestigeUpgrades["party_slot_2"] = 0;
-    this.prestigeUpgrades["party_slot_3"] = 0;
-    this.prestigeUpgrades["party_slot_4"] = 0;
-    this.prestigeUpgrades["party_slot_5"] = 0;
-    // Reset auto tools — must be re-purchased via prestige each dungeon
-    this.prestigeUpgrades["auto_seller"] = 0;
-    this.prestigeUpgrades["auto_equip"] = 0;
-    this.prestigeUpgrades["auto_upgrade"] = 0;
-    this.prestigeUpgrades["smart_seller"] = 0;
+    // Reset all prestige upgrades except guild_hall_access (keep the gateway unlock)
+    const hadGuildHall = (this.prestigeUpgrades["guild_hall_access"] ?? 0) > 0;
+    this.prestigeUpgrades = {};
+    if (hadGuildHall) this.prestigeUpgrades["guild_hall_access"] = 1;
     this.autoSellQualities = [];
     this.skillCooldowns = {};
     this.activeEffects = {};
@@ -1032,6 +1048,12 @@ export class GameState {
       this.party.addPlayer(champ);
       this.upgrades["Champion"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
     }
+    if ((this.prestigeUpgrades["party_slot_6"] ?? 0) > 0) {
+      const cls6 = this.prestigePartyClasses["slot_6"] ?? "fighter";
+      const chosen = new Character("Chosen", cls6, 1);
+      this.party.addPlayer(chosen);
+      this.upgrades["Chosen"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
+    }
 
     const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
     for (const c of this.party.team) {
@@ -1068,7 +1090,11 @@ export class GameState {
       if (!(this.prestigeUpgrades["party_slot_4"] > 0)) return this.respond();
       if (!((this.guildUpgrades["companion_hall"] ?? 0) >= 2)) return this.respond();
     }
-    const oneTime = ["guild_hall_access", "auto_seller", "auto_equip", "auto_upgrade", "smart_seller", "party_slot_2", "party_slot_3", "party_slot_4", "party_slot_5"];
+    if (type === "party_slot_6") {
+      if (!(this.prestigeUpgrades["party_slot_5"] > 0)) return this.respond();
+      if (!((this.guildUpgrades["companion_hall"] ?? 0) >= 3)) return this.respond();
+    }
+    const oneTime = ["guild_hall_access", "auto_seller", "auto_equip", "auto_upgrade", "smart_seller", "party_slot_2", "party_slot_3", "party_slot_4", "party_slot_5", "party_slot_6"];
     if (oneTime.includes(type) && (this.prestigeUpgrades[type] ?? 0) >= 1) return this.respond();
     if (type === "stash" && (this.prestigeUpgrades["stash"] ?? 0) >= STASH_TIER_COSTS.length) return this.respond();
     const currentStacks = this.prestigeUpgrades[type] ?? 0;
@@ -1112,6 +1138,14 @@ export class GameState {
       this.upgrades["Champion"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
       const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
       champ.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
+    } else if (type === "party_slot_6") {
+      const cls = characterClass ?? "fighter";
+      this.prestigePartyClasses["slot_6"] = cls;
+      const chosen = new Character("Chosen", cls, 1);
+      this.party.addPlayer(chosen);
+      this.upgrades["Chosen"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
+      const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
+      chosen.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
     } else if (type === "xp_bonus") {
       for (const c of this.party.team) {
         c.xpMultiplier += XP_BONUS_PER_LEVEL;
@@ -1345,6 +1379,13 @@ export class GameState {
     return result;
   }
 
+  /** Toggles auto-prestige and sets the minimum preview threshold. Returns serialized JSON. */
+  setAutoPrestige(enabled: boolean, threshold: number): string {
+    this.autoPrestigeEnabled = enabled;
+    this.autoPrestigeThreshold = Math.max(1, threshold);
+    return this.respond();
+  }
+
   /** Serializes the current game state to a JSON string for the renderer. */
   respond(): string {
     const json = JSON.stringify(this.toDict());
@@ -1445,6 +1486,8 @@ export class GameState {
       selected_border: this.selectedBorder,
       lifetime_clicks: this.lifetimeClicks,
       achievement_progress: Object.fromEntries(ACHIEVEMENTS.map(def => [def.id, def.getValue(this)])),
+      auto_prestige_enabled: this.autoPrestigeEnabled,
+      auto_prestige_threshold: this.autoPrestigeThreshold,
     };
   }
 
@@ -1605,6 +1648,13 @@ export class GameState {
     }
 
     this.killStreak += 1;
+
+    // Druid wild_growth: heals all living members 2% maxHP on each kill
+    if (this.party.team.some(c => c.isAlive() && c.abilities.includes("wild_growth"))) {
+      for (const c of this.party.team) {
+        if (c.isAlive()) c.health = Math.min(c.maxHealth, c.health + c.maxHealth * 0.02);
+      }
+    }
 
     // Bloodstone: heal party on each kill, scales with level
     let bloodHealFrac = 0;
@@ -2013,6 +2063,8 @@ export class GameState {
     gs.earnedBorders = new Set(d.earned_borders ?? ["none"]);
     gs.selectedAvatar = d.selected_avatar ?? "default";
     gs.selectedBorder = d.selected_border ?? "none";
+    gs.autoPrestigeEnabled = d.auto_prestige_enabled ?? false;
+    gs.autoPrestigeThreshold = d.auto_prestige_threshold ?? 5;
 
     // Backfill cosmetic rewards for saves predating the avatar/border reward system
     for (const def of ACHIEVEMENTS) {
@@ -2285,7 +2337,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   },
   {
     id: "arsenal", name: "Arsenal",
-    description: "Unlock all 5 active skills.",
+    description: "Unlock all active skills.",
     category: "guild", hidden: false,
     reward: { type: "avatar", cosmetic: "merchant" },
     getValue: gs => Object.keys(SKILL_DEFS).filter(id => (gs.guildUpgrades[id] ?? 0) > 0).length >= Object.keys(SKILL_DEFS).length ? 1 : 0,

@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.23.4";
+export const VERSION = "v2.24.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,19 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.24.0",
+    date: "2026-05-17",
+    changes: [
+      "6th party slot (Slot VI) — recruit a Chosen companion (requires Companion Hall III)",
+      "New class: Druid — Regrowth (party lifesteal Lv5), Thornwall (+40% DPS Lv10), Wild Growth (heal 2% maxHP per kill Lv20)",
+      "New Druid skill: Entangle — reduces enemy attack by 60% for 8 kills (20-kill cooldown, Dungeon 3+)",
+      "Companion Hall expanded to 3 levels (unlocks Slot IV, V, and VI)",
+      "Party Slots consolidated into a single 'Party Members' card in the Prestige Shop",
+      "Eternal Cycle — auto-prestige toggle with configurable point threshold",
+      "Prestige boosts (XP, DPS, gold, etc.) now reset when venturing to a new dungeon",
+    ],
+  },
   {
     version: "v2.23.4",
     date: "2026-05-17",

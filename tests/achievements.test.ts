@@ -401,9 +401,9 @@ describe("Battle Ready", () => {
 });
 
 describe("Arsenal", () => {
-  it("fires when all 5 active skills are unlocked", () => {
+  it("fires when all active skills are unlocked", () => {
     const gs = make();
-    ["skill_battle_cry","skill_shadow_strike","skill_arcane_surge","skill_consecrate","skill_volley"].forEach(s => {
+    ["skill_battle_cry","skill_shadow_strike","skill_arcane_surge","skill_consecrate","skill_volley","skill_entangle"].forEach(s => {
       gs.guildUpgrades[s] = 1;
     });
     expect(gs.checkAchievements().some(u => u.id === "arsenal")).toBe(true);
