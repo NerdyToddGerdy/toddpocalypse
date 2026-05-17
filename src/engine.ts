@@ -463,7 +463,7 @@ export class GameState {
   /** Set of achievement/tier IDs that have been awarded. */
   achievementsUnlocked: Set<string> = new Set();
   /** Active cosmetic title earned from an achievement. */
-  earnedTitle = "";
+  earnedTitle = "nobody";
   /** Achievement unlocks queued for toast notifications; cleared after each respond(). */
   pendingAchievements: AchievementUnlock[] = [];
   /** Runes held in the player's rune inventory, awaiting branding. */
@@ -1427,10 +1427,11 @@ export class GameState {
     return titles;
   }
 
-  /** Sets the displayed title to any title the player has already earned, or clears it with "". */
+  /** Sets the displayed title to any title the player has already earned, or resets to "nobody". */
   setEarnedTitle(title: string): string {
-    if (title === "" || this.computeEarnedTitles().includes(title)) {
-      this.earnedTitle = title;
+    const resolved = title === "" ? "nobody" : title;
+    if (resolved === "nobody" || this.computeEarnedTitles().includes(resolved)) {
+      this.earnedTitle = resolved;
     }
     return this.respond();
   }
@@ -1951,7 +1952,7 @@ export class GameState {
     gs.runId = d.run_id ?? crypto.randomUUID();
     gs.savedAt = d.saved_at ?? 0;
     gs.achievementsUnlocked = new Set(d.achievements_unlocked ?? []);
-    gs.earnedTitle = d.earned_title ?? "";
+    gs.earnedTitle = d.earned_title || "nobody";
     gs.lifetimeGold = d.lifetime_gold ?? 0;
     gs.lifetimeLoot = d.lifetime_loot ?? 0;
     gs.lifetimeSold = d.lifetime_sold ?? 0;

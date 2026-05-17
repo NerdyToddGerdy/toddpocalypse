@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.20.0";
+export const VERSION = "v2.21.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.21.0",
+    date: "2026-05-17",
+    changes: [
+      "Title picker moved from the Feats panel into the profile dropdown (Avatar → Border → Title tabs)",
+      "Default title is now 'nobody' — shown on the character card from the start",
+      "Header avatar button label now always reflects the currently selected title",
+    ],
+  },
   {
     version: "v2.20.0",
     date: "2026-05-17",

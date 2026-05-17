@@ -3871,21 +3871,6 @@ footer {
 }
 
 /* ── Title picker (Feats panel) ── */
-.title-picker-section {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 12px;
-    margin-bottom: 14px;
-}
-.title-picker-label {
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--muted);
-    margin-bottom: 8px;
-}
 .title-picker-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .title-chip {
     font-size: 0.75rem;

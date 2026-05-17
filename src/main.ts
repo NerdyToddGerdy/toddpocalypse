@@ -784,7 +784,7 @@ function renderAutoSellerConfig(state: GameStateDict): string {
 }
 
 let profilePickerOpen = false;
-let profilePickerTab: "avatar" | "border" = "avatar";
+let profilePickerTab: "avatar" | "border" | "title" = "avatar";
 
 let profileWidgetKey = "";
 
@@ -793,19 +793,20 @@ function renderProfileWidget(state: GameStateDict): void {
   const earnedBorders = new Set<string>(state.earned_borders ?? ["none"]);
   const selectedAvatar = state.selected_avatar ?? "default";
   const selectedBorder = state.selected_border ?? "none";
-  const newKey = `${selectedAvatar}|${selectedBorder}|${state.earned_titles?.join(",")}|${profilePickerOpen}|${profilePickerTab}`;
+  const earnedTitles: string[] = (state.earned_titles as string[] | undefined) ?? [];
+  const selectedTitle = state.earned_title ?? "nobody";
+  const newKey = `${selectedAvatar}|${selectedBorder}|${selectedTitle}|${earnedTitles.join(",")}|${profilePickerOpen}|${profilePickerTab}`;
   if (newKey === profileWidgetKey) return;
   profileWidgetKey = newKey;
 
   const avatarDef = AVATAR_DEFS.find(a => a.id === selectedAvatar) ?? AVATAR_DEFS[0];
   const borderDef = BORDER_DEFS.find(b => b.id === selectedBorder) ?? BORDER_DEFS[0];
-  const earnedTitle = (state.earned_titles as string[] | undefined)?.[0] ?? "";
 
   $("header-avatar-btn").innerHTML = `
     <div class="header-avatar-wrap ${borderDef.cssClass}">
       <span class="header-avatar-icon">${avatarDef.icon}</span>
     </div>
-    <span class="header-avatar-label">${earnedTitle || avatarDef.name}</span>`;
+    <span class="header-avatar-label">${selectedTitle}</span>`;
 
   const dropdown = $("profile-picker-dropdown");
   if (!profilePickerOpen) {
@@ -813,32 +814,43 @@ function renderProfileWidget(state: GameStateDict): void {
     return;
   }
 
+  const allTitles = ["nobody", ...earnedTitles];
+
   dropdown.hidden = false;
   dropdown.innerHTML = `
     <div class="profile-picker-tabs">
       <button class="profile-tab-btn ${profilePickerTab === "avatar" ? "active" : ""}" data-action="profile-tab" data-tab="avatar">Avatar</button>
       <button class="profile-tab-btn ${profilePickerTab === "border" ? "active" : ""}" data-action="profile-tab" data-tab="border">Border</button>
+      <button class="profile-tab-btn ${profilePickerTab === "title" ? "active" : ""}" data-action="profile-tab" data-tab="title">Title</button>
     </div>
-    <div class="profile-picker-grid">
-      ${profilePickerTab === "avatar"
-        ? AVATAR_DEFS.map(a => {
+    ${profilePickerTab === "avatar"
+      ? `<div class="profile-picker-grid">
+          ${AVATAR_DEFS.map(a => {
             const earned = earnedAvatars.has(a.id);
             const active = a.id === selectedAvatar;
             return `<button class="profile-pick-btn ${earned ? "" : "locked"} ${active ? "active" : ""}" data-action="set-avatar" data-avatar-id="${a.id}" ${earned ? "" : "disabled"}>
               <span class="pick-icon">${a.icon}</span>
               <span class="pick-name">${a.name}</span>
             </button>`;
-          }).join("")
-        : BORDER_DEFS.map(b => {
+          }).join("")}
+        </div>`
+      : profilePickerTab === "border"
+      ? `<div class="profile-picker-grid">
+          ${BORDER_DEFS.map(b => {
             const earned = earnedBorders.has(b.id);
             const active = b.id === selectedBorder;
             return `<button class="profile-pick-btn ${b.cssClass} ${earned ? "" : "locked"} ${active ? "active" : ""}" data-action="set-border" data-border-id="${b.id}" ${earned ? "" : "disabled"}>
               <div class="pick-border-preview ${b.cssClass}"></div>
               <span class="pick-name">${b.name}</span>
             </button>`;
-          }).join("")
-      }
-    </div>`;
+          }).join("")}
+        </div>`
+      : `<div class="title-picker-chips">
+          ${allTitles.map(t =>
+            `<button class="title-chip${selectedTitle === t ? " active" : ""}" data-action="set-title" data-title="${t}">${t}</button>`
+          ).join("")}
+        </div>`
+    }`;
 }
 
 /** Renders the Prestige Shop item list, marking purchased one-time items and unaffordable items. */
@@ -1821,7 +1833,7 @@ function renderFeats(state: GameStateDict): void {
   const unlocked = new Set(state.achievements_unlocked ?? []);
   const progress = state.achievement_progress ?? {};
   const progressBucket = ACHIEVEMENTS.map(def => Math.floor((progress[def.id] ?? 0) / 5) * 5).join(",");
-  const newKey = `${state.achievements_unlocked?.join(",")}|${state.earned_title}|${featsFilter}|${progressBucket}`;
+  const newKey = `${state.achievements_unlocked?.join(",")}|${featsFilter}|${progressBucket}`;
   if (newKey === featsKey) return;
   featsKey = newKey;
 
@@ -1945,20 +1957,7 @@ function renderFeats(state: GameStateDict): void {
 
   const noResults = `<div class="feat-empty">No feats match this filter.</div>`;
 
-  const earnedTitles: string[] = (state as any).earned_titles ?? [];
-  const titleHtml = earnedTitles.length > 0
-    ? `<div class="title-picker-section">
-        <div class="title-picker-label">Your Title</div>
-        <div class="title-picker-chips">
-          <button class="title-chip${state.earned_title === "" ? " active" : ""}" data-action="set-title" data-title="">None</button>
-          ${earnedTitles.map(t =>
-            `<button class="title-chip${state.earned_title === t ? " active" : ""}" data-action="set-title" data-title="${t}">${t}</button>`
-          ).join("")}
-        </div>
-      </div>`
-    : "";
-
-  $("feats-content").innerHTML = titleHtml + filterTabs + (categorySections || noResults);
+  $("feats-content").innerHTML = filterTabs + (categorySections || noResults);
 
   // Badge: show count of pending toasts as a brief notification
   const badge = document.getElementById("stab-feats-badge");
@@ -3061,7 +3060,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (game) renderProfileWidget(JSON.parse(game.respond()) as GameStateDict);
     }
     else if (action === "profile-tab") {
-      profilePickerTab = (btn.dataset.tab as "avatar" | "border") ?? "avatar";
+      profilePickerTab = (btn.dataset.tab as "avatar" | "border" | "title") ?? "avatar";
       if (game) renderProfileWidget(JSON.parse(game.respond()) as GameStateDict);
     }
     else if (action === "set-avatar") {

@@ -3577,11 +3577,11 @@ describe("setEarnedTitle", () => {
     expect(gs.earnedTitle).toBe("Slayer");
   });
 
-  it("setEarnedTitle with empty string clears earnedTitle", () => {
+  it("setEarnedTitle with empty string resets to 'nobody'", () => {
     const gs = make();
     gs.earnedTitle = "Slayer";
     gs.setEarnedTitle("");
-    expect(gs.earnedTitle).toBe("");
+    expect(gs.earnedTitle).toBe("nobody");
   });
 
   it("setEarnedTitle with unearned title does nothing", () => {
@@ -4847,5 +4847,42 @@ describe("fromDict cosmetic backfill", () => {
     const gs2 = GameState.fromDict(dict);
     expect(gs2.earnedBorders.has("silver")).toBe(true);
     expect(gs2.earnedBorders.has("gold")).toBe(true);
+  });
+});
+
+// ─── title defaults and "nobody" ─────────────────────────────────────────────
+
+describe("title default nobody", () => {
+  it("earnedTitle defaults to 'nobody'", () => {
+    expect(new GameState().earnedTitle).toBe("nobody");
+  });
+
+  it("toDict includes earned_title 'nobody' by default", () => {
+    const state = JSON.parse(new GameState().respond());
+    expect(state.earned_title).toBe("nobody");
+  });
+
+  it("setEarnedTitle('nobody') always succeeds even without any earned titles", () => {
+    const gs = make();
+    gs.achievementsUnlocked.add("kills_tiered_gold");
+    gs.earnedTitle = "Slayer";
+    gs.setEarnedTitle("nobody");
+    expect(gs.earnedTitle).toBe("nobody");
+  });
+
+  it("setEarnedTitle('') resolves to 'nobody'", () => {
+    const gs = make();
+    gs.achievementsUnlocked.add("kills_tiered_gold");
+    gs.earnedTitle = "Slayer";
+    gs.setEarnedTitle("");
+    expect(gs.earnedTitle).toBe("nobody");
+  });
+
+  it("fromDict with old empty earned_title migrates to 'nobody'", () => {
+    const gs = new GameState();
+    const dict = gs.toDict();
+    dict.earned_title = "";
+    const gs2 = GameState.fromDict(dict);
+    expect(gs2.earnedTitle).toBe("nobody");
   });
 });
