@@ -943,6 +943,16 @@ main {
 .loot-stab.active { color: var(--accent2); border-bottom-color: var(--accent2); }
 .loot-stab-count { font-size: 0.65em; color: var(--muted); margin-left: 2px; }
 .loot-stab.active .loot-stab-count { color: var(--accent2); }
+.loot-stab-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f59e0b;
+  margin-left: 4px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
 
 #loot-runes-sub, #loot-artifacts-sub { padding-top: 4px; }
 

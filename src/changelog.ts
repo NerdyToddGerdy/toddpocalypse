@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.14.6";
+export const VERSION = "v2.14.7";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.14.7",
+    date: "2026-05-16",
+    changes: [
+      "Amber notification dot on Runes tab when a combine or artifact forge is ready",
+      "Amber notification dot on Artifacts tab when a combine (2× same artifact → upgraded) is available",
+    ],
+  },
   {
     version: "v2.14.6",
     date: "2026-05-16",

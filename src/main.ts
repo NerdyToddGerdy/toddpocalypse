@@ -1022,6 +1022,7 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
   const runeCountEl = document.getElementById("loot-rune-count");
   if (runeCountEl) runeCountEl.textContent = runeInv.length > 0 ? `(${runeInv.length})` : "";
   const el = $("loot-rune-inventory");
+  // Dot is set after combinePairs + ancientCount are computed — see below
   if (runeForge < 1) { el.innerHTML = ""; return; }
 
   const charOptions = party.map((c: any, i: number) =>
@@ -1088,6 +1089,10 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
 
   const ancientCount = runeInv.filter((r: any) => r.tier === "ancient").length;
   const canForge = ancientCount >= 10;
+  const runeHasAction = canForge || combinePairs.length > 0;
+  const runeDotEl = document.getElementById("loot-rune-dot");
+  if (runeDotEl) runeDotEl.hidden = !runeHasAction;
+
   const forgeArtifactHtml = ancientCount > 0
     ? `<div class="rune-forge-artifact-row">
          <span class="rune-forge-artifact-label">✨ Forge Artifact</span>
@@ -1162,6 +1167,8 @@ function renderArtifactPanel(state: GameStateDict): void {
       combinePairs.push({ id, idx1: idxs[0], idx2: idxs[1] });
     }
   }
+  const artifactDotEl = document.getElementById("loot-artifact-dot");
+  if (artifactDotEl) artifactDotEl.hidden = combinePairs.length === 0;
 
   const combineHtml = combinePairs.map(p => {
     const def = ARTIFACT_DEFS[p.id as keyof typeof ARTIFACT_DEFS];
