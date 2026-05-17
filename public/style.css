@@ -1484,6 +1484,9 @@ main {
     color: var(--muted);
     text-align: center;
     letter-spacing: 0.5px;
+    height: 1.4rem;
+    line-height: 1.4rem;
+    overflow: hidden;
 }
 
 #floor-pip-row {
@@ -1854,7 +1857,7 @@ main {
         align-items: center;
         gap: 4px 8px;
     }
-    #monsters-left-text { font-size: 0.68rem; flex: 0 0 auto; text-align: left; }
+    #monsters-left-text { font-size: 0.68rem; flex: 0 0 auto; text-align: left; height: 1.4rem; line-height: 1.4rem; }
     #floor-pip-row { flex: 1; justify-content: flex-end; gap: 3px; }
     .floor-pip { width: 8px; height: 5px; }
     #checkpoint-display { width: 100%; font-size: 0.65rem; text-align: right; }
