@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.22.4";
+export const VERSION = "v2.22.5";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.22.5",
+    date: "2026-05-17",
+    changes: [
+      "Fixed profile picker tabs (Avatar/Border/Title) closing the dropdown when clicked",
+    ],
+  },
   {
     version: "v2.22.4",
     date: "2026-05-17",

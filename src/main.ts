@@ -3151,9 +3151,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target === $("log-history-modal")) $("log-history-modal").classList.remove("open");
   });
 
-  // Close profile picker when clicking outside the header avatar area
+  // Close profile picker when clicking outside the header avatar area.
+  // Use composedPath() so the check survives innerHTML mutations that detach the clicked node.
   document.addEventListener("click", (e) => {
-    if (profilePickerOpen && !(e.target as HTMLElement).closest("#header-avatar-area")) {
+    if (profilePickerOpen && !e.composedPath().some(el => (el as Element).id === "header-avatar-area")) {
       profilePickerOpen = false;
       profileWidgetKey = "";
       if (game) renderProfileWidget(JSON.parse(game.respond()) as GameStateDict);
