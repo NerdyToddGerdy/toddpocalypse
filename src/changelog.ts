@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.24.7";
+export const VERSION = "v2.24.8";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.24.8",
+    date: "2026-05-17",
+    changes: [
+      "Elite portrait border now shows as a full 5px purple frame instead of corner-only slivers",
+    ],
+  },
   {
     version: "v2.24.7",
     date: "2026-05-17",

@@ -372,7 +372,6 @@ main {
     width: 130px;
     flex-shrink: 0;
     align-self: flex-start;
-    overflow: hidden;
 }
 
 /* Fixed-size inner so absolutely-positioned images have a real containing block */
@@ -1625,7 +1624,7 @@ main {
 }
 
 #portrait-inner.elite-portrait-frame {
-    box-shadow: 0 0 0 3px #a78bfa, 0 0 16px 4px rgba(167, 139, 250, 0.6);
+    box-shadow: 0 0 0 5px #a78bfa, 0 0 20px 6px rgba(167, 139, 250, 0.55);
     border-radius: 4px;
 }
 
