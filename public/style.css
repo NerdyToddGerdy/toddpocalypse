@@ -728,6 +728,13 @@ main {
     display: none;
 }
 
+/* When gear is visible: hide rune/artifact/ability rows from header — portrait sizes to name/class/DPS */
+#party-panel:not(.gear-hidden) .char-rune-row,
+#party-panel:not(.gear-hidden) .char-artifact-row,
+#party-panel:not(.gear-hidden) .char-abilities {
+    display: none;
+}
+
 #party-cards {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -755,11 +762,12 @@ main {
 
 .hero-sprite {
     width: 84px;
-    height: 140px;
+    height: auto;
     flex-shrink: 0;
-    object-fit: fill;
+    object-fit: cover;
     image-rendering: pixelated;
     border-radius: 4px;
+    align-self: stretch;
 }
 
 .char-name { font-weight: 700; margin-bottom: 2px; }
@@ -768,7 +776,7 @@ main {
 .char-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: stretch;
     gap: 8px;
     margin-bottom: 8px;
 }
