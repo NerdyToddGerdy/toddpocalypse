@@ -23,7 +23,7 @@ const CLASS_DESCS: Record<string, string> = {
 };
 
 const GUILD_HALL_META: Record<string, { icon: string; name: string; desc: string; dungeonReq?: number }> = {
-  companion_hall:      { icon: "🏰", name: "Companion Hall",   desc: "Unlock Party Slot IV (stack 1), Slot V (stack 2), and Slot VI (stack 3) in the Prestige Shop." },
+  companion_hall:      { icon: "🏰", name: "Companion Hall",   desc: "Unlock Party Slot IV (stack 1), Slot V (stack 2), and Slot VI (stack 3) in the Hall of Renown." },
   expanded_armory:     { icon: "🗄", name: "Expanded Armory",  desc: "+2 loot chest capacity per stack (max 14)." },
   class_paladin:       { icon: "🛡", name: "Recruit: Paladin", desc: "Unlock Paladin as a recruitable class for companions." },
   class_ranger:        { icon: "🏹", name: "Recruit: Ranger",  desc: "Unlock Ranger as a recruitable class for companions." },
@@ -35,7 +35,7 @@ const GUILD_HALL_META: Record<string, { icon: string; name: string; desc: string
   skill_volley:        { icon: "🏹", name: "Volley",           desc: "Ranger: ×2.5 party DPS for 6 kills. 15-kill cooldown.", dungeonReq: 1 },
   skill_entangle:      { icon: "🌿", name: "Entangle",         desc: "Druid: reduces enemy attack by 60% for 8 kills. 20-kill cooldown. Dungeon 3+.", dungeonReq: 2 },
   auto_attack:         { icon: "⚔", name: "Auto-Attack",      desc: "Automatically fires a click attack every second. Toggle the AUTO button next to the Attack button." },
-  eternal_cycle:       { icon: "⟳", name: "Eternal Cycle",    desc: "Automatically prestige when a run would yield at least N points. Set the threshold and toggle below." },
+  eternal_cycle:       { icon: "⟳", name: "Eternal Cycle",    desc: "Automatically return to town when a run would yield at least N renown. Set the threshold and toggle below." },
   rune_forge:          { icon: "🔮", name: "Rune Forge",       desc: "Socket runes into gear slots for flat stat bonuses. Bosses drop runes at 20%, elites at 10%. Tier 2: recover replaced runes + combine 2 lessers → greater. Tier 3: combine 2 greaters → flawless. Tier 4: combine 2 flawless → ancient." },
 };
 
@@ -853,7 +853,7 @@ const PRESTIGE_SHOP_META: Record<string, { icon: string; name: string; desc: str
   gold_mastery:     { icon: "💰", name: "Gold Mastery",     desc: "+20% gold from bosses per stack. Dungeon 2+.", max: Infinity, dungeonReq: 1 },
   gear_luck:        { icon: "🍀", name: "Gear Luck",        desc: "+5% item drop chance per stack (max 75%). Dungeon 2+.", max: 10, dungeonReq: 1 },
   combine_all_runes:{ icon: "🔮", name: "Combine All Runes",desc: "Adds a 'Combine All' button to the rune panel — auto-combines all matching pairs in sequence. Dungeon 3+.", max: 1, dungeonReq: 2 },
-  stash:            { icon: "📦", name: "Gear Stash",       desc: "Persistent stash that survives prestige. Lv1: 3 slots (free), Lv2: 6 slots, Lv3: 10 slots, Lv4: 15 slots. Dungeon 3+.", max: 4, dungeonReq: 2 },
+  stash:            { icon: "📦", name: "Gear Stash",       desc: "Persistent stash that survives a return to town. Lv1: 3 slots (free), Lv2: 6 slots, Lv3: 10 slots, Lv4: 15 slots. Dungeon 3+.", max: 4, dungeonReq: 2 },
 };
 
 /** Builds the HTML for quality-tier auto-sell checkboxes shown beneath the loot chest. */
@@ -1025,7 +1025,7 @@ function renderPrestigeShop(state: GameStateDict): void {
   prestigeKey = newKey;
 
   const pts = state.prestige_points;
-  $("prestige-points-display").textContent = pts === 1 ? "(1 pt)" : pts > 0 ? `(${formatNumber(pts)} pts)` : "";
+  $("prestige-points-display").textContent = pts > 0 ? `(${formatNumber(pts)} renown)` : "";
 
   const ups = state.prestige_upgrades as Record<string, number>;
   const guildUpgrades = state.guild_upgrades as Record<string, number>;
@@ -1095,7 +1095,7 @@ function renderPrestigeShop(state: GameStateDict): void {
         <div class="prestige-item-desc">${meta.desc}</div>
         ${currentStat ? `<div class="shop-current-stat">${currentStat}</div>` : ""}
       </div>
-      <button class="prestige-buy-btn" data-action="buy-prestige" data-type="${type}" ${disabled ? "disabled" : ""}>${atMax ? "Owned" : formatNumber(cost) + "pt"}</button>
+      <button class="prestige-buy-btn" data-action="buy-prestige" data-type="${type}" ${disabled ? "disabled" : ""}>${atMax ? "Owned" : formatNumber(cost) + " rn"}</button>
     </div>`,
       });
     });
@@ -1906,10 +1906,10 @@ function updatePrestigeButton(state: GameStateDict): void {
   const btn = $("prestige-btn") as HTMLButtonElement;
   if (state.prestige_available) {
     btn.disabled = false;
-    btn.textContent = `★ Prestige (+${state.prestige_points_preview}pt)`;
+    btn.textContent = `★ Return to Town (+${state.prestige_points_preview} rn)`;
   } else {
     btn.disabled = true;
-    btn.textContent = `★ Prestige (need lv${20})`;
+    btn.textContent = `★ Return to Town (need lv${20})`;
   }
 }
 
@@ -2028,7 +2028,7 @@ function renderThemePicker(state: GameStateDict): void {
 
 const CATEGORY_LABELS: Record<string, string> = {
   combat: "Combat", explorer: "Explorer", collector: "Collector",
-  wealth: "Wealth", prestige: "Prestige", guild: "Guild", runes: "Runes",
+  wealth: "Wealth", prestige: "Renown", guild: "Guild", runes: "Runes",
 };
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -2196,7 +2196,7 @@ function showAchievementToasts(unlocks: AchievementUnlock[]): void {
       const r = u.reward;
       const rewardText = !r ? "" :
         r.type === "gold" ? `+${formatNumber(r.value ?? 0)}g` :
-        r.type === "prestige_points" ? `+${r.value} prestige point${(r.value ?? 1) > 1 ? "s" : ""}` :
+        r.type === "prestige_points" ? `+${r.value} renown` :
         r.type === "title" ? `Title unlocked: "${r.title}"` :
         r.type === "avatar" ? (() => { const a = AVATAR_DEFS.find(x => x.id === r.cosmetic); return `Avatar: ${a?.icon ?? ""} ${a?.name ?? r.cosmetic}`; })() :
         r.type === "border" ? (() => { const b = BORDER_DEFS.find(x => x.id === r.cosmetic); return `Border: ${b?.name ?? r.cosmetic}`; })() : "";
@@ -2821,7 +2821,7 @@ function saveConflictStats(d: GameStateDict): string {
   const kills = (d.lifetime_kills as number) ?? 0;
   const best = (d.lifetime_best_level as number) ?? 1;
   const prestiges = (d.total_prestiges as number) ?? 0;
-  return `Floor ${best} reached<br>${kills.toLocaleString()} lifetime kills<br>${prestiges} prestige${prestiges !== 1 ? "s" : ""}`;
+  return `Floor ${best} reached<br>${kills.toLocaleString()} lifetime kills<br>${prestiges} town return${prestiges !== 1 ? "s" : ""}`;
 }
 
 /** Shows the save-conflict modal and resolves with the chosen save JSON string. */
@@ -3232,7 +3232,7 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (action === "prestige") {
       if (!game) return;
       const pts = game.prestigePointsPreview();
-      if (confirm(`Prestige? You will earn ${pts} pt. ALL run progress will be wiped.`)) {
+      if (confirm(`Return to Town? You will earn ${pts} renown. ALL run progress will be wiped.`)) {
         call("prestige");
       }
     }

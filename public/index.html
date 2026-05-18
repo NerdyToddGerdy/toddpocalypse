@@ -67,7 +67,7 @@
     <div id="stat-party-hp-wrap">♥ <span id="stat-party-hp">0/0</span></div>
     <div id="stat-party-dps-wrap">⚔ <span id="stat-party-dps">0</span>/s</div>
     <div id="action-btns">
-      <button id="prestige-btn" data-action="prestige" disabled>★ Prestige</button>
+      <button id="prestige-btn" data-action="prestige" disabled>★ Return to Town</button>
       <button id="venture-btn" data-action="venture" disabled>⚔ Venture</button>
     </div>
   </div>
@@ -162,7 +162,7 @@
     <nav id="sidebar-tabs">
       <button class="stab-btn active" data-stab="upgrades">Upgrades</button>
       <button class="stab-btn" data-stab="loot">Loot</button>
-      <button class="stab-btn" data-stab="prestige">Prestige<span id="stab-prestige-badge" class="stab-badge" hidden></span></button>
+      <button class="stab-btn" data-stab="prestige">Renown<span id="stab-prestige-badge" class="stab-badge" hidden></span></button>
       <button class="stab-btn" data-stab="guild">Guild<span id="stab-guild-badge" class="stab-badge" hidden></span></button>
       <button class="stab-btn" data-stab="feats">Feats<span id="stab-feats-badge" class="stab-badge" hidden></span></button>
     </nav>
@@ -216,7 +216,7 @@
     </section>
 
     <section id="prestige-panel">
-      <h2>Prestige Shop <span id="prestige-points-display"></span></h2>
+      <h2>Hall of Renown <span id="prestige-points-display"></span></h2>
       <div id="prestige-shop-items"></div>
     </section>
 
@@ -263,7 +263,7 @@
       <div class="stat-row"><span class="stat-label">Total Kills</span><span id="lt-kills">0</span></div>
       <div class="stat-row"><span class="stat-label">Total Deaths</span><span id="lt-deaths">0</span></div>
       <div class="stat-row"><span class="stat-label">Best Level</span><span id="lt-best">1</span></div>
-      <div class="stat-row"><span class="stat-label">Prestiges</span><span id="lt-prestiges">0</span></div>
+      <div class="stat-row"><span class="stat-label">Town Returns</span><span id="lt-prestiges">0</span></div>
       <div class="stat-row"><span class="stat-label">Dungeon</span><span id="lt-dungeon">1</span></div>
       <div id="lt-enemy-section">
         <div id="lt-enemy-title">Kills by Enemy Type</div>
@@ -437,7 +437,7 @@
           features — to see how far AI-assisted development could go on a project I genuinely cared about.
         </p>
         <p class="about-text">
-          The game itself is a browser-based idle RPG with cloud saves, a prestige system, and a
+          The game itself is a browser-based idle RPG with cloud saves, a renown system, and a
           full dungeon loop — built entirely through that process. It's been a crash course in
           knowing what to ask, when to push back, and how to stay in the driver's seat while letting
           AI handle the heavy lifting.
@@ -501,7 +501,7 @@
       <button id="retire-confirm-close" aria-label="Close">✕</button>
     </div>
     <div id="retire-confirm-body">
-      <p class="retire-warning">This will <strong>permanently reset</strong> all progress — gold, gear, prestige upgrades, guild upgrades, runes, and artifacts.</p>
+      <p class="retire-warning">This will <strong>permanently reset</strong> all progress — gold, gear, renown upgrades, guild upgrades, runes, and artifacts.</p>
       <p class="retire-warning">Your hero's story will be recorded in the Hall of Fame.</p>
       <div id="retire-unlock-preview"></div>
       <div id="retire-confirm-actions">

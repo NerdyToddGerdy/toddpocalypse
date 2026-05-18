@@ -1127,7 +1127,7 @@ export class GameState {
 
     this.gold = (this.prestigeUpgrades["starting_gold"] ?? 0) * STARTING_GOLD_PER_LEVEL;
 
-    this.addLog(`Prestige ${this.totalPrestiges}! Earned ${earned}pt.`);
+    this.addLog(`Returned to town (run ${this.totalPrestiges})! Earned ${earned} renown.`);
     this.checkAchievements();
     return this.respond();
   }
@@ -1241,7 +1241,7 @@ export class GameState {
     const currentStacks = this.prestigeUpgrades[type] ?? 0;
     const cost = prestigeUpgradeCost(type, currentStacks);
     if (this.prestigePoints < cost) {
-      this.addLog("Not enough prestige points!");
+      this.addLog("Not enough renown!");
       return this.respond();
     }
     this.prestigePoints -= cost;
@@ -1295,7 +1295,7 @@ export class GameState {
       this.gold += STARTING_GOLD_PER_LEVEL;
     }
 
-    this.addLog(`Prestige upgrade: ${type} purchased!`);
+    this.addLog(`Hall of Renown: ${type} purchased!`);
     if (type === "auto_seller") this.runAutoSeller();
     if (type === "auto_equip") this.runAutoEquip();
     if (type === "auto_upgrade") this.runAutoUpgrade();
@@ -2432,7 +2432,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   // ── Prestige ──────────────────────────────────────────────────────────────
   {
     id: "first_prestige", name: "Reborn",
-    description: "Complete your first prestige.",
+    description: "Return to Town for the first time.",
     category: "prestige", hidden: false,
     reward: { type: "border", cosmetic: "arcane" },
     getValue: gs => gs.totalPrestiges,
@@ -2450,7 +2450,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   },
   {
     id: "prestige_shop_full", name: "The Complete Package",
-    description: "Purchase every item in the Prestige Shop.",
+    description: "Purchase every item in the Hall of Renown.",
     category: "prestige", hidden: false,
     reward: { type: "border", cosmetic: "ancient" },
     getValue: gs => Object.keys(PRESTIGE_SHOP_COSTS).every(k => (gs.prestigeUpgrades[k] ?? 0) > 0) ? 1 : 0,
