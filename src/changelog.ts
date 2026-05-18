@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.27.4";
+export const VERSION = "v2.27.5";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.27.5",
+    date: "2026-05-17",
+    changes: [
+      "New artifact: Phantom Compass 🧭 — +10% XP gain per level",
+      "New artifact: Fortune's Eye 💎 — +5% gear drop chance per level (additive, stacks across party)",
+    ],
+  },
   {
     version: "v2.27.4",
     date: "2026-05-17",

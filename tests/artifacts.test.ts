@@ -11,8 +11,8 @@ const a = (id: string, level = 0): ArtifactInstance => ({ id: id as any, level, 
 // ─── Artifact definitions ────────────────────────────────────────────────────
 
 describe("ARTIFACT_DEFS", () => {
-  it("has exactly 7 artifacts", () => {
-    expect(Object.keys(ARTIFACT_DEFS).length).toBe(7);
+  it("has exactly 9 artifacts", () => {
+    expect(Object.keys(ARTIFACT_DEFS).length).toBe(9);
   });
 
   it("all artifacts have sellValue 50", () => {
@@ -33,8 +33,8 @@ describe("ARTIFACT_DEFS", () => {
 });
 
 describe("ARTIFACT_DROP_POOL", () => {
-  it("contains exactly 7 artifact IDs", () => {
-    expect(ARTIFACT_DROP_POOL.length).toBe(7);
+  it("contains exactly 9 artifact IDs", () => {
+    expect(ARTIFACT_DROP_POOL.length).toBe(9);
   });
 
   it("all pool IDs are valid ARTIFACT_DEFS keys", () => {
@@ -666,6 +666,100 @@ describe("forgeArtifactFromRunes", () => {
   });
 });
 
+// ─── Artifact effects: Phantom Compass ───────────────────────────────────────
+
+describe("phantom_compass XP boost", () => {
+  function xpGained(level: number): number {
+    const gs = new GameState();
+    gs.party.team.forEach(c => { c.xpMultiplier = 1; c.xpToNext = 999999; });
+    gs.party.team[0].artifactSlots[0] = a("phantom_compass", level);
+    const before = gs.party.team[0].xp;
+    gs.enemy = { name: "Dummy", level: 1, hp: 0, max_hp: 10, xp_reward: 100, gold_reward: 0, attack_dps: 0, isBoss: false, isElite: false };
+    gs.onEnemyDeath();
+    return gs.party.team[0].xp - before;
+  }
+
+  it("level 0 grants 10% bonus XP over no artifact", () => {
+    const gs = new GameState();
+    gs.party.team.forEach(c => { c.xpMultiplier = 1; c.xpToNext = 999999; });
+    const before = gs.party.team[0].xp;
+    gs.enemy = { name: "Dummy", level: 1, hp: 0, max_hp: 10, xp_reward: 100, gold_reward: 0, attack_dps: 0, isBoss: false, isElite: false };
+    gs.onEnemyDeath();
+    const base = gs.party.team[0].xp - before;
+    expect(xpGained(0)).toBeGreaterThan(base);
+    expect(xpGained(0)).toBeCloseTo(base * 1.10, 0);
+  });
+
+  it("level 1 grants 20% bonus XP", () => {
+    const gs = new GameState();
+    gs.party.team.forEach(c => { c.xpMultiplier = 1; c.xpToNext = 999999; });
+    const before = gs.party.team[0].xp;
+    gs.enemy = { name: "Dummy", level: 1, hp: 0, max_hp: 10, xp_reward: 100, gold_reward: 0, attack_dps: 0, isBoss: false, isElite: false };
+    gs.onEnemyDeath();
+    const base = gs.party.team[0].xp - before;
+    expect(xpGained(1)).toBeCloseTo(base * 1.20, 0);
+  });
+
+  it("unequipped characters receive base XP unaffected", () => {
+    const gs = new GameState();
+    gs.party.team.forEach(c => { c.xpMultiplier = 1; c.xpToNext = 999999; });
+    gs.party.team[0].artifactSlots[0] = a("phantom_compass", 0);
+    const before1 = gs.party.team[0].xp;
+    gs.enemy = { name: "Dummy", level: 1, hp: 0, max_hp: 10, xp_reward: 100, gold_reward: 0, attack_dps: 0, isBoss: false, isElite: false };
+    gs.onEnemyDeath();
+    // member 0 (with artifact) gets more XP than base 100
+    expect(gs.party.team[0].xp - before1).toBeGreaterThan(100);
+  });
+});
+
+// ─── Artifact effects: Fortune's Eye ─────────────────────────────────────────
+
+describe("fortunes_eye drop chance", () => {
+  it("increases drop chance by 5% at level 0", () => {
+    // DROP_CHANCE = 0.45; level-0 Fortune's Eye adds 0.05 → threshold 0.50
+    // Mock at 0.47: above base (no drop without artifact), below boosted (drops with it)
+    const gs0 = new GameState();
+    const gs1 = new GameState();
+    gs1.party.team[0].artifactSlots[0] = a("fortunes_eye", 0);
+    vi.spyOn(Math, "random").mockReturnValue(0.47);
+    gs0.enemy = { name: "G", level: 1, hp: 0, max_hp: 10, xp_reward: 1, gold_reward: 0, attack_dps: 0, isBoss: false, isElite: false };
+    gs0.onEnemyDeath();
+    gs1.enemy = { name: "G", level: 1, hp: 0, max_hp: 10, xp_reward: 1, gold_reward: 0, attack_dps: 0, isBoss: false, isElite: false };
+    gs1.onEnemyDeath();
+    vi.restoreAllMocks();
+    expect(gs0.lootPool.length).toBe(0);
+    expect(gs1.lootPool.length).toBeGreaterThan(0);
+  });
+
+  it("level 1 adds 10% drop chance", () => {
+    // DROP_CHANCE = 0.45; level-1 Fortune's Eye adds 0.10 → threshold 0.55
+    // Mock at 0.52: above level-0 threshold (0.50), below level-1 threshold (0.55)
+    const gs0 = new GameState();
+    const gs1 = new GameState();
+    gs0.party.team[0].artifactSlots[0] = a("fortunes_eye", 0);
+    gs1.party.team[0].artifactSlots[0] = a("fortunes_eye", 1);
+    vi.spyOn(Math, "random").mockReturnValue(0.52);
+    gs0.enemy = { name: "G", level: 1, hp: 0, max_hp: 10, xp_reward: 1, gold_reward: 0, attack_dps: 0, isBoss: false, isElite: false };
+    gs0.onEnemyDeath();
+    gs1.enemy = { name: "G", level: 1, hp: 0, max_hp: 10, xp_reward: 1, gold_reward: 0, attack_dps: 0, isBoss: false, isElite: false };
+    gs1.onEnemyDeath();
+    vi.restoreAllMocks();
+    expect(gs0.lootPool.length).toBe(0);
+    expect(gs1.lootPool.length).toBeGreaterThan(0);
+  });
+
+  it("drop chance is capped at 75% even with high level", () => {
+    const gs = new GameState();
+    // Equip Fortune's Eye on all 3 members at a high level
+    gs.party.team.forEach(c => { c.artifactSlots[0] = a("fortunes_eye", 9); });
+    vi.spyOn(Math, "random").mockReturnValue(0.74); // below 75%
+    gs.enemy = { name: "G", level: 1, hp: 0, max_hp: 10, xp_reward: 1, gold_reward: 0, attack_dps: 0, isBoss: false, isElite: false };
+    gs.onEnemyDeath();
+    vi.restoreAllMocks();
+    expect(gs.lootPool.length).toBeGreaterThan(0); // still drops (random < 0.75)
+  });
+});
+
 // ─── artifactStatLabel ────────────────────────────────────────────────────────
 
 describe("artifactStatLabel", () => {
@@ -707,5 +801,17 @@ describe("artifactStatLabel", () => {
   });
   it("executioners_mark level 1 → 2 extra boss drop checks on elites", () => {
     expect(artifactStatLabel("executioners_mark", 1)).toBe("2 extra boss drop checks on elites");
+  });
+  it("phantom_compass level 0 → +10% XP gain", () => {
+    expect(artifactStatLabel("phantom_compass", 0)).toBe("+10% XP gain");
+  });
+  it("phantom_compass level 2 → +30% XP gain", () => {
+    expect(artifactStatLabel("phantom_compass", 2)).toBe("+30% XP gain");
+  });
+  it("fortunes_eye level 0 → +5% gear drop chance", () => {
+    expect(artifactStatLabel("fortunes_eye", 0)).toBe("+5% gear drop chance");
+  });
+  it("fortunes_eye level 1 → +10% gear drop chance", () => {
+    expect(artifactStatLabel("fortunes_eye", 1)).toBe("+10% gear drop chance");
   });
 });

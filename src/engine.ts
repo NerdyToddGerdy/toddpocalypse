@@ -1651,7 +1651,10 @@ export class GameState {
     const xp = this.enemy.xp_reward;
     this.addLog(`${name} defeated! +${xp}xp`);
     for (const c of this.party.team) {
-      c.gainXp(xp);
+      // Phantom Compass: per-character XP bonus, scales with level
+      const compassSlot = c.artifactSlots.find(s => s?.id === "phantom_compass");
+      const xpMult = compassSlot ? 1 + ARTIFACT_DEFS["phantom_compass"].effectValue * (compassSlot.level + 1) : 1;
+      c.gainXp(xp * xpMult);
       c.health = Math.min(c.maxHealth, c.health + (c.maxHealth - c.health) * COMBAT_HEAL_FRACTION);
       while (c.pendingPartyAbilities.length > 0) {
         const ability = c.pendingPartyAbilities.shift()!;
@@ -1751,7 +1754,12 @@ export class GameState {
       this.enemy = this.spawnNextEnemy();
     } else {
       const gearLuckBonus = 0.05 * (this.prestigeUpgrades["gear_luck"] ?? 0);
-      const dropChance = Math.min(0.75, DROP_CHANCE + this.dungeonIndex * 0.05 + gearLuckBonus);
+      // Fortune's Eye: additive drop chance bonus, sum across all equipped copies
+      const fortunesEyeBonus = this.party.team.reduce((s, c) => {
+        const slot = c.artifactSlots.find(a => a?.id === "fortunes_eye");
+        return slot ? s + ARTIFACT_DEFS["fortunes_eye"].effectValue * (slot.level + 1) : s;
+      }, 0);
+      const dropChance = Math.min(0.75, DROP_CHANCE + this.dungeonIndex * 0.05 + gearLuckBonus + fortunesEyeBonus);
       if ((this.enemy.isElite || Math.random() < dropChance) && this.lootPool.length < this.lootMax) {
         const effectiveLevel = this.dungeonLevel + this.dungeonIndex * 5;
         const drop = getItem(undefined, effectiveLevel);

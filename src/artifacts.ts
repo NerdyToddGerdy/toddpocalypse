@@ -5,7 +5,9 @@ export type ArtifactEffectId =
   | "soulbrand"
   | "wardens_core"
   | "executioners_mark"
-  | "warlords_sigil";
+  | "warlords_sigil"
+  | "phantom_compass"
+  | "fortunes_eye";
 
 export interface ArtifactDef {
   id: ArtifactEffectId;
@@ -82,6 +84,22 @@ export const ARTIFACT_DEFS: Record<ArtifactEffectId, ArtifactDef> = {
     effectValue: 0.05,
     sellValue: 50,
   },
+  phantom_compass: {
+    id: "phantom_compass",
+    name: "Phantom Compass",
+    desc: "+10% XP gain per level",
+    icon: "🧭",
+    effectValue: 0.10,
+    sellValue: 50,
+  },
+  fortunes_eye: {
+    id: "fortunes_eye",
+    name: "Fortune's Eye",
+    desc: "+5% gear drop chance per level",
+    icon: "💎",
+    effectValue: 0.05,
+    sellValue: 50,
+  },
 };
 
 /** Base artifact IDs eligible to drop from dungeon bosses. */
@@ -93,6 +111,8 @@ export const ARTIFACT_DROP_POOL: ArtifactEffectId[] = [
   "wardens_core",
   "executioners_mark",
   "warlords_sigil",
+  "phantom_compass",
+  "fortunes_eye",
 ];
 
 /** Number of same-type artifacts consumed to level up from `level` → `level + 1`. */
@@ -119,6 +139,8 @@ export function artifactStatLabel(id: ArtifactEffectId, level: number): string {
     case "soulbrand":         return `+${(eff * 100).toFixed(0)}% crit per rune`;
     case "berserkers_eye":    return `+${(eff * 100).toFixed(0)}% DPS per kill streak (cap ${((def.cap ?? 0.20) * (level + 1) * 100).toFixed(0)}%)`;
     case "executioners_mark": return `${level + 1} extra boss drop check${level > 0 ? "s" : ""} on elites`;
+    case "phantom_compass":   return `+${(eff * 100).toFixed(0)}% XP gain`;
+    case "fortunes_eye":      return `+${(eff * 100).toFixed(0)}% gear drop chance`;
   }
 }
 
