@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.29.4";
+export const VERSION = "v2.29.5";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.29.5",
+    date: "2026-05-18",
+    changes: [
+      "Upgrade rows now show total bonus next to level (e.g. '+1.5 DPS')",
+      "DPS breakdown tooltip shows upgrade DPS contribution as a number instead of a level",
+    ],
+  },
   {
     version: "v2.29.4",
     date: "2026-05-18",

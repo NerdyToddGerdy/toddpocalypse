@@ -1,4 +1,4 @@
-import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock, ARTIFACT_DEFS, artifactFuelValue, artifactStatLabel, AVATAR_DEFS, BORDER_DEFS, formatNumber, LEGACY_UNLOCKS, type RetiredHero } from "./engine.js";
+import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock, ARTIFACT_DEFS, artifactFuelValue, artifactStatLabel, AVATAR_DEFS, BORDER_DEFS, formatNumber, LEGACY_UNLOCKS, type RetiredHero, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT, DEFENSE_UPGRADE_EFFECT } from "./engine.js";
 import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, SET_DEFS, buildSetBonusHTML, type GearStats, type GearItemDict } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
@@ -58,6 +58,18 @@ const UPGRADE_LABELS: Record<string, { icon: string; label: string }> = {
   hp: { icon: "❤", label: "Max HP" },
   defense: { icon: "🛡", label: "Defense" },
 };
+
+function upgradeBonusLabel(utype: string, level: number): string {
+  if (level === 0) return "";
+  switch (utype) {
+    case "dps":     return `+${(level * UPGRADE_EFFECTS.dps).toFixed(1)} DPS`;
+    case "xp":      return `+${Math.round(level * UPGRADE_EFFECTS.xp * 100)}% XP`;
+    case "click":   return `+${(level * UPGRADE_EFFECTS.click).toFixed(1)} Click`;
+    case "hp":      return `+${level * HP_UPGRADE_EFFECT} HP`;
+    case "defense": return `+${(level * DEFENSE_UPGRADE_EFFECT * 100).toFixed(0)}% Def`;
+    default:        return "";
+  }
+}
 
 const SAVE_KEY = "toddpocalypse-save";
 const THEME_KEY = "toddpocalypse-theme";
@@ -502,7 +514,8 @@ function renderParty(state: GameStateDict): void {
         sum + ((item as GearItemDict | null)?.stats?.dps ?? 0), 0);
       const runeDps = Object.values(c.runes ?? {}).reduce((sum, rune) =>
         sum + (rune?.statKey === "dps" ? (rune?.value ?? 0) : 0), 0);
-      const dpsData = encodeURIComponent(JSON.stringify({ total: c.dps, base: Math.max(0, c.dps - gearDps - runeDps), gear: gearDps, runes: runeDps, upgLevel: (state.upgrades[c.name]?.dps as { level: number } | undefined)?.level ?? 0 }));
+      const upgDps = ((state.upgrades[c.name]?.dps as { level: number } | undefined)?.level ?? 0) * UPGRADE_EFFECTS.dps;
+      const dpsData = encodeURIComponent(JSON.stringify({ total: c.dps, base: Math.max(0, c.dps - gearDps - runeDps - upgDps), gear: gearDps, runes: runeDps, upgDps }));
       const classAbilities = CLASS_ABILITIES[c.character_class] ?? [];
       const abilitiesHtml = classAbilities.map(a => {
         const unlocked = c.abilities.includes(a.id);
@@ -820,10 +833,14 @@ function renderUpgrades(state: GameStateDict): void {
         const rows = Object.entries(ups)
           .map(([utype, u]) => {
             const meta = UPGRADE_LABELS[utype];
+            const bonus = upgradeBonusLabel(utype, u.level);
             return `<div class="upgrade-row">
               <span class="upgrade-icon">${meta.icon}</span>
               <span class="upgrade-label">${meta.label}</span>
-              <span class="upgrade-level">Lv ${u.level}</span>
+              <div class="upgrade-level">
+                <span>Lv ${u.level}</span>
+                ${bonus ? `<span class="upgrade-bonus">${bonus}</span>` : ""}
+              </div>
               <button class="upgrade-btn"
                   data-action="upgrade"
                   data-char="${c.name}"
@@ -2589,15 +2606,15 @@ function buildActiveSkillTooltipHTML(skillId: string, skillState?: { remaining: 
   return `<div class="skill-tooltip"><div class="skill-tooltip-name">${name}</div><div class="skill-tooltip-desc">${desc}</div><div class="skill-tooltip-cd">Cooldown: ${cooldownKills} kills</div>${statusLine}</div>`;
 }
 
-function buildDpsTooltipHTML(d: { total: number; base: number; gear: number; runes?: number; upgLevel: number }): string {
+function buildDpsTooltipHTML(d: { total: number; base: number; gear: number; runes?: number; upgDps: number }): string {
   return `
     <div class="tt-name">DPS Breakdown</div>
     <div class="tt-divider"></div>
     <div class="tt-stats">
       ${statRow("Base", d.base.toFixed(1), "tt-dps")}
+      ${d.upgDps > 0 ? statRow("Upgrades", `+${d.upgDps.toFixed(1)}`, "tt-dps") : ""}
       ${d.gear > 0 ? statRow("Gear", `+${d.gear.toFixed(1)}`, "tt-dps") : ""}
       ${d.runes && d.runes > 0 ? statRow("Runes", `+${d.runes.toFixed(1)}`, "tt-dps") : ""}
-      ${d.upgLevel > 0 ? statRow("Upgrades", `Lv${d.upgLevel}`, "tt-click") : ""}
     </div>
     <div class="tt-divider"></div>
     ${statRow("Total", d.total.toFixed(1), "tt-dps")}
