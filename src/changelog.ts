@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.30.3";
+export const VERSION = "v2.30.4";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.30.4",
+    date: "2026-05-18",
+    changes: [
+      "DPS upgrade effect further reduced from 2% to 1% per level",
+    ],
+  },
   {
     version: "v2.30.3",
     date: "2026-05-18",

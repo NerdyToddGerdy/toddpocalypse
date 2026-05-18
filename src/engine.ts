@@ -53,7 +53,7 @@ export const UPGRADE_EFFECTS: Record<string, number> = {
 };
 
 /** DPS multiplier bonus added per DPS-upgrade level (+5% per level). */
-export const DPS_UPGRADE_EFFECT = 0.02;
+export const DPS_UPGRADE_EFFECT = 0.01;
 
 /** Click damage multiplier bonus added per click-upgrade level (+5% per level). */
 export const CLICK_UPGRADE_EFFECT = 0.05;
