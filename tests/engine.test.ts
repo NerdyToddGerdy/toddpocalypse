@@ -22,6 +22,8 @@ import {
   BOSS_ENRAGE_TRIGGER,
   BOSS_ENRAGE_STEP,
   BOSS_ENRAGE_CAP,
+  LEGACY_UNLOCKS,
+  type RetiredHero,
 } from "../src/engine.js";
 import { Character, CLASS_ABILITIES } from "../src/character.js";
 import { GearItem, getItem, getSetItem, SET_DEFS, type Slot } from "../src/gear.js";
@@ -5149,4 +5151,175 @@ describe("formatNumber", () => {
   it("1000000000 → '1b'",()=> expect(formatNumber(1000000000)).toBe("1b"));
   it("floats are floored for < 10k", () => expect(formatNumber(9999.9)).toBe("9,999"));
   it("floats work in shorthand range", () => expect(formatNumber(12345)).toBe("12.3k"));
+});
+
+// ─── retireHero ───────────────────────────────────────────────────────────────
+
+describe("retireHero", () => {
+  function makeRetirable(): GameState {
+    const gs = new GameState("TestHero", "fighter");
+    gs.dungeonIndex = 1;
+    gs.totalPrestiges = 2;
+    gs.highestLevel = 30;
+    gs.lifetimeBestLevel = 30;
+    gs.kills = 100;
+    gs.deaths = 5;
+    gs.gold = 9999;
+    gs.prestigePoints = 10;
+    gs.prestigeUpgrades = { dps_bonus: 1 };
+    gs.guildUpgrades = { companion_hall: 1 };
+    gs.runeInventory = [{ id: "striking_lesser", name: "Lesser Striking Rune", type: "striking", tier: "lesser", statKey: "dps", value: 8 }];
+    gs.lootPool = [];
+    gs.achievementsUnlocked.add("first_prestige");
+    return gs;
+  }
+
+  it("is a no-op when dungeonIndex < 1", () => {
+    const gs = new GameState("Hero", "fighter");
+    gs.dungeonIndex = 0;
+    gs.retireHero();
+    expect(gs.retiredHeroes).toHaveLength(0);
+    expect(gs.needsHeroCreation).toBe(false);
+  });
+
+  it("records a RetiredHero snapshot", () => {
+    const gs = makeRetirable();
+    gs.party.team[0].level = 15;
+    gs.retireHero();
+    expect(gs.retiredHeroes).toHaveLength(1);
+    const hero = gs.retiredHeroes[0];
+    expect(hero.name).toBe("TestHero");
+    expect(hero.characterClass).toBe("fighter");
+    expect(hero.level).toBe(15);
+    expect(hero.highestFloor).toBe(30);
+    expect(hero.dungeonIndex).toBe(1);
+    expect(hero.prestigeCount).toBe(2);
+    expect(hero.retiredOn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it("score = level + dungeonIndex*100 + prestiges*25", () => {
+    const gs = makeRetirable();
+    gs.party.team[0].level = 10;
+    // score = 10 + 1*100 + 2*25 = 160
+    gs.retireHero();
+    expect(gs.retiredHeroes[0].score).toBe(160);
+  });
+
+  it("increments retirementCount", () => {
+    const gs = makeRetirable();
+    gs.retireHero();
+    expect(gs.retirementCount).toBe(1);
+    // Second retirement accumulates on same state (needsHeroCreation guard keeps it at 0 dungeonIndex,
+    // so rebuild a fresh retirable state to test the counter)
+    const gs2 = makeRetirable();
+    gs2.retirementCount = 1;
+    gs2.retireHero();
+    expect(gs2.retirementCount).toBe(2);
+  });
+
+  it("sets needsHeroCreation = true", () => {
+    const gs = makeRetirable();
+    gs.retireHero();
+    expect(gs.needsHeroCreation).toBe(true);
+  });
+
+  it("wipes gold, loot, prestige upgrades, guild upgrades, runes, artifacts, party", () => {
+    const gs = makeRetirable();
+    gs.retireHero();
+    expect(gs.gold).toBe(0);
+    expect(gs.lootPool).toHaveLength(0);
+    expect(gs.prestigeUpgrades).toEqual({});
+    expect(gs.guildUpgrades).toEqual({});
+    expect(gs.runeInventory).toHaveLength(0);
+    expect(gs.artifactInventory).toHaveLength(0);
+    expect(gs.party.team).toHaveLength(0);
+    expect(gs.prestigePoints).toBe(0);
+    expect(gs.totalPrestiges).toBe(0);
+    expect(gs.dungeonIndex).toBe(0);
+  });
+
+  it("preserves lifetime counters", () => {
+    const gs = makeRetirable();
+    gs.lifetimeKills = 500;
+    gs.kills = 100;
+    gs.lifetimeDeaths = 20;
+    gs.deaths = 5;
+    gs.retireHero();
+    expect(gs.lifetimeKills).toBe(600);
+    expect(gs.lifetimeDeaths).toBe(25);
+  });
+
+  it("preserves earnedAvatars and earnedBorders", () => {
+    const gs = makeRetirable();
+    gs.earnedAvatars.add("dragon");
+    gs.earnedBorders.add("gold");
+    gs.retireHero();
+    expect(gs.earnedAvatars.has("dragon")).toBe(true);
+    expect(gs.earnedBorders.has("gold")).toBe(true);
+  });
+
+  it("first retirement unlocks paladin class, Veteran title, crown avatar", () => {
+    const gs = makeRetirable();
+    gs.retirementCount = 0;
+    gs.retireHero();
+    expect(gs.unlockedHeroClasses.has("paladin")).toBe(true);
+    expect(gs.legacyTitles.has("Veteran")).toBe(true);
+    expect(gs.earnedAvatars.has("crown")).toBe(true);
+  });
+
+  it("second retirement unlocks ranger class, Twice-Born title, blood border", () => {
+    const gs = makeRetirable();
+    gs.retirementCount = 1;
+    gs.retireHero();
+    expect(gs.unlockedHeroClasses.has("ranger")).toBe(true);
+    expect(gs.legacyTitles.has("Twice-Born")).toBe(true);
+    expect(gs.earnedBorders.has("blood")).toBe(true);
+  });
+
+  it("third retirement unlocks druid class, The Eternal title, warlord avatar", () => {
+    const gs = makeRetirable();
+    gs.retirementCount = 2;
+    gs.retireHero();
+    expect(gs.unlockedHeroClasses.has("druid")).toBe(true);
+    expect(gs.legacyTitles.has("The Eternal")).toBe(true);
+    expect(gs.earnedAvatars.has("warlord")).toBe(true);
+  });
+
+  it("no legacy unlock for retirements beyond defined milestones", () => {
+    const gs = makeRetirable();
+    gs.retirementCount = 9;
+    const titlesBefore = new Set(gs.legacyTitles);
+    gs.retireHero();
+    expect(gs.legacyTitles.size).toBe(titlesBefore.size);
+  });
+
+  it("LEGACY_UNLOCKS has entries for 1, 2, 3", () => {
+    expect(LEGACY_UNLOCKS[1].classes).toContain("paladin");
+    expect(LEGACY_UNLOCKS[2].classes).toContain("ranger");
+    expect(LEGACY_UNLOCKS[3].classes).toContain("druid");
+  });
+
+  it("toDict / fromDict round-trips retirement state", () => {
+    const gs = makeRetirable();
+    gs.retireHero();
+    const dict = gs.toDict();
+    expect(dict.retired_heroes).toHaveLength(1);
+    expect(dict.retirement_count).toBe(1);
+    expect(dict.needs_hero_creation).toBe(true);
+    expect(dict.unlocked_hero_classes).toContain("paladin");
+    expect(dict.legacy_titles).toContain("Veteran");
+    const gs2 = GameState.fromDict(dict);
+    expect(gs2.retiredHeroes).toHaveLength(1);
+    expect(gs2.retirementCount).toBe(1);
+    expect(gs2.needsHeroCreation).toBe(true);
+    expect(gs2.unlockedHeroClasses.has("paladin")).toBe(true);
+    expect(gs2.legacyTitles.has("Veteran")).toBe(true);
+  });
+
+  it("fighter, rogue, mage always in unlockedHeroClasses from the start", () => {
+    const gs = new GameState();
+    expect(gs.unlockedHeroClasses.has("fighter")).toBe(true);
+    expect(gs.unlockedHeroClasses.has("rogue")).toBe(true);
+    expect(gs.unlockedHeroClasses.has("mage")).toBe(true);
+  });
 });

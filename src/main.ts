@@ -1,4 +1,4 @@
-import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock, ARTIFACT_DEFS, artifactFuelValue, artifactStatLabel, AVATAR_DEFS, BORDER_DEFS, formatNumber } from "./engine.js";
+import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock, ARTIFACT_DEFS, artifactFuelValue, artifactStatLabel, AVATAR_DEFS, BORDER_DEFS, formatNumber, LEGACY_UNLOCKS, type RetiredHero } from "./engine.js";
 import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, SET_DEFS, type GearStats, type GearItemDict } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
@@ -897,6 +897,80 @@ function renderProfileWidget(state: GameStateDict): void {
     <span class="header-avatar-label">${selectedTitle}</span>`;
 
   $("profile-picker-dropdown").hidden = !profilePickerOpen;
+
+  const retireBtn = document.getElementById("retire-hero-btn") as HTMLButtonElement | null;
+  if (retireBtn) {
+    const canRetire = (state.dungeon_index ?? 0) >= 1;
+    retireBtn.disabled = !canRetire;
+    retireBtn.title = canRetire ? "Permanently retire this hero and start over" : "Reach Dungeon 2 to unlock retirement";
+  }
+}
+
+function renderHallOfFame(retiredHeroes: RetiredHero[]): void {
+  const body = $("hall-of-fame-body");
+  if (retiredHeroes.length === 0) {
+    body.innerHTML = `<p class="hof-empty">No retired heroes yet. Reach Dungeon 2 and retire your hero to leave a legacy.</p>`;
+    return;
+  }
+  const sorted = [...retiredHeroes].sort((a, b) => b.score - a.score);
+  body.innerHTML = sorted.map((h, i) => `
+    <div class="hof-entry">
+      <span class="hof-rank">#${i + 1}</span>
+      <div class="hof-info">
+        <span class="hof-name">${h.name}</span>
+        <span class="hof-class">${h.characterClass}</span>
+      </div>
+      <div class="hof-stats">
+        <span>Lv ${h.level}</span>
+        <span>Floor ${h.highestFloor}</span>
+        <span>D${h.dungeonIndex + 1}</span>
+        <span>${h.prestigeCount}★</span>
+      </div>
+      <span class="hof-score">${h.score.toLocaleString()}</span>
+      <span class="hof-date">${h.retiredOn}</span>
+    </div>
+  `).join("");
+}
+
+function renderRetireConfirm(state: GameStateDict): void {
+  const nextCount = (state.retirement_count ?? 0) + 1;
+  const unlock = LEGACY_UNLOCKS[nextCount];
+  const preview = $("retire-unlock-preview");
+  if (unlock) {
+    const parts: string[] = [];
+    if (unlock.classes.length) parts.push(`Unlock class: <strong>${unlock.classes.map(c => c[0].toUpperCase() + c.slice(1)).join(", ")}</strong>`);
+    parts.push(`Earn title: <strong>${unlock.title}</strong>`);
+    if (unlock.avatar) parts.push(`Earn avatar: <strong>${AVATAR_DEFS.find(a => a.id === unlock.avatar)?.name ?? unlock.avatar}</strong>`);
+    if (unlock.border) parts.push(`Earn border: <strong>${unlock.border[0].toUpperCase() + unlock.border.slice(1)}</strong>`);
+    preview.innerHTML = `<div class="retire-unlock-box"><div class="retire-unlock-title">Legacy Reward #${nextCount}</div>${parts.map(p => `<div class="retire-unlock-item">✦ ${p}</div>`).join("")}</div>`;
+  } else {
+    preview.innerHTML = `<div class="retire-unlock-box retire-unlock-none">All legacy unlocks already earned.</div>`;
+  }
+}
+
+function showCreationOverlayForRetirement(state: GameStateDict): void {
+  const unlockedClasses = new Set<string>(state.unlocked_hero_classes ?? ["fighter", "rogue", "mage"]);
+  const picker = $("class-picker");
+  picker.querySelectorAll<HTMLButtonElement>(".class-btn").forEach(btn => {
+    const cls = btn.dataset.class ?? "";
+    const unlocked = unlockedClasses.has(cls);
+    btn.disabled = !unlocked;
+    btn.classList.toggle("locked-class", !unlocked);
+    if (!unlocked) {
+      const legacyUnlockNum = Object.entries(LEGACY_UNLOCKS).find(([, u]) => u.classes.includes(cls));
+      btn.title = legacyUnlockNum ? `Retire ${legacyUnlockNum[0]} time${parseInt(legacyUnlockNum[0]) > 1 ? "s" : ""} to unlock` : "Locked";
+    } else {
+      btn.title = "";
+    }
+  });
+  const firstUnlocked = picker.querySelector<HTMLButtonElement>(".class-btn:not([disabled])");
+  picker.querySelectorAll(".class-btn").forEach(b => b.classList.remove("selected"));
+  firstUnlocked?.classList.add("selected");
+  ($("char-name-input") as HTMLInputElement).value = "";
+  $("save-section").style.display = "none";
+  $("new-game-section").style.display = "flex";
+  $("creation-overlay").style.display = "flex";
+  updateClassDesc();
 }
 
 function renderCustomizeModal(state: GameStateDict): void {
@@ -2799,9 +2873,14 @@ async function initAuth(): Promise<GameStateDict | null> {
 /** Creates a fresh GameState, clears any existing save, and starts the 100ms game loop. */
 function startGame(name: string, characterClass: string): void {
   $("creation-overlay").style.display = "none";
-  deleteSave();
-  game = new GameState(name, characterClass);
-  render(JSON.parse(game.respond()));
+  if (game?.needsHeroCreation) {
+    const json = game.createHeroAfterRetirement(name, characterClass);
+    render(JSON.parse(json));
+  } else {
+    deleteSave();
+    game = new GameState(name, characterClass);
+    render(JSON.parse(game.respond()));
+  }
   clearInterval(gameLoopId);
   gameLoopId = setInterval(() => { call("tick", 0.1); }, 100);
   applyAutoAttackState();
@@ -2809,6 +2888,12 @@ function startGame(name: string, characterClass: string): void {
 
 /** Restores a GameState from a saved snapshot, hides the creation overlay, and starts the game loop. */
 function continueGame(saved: GameStateDict): void {
+  if (saved.needs_hero_creation) {
+    game = GameState.fromDict(saved);
+    showCreationOverlayForRetirement(saved);
+    render(JSON.parse(game.respond()));
+    return;
+  }
   $("creation-overlay").style.display = "none";
   game = GameState.fromDict(saved);
 
@@ -3303,6 +3388,25 @@ document.addEventListener("DOMContentLoaded", () => {
       if (game) renderProfileWidget(JSON.parse(game.respond()) as GameStateDict);
       $("about-modal").classList.add("open");
     }
+    else if (action === "open-hall-of-fame-modal") {
+      profilePickerOpen = false;
+      profileWidgetKey = "";
+      if (game) {
+        const state = JSON.parse(game.respond()) as GameStateDict;
+        renderProfileWidget(state);
+        renderHallOfFame((state.retired_heroes ?? []) as RetiredHero[]);
+      }
+      $("hall-of-fame-modal").classList.add("open");
+    }
+    else if (action === "retire-hero") {
+      if (!game) return;
+      const state = JSON.parse(game.respond()) as GameStateDict;
+      profilePickerOpen = false;
+      profileWidgetKey = "";
+      renderProfileWidget(state);
+      renderRetireConfirm(state);
+      $("retire-confirm-modal").classList.add("open");
+    }
     else if (action === "profile-tab") {
       profilePickerTab = (btn.dataset.tab as "avatar" | "border" | "title") ?? "avatar";
       if (game) renderCustomizeModal(JSON.parse(game.respond()) as GameStateDict);
@@ -3329,6 +3433,25 @@ document.addEventListener("DOMContentLoaded", () => {
   // About modal
   $("about-modal-close").addEventListener("click", () => $("about-modal").classList.remove("open"));
   $("about-modal").addEventListener("click", (e) => { if (e.target === $("about-modal")) $("about-modal").classList.remove("open"); });
+
+  // Hall of Fame modal
+  $("hall-of-fame-close").addEventListener("click", () => $("hall-of-fame-modal").classList.remove("open"));
+  $("hall-of-fame-modal").addEventListener("click", (e) => { if (e.target === $("hall-of-fame-modal")) $("hall-of-fame-modal").classList.remove("open"); });
+
+  // Retire confirmation modal
+  $("retire-confirm-close").addEventListener("click", () => $("retire-confirm-modal").classList.remove("open"));
+  $("retire-confirm-cancel").addEventListener("click", () => $("retire-confirm-modal").classList.remove("open"));
+  $("retire-confirm-modal").addEventListener("click", (e) => { if (e.target === $("retire-confirm-modal")) $("retire-confirm-modal").classList.remove("open"); });
+  $("retire-confirm-yes").addEventListener("click", () => {
+    if (!game) return;
+    $("retire-confirm-modal").classList.remove("open");
+    const json = game.retireHero();
+    const state = JSON.parse(json) as GameStateDict;
+    localStorage.setItem(SAVE_KEY, json);
+    clearInterval(gameLoopId);
+    showCreationOverlayForRetirement(state);
+    render(state);
+  });
 
   // Combat log history modal
   document.getElementById("log-history-btn")?.addEventListener("click", () => {

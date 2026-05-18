@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.27.7";
+export const VERSION = "v2.28.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,18 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.28.0",
+    date: "2026-05-18",
+    changes: [
+      "Hero Retirement: retire your hero after reaching Dungeon 2 for a hard reset with legacy rewards",
+      "Hall of Fame: retired heroes are scored and preserved forever in the Hall of Fame",
+      "Legacy unlocks: retirement milestones unlock Paladin, Ranger, and Druid classes plus titles, avatars, and borders",
+      "Locked class picker: Paladin/Ranger/Druid shown as locked in character creation until earned via retirement",
+      "Retire button in avatar dropdown (enabled only when dungeonIndex ≥ 1)",
+      "Retirement confirmation modal with legacy reward preview",
+    ],
+  },
   {
     version: "v2.27.7",
     date: "2026-05-18",

@@ -35,6 +35,9 @@
         <button class="class-btn selected" data-class="fighter">⚔ Fighter</button>
         <button class="class-btn" data-class="rogue">🗡 Rogue</button>
         <button class="class-btn" data-class="mage">🔮 Mage</button>
+        <button class="class-btn locked-class" data-class="paladin" data-unlock="Retire 1 time">🛡 Paladin</button>
+        <button class="class-btn locked-class" data-class="ranger" data-unlock="Retire 2 times">🏹 Ranger</button>
+        <button class="class-btn locked-class" data-class="druid" data-unlock="🔒 Retire 3 times">🌿 Druid</button>
       </div>
       <div id="class-desc"></div>
       <button id="start-btn">Begin Adventure</button>
@@ -74,6 +77,8 @@
       <button class="profile-menu-item" data-action="open-customize-modal">🎨 Customize</button>
       <button class="profile-menu-item" data-action="open-settings-modal">⚙ Settings</button>
       <button class="profile-menu-item" data-action="open-about-modal">📖 About</button>
+      <button class="profile-menu-item" data-action="open-hall-of-fame-modal">🏆 Hall of Fame</button>
+      <button class="profile-menu-item retire-btn" data-action="retire-hero" id="retire-hero-btn" disabled>💀 Retire Hero</button>
     </div>
   </div>
 </header>
@@ -472,6 +477,38 @@
       <button id="artifact-detail-close" aria-label="Close">✕</button>
     </div>
     <div id="artifact-detail-body"></div>
+  </div>
+</div>
+
+<!-- Hall of Fame modal -->
+<div id="hall-of-fame-modal" aria-modal="true" role="dialog" aria-labelledby="hof-modal-title">
+  <div id="hall-of-fame-box">
+    <div id="hall-of-fame-header">
+      <h2 id="hof-modal-title">🏆 Hall of Fame</h2>
+      <button id="hall-of-fame-close" aria-label="Close">✕</button>
+    </div>
+    <div id="hall-of-fame-body">
+      <p class="hof-empty">No retired heroes yet. Reach Dungeon 2 and retire your hero to leave a legacy.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Retire confirmation modal -->
+<div id="retire-confirm-modal" aria-modal="true" role="dialog" aria-labelledby="retire-confirm-title">
+  <div id="retire-confirm-box">
+    <div id="retire-confirm-header">
+      <h2 id="retire-confirm-title">💀 Retire Hero</h2>
+      <button id="retire-confirm-close" aria-label="Close">✕</button>
+    </div>
+    <div id="retire-confirm-body">
+      <p class="retire-warning">This will <strong>permanently reset</strong> all progress — gold, gear, prestige upgrades, guild upgrades, runes, and artifacts.</p>
+      <p class="retire-warning">Your hero's story will be recorded in the Hall of Fame.</p>
+      <div id="retire-unlock-preview"></div>
+      <div id="retire-confirm-actions">
+        <button id="retire-confirm-yes" class="danger-btn">Retire Forever</button>
+        <button id="retire-confirm-cancel" class="secondary-btn">Cancel</button>
+      </div>
+    </div>
   </div>
 </div>
 

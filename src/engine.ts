@@ -285,6 +285,25 @@ export const BORDER_DEFS: { id: string; cssClass: string; name: string }[] = [
   { id: "void",    cssClass: "border-void",    name: "Void"    },
 ];
 
+/** Snapshot of a retired hero, stored permanently in the Hall of Fame. */
+export interface RetiredHero {
+  name: string;
+  characterClass: string;
+  level: number;
+  highestFloor: number;
+  dungeonIndex: number;
+  prestigeCount: number;
+  score: number;
+  retiredOn: string; // ISO date string
+}
+
+/** Legacy unlocks granted per retirement milestone: { retirements → { classes, title, avatars, borders } } */
+export const LEGACY_UNLOCKS: Record<number, { classes: string[]; title: string; avatar?: string; border?: string }> = {
+  1: { classes: ["paladin"], title: "Veteran",    avatar: "crown" },
+  2: { classes: ["ranger"],  title: "Twice-Born", border: "blood" },
+  3: { classes: ["druid"],   title: "The Eternal", avatar: "warlord" },
+};
+
 /** All visual themes with their prestige unlock requirements. */
 export const THEME_UNLOCKS: { theme: string; icon: string; label: string; prestiges: number }[] = [
   { theme: "grimdark",    icon: "⚔",  label: "Grimdark",    prestiges: 0 },
@@ -408,6 +427,11 @@ export interface GameStateDict {
   auto_prestige_threshold?: number;
   boss_enrage_time?: number;
   boss_enrage_mult?: number;
+  retired_heroes?: RetiredHero[];
+  retirement_count?: number;
+  unlocked_hero_classes?: string[];
+  legacy_titles?: string[];
+  needs_hero_creation?: boolean;
 }
 
 /** Central game loop: owns all mutable state and exposes action methods that return serialized JSON. */
@@ -527,6 +551,16 @@ export class GameState {
   bossEncounterTime = 0;
   /** Minimum prestige_points_preview required to trigger auto-prestige. */
   autoPrestigeThreshold = 5;
+  /** Hall of Fame records for all retired heroes. */
+  retiredHeroes: RetiredHero[] = [];
+  /** Total number of times a hero has been retired. */
+  retirementCount = 0;
+  /** Hero classes unlocked through retirement legacy rewards. */
+  unlockedHeroClasses: Set<string> = new Set(["fighter", "rogue", "mage"]);
+  /** Titles earned through retirement legacy rewards. */
+  legacyTitles: Set<string> = new Set();
+  /** True when a hard reset has occurred and the player must create a new hero. */
+  needsHeroCreation = false;
 
   /** Current loot chest capacity, expanding with Expanded Armory guild upgrades. */
   get lootMax(): number { return 8 + 2 * (this.guildUpgrades["expanded_armory"] ?? 0); }
@@ -1100,6 +1134,91 @@ export class GameState {
     return this.respond();
   }
 
+  /** Hard-resets all progress and records the lead hero in the Hall of Fame. Requires dungeonIndex >= 1. */
+  retireHero(): string {
+    if (this.dungeonIndex < 1) return this.respond();
+
+    const lead = this.party.team[0];
+    const score = lead.level + this.dungeonIndex * 100 + this.totalPrestiges * 25;
+    const hero: RetiredHero = {
+      name: lead.name,
+      characterClass: lead.characterClass,
+      level: lead.level,
+      highestFloor: Math.max(this.lifetimeBestLevel, this.highestLevel),
+      dungeonIndex: this.dungeonIndex,
+      prestigeCount: this.totalPrestiges,
+      score,
+      retiredOn: new Date().toISOString().slice(0, 10),
+    };
+    this.retiredHeroes.push(hero);
+    this.retirementCount += 1;
+
+    // Accumulate lifetime counters before wipe
+    this.lifetimeKills += this.kills;
+    this.lifetimeDeaths += this.deaths;
+    this.lifetimeBestLevel = Math.max(this.lifetimeBestLevel, this.highestLevel);
+
+    // Apply legacy unlocks for this retirement milestone
+    const unlock = LEGACY_UNLOCKS[this.retirementCount];
+    if (unlock) {
+      for (const cls of unlock.classes) this.unlockedHeroClasses.add(cls);
+      this.legacyTitles.add(unlock.title);
+      if (unlock.avatar) this.earnedAvatars.add(unlock.avatar);
+      if (unlock.border) this.earnedBorders.add(unlock.border);
+    }
+
+    // Hard reset — wipe everything except permanents
+    this.kills = 0;
+    this.deaths = 0;
+    this.dungeonLevel = 1;
+    this.highestLevel = 1;
+    this.floorKills = 0;
+    this.checkpointLevel = 1;
+    this.gold = 0;
+    this.lootPool = [];
+    this.log = [];
+    this.deathFloors = {};
+    this.dungeonIndex = 0;
+    this.idleGoldRate = 0;
+    this.prestigePoints = 0;
+    this.totalPrestiges = 0;
+    this.prestigeUpgrades = {};
+    this.prestigePartyClasses = {};
+    this.guildUpgrades = {};
+    this.runeInventory = [];
+    this.artifactInventory = [];
+    this.gearStash = [];
+    this.autoSellQualities = [];
+    this.autoEquipEnabled = true;
+    this.autoSellEnabled = true;
+    this.skillCooldowns = {};
+    this.activeEffects = {};
+    this.killStreak = 0;
+    this.bossEncounterTime = 0;
+    this.party.team = [];
+    this.upgrades = {};
+
+    // Mark that a new hero must be created before gameplay resumes
+    this.needsHeroCreation = true;
+    this.enemy = generateEnemy(1, 0);
+
+    return this.respond();
+  }
+
+  /** Creates a new hero after a retirement reset, clearing the needs_hero_creation flag. */
+  createHeroAfterRetirement(name: string, characterClass: string): string {
+    if (!this.needsHeroCreation) return this.respond();
+    this.party.team = [];
+    this.upgrades = {};
+    const hero = new Character(name, characterClass, 1);
+    this.party.addPlayer(hero);
+    this.upgrades[name] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
+    this.needsHeroCreation = false;
+    this.enemy = generateEnemy(1, 0);
+    this.addLog(`Welcome, ${name} the ${characterClass}!`);
+    return this.respond();
+  }
+
   /** Purchases a Prestige Shop item, optionally specifying the companion's class for slot unlocks. Returns serialized JSON. */
   buyPrestigeUpgrade(type: string, characterClass?: string): string {
     if (!(type in PRESTIGE_SHOP_COSTS)) return this.respond();
@@ -1380,6 +1499,7 @@ export class GameState {
 
   /** Returns the skill id available to the lead character's class, or null if none is purchased. */
   private computeSkillAvailable(): string | null {
+    if (this.party.team.length === 0) return null;
     const leadClass = this.party.team[0].characterClass;
     for (const [skillId, def] of Object.entries(SKILL_DEFS)) {
       if ((this.guildUpgrades[skillId] ?? 0) > 0 && def.class === leadClass) return skillId;
@@ -1514,6 +1634,11 @@ export class GameState {
       auto_prestige_threshold: this.autoPrestigeThreshold,
       boss_enrage_time: this.bossEncounterTime,
       boss_enrage_mult: this.bossEnrageMult,
+      retired_heroes: [...this.retiredHeroes],
+      retirement_count: this.retirementCount,
+      unlocked_hero_classes: [...this.unlockedHeroClasses],
+      legacy_titles: [...this.legacyTitles],
+      needs_hero_creation: this.needsHeroCreation,
     };
   }
 
@@ -2101,6 +2226,11 @@ export class GameState {
     gs.autoPrestigeEnabled = d.auto_prestige_enabled ?? false;
     gs.autoPrestigeThreshold = d.auto_prestige_threshold ?? 5;
     gs.bossEncounterTime = d.boss_enrage_time ?? 0;
+    gs.retiredHeroes = [...(d.retired_heroes ?? [])];
+    gs.retirementCount = d.retirement_count ?? 0;
+    gs.unlockedHeroClasses = new Set(d.unlocked_hero_classes ?? ["fighter", "rogue", "mage"]);
+    gs.legacyTitles = new Set(d.legacy_titles ?? []);
+    gs.needsHeroCreation = d.needs_hero_creation ?? false;
 
     // Backfill cosmetic rewards for saves predating the avatar/border reward system
     for (const def of ACHIEVEMENTS) {
