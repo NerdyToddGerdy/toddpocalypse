@@ -2022,8 +2022,14 @@ main {
     .tab-visible { display: flex !important; flex-direction: column; width: 100%; }
 
     header { padding: 10px 14px; flex-wrap: wrap; gap: 8px; }
-    header h1 { font-size: 1.1rem; }
-    #stats-bar { flex-wrap: wrap; gap: 10px; font-size: 0.8rem; }
+    header h1 { font-size: 1.1rem; order: 1; }
+    #header-avatar-area { order: 2; margin-left: auto; }
+    #stats-bar { order: 3; width: 100%; flex-wrap: wrap; gap: 10px; font-size: 0.8rem; }
+
+    /* Avatar sized to match h1 icon (2em × 1.1rem = 2.2rem) */
+    .header-avatar-wrap { width: 2.2rem; height: 2.2rem; font-size: 1.6rem; }
+    .header-avatar-label { display: none; }
+    #header-avatar-btn { padding: 0; border-radius: 50%; border-color: transparent; }
     #stat-party-hp-wrap { display: flex; }
     #stat-party-dps-wrap { display: flex; }
 
