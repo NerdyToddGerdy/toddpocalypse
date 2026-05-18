@@ -3167,7 +3167,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   $("class-picker").addEventListener("click", (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLButtonElement>(".class-btn");
-    if (!btn) return;
+    if (!btn || btn.disabled) return;
     document.querySelectorAll(".class-btn").forEach((b) => b.classList.remove("selected"));
     btn.classList.add("selected");
     updateClassDesc();

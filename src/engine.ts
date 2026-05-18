@@ -1655,13 +1655,14 @@ export class GameState {
         titles.push(def.reward.title);
       }
     }
+    for (const t of this.legacyTitles) titles.push(t);
     return titles;
   }
 
   /** Sets the displayed title to any title the player has already earned, or resets to "nobody". */
   setEarnedTitle(title: string): string {
     const resolved = title === "" ? "nobody" : title;
-    if (resolved === "nobody" || this.computeEarnedTitles().includes(resolved)) {
+    if (resolved === "nobody" || this.computeEarnedTitles().includes(resolved) || this.legacyTitles.has(resolved)) {
       this.earnedTitle = resolved;
     }
     return this.respond();

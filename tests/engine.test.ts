@@ -5323,3 +5323,30 @@ describe("retireHero", () => {
     expect(gs.unlockedHeroClasses.has("mage")).toBe(true);
   });
 });
+
+// ─── legacy title integration ──────────────────────────────────────────────
+
+describe("legacy title integration", () => {
+  it("legacy title appears in earned_titles after retirement", () => {
+    const gs = new GameState("Hero", "fighter");
+    gs.dungeonIndex = 1;
+    gs.achievementsUnlocked.add("first_prestige");
+    gs.retireHero();
+    const dict = gs.toDict();
+    expect(dict.earned_titles).toContain("Veteran");
+  });
+
+  it("setEarnedTitle accepts a legacy title", () => {
+    const gs = new GameState("Hero", "fighter");
+    gs.legacyTitles.add("Veteran");
+    gs.setEarnedTitle("Veteran");
+    expect(gs.earnedTitle).toBe("Veteran");
+  });
+
+  it("setEarnedTitle rejects a title not in achievements or legacy", () => {
+    const gs = new GameState("Hero", "fighter");
+    gs.earnedTitle = "nobody";
+    gs.setEarnedTitle("NotARealTitle");
+    expect(gs.earnedTitle).toBe("nobody");
+  });
+});

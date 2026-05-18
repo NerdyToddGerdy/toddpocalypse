@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.28.0";
+export const VERSION = "v2.28.1";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.28.1",
+    date: "2026-05-18",
+    changes: [
+      "Fix: legacy titles (Veteran, Twice-Born, The Eternal) now appear in Customize title picker and can be set via setEarnedTitle",
+      "Fix: locked class buttons in character creation no longer selectable on click",
+    ],
+  },
   {
     version: "v2.28.0",
     date: "2026-05-18",
