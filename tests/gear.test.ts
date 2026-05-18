@@ -338,6 +338,26 @@ describe("qualityClass", () => {
 });
 
 describe("multi-stat rolling", () => {
+  it("adjective matches the primary stat rolled", () => {
+    const STAT_ADJ_KEYS: Record<string, string[]> = {
+      dps:        ["destruction", "fury", "carnage", "ruin", "slaughter"],
+      maxHp:      ["fortitude", "endurance", "resilience", "the bear", "the ox"],
+      clickBonus: ["impact", "the fist", "striking", "force"],
+      defense:    ["warding", "protection", "bulwark", "the shield"],
+      critChance: ["sharpness", "cruelty", "the hawk", "the viper"],
+      goldBonus:  ["greed", "fortune", "avarice", "wealth"],
+      xpBonus:    ["wisdom", "the sage", "learning", "insight"],
+      lifesteal:  ["vampirism", "draining", "the leech", "hunger"],
+      haste:      ["swiftness", "alacrity", "the wind", "the zephyr"],
+    };
+    for (let i = 0; i < 50; i++) {
+      const item = getItem();
+      const primaryStat = Object.keys(item.stats)[0];
+      const validAdjs = STAT_ADJ_KEYS[primaryStat] ?? [];
+      expect(validAdjs).toContain(item.adjective);
+    }
+  });
+
   it("getItem produces an item with at least one stat", () => {
     for (let i = 0; i < 20; i++) {
       const item = getItem();

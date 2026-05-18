@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.29.8";
+export const VERSION = "v2.29.9";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.29.9",
+    date: "2026-05-18",
+    changes: [
+      "Gear adjective now reflects the primary stat — DPS drops say 'of destruction', HP drops say 'of fortitude', etc.",
+    ],
+  },
   {
     version: "v2.29.8",
     date: "2026-05-18",

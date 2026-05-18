@@ -59,16 +59,18 @@ export const QUAL = [
   "divine",
 ] as const;
 
-/** Flavor adjectives appended to gear names. */
-export const ADJ = [
-  "awesomeness",
-  "gentleness",
-  "hilarity",
-  "shyness",
-  "destruction",
-  "valor",
-  "cunning",
-];
+/** Adjectives keyed by primary stat — used in "itemType of adjective" naming. */
+export const STAT_ADJECTIVES: Record<keyof GearStats, string[]> = {
+  dps:        ["destruction", "fury", "carnage", "ruin", "slaughter"],
+  maxHp:      ["fortitude", "endurance", "resilience", "the bear", "the ox"],
+  clickBonus: ["impact", "the fist", "striking", "force"],
+  defense:    ["warding", "protection", "bulwark", "the shield"],
+  critChance: ["sharpness", "cruelty", "the hawk", "the viper"],
+  goldBonus:  ["greed", "fortune", "avarice", "wealth"],
+  xpBonus:    ["wisdom", "the sage", "learning", "insight"],
+  lifesteal:  ["vampirism", "draining", "the leech", "hunger"],
+  haste:      ["swiftness", "alacrity", "the wind", "the zephyr"],
+};
 
 /** Base drop-weight curve; index 0 = max available tier, higher index = farther below max. */
 export const DROP_WEIGHTS = [30, 22, 16, 12, 8, 5, 4, 2, 1, 0.5, 0.3, 0.15, 0.08, 0.04, 0.02];
@@ -220,25 +222,28 @@ function getRollCount(qualityIdx: number): number {
   return 3;                                                    // ancient+
 }
 
-/** Rolls 1–3 stat bonuses for a gear item based on slot, quality, and dungeon level. */
-function rollStats(slot: Slot, quality: string, dungeonLevel: number): GearStats {
+/** Rolls 1–3 stat bonuses for a gear item based on slot, quality, and dungeon level.
+ *  Returns the stats and the primary (first-rolled) stat key. */
+function rollStats(slot: Slot, quality: string, dungeonLevel: number): { stats: GearStats; primaryStat: keyof GearStats } {
   const qIdx = QUAL.indexOf(quality as typeof QUAL[number]);
   const rollCount = getRollCount(qIdx < 0 ? 4 : qIdx);
   const pool = { ...SLOT_STAT_WEIGHTS[slot] } as Record<keyof GearStats, number>;
   const scale = gearLevelScale(dungeonLevel);
   const result: GearStats = {};
+  let primaryStat: keyof GearStats = "dps";
 
   for (let i = 0; i < rollCount; i++) {
     const keys = Object.keys(pool) as (keyof GearStats)[];
     if (keys.length === 0) break;
     const stat = weightedPick(keys, keys.map(k => pool[k] ?? 0));
+    if (i === 0) primaryStat = stat;
     delete pool[stat];
     const base = qIdx >= 0 ? STAT_SCALE[stat][qIdx] : (STAT_SCALE[stat][4]);
     result[stat] = NUMERIC_STATS.has(stat)
       ? Math.ceil(base * scale) as never
       : base as never;
   }
-  return result;
+  return { stats: result, primaryStat };
 }
 
 /**
@@ -438,8 +443,8 @@ export function getItem(slot?: Slot, dungeonLevel = 1): GearItem {
   const effectiveSlot: Slot = slot === "ring2" ? "ring1" : (slot ?? pick(DROP_SLOTS));
   const itemType = pick(SLOT_ITEM_TYPES[effectiveSlot]);
   const quality = weightedPick(QUAL, qualityWeights(dungeonLevel));
-  const adjective = pick(ADJ);
-  const stats = rollStats(effectiveSlot, quality, dungeonLevel);
+  const { stats, primaryStat } = rollStats(effectiveSlot, quality, dungeonLevel);
+  const adjective = pick(STAT_ADJECTIVES[primaryStat]);
   return new GearItem(effectiveSlot, itemType, quality, adjective, stats, dungeonLevel);
 }
 
@@ -504,7 +509,7 @@ export function getSetItem(setId: string, slot: Slot, dungeonLevel = 1): GearIte
     return w;
   });
   const quality = weightedPick(QUAL, weights);
-  const adjective = pick(ADJ);
-  const stats = rollStats(effectiveSlot, quality, dungeonLevel);
+  const { stats, primaryStat } = rollStats(effectiveSlot, quality, dungeonLevel);
+  const adjective = pick(STAT_ADJECTIVES[primaryStat]);
   return new GearItem(effectiveSlot, itemType, quality, adjective, stats, dungeonLevel, def.name);
 }
