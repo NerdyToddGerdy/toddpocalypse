@@ -22,6 +22,7 @@ import {
   BOSS_ENRAGE_TRIGGER,
   BOSS_ENRAGE_STEP,
   LEGACY_UNLOCKS,
+  COMPANION_NAMES,
   type RetiredHero,
 } from "../src/engine.js";
 import { Character, CLASS_ABILITIES } from "../src/character.js";
@@ -1792,6 +1793,25 @@ describe("prestige shop", () => {
     gs.buyPrestigeUpgrade("party_slot_3", "mage");
     expect(gs.party.team.length).toBe(3);
     expect(gs.party.team[2].characterClass).toBe("mage");
+  });
+
+  it("companion slot 2 gets a class-themed name from COMPANION_NAMES", () => {
+    const gs = withPrestige(5); gs.buyPrestigeUpgrade("party_slot_2", "rogue");
+    const comp = gs.party.team[1];
+    expect(COMPANION_NAMES["rogue"]).toContain(comp.name);
+  });
+
+  it("companion slot 3 gets a different name than slot 2 for same class", () => {
+    const gs = withPrestige(10);
+    gs.buyPrestigeUpgrade("party_slot_2", "mage");
+    gs.buyPrestigeUpgrade("party_slot_3", "mage");
+    expect(gs.party.team[1].name).not.toBe(gs.party.team[2].name);
+  });
+
+  it("COMPANION_NAMES covers all six classes with 5+ names each", () => {
+    for (const cls of ["fighter", "rogue", "mage", "paladin", "ranger", "druid"]) {
+      expect(COMPANION_NAMES[cls].length).toBeGreaterThanOrEqual(5);
+    }
   });
 
   it("invalid upgrade type is a no-op", () => {

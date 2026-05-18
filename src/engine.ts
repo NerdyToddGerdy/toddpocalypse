@@ -232,6 +232,20 @@ export const SKILL_DEFS: Record<string, { cooldownKills: number; durationKills: 
   skill_entangle:      { cooldownKills: 20, durationKills: 8, class: "druid" },
 };
 
+/** Non-binary class-themed names for companion party slots (slot 2–6 use index 0–4). */
+export const COMPANION_NAMES: Record<string, string[]> = {
+  fighter: ["Cade",   "Raze",   "Flint",  "Sable",   "Onyx"  ],
+  rogue:   ["Vesper", "Vale",   "Ash",    "Cipher",  "Dusk"  ],
+  mage:    ["Indigo", "Lyric",  "Zephyr", "Rune",    "Lark"  ],
+  paladin: ["Sol",    "Blair",  "Corin",  "Emery",   "Avery" ],
+  ranger:  ["River",  "Cedar",  "Finch",  "Briar",   "Brook" ],
+  druid:   ["Rowan",  "Hazel",  "Fern",   "Sage",    "Wren"  ],
+};
+
+function companionName(cls: string, slotIdx: number): string {
+  return (COMPANION_NAMES[cls] ?? COMPANION_NAMES.fighter)[slotIdx] ?? "Companion";
+}
+
 /** Fraction of missing HP restored after each enemy kill. */
 export const COMBAT_HEAL_FRACTION = 0.12;
 
@@ -1103,33 +1117,38 @@ export class GameState {
 
     if ((this.prestigeUpgrades["party_slot_2"] ?? 0) > 0) {
       const cls2 = this.prestigePartyClasses["slot_2"] ?? "fighter";
-      const comp = new Character("Companion", cls2, 1);
+      const n2 = companionName(cls2, 0);
+      const comp = new Character(n2, cls2, 1);
       this.party.addPlayer(comp);
-      this.upgrades["Companion"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
+      this.upgrades[n2] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
     }
     if ((this.prestigeUpgrades["party_slot_3"] ?? 0) > 0) {
       const cls3 = this.prestigePartyClasses["slot_3"] ?? "fighter";
-      const ally = new Character("Ally", cls3, 1);
+      const n3 = companionName(cls3, 1);
+      const ally = new Character(n3, cls3, 1);
       this.party.addPlayer(ally);
-      this.upgrades["Ally"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
+      this.upgrades[n3] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
     }
     if ((this.prestigeUpgrades["party_slot_4"] ?? 0) > 0) {
       const cls4 = this.prestigePartyClasses["slot_4"] ?? "fighter";
-      const vet = new Character("Veteran", cls4, 1);
+      const n4 = companionName(cls4, 2);
+      const vet = new Character(n4, cls4, 1);
       this.party.addPlayer(vet);
-      this.upgrades["Veteran"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
+      this.upgrades[n4] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
     }
     if ((this.prestigeUpgrades["party_slot_5"] ?? 0) > 0) {
       const cls5 = this.prestigePartyClasses["slot_5"] ?? "fighter";
-      const champ = new Character("Champion", cls5, 1);
+      const n5 = companionName(cls5, 3);
+      const champ = new Character(n5, cls5, 1);
       this.party.addPlayer(champ);
-      this.upgrades["Champion"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
+      this.upgrades[n5] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
     }
     if ((this.prestigeUpgrades["party_slot_6"] ?? 0) > 0) {
       const cls6 = this.prestigePartyClasses["slot_6"] ?? "fighter";
-      const chosen = new Character("Chosen", cls6, 1);
+      const n6 = companionName(cls6, 4);
+      const chosen = new Character(n6, cls6, 1);
       this.party.addPlayer(chosen);
-      this.upgrades["Chosen"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
+      this.upgrades[n6] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
     }
 
     const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
@@ -1271,41 +1290,46 @@ export class GameState {
     if (type === "party_slot_2") {
       const cls = characterClass ?? "fighter";
       this.prestigePartyClasses["slot_2"] = cls;
-      const comp = new Character("Companion", cls, 1);
+      const n = companionName(cls, 0);
+      const comp = new Character(n, cls, 1);
       this.party.addPlayer(comp);
-      this.upgrades["Companion"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
+      this.upgrades[n] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
       const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
       comp.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
     } else if (type === "party_slot_3") {
       const cls = characterClass ?? "fighter";
       this.prestigePartyClasses["slot_3"] = cls;
-      const ally = new Character("Ally", cls, 1);
+      const n = companionName(cls, 1);
+      const ally = new Character(n, cls, 1);
       this.party.addPlayer(ally);
-      this.upgrades["Ally"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
+      this.upgrades[n] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
       const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
       ally.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
     } else if (type === "party_slot_4") {
       const cls = characterClass ?? "fighter";
       this.prestigePartyClasses["slot_4"] = cls;
-      const vet = new Character("Veteran", cls, 1);
+      const n = companionName(cls, 2);
+      const vet = new Character(n, cls, 1);
       this.party.addPlayer(vet);
-      this.upgrades["Veteran"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
+      this.upgrades[n] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
       const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
       vet.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
     } else if (type === "party_slot_5") {
       const cls = characterClass ?? "fighter";
       this.prestigePartyClasses["slot_5"] = cls;
-      const champ = new Character("Champion", cls, 1);
+      const n = companionName(cls, 3);
+      const champ = new Character(n, cls, 1);
       this.party.addPlayer(champ);
-      this.upgrades["Champion"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
+      this.upgrades[n] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
       const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
       champ.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
     } else if (type === "party_slot_6") {
       const cls = characterClass ?? "fighter";
       this.prestigePartyClasses["slot_6"] = cls;
-      const chosen = new Character("Chosen", cls, 1);
+      const n = companionName(cls, 4);
+      const chosen = new Character(n, cls, 1);
       this.party.addPlayer(chosen);
-      this.upgrades["Chosen"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
+      this.upgrades[n] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
       const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
       chosen.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
     } else if (type === "xp_bonus") {
