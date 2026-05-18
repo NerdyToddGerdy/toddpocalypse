@@ -234,8 +234,13 @@ export const COMBAT_HEAL_FRACTION = 0.12;
 /** Maximum offline time (in seconds) credited for idle gold catch-up. */
 export const OFFLINE_GOLD_CAP_SECONDS = 8 * 3600; // 8 hours
 
-/** Gold granted per starting_gold prestige upgrade level. */
-export const STARTING_GOLD_PER_LEVEL = 250;
+/** Gold at run start for a given starting_gold prestige level.
+ *  Covers the cost of every upgrade type up to that level for one character. */
+export function startingGoldForLevel(level: number): number {
+  if (level === 0) return 0;
+  const sum = Object.values(UPGRADE_BASES).reduce((s, b) => s + b, 0); // 375
+  return Math.floor(sum * (Math.pow(2, level) - 1));
+}
 
 /** XP multiplier bonus added per xp_bonus prestige upgrade level. */
 export const XP_BONUS_PER_LEVEL = 0.10;
@@ -1125,7 +1130,7 @@ export class GameState {
     }
     this.artifactInventory = savedArtifactInventory;
 
-    this.gold = (this.prestigeUpgrades["starting_gold"] ?? 0) * STARTING_GOLD_PER_LEVEL;
+    this.gold = startingGoldForLevel(this.prestigeUpgrades["starting_gold"] ?? 0);
 
     this.addLog(`Returned to town (run ${this.totalPrestiges})! Earned ${earned} renown.`);
     this.checkAchievements();
@@ -1292,7 +1297,8 @@ export class GameState {
         c.xpMultiplier += XP_BONUS_PER_LEVEL;
       }
     } else if (type === "starting_gold") {
-      this.gold += STARTING_GOLD_PER_LEVEL;
+      const lvl = this.prestigeUpgrades["starting_gold"] ?? 0;
+      this.gold += startingGoldForLevel(lvl) - startingGoldForLevel(lvl - 1);
     }
 
     this.addLog(`Hall of Renown: ${type} purchased!`);

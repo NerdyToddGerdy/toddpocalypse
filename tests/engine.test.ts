@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   GameState, KILLS_PER_LEVEL, LOOT_MAX, UPGRADE_BASES, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT, DEFENSE_UPGRADE_EFFECT,
-  PRESTIGE_UNLOCK_LEVEL, PRESTIGE_SHOP_COSTS, STARTING_GOLD_PER_LEVEL, XP_BONUS_PER_LEVEL, GOLD_BONUS_PER_LEVEL, PARTY_GOLD_BONUS_PER_MEMBER,
+  PRESTIGE_UNLOCK_LEVEL, PRESTIGE_SHOP_COSTS, startingGoldForLevel, XP_BONUS_PER_LEVEL, GOLD_BONUS_PER_LEVEL, PARTY_GOLD_BONUS_PER_MEMBER,
   BLOODLUST_MULTIPLIER, EXPOSE_WEAKNESS_MULT, MANA_SURGE_INTERVAL, MANA_SURGE_MULTIPLIER,
   LUCKY_STRIKE_CHANCE, LUCKY_STRIKE_MULTIPLIER, EMPOWER_MULTIPLIER,
   VENTURE_UNLOCK_LEVEL, IDLE_GOLD_RATE, OFFLINE_GOLD_CAP_SECONDS,
@@ -1708,9 +1708,9 @@ describe("prestige shop", () => {
     const gs = withPrestige(10);
     const goldBefore = gs.gold;
     gs.buyPrestigeUpgrade("starting_gold");
-    expect(gs.gold).toBe(goldBefore + STARTING_GOLD_PER_LEVEL);
+    expect(gs.gold).toBe(goldBefore + startingGoldForLevel(1));
     gs.buyPrestigeUpgrade("starting_gold");
-    expect(gs.gold).toBe(goldBefore + STARTING_GOLD_PER_LEVEL * 2);
+    expect(gs.gold).toBe(goldBefore + startingGoldForLevel(2));
   });
 
   it("one-time upgrades (auto_seller) do not scale", () => {
@@ -1777,16 +1777,16 @@ describe("prestige shop", () => {
 });
 
 describe("prestige — starting_gold on next run", () => {
-  it("1 stack gives 250g after prestige", () => {
+  it("1 stack gives startingGoldForLevel(1) after prestige", () => {
     const gs = withHighLevel(20); gs.prestigeUpgrades["starting_gold"] = 1;
     gs.prestige();
-    expect(gs.gold).toBe(250);
+    expect(gs.gold).toBe(startingGoldForLevel(1));
   });
 
-  it("2 stacks give 500g after prestige", () => {
+  it("2 stacks give startingGoldForLevel(2) after prestige", () => {
     const gs = withHighLevel(20); gs.prestigeUpgrades["starting_gold"] = 2;
     gs.prestige();
-    expect(gs.gold).toBe(500);
+    expect(gs.gold).toBe(startingGoldForLevel(2));
   });
 });
 

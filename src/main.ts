@@ -142,7 +142,7 @@ function call<K extends keyof GameState>(method: K, ...args: any[]): void {
   }
 }
 
-import { KILLS_PER_LEVEL, killsForFloor, CORRUPTION_FLOOR, CORRUPTION_RATE_PER_FLOOR, CORRUPTION_HEAL_REDUCTION_PER_FLOOR } from "./engine.js";
+import { KILLS_PER_LEVEL, killsForFloor, CORRUPTION_FLOOR, CORRUPTION_RATE_PER_FLOOR, CORRUPTION_HEAL_REDUCTION_PER_FLOOR, startingGoldForLevel } from "./engine.js";
 
 /** Full re-render of all UI panels from a GameStateDict snapshot. */
 function render(state: GameStateDict): void {
@@ -857,7 +857,7 @@ const PRESTIGE_SHOP_META: Record<string, { icon: string; name: string; desc: str
   party_slot_4:  { icon: "👥", name: "Party Slot IV",  desc: "Add a 4th member. Requires Slot III + Companion Hall.", max: 1, guildReq: 1 },
   party_slot_5:  { icon: "👥", name: "Party Slot V",   desc: "Add a 5th member. Requires Slot IV + Companion Hall II.", max: 1, guildReq: 2 },
   party_slot_6:  { icon: "👥", name: "Party Slot VI",  desc: "Add a 6th member. Requires Slot V + Companion Hall III.", max: 1, guildReq: 3 },
-  starting_gold:    { icon: "💰", name: "Starting Gold",    desc: "+250g at the start of each run.", max: Infinity },
+  starting_gold:    { icon: "💰", name: "Starting Gold",    desc: "Gold at run start scales with level — covers all upgrades to match.", max: Infinity },
   xp_bonus:         { icon: "✨", name: "XP Bonus",         desc: "+10% XP gain for all party members.", max: Infinity },
   gold_bonus:       { icon: "🪙", name: "Gold Bonus",       desc: "+10% gold from kills per stack.", max: Infinity },
   dps_bonus:        { icon: "⚔", name: "DPS Bonus",        desc: "+5% party DPS per stack.", max: Infinity },
@@ -1175,7 +1175,7 @@ function updateVentureButton(state: GameStateDict): void {
 function prestigeCurrentStat(type: string, owned: number): string {
   if (owned <= 0) return "";
   switch (type) {
-    case "starting_gold":  return `Current: +${owned * 250}g per run`;
+    case "starting_gold":  return `Current: +${startingGoldForLevel(owned)}g per run`;
     case "xp_bonus":       return `Current: +${owned * 10}% XP`;
     case "gold_bonus":     return `Current: +${owned * 10}% gold`;
     case "dps_bonus":      return `Current: +${owned * 5}% DPS`;
