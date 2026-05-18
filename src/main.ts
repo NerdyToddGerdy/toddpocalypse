@@ -985,7 +985,17 @@ function renderPrestigeShop(state: GameStateDict): void {
 
   // --- Normal items (excluding party_slot_*) ---
   const partySlotSet = new Set(PARTY_SLOT_KEYS);
-  const normalItems = Object.entries(PRESTIGE_SHOP_META)
+  type SortableItem = { atMax: boolean; cost: number; html: string };
+  const allItems: SortableItem[] = [];
+
+  // Party Members card enters the sort pool
+  allItems.push({
+    atMax: partySlotAtMax,
+    cost: partySlotAtMax ? Infinity : nextSlotCost,
+    html: partyMembersCard,
+  });
+
+  Object.entries(PRESTIGE_SHOP_META)
     .filter(([type, meta]) => {
       if (partySlotSet.has(type)) return false;
       const guildReq = meta.guildReq ?? 0;
@@ -993,32 +1003,33 @@ function renderPrestigeShop(state: GameStateDict): void {
       const dungeonReq = meta.dungeonReq ?? 0;
       return state.dungeon_index >= dungeonReq;
     })
-    .map(([type, meta]) => {
+    .forEach(([type, meta]) => {
       const owned = ups[type] ?? 0;
       const cost = prestigeUpgradeCost(type, owned);
       const atMax = owned >= meta.max;
-      return { type, meta, owned, cost, atMax };
-    })
-    .sort((a, b) => {
-      if (a.atMax !== b.atMax) return a.atMax ? 1 : -1;
-      return a.cost - b.cost;
-    })
-    .map(({ type, meta, owned, cost, atMax }) => {
       const prereqMissing = (type === "smart_seller" && !(ups["auto_seller"] > 0));
       const canAfford = pts >= cost;
       const disabled = atMax || prereqMissing || !canAfford;
       const ownedLabel = atMax ? " ✓" : owned > 0 ? ` (${owned})` : "";
       const currentStat = prestigeCurrentStat(type, owned);
-      return `<div class="prestige-item">
+      allItems.push({
+        atMax,
+        cost: atMax ? Infinity : cost,
+        html: `<div class="prestige-item">
       <div class="prestige-item-meta">
         <div class="prestige-item-name">${meta.icon} ${meta.name}${ownedLabel}</div>
         <div class="prestige-item-desc">${meta.desc}</div>
         ${currentStat ? `<div class="shop-current-stat">${currentStat}</div>` : ""}
       </div>
       <button class="prestige-buy-btn" data-action="buy-prestige" data-type="${type}" ${disabled ? "disabled" : ""}>${atMax ? "Owned" : formatNumber(cost) + "pt"}</button>
-    </div>`;
-    })
-    .join("");
+    </div>`,
+      });
+    });
+
+  allItems.sort((a, b) => {
+    if (a.atMax !== b.atMax) return a.atMax ? 1 : -1;
+    return a.cost - b.cost;
+  });
 
   const guildUps = state.guild_upgrades as Record<string, number>;
   const eternalUnlocked = (guildUps["eternal_cycle"] ?? 0) >= 1;
@@ -1033,7 +1044,7 @@ function renderPrestigeShop(state: GameStateDict): void {
     </div>
   </div>` : "";
 
-  $("prestige-shop-items").innerHTML = eternalRow + partyMembersCard + normalItems;
+  $("prestige-shop-items").innerHTML = eternalRow + allItems.map(i => i.html).join("");
 }
 
 /** Enables/disables the Venture button based on whether the player has reached floor 40. */
