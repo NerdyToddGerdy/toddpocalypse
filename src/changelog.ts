@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.28.3";
+export const VERSION = "v2.28.4";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.28.4",
+    date: "2026-05-18",
+    changes: [
+      "Boss/elite enrage multiplier no longer caps at 5× — it scales unbounded until the player is defeated",
+    ],
+  },
   {
     version: "v2.28.3",
     date: "2026-05-18",

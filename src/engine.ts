@@ -213,8 +213,6 @@ export const ENTANGLE_REDUCTION = 0.60;
 export const BOSS_ENRAGE_TRIGGER = 20;
 /** Seconds between enrage multiplier steps after trigger. */
 export const BOSS_ENRAGE_STEP = 10;
-/** Maximum enrage multiplier. */
-export const BOSS_ENRAGE_CAP = 5;
 
 export const BATTLE_CRY_MULT    = 2.0;
 export const SHADOW_STRIKE_MULT = 3.0;
@@ -993,7 +991,7 @@ export class GameState {
   get bossEnrageMult(): number {
     if (this.bossEncounterTime < BOSS_ENRAGE_TRIGGER) return 1.0;
     const stacks = Math.floor((this.bossEncounterTime - BOSS_ENRAGE_TRIGGER) / BOSS_ENRAGE_STEP) + 1;
-    return Math.min(BOSS_ENRAGE_CAP, 1.5 ** stacks);
+    return 1.5 ** stacks;
   }
 
   /** Calculates how many prestige points the player would earn if they prestiged right now. */

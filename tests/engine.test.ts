@@ -21,7 +21,6 @@ import {
   formatNumber,
   BOSS_ENRAGE_TRIGGER,
   BOSS_ENRAGE_STEP,
-  BOSS_ENRAGE_CAP,
   LEGACY_UNLOCKS,
   type RetiredHero,
 } from "../src/engine.js";
@@ -1225,10 +1224,10 @@ describe("boss enrage", () => {
     expect(gs.bossEnrageMult).toBeCloseTo(2.25);
   });
 
-  it("enrage mult is capped at BOSS_ENRAGE_CAP", () => {
+  it("enrage mult keeps growing beyond former cap", () => {
     const gs = make();
     gs.bossEncounterTime = 9999;
-    expect(gs.bossEnrageMult).toBe(BOSS_ENRAGE_CAP);
+    expect(gs.bossEnrageMult).toBeGreaterThan(5);
   });
 
   it("toDict includes boss_enrage_time and boss_enrage_mult", () => {
