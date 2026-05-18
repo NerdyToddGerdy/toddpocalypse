@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.27.0";
+export const VERSION = "v2.27.1";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.27.1",
+    date: "2026-05-17",
+    changes: [
+      "Mobile layout now applies on tablets up to 1280px wide (was 768px); Galaxy Tab S6 Lite now uses mobile UI",
+    ],
+  },
   {
     version: "v2.27.0",
     date: "2026-05-17",

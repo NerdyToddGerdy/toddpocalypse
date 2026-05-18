@@ -1177,22 +1177,8 @@ main {
     padding: 16px;
 }
 
-/* Laptop: stats bar wraps to two rows */
-@media (min-width: 769px) and (max-width: 1280px) {
-    #stats-bar {
-        flex-wrap: wrap;
-        gap: 10px 16px;
-        font-size: 0.82rem;
-    }
-    #action-btns {
-        display: flex;
-        gap: 8px;
-        margin-left: auto;
-    }
-}
-
 /* Desktop: panels live inside the sidebar card — no individual borders */
-@media (min-width: 769px) {
+@media (min-width: 1281px) {
     #upgrades-panel, #loot-panel, #prestige-panel, #guild-hall-panel, #feats-panel, #log-panel {
         display: none;
         background: none;
@@ -1955,7 +1941,7 @@ main {
 
 #mobile-tabs { display: none; }
 
-@media (max-width: 768px) {
+@media (max-width: 1280px) {
     #settings-open-btn { display: none; }
 
     body {
@@ -3533,7 +3519,7 @@ footer {
     color: var(--text);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1280px) {
     .item-tooltip { display: none; }
 }
 
@@ -3541,7 +3527,7 @@ footer {
 .mic-overlay {
     display: none;
 }
-@media (max-width: 768px) {
+@media (max-width: 1280px) {
     .mic-overlay {
         display: block;
         position: fixed;
