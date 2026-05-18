@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.29.2";
+export const VERSION = "v2.29.3";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.29.3",
+    date: "2026-05-18",
+    changes: [
+      "Account dropdown: added Best Dungeon count alongside Best Floor",
+    ],
+  },
   {
     version: "v2.29.2",
     date: "2026-05-18",
