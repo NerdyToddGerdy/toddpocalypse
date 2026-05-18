@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.30.4";
+export const VERSION = "v2.30.5";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.30.5",
+    date: "2026-05-18",
+    changes: [
+      "Enemy attack damage now scales as level^1.3 instead of linear — high-floor enemies hit significantly harder",
+      "Lifesteal heals at only 25% effectiveness against bosses and elites",
+    ],
+  },
   {
     version: "v2.30.4",
     date: "2026-05-18",

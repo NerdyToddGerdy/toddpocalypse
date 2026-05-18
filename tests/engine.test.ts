@@ -23,6 +23,7 @@ import {
   BOSS_ENRAGE_STEP,
   LEGACY_UNLOCKS,
   COMPANION_NAMES,
+  BOSS_LIFESTEAL_MULT,
   type RetiredHero,
 } from "../src/engine.js";
 import { Character, CLASS_ABILITIES } from "../src/character.js";
@@ -3263,6 +3264,28 @@ describe("multi-stat gear — combat integration", () => {
     gs.enemy.attack_dps = 0;
     gs.tick(1.0);
     expect(hero.health).toBeGreaterThan(1);
+  });
+
+  it("lifesteal heals less against boss than normal enemy (BOSS_LIFESTEAL_MULT)", () => {
+    const makeGs = () => {
+      const gs = make();
+      const hero = gs.party.team[0];
+      hero.equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor", { dps: 100 }, 1));
+      hero.lifesteal = 0.5;
+      hero.health = 1;
+      return gs;
+    };
+    const gsMob = makeGs();
+    gsMob.enemy = { name: "Mob", level: 1, hp: 10_000, max_hp: 10_000, xp_reward: 1, gold_reward: 1, attack_dps: 0, isBoss: false };
+    gsMob.tick(1.0);
+    const healedVsMob = gsMob.party.team[0].health - 1;
+
+    const gsBoss = makeGs();
+    gsBoss.enemy = { name: "Boss", level: 1, hp: 10_000, max_hp: 10_000, xp_reward: 1, gold_reward: 1, attack_dps: 0, isBoss: true };
+    gsBoss.tick(1.0);
+    const healedVsBoss = gsBoss.party.team[0].health - 1;
+
+    expect(healedVsBoss).toBeCloseTo(healedVsMob * BOSS_LIFESTEAL_MULT, 0);
   });
 
   it("haste increases effective DPS output", () => {

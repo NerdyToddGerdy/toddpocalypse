@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateEnemy, generateBoss, generateEliteEnemy, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT, GOLD_LEVEL_MULT } from "../src/dungeon.js";
+import { generateEnemy, generateBoss, generateEliteEnemy, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT, GOLD_LEVEL_MULT, ENEMY_ATTACK_EXPONENT } from "../src/dungeon.js";
 
 describe("GOLD_LEVEL_MULT", () => {
   it("is 0.01", () => {
@@ -92,13 +92,18 @@ describe("generateEnemy", () => {
 
   it("dungeonIndex increases attack_dps by 40% per index", () => {
     const base = generateEnemy(10, 0).attack_dps;
-    expect(generateEnemy(10, 1).attack_dps).toBeCloseTo(base * 1.40, 5);
-    expect(generateEnemy(10, 2).attack_dps).toBeCloseTo(base * 1.80, 5);
+    expect(generateEnemy(10, 1).attack_dps / base).toBeCloseTo(1.40, 1);
+    expect(generateEnemy(10, 2).attack_dps / base).toBeCloseTo(1.80, 1);
   });
 
-  it("base attack_dps coefficient is 4.0 per dungeon level", () => {
-    expect(generateEnemy(10, 0).attack_dps).toBeCloseTo(40.0, 5);
-    expect(generateEnemy(20, 0).attack_dps).toBeCloseTo(80.0, 5);
+  it("attack_dps uses power-law scaling (level^ENEMY_ATTACK_EXPONENT * 4.0)", () => {
+    expect(generateEnemy(10, 0).attack_dps).toBeCloseTo(Math.pow(10, ENEMY_ATTACK_EXPONENT) * 4.0, 0);
+    expect(generateEnemy(20, 0).attack_dps).toBeCloseTo(Math.pow(20, ENEMY_ATTACK_EXPONENT) * 4.0, 0);
+  });
+
+  it("enemy attack_dps grows non-linearly — floor 20 scales faster than floor 10 ratio", () => {
+    const ratio = generateEnemy(20, 0).attack_dps / generateEnemy(10, 0).attack_dps;
+    expect(ratio).toBeGreaterThan(20 / 10); // faster than linear
   });
 
   it("dungeonIndex=1 produces higher attack_dps than dungeonIndex=0 at same level", () => {
@@ -182,9 +187,14 @@ describe("generateBoss", () => {
     expect(a2).toBeGreaterThan(a1);
   });
 
-  it("base boss attack_dps coefficient is 6.5 per dungeon level", () => {
-    expect(generateBoss(10, 0).attack_dps).toBeCloseTo(65.0, 5);
-    expect(generateBoss(20, 0).attack_dps).toBeCloseTo(130.0, 5);
+  it("boss attack_dps uses power-law scaling (level^ENEMY_ATTACK_EXPONENT * 6.5)", () => {
+    expect(generateBoss(10, 0).attack_dps).toBeCloseTo(Math.pow(10, ENEMY_ATTACK_EXPONENT) * 6.5, 0);
+    expect(generateBoss(20, 0).attack_dps).toBeCloseTo(Math.pow(20, ENEMY_ATTACK_EXPONENT) * 6.5, 0);
+  });
+
+  it("boss attack_dps at floor 29 grows faster than linear level ratio", () => {
+    const ratio = generateBoss(29, 0).attack_dps / generateBoss(10, 0).attack_dps;
+    expect(ratio).toBeGreaterThan(29 / 10);
   });
 
   it("dungeonIndex=0 is backward compatible", () => {
@@ -241,9 +251,8 @@ describe("generateEliteEnemy", () => {
   });
 
   it("dungeonIndex scales elite the same as regular enemies", () => {
-    const a0 = generateEliteEnemy(10, 0).attack_dps;
-    const a1 = generateEliteEnemy(10, 1).attack_dps;
-    expect(a1).toBeCloseTo(a0 * (1.4 / 1.0), 4);
+    const ratio = generateEliteEnemy(10, 1).attack_dps / generateEliteEnemy(10, 0).attack_dps;
+    expect(ratio).toBeCloseTo(1.4, 1);
   });
 
   it("ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT are exported and > 1", () => {

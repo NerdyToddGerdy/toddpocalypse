@@ -232,6 +232,9 @@ export const SKILL_DEFS: Record<string, { cooldownKills: number; durationKills: 
   skill_entangle:      { cooldownKills: 20, durationKills: 8, class: "druid" },
 };
 
+/** Lifesteal effectiveness against boss and elite enemies. */
+export const BOSS_LIFESTEAL_MULT = 0.25;
+
 /** Non-binary class-themed names for companion party slots (slot 2–6 use index 0–4). */
 export const COMPANION_NAMES: Record<string, string[]> = {
   fighter: ["Cade",   "Raze",   "Flint",  "Sable",   "Onyx"  ],
@@ -696,7 +699,8 @@ export class GameState {
     const regrowthBonus = this.party.team.some(c => c.isAlive() && c.abilities.includes("regrowth")) ? 0.05 : 0;
     const partyLifesteal = this.party.team.reduce((s, c) => c.isAlive() ? s + c.lifesteal : s, 0) + regrowthBonus;
     if (damageDealt > 0 && partyLifesteal > 0) {
-      const effectiveLifesteal = partyLifesteal * (1 - healReduction);
+      const bossReduction = (this.enemy.isBoss || this.enemy.isElite) ? BOSS_LIFESTEAL_MULT : 1.0;
+      const effectiveLifesteal = partyLifesteal * (1 - healReduction) * bossReduction;
       const healTarget = this.party.team.find(c => c.isAlive() && c.health < c.maxHealth);
       if (healTarget) {
         healTarget.health = Math.min(healTarget.maxHealth, healTarget.health + damageDealt * effectiveLifesteal);
