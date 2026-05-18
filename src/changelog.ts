@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.28.1";
+export const VERSION = "v2.28.2";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.28.2",
+    date: "2026-05-18",
+    changes: [
+      "Fix: Paladin/Ranger/Druid locked by default in character creation (were missing disabled attribute)",
+      "Class picker now uses a 3-column grid so all 6 classes fit cleanly",
+    ],
+  },
   {
     version: "v2.28.1",
     date: "2026-05-18",
