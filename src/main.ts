@@ -1157,7 +1157,7 @@ const RUNE_STAT_LABELS: Record<string, string> = {
   dps: "DPS", maxHp: "Max HP", haste: "Haste", goldBonus: "Gold Bonus", xpMultiplier: "XP Mult", critChance: "Crit Chance",
 };
 const RUNE_ICONS: Record<string, string> = {
-  striking: "⚔", warding: "🛡", swiftness: "💨", greed: "💰", fortune: "🍀", wrath: "💢",
+  striking: "⚔️", warding: "🛡", swiftness: "💨", greed: "💰", fortune: "🍀", wrath: "💢",
 };
 const ALL_SLOTS = ["main_hand","off_hand","helmet","chest","gloves","legs","shoes","ring1","ring2"] as const;
 const SLOT_LABELS: Record<string, string> = {

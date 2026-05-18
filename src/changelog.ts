@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.27.5";
+export const VERSION = "v2.27.6";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.27.6",
+    date: "2026-05-18",
+    changes: [
+      "Fix: Striking rune icon now renders correctly as ⚔️ emoji instead of a text glyph",
+    ],
+  },
   {
     version: "v2.27.5",
     date: "2026-05-17",
