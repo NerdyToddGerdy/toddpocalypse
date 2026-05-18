@@ -79,6 +79,28 @@
       <button class="profile-menu-item" data-action="open-about-modal">📖 About</button>
       <button class="profile-menu-item" data-action="open-hall-of-fame-modal">🏆 Hall of Fame</button>
       <button class="profile-menu-item retire-btn" data-action="retire-hero" id="retire-hero-btn" disabled>💀 Retire Hero</button>
+      <div class="pdd-divider"></div>
+      <div class="pdd-stats">
+        <div class="pdd-stats-col">
+          <div class="pdd-section-label">Hero</div>
+          <div class="pdd-row"><span class="pdd-key">Name</span><span class="pdd-val" id="pstat-hero-name">—</span></div>
+          <div class="pdd-row"><span class="pdd-key">Class</span><span class="pdd-val" id="pstat-hero-class">—</span></div>
+          <div class="pdd-row"><span class="pdd-key">Level</span><span class="pdd-val" id="pstat-hero-level">—</span></div>
+          <div class="pdd-row"><span class="pdd-key">Floor</span><span class="pdd-val" id="pstat-hero-floor">—</span></div>
+          <div class="pdd-row"><span class="pdd-key">Gold</span><span class="pdd-val" id="pstat-hero-gold">—</span></div>
+          <div class="pdd-row"><span class="pdd-key">Kills</span><span class="pdd-val" id="pstat-hero-kills">—</span></div>
+          <div class="pdd-row"><span class="pdd-key">Deaths</span><span class="pdd-val" id="pstat-hero-deaths">—</span></div>
+        </div>
+        <div class="pdd-stats-col">
+          <div class="pdd-section-label">Account</div>
+          <div class="pdd-row"><span class="pdd-key">Dungeon</span><span class="pdd-val" id="pstat-acc-dungeon">—</span></div>
+          <div class="pdd-row"><span class="pdd-key">Best Floor</span><span class="pdd-val" id="pstat-acc-best">—</span></div>
+          <div class="pdd-row"><span class="pdd-key">Returns</span><span class="pdd-val" id="pstat-acc-prestiges">—</span></div>
+          <div class="pdd-row"><span class="pdd-key">Total Kills</span><span class="pdd-val" id="pstat-acc-kills">—</span></div>
+          <div class="pdd-row"><span class="pdd-key">Total Deaths</span><span class="pdd-val" id="pstat-acc-deaths">—</span></div>
+        </div>
+      </div>
+      <button class="pdd-detail-btn" data-action="open-stats-modal">Kill details →</button>
     </div>
   </div>
 </header>
@@ -249,14 +271,14 @@
 </div>
 
 <footer>
-  <button id="stats-btn">Lifetime Stats</button>
+  <button id="stats-btn">Kill Details</button>
   <button id="version-btn"></button>
 </footer>
 
 <div id="stats-modal" aria-modal="true" role="dialog" aria-labelledby="stats-title">
   <div id="stats-box">
     <div id="stats-header">
-      <h2 id="stats-title">Lifetime Stats</h2>
+      <h2 id="stats-title">Account</h2>
       <button id="stats-close" aria-label="Close">✕</button>
     </div>
     <div id="stats-body">
@@ -354,11 +376,6 @@
       <button id="settings-modal-close" aria-label="Close">✕</button>
     </div>
     <div id="settings-modal-body">
-      <div class="settings-row">
-        <div class="settings-label">Lifetime Stats</div>
-        <div class="settings-desc">View your total kills, deaths, and other cumulative records.</div>
-        <button id="mobile-stats-btn" class="secondary-btn">View Stats</button>
-      </div>
       <div class="settings-row">
         <div class="settings-label">Changelog</div>
         <div class="settings-desc">See what's new in this version.</div>

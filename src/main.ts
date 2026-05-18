@@ -267,6 +267,7 @@ function render(state: GameStateDict): void {
   }
 
   renderProfileWidget(state);
+  if (profilePickerOpen) updateProfileDropdownStats(state);
   renderFloorProgress(state);
   renderDepthGauge(state);
   renderParty(state);
@@ -915,6 +916,28 @@ function renderProfileWidget(state: GameStateDict): void {
     retireBtn.disabled = !canRetire;
     retireBtn.title = canRetire ? "Permanently retire this hero and start over" : "Reach Dungeon 2 to unlock retirement";
   }
+}
+
+function updateProfileDropdownStats(state: GameStateDict): void {
+  const set = (id: string, val: string) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+  const hero = state.party?.[0] as any;
+  if (hero) {
+    set("pstat-hero-name",   hero.name ?? "—");
+    set("pstat-hero-class",  hero.character_class ?? "—");
+    set("pstat-hero-level",  String(hero.level ?? 1));
+    set("pstat-hero-floor",  String(state.dungeon_level ?? 1));
+    set("pstat-hero-gold",   formatNumber(state.gold as number ?? 0) + "g");
+    set("pstat-hero-kills",  String(state.kills ?? 0));
+    set("pstat-hero-deaths", String(state.deaths ?? 0));
+  }
+  set("pstat-acc-dungeon",   String((state.dungeon_index as number ?? 0) + 1));
+  set("pstat-acc-best",      String(state.lifetime_best_level ?? 1));
+  set("pstat-acc-prestiges", String(state.total_prestiges ?? 0));
+  set("pstat-acc-kills",     String(state.lifetime_kills ?? 0));
+  set("pstat-acc-deaths",    String(state.lifetime_deaths ?? 0));
 }
 
 function renderHallOfFame(retiredHeroes: RetiredHero[]): void {
@@ -3147,7 +3170,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const openStats = () => { $("stats-modal").classList.add("open"); };
   $("stats-btn").addEventListener("click", openStats);
-  $("mobile-stats-btn").addEventListener("click", openStats);
   $("stats-close").addEventListener("click", () => { $("stats-modal").classList.remove("open"); });
   $("stats-modal").addEventListener("click", (e) => {
     if (e.target === $("stats-modal")) $("stats-modal").classList.remove("open");
@@ -3443,7 +3465,11 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (action === "open-profile-picker") {
       profilePickerOpen = !profilePickerOpen;
       profileWidgetKey = "";
-      if (game) renderProfileWidget(JSON.parse(game.respond()) as GameStateDict);
+      if (game) {
+        const s = JSON.parse(game.respond()) as GameStateDict;
+        renderProfileWidget(s);
+        if (profilePickerOpen) updateProfileDropdownStats(s);
+      }
     }
     else if (action === "open-customize-modal") {
       profilePickerOpen = false;
@@ -3463,6 +3489,9 @@ document.addEventListener("DOMContentLoaded", () => {
       profileWidgetKey = "";
       if (game) renderProfileWidget(JSON.parse(game.respond()) as GameStateDict);
       $("about-modal").classList.add("open");
+    }
+    else if (action === "open-stats-modal") {
+      $("stats-modal").classList.add("open");
     }
     else if (action === "open-hall-of-fame-modal") {
       profilePickerOpen = false;
