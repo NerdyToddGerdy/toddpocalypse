@@ -537,7 +537,12 @@ function renderParty(state: GameStateDict): void {
     partyStructKey = newStructKey;
     partyLootKey = newLootKey;
 
-    if (partyH2) partyH2.dataset.party = encodeURIComponent(JSON.stringify(state.party));
+    if (partyH2) partyH2.dataset.party = encodeURIComponent(JSON.stringify(
+      state.party.map(c => {
+        const upgLevel = (state.upgrades[c.name]?.dps as { level: number } | undefined)?.level ?? 0;
+        return { ...c, effective_dps: c.dps * (1 + DPS_UPGRADE_EFFECT * upgLevel) };
+      })
+    ));
 
     partyEl.innerHTML = state.party.map((c, ci) => {
       const lootForSlot = (slot: string) => {
@@ -599,7 +604,7 @@ function renderParty(state: GameStateDict): void {
           ? `<span class="ability-badge unlocked" tabindex="0" data-tip="${a.desc}" data-skill="${skillJson}">${a.icon} ${a.name}</span>`
           : `<span class="ability-badge locked" tabindex="0" data-tip="Lv${a.level}: ${a.desc}" data-skill="${skillJson}">${a.icon} Lv${a.level}</span>`;
       }).join("");
-      const charJson = encodeURIComponent(JSON.stringify(c));
+      const charJson = encodeURIComponent(JSON.stringify({ ...c, effective_dps: c.dps * upgMult }));
       const heroImg = HERO_IMG[c.character_class] ?? HERO_IMG.fighter;
       const runeRowHtml = ALL_SLOTS.map(slot => {
         const rune = (c.runes ?? {})[slot as keyof typeof c.runes];
@@ -643,7 +648,7 @@ function renderParty(state: GameStateDict): void {
     <div class="char-header-left">
       <div class="char-name" data-char="${charJson}">${c.name}</div>
       <div class="char-class">${c.character_class}</div>${ci === 0 && state.earned_title ? `<div class="char-title">${state.earned_title}</div>` : ""}
-      <div class="char-dps" data-dps="${dpsData}">${c.dps.toFixed(1)} DPS</div>
+      <div class="char-dps" data-dps="${dpsData}">${(c.dps * upgMult).toFixed(1)} DPS</div>
       <div class="char-rune-row">${runeRowHtml}</div>
       ${artifactSlots.some(Boolean) ? `<div class="char-artifact-row">${artifactBadgesHtml}</div>` : ""}
       ${abilitiesHtml ? `<div class="char-abilities">${abilitiesHtml}</div>` : ""}
@@ -2475,7 +2480,7 @@ function buildCharTooltipHTML(c: CharDict): string {
   const classAbilities = CLASS_ABILITIES[c.character_class] ?? [];
   const unlocked = classAbilities.filter(a => c.abilities.includes(a.id));
   const rows = [
-    statRow("DPS",        `${c.dps.toFixed(1)}`,                   "tt-dps"),
+    statRow("DPS",        `${((c as any).effective_dps ?? c.dps).toFixed(1)}`,                   "tt-dps"),
     statRow("HP",         `${Math.ceil(c.health)} / ${c.max_health}`, "tt-hp"),
     c.click_bonus   > 0 ? statRow("Click Dmg",   `+${c.click_bonus.toFixed(1)}`,           "tt-click") : "",
     c.damage_reduction > 0 ? statRow("Defense",  `+${(c.damage_reduction * 100).toFixed(0)}%`, "tt-def")   : "",
@@ -2511,7 +2516,7 @@ function buildCharTooltipHTML(c: CharDict): string {
 
 function buildPartyTooltipHTML(party: CharDict[]): string {
   const alive = party.filter(c => c.health > 0);
-  const totalDps  = alive.reduce((s, c) => s + c.dps, 0);
+  const totalDps  = alive.reduce((s, c) => s + ((c as any).effective_dps ?? c.dps), 0);
   const totalHp   = party.reduce((s, c) => s + Math.ceil(c.health), 0);
   const totalMaxHp = party.reduce((s, c) => s + c.max_health, 0);
   const members = party.map(c =>

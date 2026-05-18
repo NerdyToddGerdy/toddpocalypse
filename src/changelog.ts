@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.30.0";
+export const VERSION = "v2.30.1";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.30.1",
+    date: "2026-05-18",
+    changes: [
+      "Character card and name tooltip now show effective DPS (including upgrade multiplier)",
+      "Party tooltip total DPS also reflects upgrade multipliers",
+    ],
+  },
   {
     version: "v2.30.0",
     date: "2026-05-18",
