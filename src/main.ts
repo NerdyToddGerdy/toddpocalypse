@@ -103,6 +103,7 @@ let guildKey: string | null = null;
 let skillKey: string | null = null;
 let companionSkillKey: string | null = null;
 let hoveredLootSlot: string | null = null;
+let lastDeathCount: number | null = null;
 const fullLog: string[] = []; // persistent combat log history (last 200 entries)
 const flashStartTimes = new Map<string, number>(); // "ci:slot" → ms timestamp when flash began
 let bossPortraitShowing = false;
@@ -145,6 +146,16 @@ import { KILLS_PER_LEVEL, killsForFloor, CORRUPTION_FLOOR, CORRUPTION_RATE_PER_F
 
 /** Full re-render of all UI panels from a GameStateDict snapshot. */
 function render(state: GameStateDict): void {
+  const currentDeaths = state.deaths as number;
+  if (lastDeathCount === null) {
+    lastDeathCount = currentDeaths;
+  } else if (currentDeaths > lastDeathCount) {
+    showDeathToast(state.dungeon_level as number);
+    lastDeathCount = currentDeaths;
+  } else if (currentDeaths < lastDeathCount) {
+    lastDeathCount = currentDeaths;
+  }
+
   const enemy = state.enemy;
   $("enemy-name").textContent = enemy.name;
   $("enemy-level").textContent = `Level ${enemy.level}`;
@@ -2209,6 +2220,35 @@ function showAchievementToasts(unlocks: AchievementUnlock[]): void {
       setTimeout(() => el.remove(), 3200);
     }, i * 400);
   });
+}
+
+const DEATH_LINES_FLOOR1 = [
+  "You open your eyes. Cold stone, a torch nearby. Somehow you're back at the entrance.",
+  "The last thing you remember was the blow. Now you're standing at the dungeon gate, inexplicably alive.",
+  "You wake face-down in the dirt outside the entrance. Your wounds are healed. How long were you out?",
+  "Strange. You were certain that was the end. You're back at the start, with no memory of how.",
+  "Death didn't take you. Or something brought you back. Floor 1. Again.",
+  "You gasp awake in the dark. The dungeon entrance looms ahead. Some force has returned you here.",
+];
+
+const DEATH_LINES_CHECKPOINT = [
+  "You come to at the checkpoint. Someone — or something — dragged you back here.",
+  "Barely alive. You stir at the checkpoint torch, wounds already closing.",
+  "The dungeon claimed one life — but not yours. You recover at the checkpoint.",
+  "You wake at the waystone. The depths didn't keep you. Press on.",
+];
+
+function showDeathToast(respawnFloor: number): void {
+  const container = document.getElementById("achievement-toast-container");
+  if (!container) return;
+  const pool = respawnFloor <= 1 ? DEATH_LINES_FLOOR1 : DEATH_LINES_CHECKPOINT;
+  const line = pool[Math.floor(Math.random() * pool.length)];
+  const sub = respawnFloor <= 1 ? "back at floor 1" : `back at floor ${respawnFloor}`;
+  const el = document.createElement("div");
+  el.className = "achievement-toast death-toast";
+  el.innerHTML = `<div class="toast-title">Defeated</div><div class="toast-name">${line}</div><div class="toast-reward">${sub}</div>`;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 4500);
 }
 
 const HOMECOMING_LINES = [

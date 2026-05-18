@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.28.7";
+export const VERSION = "v2.28.8";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.28.8",
+    date: "2026-05-18",
+    changes: [
+      "Death toast: a crimson narrative toast appears when your party is defeated — 6 floor-1 'mysterious wakeup' lines and 4 checkpoint 'dragged to safety' lines, drawn at random",
+    ],
+  },
   {
     version: "v2.28.7",
     date: "2026-05-18",

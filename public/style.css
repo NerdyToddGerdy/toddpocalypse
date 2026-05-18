@@ -2443,6 +2443,14 @@ main {
 .homecoming-toast .toast-title { color: #c9a227; }
 .homecoming-toast .toast-name { font-size: 0.78rem; font-weight: 400; font-style: italic; line-height: 1.4; }
 .homecoming-toast .toast-reward { color: #c9a227; }
+.death-toast {
+    border-color: #9f2020;
+    box-shadow: 0 4px 16px rgba(159,32,32,0.3);
+    animation: toast-in 0.3s ease, toast-out 0.4s ease 4.1s forwards;
+}
+.death-toast .toast-title { color: #e05252; }
+.death-toast .toast-name { font-size: 0.78rem; font-weight: 400; font-style: italic; line-height: 1.4; }
+.death-toast .toast-reward { color: #e05252; }
 
 @keyframes toast-in {
     from { opacity: 0; transform: translateX(20px); }
