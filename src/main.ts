@@ -59,6 +59,24 @@ const UPGRADE_LABELS: Record<string, { icon: string; label: string }> = {
   defense: { icon: "🛡", label: "Defense" },
 };
 
+/** Colors for each enrage stack level (index 0 = charging/not enraged, 1+ = stack N). */
+const ENRAGE_COLORS = ["#f59e0b", "#ef4444", "#dc2626", "#b91c1c", "#991b1b", "#7f1d1d"];
+/** Bar fill gradient per enrage stack (current in-progress fill). */
+const ENRAGE_BAR_GRADIENTS = [
+  "linear-gradient(90deg, #b45309, #f59e0b)",
+  "linear-gradient(90deg, #ef4444, #f87171)",
+  "linear-gradient(90deg, #dc2626, #ef4444)",
+  "linear-gradient(90deg, #b91c1c, #dc2626)",
+  "linear-gradient(90deg, #991b1b, #b91c1c)",
+  "linear-gradient(90deg, #7f1d1d, #991b1b)",
+];
+function enrageColor(stack: number): string {
+  return ENRAGE_COLORS[Math.min(stack, ENRAGE_COLORS.length - 1)];
+}
+function enrageBarGradient(stack: number): string {
+  return ENRAGE_BAR_GRADIENTS[Math.min(stack, ENRAGE_BAR_GRADIENTS.length - 1)];
+}
+
 function upgradeBonusLabel(utype: string, level: number): string {
   if (level === 0) return "";
   switch (utype) {
@@ -116,6 +134,7 @@ let skillKey: string | null = null;
 let companionSkillKey: string | null = null;
 let hoveredLootSlot: string | null = null;
 let lastDeathCount: number | null = null;
+let lastEnrageStacks = -1;
 const fullLog: string[] = []; // persistent combat log history (last 200 entries)
 const flashStartTimes = new Map<string, number>(); // "ci:slot" → ms timestamp when flash began
 let bossPortraitShowing = false;
@@ -154,7 +173,7 @@ function call<K extends keyof GameState>(method: K, ...args: any[]): void {
   }
 }
 
-import { KILLS_PER_LEVEL, killsForFloor, CORRUPTION_FLOOR, CORRUPTION_RATE_PER_FLOOR, CORRUPTION_HEAL_REDUCTION_PER_FLOOR, startingGoldForLevel, DPS_UPGRADE_EFFECT, CLICK_UPGRADE_EFFECT } from "./engine.js";
+import { KILLS_PER_LEVEL, killsForFloor, CORRUPTION_FLOOR, CORRUPTION_RATE_PER_FLOOR, CORRUPTION_HEAL_REDUCTION_PER_FLOOR, startingGoldForLevel, DPS_UPGRADE_EFFECT, CLICK_UPGRADE_EFFECT, BOSS_ENRAGE_TRIGGER, BOSS_ENRAGE_STEP } from "./engine.js";
 
 /** Full re-render of all UI panels from a GameStateDict snapshot. */
 function render(state: GameStateDict): void {
@@ -219,15 +238,66 @@ function render(state: GameStateDict): void {
     enrageEl.classList.toggle("active", wantsEnrage);
     if (wantsEnrage) {
       const isEnraged = enrageMult > 1;
-      const BOSS_ENRAGE_TRIGGER = 20;
-      const fillPct = isEnraged ? 100 : Math.min(100, (enrageTime / BOSS_ENRAGE_TRIGGER) * 100);
-      ($("enemy-enrage-bar") as HTMLElement).style.width = fillPct + "%";
+      const stacks = isEnraged
+        ? Math.round(Math.log(enrageMult) / Math.log(1.5))
+        : 0;
+
+      // Fill percent within current cycle
+      const fillPct = isEnraged
+        ? Math.min(100, ((enrageTime - BOSS_ENRAGE_TRIGGER) % BOSS_ENRAGE_STEP) / BOSS_ENRAGE_STEP * 100)
+        : Math.min(100, enrageTime / BOSS_ENRAGE_TRIGGER * 100);
+
+      const enrageBar = $("enemy-enrage-bar") as HTMLElement;
+      const enrageLayers = $("enemy-enrage-layers") as HTMLElement;
+
+      // Rebuild completed-stack strips only when stack count changes
+      if (stacks !== lastEnrageStacks) {
+        lastEnrageStacks = stacks;
+        enrageLayers.innerHTML = "";
+        for (let i = 1; i <= stacks; i++) {
+          const strip = document.createElement("div");
+          strip.className = "enrage-layer";
+          strip.style.background = enrageColor(i);
+          enrageLayers.appendChild(strip);
+        }
+        enrageBar.style.background = enrageBarGradient(isEnraged ? stacks + 1 : 0);
+
+        // Border color escalates with stacks
+        enrageEl.style.borderColor = stacks > 0 ? enrageColor(stacks) : "#b45309";
+
+        // Portrait border: thicker + more intense per stack
+        if (stacks > 0) {
+          const idx = Math.min(stacks, ENRAGE_COLORS.length - 1);
+          const col = enrageColor(idx);
+          const spread = 2 + idx * 2;
+          const blur = 10 + idx * 8;
+          const glow = 4 + idx * 4;
+          portraitInner.style.boxShadow = `0 0 0 ${spread}px ${col}, 0 0 ${blur}px ${glow}px ${col}99`;
+          const speed = Math.max(0.25, 0.7 - (stacks - 1) * 0.1);
+          portraitInner.style.animationDuration = speed + "s";
+          enrageEl.style.animationDuration = speed + "s";
+        } else {
+          portraitInner.style.boxShadow = "";
+          portraitInner.style.animationDuration = "";
+          enrageEl.style.animationDuration = "";
+        }
+      }
+
+      enrageBar.style.width = fillPct + "%";
       $("enemy-enrage-label").textContent = isEnraged
         ? `⚡ ENRAGED ${enrageMult.toFixed(2)}×`
         : `Enrage in ${Math.ceil(BOSS_ENRAGE_TRIGGER - enrageTime)}s`;
       enrageEl.classList.toggle("enraged", isEnraged);
       portraitInner.classList.toggle("enraged", isEnraged);
     } else {
+      if (lastEnrageStacks !== -1) {
+        lastEnrageStacks = -1;
+        ($("enemy-enrage-layers") as HTMLElement).innerHTML = "";
+        portraitInner.style.boxShadow = "";
+        portraitInner.style.animationDuration = "";
+        enrageEl.style.borderColor = "";
+        enrageEl.style.animationDuration = "";
+      }
       portraitInner.classList.remove("enraged");
     }
   }
