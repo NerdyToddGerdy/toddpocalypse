@@ -62,7 +62,7 @@ const UPGRADE_LABELS: Record<string, { icon: string; label: string }> = {
 function upgradeBonusLabel(utype: string, level: number): string {
   if (level === 0) return "";
   switch (utype) {
-    case "dps":     return `+${(level * UPGRADE_EFFECTS.dps).toFixed(1)} DPS`;
+    case "dps":     return `+${(level * DPS_UPGRADE_EFFECT * 100).toFixed(0)}% DPS`;
     case "xp":      return `+${Math.round(level * UPGRADE_EFFECTS.xp * 100)}% XP`;
     case "click":   return `+${(level * UPGRADE_EFFECTS.click).toFixed(1)} Click`;
     case "hp":      return `+${level * HP_UPGRADE_EFFECT} HP`;
@@ -154,7 +154,7 @@ function call<K extends keyof GameState>(method: K, ...args: any[]): void {
   }
 }
 
-import { KILLS_PER_LEVEL, killsForFloor, CORRUPTION_FLOOR, CORRUPTION_RATE_PER_FLOOR, CORRUPTION_HEAL_REDUCTION_PER_FLOOR, startingGoldForLevel } from "./engine.js";
+import { KILLS_PER_LEVEL, killsForFloor, CORRUPTION_FLOOR, CORRUPTION_RATE_PER_FLOOR, CORRUPTION_HEAL_REDUCTION_PER_FLOOR, startingGoldForLevel, DPS_UPGRADE_EFFECT } from "./engine.js";
 
 /** Full re-render of all UI panels from a GameStateDict snapshot. */
 function render(state: GameStateDict): void {
@@ -261,7 +261,10 @@ function render(state: GameStateDict): void {
   const aliveMembers = state.party.filter(c => c.health > 0);
   const totalHp = aliveMembers.reduce((s, c) => s + Math.ceil(c.health), 0);
   const totalMaxHp = state.party.reduce((s, c) => s + c.max_health, 0);
-  const totalDps = aliveMembers.reduce((s, c) => s + c.dps, 0);
+  const totalDps = aliveMembers.reduce((s, c) => {
+    const upgLevel = (state.upgrades[c.name]?.dps as { level: number } | undefined)?.level ?? 0;
+    return s + c.dps * (1 + DPS_UPGRADE_EFFECT * upgLevel);
+  }, 0);
   $("stat-party-hp").textContent = `${totalHp}/${totalMaxHp}`;
   $("stat-party-dps").textContent = totalDps < 10 ? totalDps.toFixed(1) : String(Math.round(totalDps));
 
@@ -514,8 +517,10 @@ function renderParty(state: GameStateDict): void {
         sum + ((item as GearItemDict | null)?.stats?.dps ?? 0), 0);
       const runeDps = Object.values(c.runes ?? {}).reduce((sum, rune) =>
         sum + (rune?.statKey === "dps" ? (rune?.value ?? 0) : 0), 0);
-      const upgDps = ((state.upgrades[c.name]?.dps as { level: number } | undefined)?.level ?? 0) * UPGRADE_EFFECTS.dps;
-      const dpsData = encodeURIComponent(JSON.stringify({ total: c.dps, base: Math.max(0, c.dps - gearDps - runeDps - upgDps), gear: gearDps, runes: runeDps, upgDps }));
+      const upgLevel = (state.upgrades[c.name]?.dps as { level: number } | undefined)?.level ?? 0;
+      const upgMult = 1 + DPS_UPGRADE_EFFECT * upgLevel;
+      const upgDps = c.dps * (upgMult - 1);
+      const dpsData = encodeURIComponent(JSON.stringify({ total: c.dps * upgMult, base: Math.max(0, c.dps - gearDps - runeDps), gear: gearDps, runes: runeDps, upgDps }));
       const classAbilities = CLASS_ABILITIES[c.character_class] ?? [];
       const abilitiesHtml = classAbilities.map(a => {
         const unlocked = c.abilities.includes(a.id);

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  GameState, KILLS_PER_LEVEL, LOOT_MAX, UPGRADE_BASES, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT, DEFENSE_UPGRADE_EFFECT,
+  GameState, KILLS_PER_LEVEL, LOOT_MAX, UPGRADE_BASES, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT, DEFENSE_UPGRADE_EFFECT, DPS_UPGRADE_EFFECT,
   PRESTIGE_UNLOCK_LEVEL, PRESTIGE_SHOP_COSTS, startingGoldForLevel, XP_BONUS_PER_LEVEL, GOLD_BONUS_PER_LEVEL, PARTY_GOLD_BONUS_PER_MEMBER,
   BLOODLUST_MULTIPLIER, EXPOSE_WEAKNESS_MULT, MANA_SURGE_INTERVAL, MANA_SURGE_MULTIPLIER,
   LUCKY_STRIKE_CHANCE, LUCKY_STRIKE_MULTIPLIER, EMPOWER_MULTIPLIER,
@@ -821,12 +821,31 @@ describe("unequipGear", () => {
 });
 
 describe("upgrades", () => {
-  it("dps upgrade increases character dps", () => {
+  it("dps upgrade increments level but does not change stored c.dps", () => {
     const gs = withGold();
     const c = gs.party.team[0];
     const before = c.dps;
     gs.buyUpgrade(c.name, "dps");
-    expect(c.dps).toBeCloseTo(before + UPGRADE_EFFECTS.dps);
+    expect(gs.upgrades[c.name].dps).toBe(1);
+    expect(c.dps).toBeCloseTo(before);
+  });
+
+  it("dps upgrade multiplies tick damage by (1 + DPS_UPGRADE_EFFECT)", () => {
+    const gs1 = withGold();
+    gs1.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
+    gs1.enemy.hp = gs1.enemy.max_hp = 10000; gs1.enemy.attack_dps = 0;
+    const hp1 = gs1.enemy.hp; gs1.tick(1.0);
+    const dmgWithout = hp1 - gs1.enemy.hp;
+
+    const gs2 = withGold();
+    gs2.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
+    gs2.gold = 999999;
+    gs2.buyUpgrade(gs2.party.team[0].name, "dps");
+    gs2.enemy.hp = gs2.enemy.max_hp = 10000; gs2.enemy.attack_dps = 0;
+    const hp2 = gs2.enemy.hp; gs2.tick(1.0);
+    const dmgWith = hp2 - gs2.enemy.hp;
+
+    expect(dmgWith).toBeCloseTo(dmgWithout * (1 + DPS_UPGRADE_EFFECT), 1);
   });
 
   it("xp upgrade increases multiplier", () => {

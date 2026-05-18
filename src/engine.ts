@@ -47,12 +47,14 @@ export const UPGRADE_BASES: Record<string, number> = {
   defense: 150,
 };
 
-/** Stat delta applied per upgrade level for DPS, XP-rate, and click-damage upgrades. */
+/** Stat delta applied per upgrade level for XP-rate and click-damage upgrades. */
 export const UPGRADE_EFFECTS: Record<string, number> = {
-  dps: 0.5,
   xp: 0.1,
   click: 0.5,
 };
+
+/** DPS multiplier bonus added per DPS-upgrade level (e.g. 0.05 = +5% per level). */
+export const DPS_UPGRADE_EFFECT = 0.05;
 
 /** HP added per HP-upgrade level. */
 export const HP_UPGRADE_EFFECT = 15;
@@ -583,6 +585,11 @@ export class GameState {
     }
   }
 
+  /** Returns the effective DPS for a character, applying the per-level DPS upgrade multiplier. */
+  private effectiveDps(c: Character): number {
+    return c.dps * (1 + DPS_UPGRADE_EFFECT * (this.upgrades[c.name]?.dps ?? 0));
+  }
+
   /**
    * Advances the game simulation by `dt` seconds.
    * Applies idle gold, mana surges, passive DPS, enemy attacks, and death checks.
@@ -597,7 +604,7 @@ export class GameState {
         c.surgeTimer += dt;
         if (c.surgeTimer >= MANA_SURGE_INTERVAL) {
           c.surgeTimer -= MANA_SURGE_INTERVAL;
-          const surgeDmg = c.dps * MANA_SURGE_MULTIPLIER;
+          const surgeDmg = this.effectiveDps(c) * MANA_SURGE_MULTIPLIER;
           this.enemy.hp -= surgeDmg;
           this.addLog(`${c.name} Mana Surge! (${surgeDmg.toFixed(1)} dmg)`);
           if (this.enemy.hp <= 0) { this.onEnemyDeath(); return this.respond(); }
@@ -619,7 +626,7 @@ export class GameState {
     for (const c of this.party.team) {
       if (!c.isAlive()) continue;
       if (c.inventory.equippedItems().length === 0) continue;
-      let dps = c.dps;
+      let dps = this.effectiveDps(c);
       if (c.abilities.includes("bloodlust") && c.health <= c.maxHealth * 0.5) dps *= BLOODLUST_MULTIPLIER;
       // Berserker's Eye: streak-based DPS bonus, scales with level
       const eyeSlot = c.artifactSlots.find(s => s?.id === "berserkers_eye");
@@ -708,7 +715,7 @@ export class GameState {
   /** Deals a burst of click damage. Pass `manual=true` when triggered by the attack button to count toward the clicking feat. */
   click(manual = false): string {
     if (manual) this.lifetimeClicks++;
-    const totalDps = this.party.team.reduce((s, c) => c.isAlive() ? s + c.dps : s, 0);
+    const totalDps = this.party.team.reduce((s, c) => c.isAlive() ? s + this.effectiveDps(c) : s, 0);
     const clickBonus = this.party.team.reduce((s, c) => c.isAlive() ? s + c.clickBonus : s, 0);
     let damage = Math.max(1.0, totalDps * CLICK_DAMAGE_MULTIPLIER * 0.1 + clickBonus);
     if (this.party.team.some(c => c.isAlive() && c.abilities.includes("empower"))) damage *= EMPOWER_MULTIPLIER;
@@ -979,7 +986,7 @@ export class GameState {
     this.lifetimeUpgradesBought += 1;
     const char = this.party.team.find((c) => c.name === charName);
     if (!char) return this.respond();
-    if (ut === "dps") char.dps += UPGRADE_EFFECTS.dps;
+    if (ut === "dps") { /* multiplier applied at tick time via effectiveDps() */ }
     else if (ut === "xp") char.xpMultiplier += UPGRADE_EFFECTS.xp;
     else if (ut === "click") char.clickBonus += UPGRADE_EFFECTS.click;
     else if (ut === "hp") {
@@ -1009,7 +1016,7 @@ export class GameState {
     if (this.highestLevel < ventureUnlockLevel(this.dungeonIndex)) return this.respond();
 
     const companions = this.party.team.slice(1);
-    this.idleGoldRate += companions.reduce((sum, c) => sum + c.dps, 0) * IDLE_GOLD_RATE;
+    this.idleGoldRate += companions.reduce((sum, c) => sum + this.effectiveDps(c), 0) * IDLE_GOLD_RATE;
 
     this.dungeonIndex += 1;
     this.prestigePoints = 0;
