@@ -1940,6 +1940,7 @@ main {
 #stat-best   { color: var(--accent) !important; }
 
 #mobile-tabs { display: none; }
+#mobile-party-hp-bar { display: none; }
 
 @media (max-width: 1280px) {
     #settings-open-btn { display: none; }
@@ -1959,7 +1960,7 @@ main {
         gap: 12px;
         padding: 12px;
         padding-left: 56px; /* 44px gauge + 12px gap */
-        padding-bottom: 260px; /* room for fixed enemy panel + tab bar */
+        padding-bottom: 296px; /* room for fixed enemy panel + party hp bar + tab bar */
         overflow-y: auto;
     }
 
@@ -1999,7 +2000,7 @@ main {
     #enemy-panel {
         display: flex !important;
         position: fixed;
-        bottom: 60px; /* sit above the tab bar */
+        bottom: 96px; /* sit above party hp bar (60px tab + 36px hp bar) */
         left: 0; right: 0;
         z-index: 50;
         border-radius: 0;
@@ -2009,6 +2010,40 @@ main {
         border-top: 1px solid var(--border);
         padding: 10px 12px;
         gap: 6px;
+    }
+
+    #mobile-party-hp-bar {
+        display: flex;
+        position: fixed;
+        bottom: 60px;
+        left: 0; right: 0;
+        height: 36px;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        z-index: 51;
+        align-items: center;
+        overflow: hidden;
+    }
+    #mobile-party-hp-fill {
+        position: absolute;
+        top: 0; bottom: 0; left: 0;
+        background: linear-gradient(90deg, var(--hp-green), #86efac);
+        opacity: 0.35;
+        transition: width 0.15s linear;
+    }
+    #mobile-party-hp-text {
+        position: relative;
+        z-index: 1;
+        padding: 0 12px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--hp-green);
+    }
+    #mobile-party-hp-bar.hp-low #mobile-party-hp-fill {
+        background: linear-gradient(90deg, var(--danger), #f87171);
+    }
+    #mobile-party-hp-bar.hp-low #mobile-party-hp-text {
+        color: var(--danger);
     }
 
     #party-panel,

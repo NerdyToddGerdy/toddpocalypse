@@ -242,6 +242,11 @@ function render(state: GameStateDict): void {
   $("stat-party-hp").textContent = `${totalHp}/${totalMaxHp}`;
   $("stat-party-dps").textContent = totalDps < 10 ? totalDps.toFixed(1) : String(Math.round(totalDps));
 
+  const hpPct = totalMaxHp > 0 ? totalHp / totalMaxHp : 1;
+  (document.getElementById("mobile-party-hp-fill") as HTMLElement).style.width = `${hpPct * 100}%`;
+  (document.getElementById("mobile-party-hp-text") as HTMLElement).textContent = `♥ ${totalHp}/${totalMaxHp}`;
+  document.getElementById("mobile-party-hp-bar")!.classList.toggle("hp-low", hpPct < 0.3);
+
   const idleEl = $("stat-idle-gold");
   if (state.idle_gold_rate > 0) {
     $("stat-idle-rate").textContent = state.idle_gold_rate.toFixed(1);
