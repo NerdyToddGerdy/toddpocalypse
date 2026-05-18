@@ -47,17 +47,19 @@ export const UPGRADE_BASES: Record<string, number> = {
   defense: 150,
 };
 
-/** Stat delta applied per upgrade level for XP-rate and click-damage upgrades. */
+/** Stat delta applied per upgrade level for XP-rate upgrades. */
 export const UPGRADE_EFFECTS: Record<string, number> = {
   xp: 0.1,
-  click: 0.5,
 };
 
-/** DPS multiplier bonus added per DPS-upgrade level (e.g. 0.05 = +5% per level). */
+/** DPS multiplier bonus added per DPS-upgrade level (+5% per level). */
 export const DPS_UPGRADE_EFFECT = 0.05;
 
-/** HP added per HP-upgrade level. */
-export const HP_UPGRADE_EFFECT = 15;
+/** Click damage multiplier bonus added per click-upgrade level (+5% per level). */
+export const CLICK_UPGRADE_EFFECT = 0.05;
+
+/** Max-HP multiplier applied per HP-upgrade level (+5% of current max HP per level). */
+export const HP_UPGRADE_EFFECT = 0.05;
 
 /** Damage reduction added per defense-upgrade level. */
 export const DEFENSE_UPGRADE_EFFECT = 0.01;
@@ -590,6 +592,14 @@ export class GameState {
     return c.dps * (1 + DPS_UPGRADE_EFFECT * (this.upgrades[c.name]?.dps ?? 0));
   }
 
+  /** Returns the click damage multiplier from click upgrades across all alive party members. */
+  private clickUpgradeMult(): number {
+    const totalLevels = this.party.team
+      .filter(c => c.isAlive())
+      .reduce((s, c) => s + (this.upgrades[c.name]?.click ?? 0), 0);
+    return 1 + CLICK_UPGRADE_EFFECT * totalLevels;
+  }
+
   /**
    * Advances the game simulation by `dt` seconds.
    * Applies idle gold, mana surges, passive DPS, enemy attacks, and death checks.
@@ -717,7 +727,7 @@ export class GameState {
     if (manual) this.lifetimeClicks++;
     const totalDps = this.party.team.reduce((s, c) => c.isAlive() ? s + this.effectiveDps(c) : s, 0);
     const clickBonus = this.party.team.reduce((s, c) => c.isAlive() ? s + c.clickBonus : s, 0);
-    let damage = Math.max(1.0, totalDps * CLICK_DAMAGE_MULTIPLIER * 0.1 + clickBonus);
+    let damage = Math.max(1.0, totalDps * CLICK_DAMAGE_MULTIPLIER * 0.1 + clickBonus) * this.clickUpgradeMult();
     if (this.party.team.some(c => c.isAlive() && c.abilities.includes("empower"))) damage *= EMPOWER_MULTIPLIER;
     const shadowStrikeActive = (this.activeEffects["skill_shadow_strike"] ?? 0) > 0;
     if (shadowStrikeActive) damage *= SHADOW_STRIKE_MULT;
@@ -986,12 +996,11 @@ export class GameState {
     this.lifetimeUpgradesBought += 1;
     const char = this.party.team.find((c) => c.name === charName);
     if (!char) return this.respond();
-    if (ut === "dps") { /* multiplier applied at tick time via effectiveDps() */ }
-    else if (ut === "xp") char.xpMultiplier += UPGRADE_EFFECTS.xp;
-    else if (ut === "click") char.clickBonus += UPGRADE_EFFECTS.click;
+    if (ut === "xp") char.xpMultiplier += UPGRADE_EFFECTS.xp;
     else if (ut === "hp") {
-      char.maxHealth += HP_UPGRADE_EFFECT;
-      char.health += HP_UPGRADE_EFFECT;
+      const hpGain = Math.round(char.maxHealth * HP_UPGRADE_EFFECT);
+      char.maxHealth += hpGain;
+      char.health = Math.min(char.maxHealth, char.health + hpGain);
     } else if (ut === "defense") {
       char.damageReduction = Math.min(0.95, char.damageReduction + DEFENSE_UPGRADE_EFFECT);
     }
@@ -2122,12 +2131,11 @@ export class GameState {
         const { char, type } = cheapest;
         this.gold -= cheapest.cost;
         this.upgrades[char.name][type] += 1;
-        if (type === "dps") char.dps += UPGRADE_EFFECTS.dps;
-        else if (type === "xp") char.xpMultiplier += UPGRADE_EFFECTS.xp;
-        else if (type === "click") char.clickBonus += UPGRADE_EFFECTS.click;
+        if (type === "xp") char.xpMultiplier += UPGRADE_EFFECTS.xp;
         else if (type === "hp") {
-          char.maxHealth += HP_UPGRADE_EFFECT;
-          char.health += HP_UPGRADE_EFFECT;
+          const hpGain = Math.round(char.maxHealth * HP_UPGRADE_EFFECT);
+          char.maxHealth += hpGain;
+          char.health = Math.min(char.maxHealth, char.health + hpGain);
         } else if (type === "defense") {
           char.damageReduction = Math.min(0.95, char.damageReduction + DEFENSE_UPGRADE_EFFECT);
         }

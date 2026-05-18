@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.29.6";
+export const VERSION = "v2.29.7";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.29.7",
+    date: "2026-05-18",
+    changes: [
+      "Click upgrade is now +5%/level multiplier on click damage (scales with DPS and gear)",
+      "HP upgrade is now +5%/level of current max HP instead of flat +15",
+    ],
+  },
   {
     version: "v2.29.6",
     date: "2026-05-18",

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  GameState, KILLS_PER_LEVEL, LOOT_MAX, UPGRADE_BASES, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT, DEFENSE_UPGRADE_EFFECT, DPS_UPGRADE_EFFECT,
+  GameState, KILLS_PER_LEVEL, LOOT_MAX, UPGRADE_BASES, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT, DEFENSE_UPGRADE_EFFECT, DPS_UPGRADE_EFFECT, CLICK_UPGRADE_EFFECT,
   PRESTIGE_UNLOCK_LEVEL, PRESTIGE_SHOP_COSTS, startingGoldForLevel, XP_BONUS_PER_LEVEL, GOLD_BONUS_PER_LEVEL, PARTY_GOLD_BONUS_PER_MEMBER,
   BLOODLUST_MULTIPLIER, EXPOSE_WEAKNESS_MULT, MANA_SURGE_INTERVAL, MANA_SURGE_MULTIPLIER,
   LUCKY_STRIKE_CHANCE, LUCKY_STRIKE_MULTIPLIER, EMPOWER_MULTIPLIER,
@@ -856,11 +856,31 @@ describe("upgrades", () => {
     expect(c.xpMultiplier).toBeCloseTo(before + UPGRADE_EFFECTS.xp);
   });
 
-  it("click upgrade increases click bonus", () => {
+  it("click upgrade increments level but does not change clickBonus", () => {
     const gs = withGold();
     const c = gs.party.team[0];
+    const before = c.clickBonus;
     gs.buyUpgrade(c.name, "click");
-    expect(c.clickBonus).toBeCloseTo(UPGRADE_EFFECTS.click);
+    expect(gs.upgrades[c.name].click).toBe(1);
+    expect(c.clickBonus).toBeCloseTo(before);
+  });
+
+  it("click upgrade multiplies click damage by (1 + CLICK_UPGRADE_EFFECT)", () => {
+    const gs1 = withGold();
+    gs1.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
+    gs1.enemy.hp = gs1.enemy.max_hp = 10000; gs1.enemy.attack_dps = 0;
+    const hp1 = gs1.enemy.hp; gs1.click();
+    const dmgWithout = hp1 - gs1.enemy.hp;
+
+    const gs2 = withGold();
+    gs2.party.team[0].equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor"));
+    gs2.gold = 999999;
+    gs2.buyUpgrade(gs2.party.team[0].name, "click");
+    gs2.enemy.hp = gs2.enemy.max_hp = 10000; gs2.enemy.attack_dps = 0;
+    const hp2 = gs2.enemy.hp; gs2.click();
+    const dmgWith = hp2 - gs2.enemy.hp;
+
+    expect(dmgWith).toBeCloseTo(dmgWithout * (1 + CLICK_UPGRADE_EFFECT), 1);
   });
 
   it("deducts gold", () => {
@@ -903,20 +923,19 @@ describe("upgrades", () => {
     expect(gs.gold).toBe(goldBefore);
   });
 
-  it("hp upgrade increases maxHealth", () => {
+  it("hp upgrade increases maxHealth by HP_UPGRADE_EFFECT percent", () => {
     const gs = withGold();
     const c = gs.party.team[0];
     const before = c.maxHealth;
     gs.buyUpgrade(c.name, "hp");
-    expect(c.maxHealth).toBe(before + HP_UPGRADE_EFFECT);
+    expect(c.maxHealth).toBe(Math.round(before * (1 + HP_UPGRADE_EFFECT)));
   });
 
-  it("hp upgrade also raises current health by the same amount", () => {
+  it("hp upgrade raises current health to stay at full if already full", () => {
     const gs = withGold();
     const c = gs.party.team[0];
-    const before = c.health;
     gs.buyUpgrade(c.name, "hp");
-    expect(c.health).toBe(before + HP_UPGRADE_EFFECT);
+    expect(c.health).toBe(c.maxHealth);
   });
 
   it("hp upgrade deducts gold", () => {

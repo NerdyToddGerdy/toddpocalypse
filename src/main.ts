@@ -64,8 +64,8 @@ function upgradeBonusLabel(utype: string, level: number): string {
   switch (utype) {
     case "dps":     return `+${(level * DPS_UPGRADE_EFFECT * 100).toFixed(0)}% DPS`;
     case "xp":      return `+${Math.round(level * UPGRADE_EFFECTS.xp * 100)}% XP`;
-    case "click":   return `+${(level * UPGRADE_EFFECTS.click).toFixed(1)} Click`;
-    case "hp":      return `+${level * HP_UPGRADE_EFFECT} HP`;
+    case "click":   return `+${(level * CLICK_UPGRADE_EFFECT * 100).toFixed(0)}% Click`;
+    case "hp":      return `+${(level * HP_UPGRADE_EFFECT * 100).toFixed(0)}% HP`;
     case "defense": return `+${(level * DEFENSE_UPGRADE_EFFECT * 100).toFixed(0)}% Def`;
     default:        return "";
   }
@@ -154,7 +154,7 @@ function call<K extends keyof GameState>(method: K, ...args: any[]): void {
   }
 }
 
-import { KILLS_PER_LEVEL, killsForFloor, CORRUPTION_FLOOR, CORRUPTION_RATE_PER_FLOOR, CORRUPTION_HEAL_REDUCTION_PER_FLOOR, startingGoldForLevel, DPS_UPGRADE_EFFECT } from "./engine.js";
+import { KILLS_PER_LEVEL, killsForFloor, CORRUPTION_FLOOR, CORRUPTION_RATE_PER_FLOOR, CORRUPTION_HEAL_REDUCTION_PER_FLOOR, startingGoldForLevel, DPS_UPGRADE_EFFECT, CLICK_UPGRADE_EFFECT } from "./engine.js";
 
 /** Full re-render of all UI panels from a GameStateDict snapshot. */
 function render(state: GameStateDict): void {
