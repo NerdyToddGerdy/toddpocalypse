@@ -1961,8 +1961,9 @@ function updateShopBadge(state: GameStateDict): void {
       || (type === "party_slot_3" && !(ups["party_slot_2"] > 0))
       || (type === "checkpoint_2" && !(ups["checkpoint_1"] > 0))
       || (type === "checkpoint_3" && !(ups["checkpoint_2"] > 0));
+    const dungeonReq = PRESTIGE_SHOP_META[type]?.dungeonReq ?? 0;
     const cost = prestigeUpgradeCost(type, owned);
-    return !atMax && !prereqMissing && state.prestige_points >= cost;
+    return !atMax && !prereqMissing && state.dungeon_index >= dungeonReq && state.prestige_points >= cost;
   });
   const guildUpgrades = state.guild_upgrades as Record<string, number>;
   const guildUnlocked = (ups["guild_hall_access"] ?? 0) > 0;
