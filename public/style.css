@@ -524,6 +524,14 @@ main {
     image-rendering: pixelated;
     pointer-events: none;
 }
+#monster-border[src*="titan"] {
+    animation: titan-border-pulse 2s ease-in-out infinite;
+    filter: drop-shadow(0 0 6px #f59e0b) drop-shadow(0 0 14px #b45309cc);
+}
+@keyframes titan-border-pulse {
+    0%, 100% { filter: drop-shadow(0 0 6px #f59e0b) drop-shadow(0 0 14px #b45309cc); }
+    50%       { filter: drop-shadow(0 0 12px #fbbf24) drop-shadow(0 0 24px #f59e0bcc) drop-shadow(0 0 4px #fff8); }
+}
 
 /* Slide in from the left (depth gauge side) */
 @keyframes bossPortraitIn {
