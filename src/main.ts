@@ -3432,6 +3432,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     else if (action === "set-title") {
       call("setEarnedTitle", btn.dataset.title ?? "");
+      if (game) renderCustomizeModal(JSON.parse(game.respond()) as GameStateDict);
     }
     else if (action === "feats-filter") {
       featsFilter = (btn.dataset.filter as "all" | "in_progress" | "completed") ?? "all";
@@ -3488,9 +3489,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     else if (action === "set-avatar") {
       call("setAvatar", btn.dataset.avatarId!);
+      if (game) renderCustomizeModal(JSON.parse(game.respond()) as GameStateDict);
     }
     else if (action === "set-border") {
       call("setBorder", btn.dataset.borderId!);
+      if (game) renderCustomizeModal(JSON.parse(game.respond()) as GameStateDict);
     }
   });
 
