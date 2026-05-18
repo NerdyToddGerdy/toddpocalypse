@@ -933,7 +933,6 @@ function updateProfileDropdownStats(state: GameStateDict): void {
     set("pstat-hero-kills",  String(state.kills ?? 0));
     set("pstat-hero-deaths", String(state.deaths ?? 0));
   }
-  set("pstat-acc-dungeon",   String((state.dungeon_index as number ?? 0) + 1));
   set("pstat-acc-best",      String(state.lifetime_best_level ?? 1));
   set("pstat-acc-prestiges", String(state.total_prestiges ?? 0));
   set("pstat-acc-kills",     String(state.lifetime_kills ?? 0));
