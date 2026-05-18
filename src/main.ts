@@ -2211,6 +2211,26 @@ function showAchievementToasts(unlocks: AchievementUnlock[]): void {
   });
 }
 
+const HOMECOMING_LINES = [
+  "The villagers cheer as you stumble through the gates. Bards will sing of this tonight.",
+  "Word spreads fast — the hero has returned. Coin and cheer flow freely at the tavern.",
+  "Children run to meet you at the gates. The innkeeper has your usual room ready.",
+  "The village elder nods in quiet respect. You've earned this rest.",
+  "The market stirs. Stories of your deeds are already trading hands.",
+  "Fires are lit in your honor. The village is glad to have you back.",
+];
+
+function showHomecomingToast(renownEarned: number): void {
+  const container = document.getElementById("achievement-toast-container");
+  if (!container) return;
+  const line = HOMECOMING_LINES[Math.floor(Math.random() * HOMECOMING_LINES.length)];
+  const el = document.createElement("div");
+  el.className = "achievement-toast homecoming-toast";
+  el.innerHTML = `<div class="toast-title">Returned to Town</div><div class="toast-name">${line}</div><div class="toast-reward">+${renownEarned} renown • the dungeon shifts anew</div>`;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 4500);
+}
+
 function renderLog(state: GameStateDict): void {
   const newKey = state.log.join("|");
   if (newKey !== logKey) {
@@ -3232,8 +3252,9 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (action === "prestige") {
       if (!game) return;
       const pts = game.prestigePointsPreview();
-      if (confirm(`Return to Town? You will earn ${pts} renown. ALL run progress will be wiped.`)) {
+      if (confirm(`Return to Town? You will earn ${pts} renown.\n\nThe dungeon shifts while you rest — its passages rearrange and your hard-won knowledge of the depths fades. Expedition upgrades and progress will be lost.`)) {
         call("prestige");
+        showHomecomingToast(pts);
       }
     }
     else if (action === "buy-prestige") {

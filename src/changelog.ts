@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.28.6";
+export const VERSION = "v2.28.7";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.28.7",
+    date: "2026-05-18",
+    changes: [
+      "Return to Town now shows a homecoming toast — a rotating villager flavor line, renown earned, and a note that the dungeon shifts anew",
+      "Confirm dialog now explains why upgrades reset: the dungeon's passages rearrange while you rest",
+    ],
+  },
   {
     version: "v2.28.6",
     date: "2026-05-18",
