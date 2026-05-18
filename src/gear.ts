@@ -448,6 +448,48 @@ export function getWeapon(): GearItem {
   return getItem("main_hand");
 }
 
+const SET_STAT_FORMAT: Partial<Record<keyof GearStats, [string, boolean]>> = {
+  dps:        ["Damage",      true],
+  maxHp:      ["Max HP",      true],
+  clickBonus: ["Click Dmg",   true],
+  defense:    ["Defense",     false],
+  critChance: ["Crit Chance", false],
+  goldBonus:  ["Gold Find",   false],
+  lifesteal:  ["Lifesteal",   false],
+  haste:      ["Haste",       false],
+  xpBonus:    ["XP Bonus",    false],
+};
+
+const EFFECT3PC_LABELS: Record<string, string> = {
+  elite_rune:     "Grants an Elite Rune",
+  cooldown_reset: "Resets skill cooldowns",
+};
+
+/** Builds the set-bonus section HTML for use in item tooltips.
+ *  equippedCount is how many pieces of the set are currently in the party's gear slots. */
+export function buildSetBonusHTML(setName: string, equippedCount: number): string {
+  const def = SET_DEFS.find(d => d.name === setName);
+  if (!def) return "";
+
+  const displayed = Math.min(equippedCount, 3);
+
+  function bonusLine(bonus: GearStats, effect: string | undefined, threshold: number): string {
+    const parts: string[] = [];
+    for (const [key, val] of Object.entries(bonus) as [keyof GearStats, number][]) {
+      if (!val) continue;
+      const [label, isNumeric] = SET_STAT_FORMAT[key] ?? [key, true];
+      const fmt = isNumeric ? `+${(val as number).toFixed(1)}` : `+${((val as number) * 100).toFixed(0)}%`;
+      parts.push(`${fmt} ${label}`);
+    }
+    if (effect) parts.push(EFFECT3PC_LABELS[effect] ?? effect);
+    if (!parts.length) parts.push("Special effect");
+    const active = equippedCount >= threshold;
+    return `<div class="tt-set-bonus ${active ? "active" : "inactive"}"><span class="tt-set-threshold">${threshold}pc:</span> ${parts.join(", ")}</div>`;
+  }
+
+  return `<div class="tt-divider"></div><div class="tt-set-name">⚙ ${def.name} (${displayed} / 3)</div>${bonusLine(def.bonus2pc, undefined, 2)}${bonusLine(def.bonus3pc, def.effect3pc, 3)}`;
+}
+
 /** Generates a named set piece for the given set, slot, and dungeon level.
  *  Always at least rare quality. ring2 falls back to ring1 (inventory logic handles placement). */
 export function getSetItem(setId: string, slot: Slot, dungeonLevel = 1): GearItem {

@@ -1,5 +1,5 @@
 import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock, ARTIFACT_DEFS, artifactFuelValue, artifactStatLabel, AVATAR_DEFS, BORDER_DEFS, formatNumber, LEGACY_UNLOCKS, type RetiredHero } from "./engine.js";
-import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, SET_DEFS, type GearStats, type GearItemDict } from "./gear.js";
+import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, SET_DEFS, buildSetBonusHTML, type GearStats, type GearItemDict } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES } from "./character.js";
 import { parseAuthHash, getStoredToken, storeToken, clearToken, getLoginUrl, cloudLoad, cloudSave, cloudClaimSession, resetSessionId, getOrCreateSessionId } from "./cloud.js";
@@ -2254,7 +2254,7 @@ function buildRuneTooltipHTML(rune: any): string {
 }
 
 /** Builds the inner HTML for the item tooltip given a serialized GearItemDict. */
-function buildTooltipHTML(item: GearItemDict): string {
+function buildTooltipHTML(item: GearItemDict, equippedSetCount = 0): string {
   const qc = qualityClass(item.quality);
   const stats = item.stats ?? { dps: item.damage };
   const defs: [keyof GearStats, string, string, boolean][] = [
@@ -2277,12 +2277,14 @@ function buildTooltipHTML(item: GearItemDict): string {
     })
     .join("");
   const rarity = item.quality.charAt(0).toUpperCase() + item.quality.slice(1);
+  const setBlock = item.set_name ? buildSetBonusHTML(item.set_name, equippedSetCount) : "";
   return `
     <span class="tt-name ${qc}">${item.short_name ?? item.name}</span>
     <div class="tt-rarity ${qc}">${rarity}</div>
     <div class="tt-subtitle">${item.slot_display} · Floor ${item.dungeon_level}</div>
     <div class="tt-divider"></div>
     <div class="tt-stats">${statRows || '<div class="tt-stat-row"><span class="tt-stat-label">No stats</span></div>'}</div>
+    ${setBlock}
     <div class="tt-divider"></div>
     <div class="tt-sell">Sell: ${formatNumber(item.sell_value)}g</div>
   `;
@@ -2535,7 +2537,18 @@ function getTooltipContent(el: HTMLElement): string | null {
       return buildActiveSkillTooltipHTML(el.dataset.activeSkill, skillState);
     }
     if (el.dataset.dps)      return buildDpsTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.dps)));
-    if (el.dataset.item)     return buildTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.item)) as GearItemDict);
+    if (el.dataset.item) {
+      const item = JSON.parse(decodeURIComponent(el.dataset.item)) as GearItemDict;
+      let equippedSetCount = 0;
+      if (item.set_name && game) {
+        for (const char of game.party.team) {
+          for (const piece of char.inventory.equippedItems()) {
+            if (piece.setName === item.set_name) equippedSetCount++;
+          }
+        }
+      }
+      return buildTooltipHTML(item, equippedSetCount);
+    }
     if (el.dataset.rune)     return buildRuneTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.rune)));
     if (el.dataset.char)     return buildCharTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.char)) as CharDict);
     if (el.dataset.party)    return buildPartyTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.party)) as CharDict[]);

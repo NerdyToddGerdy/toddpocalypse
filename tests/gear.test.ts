@@ -14,6 +14,7 @@ import {
   gearPower,
   SET_DEFS,
   getSetItem,
+  buildSetBonusHTML,
 } from "../src/gear.js";
 
 describe("autoSellThreshold", () => {
@@ -574,5 +575,50 @@ describe("getSetItem", () => {
   it("ring2 slot falls back to ring1 slot item", () => {
     const item = getSetItem("plunderers_kit", "ring2", 5);
     expect(item.slot).toBe("ring1");
+  });
+});
+
+describe("buildSetBonusHTML", () => {
+  it("returns empty string for unknown set name", () => {
+    expect(buildSetBonusHTML("Unknown Set", 0)).toBe("");
+  });
+
+  it("shows piece count capped at 3", () => {
+    expect(buildSetBonusHTML("Shadowbane", 1)).toContain("1 / 3");
+    expect(buildSetBonusHTML("Shadowbane", 5)).toContain("3 / 3");
+  });
+
+  it("2pc bonus is inactive below threshold", () => {
+    const html = buildSetBonusHTML("Shadowbane", 1);
+    expect(html).toMatch(/tt-set-bonus inactive.*2pc/s);
+  });
+
+  it("2pc bonus is active at threshold", () => {
+    const html = buildSetBonusHTML("Shadowbane", 2);
+    expect(html).toMatch(/tt-set-bonus active.*2pc/s);
+  });
+
+  it("3pc bonus becomes active at 3 pieces", () => {
+    const html = buildSetBonusHTML("Shadowbane", 3);
+    const activeMatches = [...html.matchAll(/tt-set-bonus active/g)];
+    expect(activeMatches.length).toBe(2);
+  });
+
+  it("shows stat label and value for 2pc bonus", () => {
+    const html = buildSetBonusHTML("Shadowbane", 2);
+    expect(html).toContain("Crit Chance");
+    expect(html).toContain("+15%");
+  });
+
+  it("shows effect3pc label for Plunderer's Kit", () => {
+    expect(buildSetBonusHTML("Plunderer's Kit", 3)).toContain("Elite Rune");
+  });
+
+  it("shows effect3pc label for Warlord's Grasp", () => {
+    expect(buildSetBonusHTML("Warlord's Grasp", 3)).toContain("cooldown");
+  });
+
+  it("shows set name in header", () => {
+    expect(buildSetBonusHTML("Iron Bulwark", 0)).toContain("Iron Bulwark");
   });
 });

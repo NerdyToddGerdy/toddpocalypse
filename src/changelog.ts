@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.28.4";
+export const VERSION = "v2.28.5";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.28.5",
+    date: "2026-05-18",
+    changes: [
+      "Set piece tooltips: hovering a set item now shows the set name, 2pc/3pc bonuses, and how many pieces are currently equipped — active bonuses are highlighted, inactive ones dimmed",
+    ],
+  },
   {
     version: "v2.28.4",
     date: "2026-05-18",
