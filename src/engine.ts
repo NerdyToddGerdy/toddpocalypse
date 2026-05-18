@@ -214,7 +214,7 @@ export const CORRUPTION_HEAL_REDUCTION_PER_FLOOR = 0.06;
 export const ENTANGLE_REDUCTION = 0.60;
 
 /** Seconds into a boss/elite fight before enrage triggers. */
-export const BOSS_ENRAGE_TRIGGER = 20;
+export const BOSS_ENRAGE_TRIGGER = 15;
 /** Seconds between enrage multiplier steps after trigger. */
 export const BOSS_ENRAGE_STEP = 10;
 
