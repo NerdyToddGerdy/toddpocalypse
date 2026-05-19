@@ -638,7 +638,8 @@ function renderParty(state: GameStateDict): void {
         ? `<div class="char-set-bonuses">${setBonus2pcActive.map(d => {
             const has3pc = setBonus3pcActive.some(x => x.id === d.id);
             const pcs = setPieceCounts[d.name];
-            return `<span class="set-bonus-badge${has3pc ? " set-3pc" : " set-2pc"}" title="${d.name} ${pcs}/3">⚙ ${d.name} ${pcs}/3</span>`;
+            const setData = encodeURIComponent(JSON.stringify({ name: d.name, count: pcs }));
+            return `<span class="set-bonus-badge${has3pc ? " set-3pc" : " set-2pc"}" data-set="${setData}">⚙ ${d.name} ${pcs}/3</span>`;
           }).join("")}</div>`
         : "";
 
@@ -2669,7 +2670,7 @@ function buildSkillTooltipHTML(a: AbilityCardData): string {
     <div class="tt-stat-row"><span class="tt-stat-label">${a.desc}</span></div>`;
 }
 
-const TOOLTIP_SELECTORS = ".gear-row.filled[data-item], .loot-item[data-item], .char-name[data-char], .hero-sprite[data-char], #party-panel h2[data-party], [data-active-skill], .char-dps[data-dps], .tt-rune-slot[data-rune], .char-artifact-badge[data-artifact]";
+const TOOLTIP_SELECTORS = ".gear-row.filled[data-item], .loot-item[data-item], .char-name[data-char], .hero-sprite[data-char], #party-panel h2[data-party], [data-active-skill], .char-dps[data-dps], .tt-rune-slot[data-rune], .char-artifact-badge[data-artifact], .set-bonus-badge[data-set]";
 
 function buildActiveSkillTooltipHTML(skillId: string, skillState?: { remaining: number; expiry: number; totalCooldown: number; isActive: boolean; onCooldown: boolean }): string {
   const name = SKILL_NAMES[skillId] ?? skillId;
@@ -2736,6 +2737,10 @@ function getTooltipContent(el: HTMLElement): string | null {
     if (el.dataset.party)    return buildPartyTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.party)) as CharDict[]);
     if (el.dataset.skill)    return buildSkillTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.skill)) as AbilityCardData);
     if (el.dataset.artifact) return buildArtifactTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.artifact)));
+    if (el.dataset.set) {
+      const { name, count } = JSON.parse(decodeURIComponent(el.dataset.set)) as { name: string; count: number };
+      return buildSetBonusHTML(name, count).replace('<div class="tt-divider"></div>', "");
+    }
   } catch { /* ignore */ }
   return null;
 }

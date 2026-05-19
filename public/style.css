@@ -4373,6 +4373,7 @@ footer {
     border: 1px solid #c9a227;
     color: #c9a227;
     background: rgba(201,162,39,0.08);
+    cursor: help;
 }
 .set-bonus-badge.set-3pc {
     border-color: #f0c040;
