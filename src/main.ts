@@ -655,27 +655,29 @@ function renderParty(state: GameStateDict): void {
     </div>
     <img class="hero-sprite" src="${heroImg}" alt="${c.character_class}">
   </div>
-  <div class="hp-section">
-    <div class="hp-bar-header">
-      <span class="hp-label">HP</span>
-      <span class="hp-numbers${hpLow ? " hp-low" : ""}">${Math.ceil(c.health)} / ${c.max_health}</span>
+  <div class="char-bars">
+    <div class="hp-section">
+      <div class="hp-bar-header">
+        <span class="hp-label">HP</span>
+        <span class="hp-numbers${hpLow ? " hp-low" : ""}">${Math.ceil(c.health)} / ${c.max_health}</span>
+      </div>
+      <div class="player-hp-bar-wrap">
+        <div class="player-hp-bar${hpLow ? " hp-bar-low" : ""}" style="width:${hpPct}%"></div>
+      </div>
     </div>
-    <div class="player-hp-bar-wrap">
-      <div class="player-hp-bar${hpLow ? " hp-bar-low" : ""}" style="width:${hpPct}%"></div>
+    <div class="xp-section">
+      <div class="xp-header">
+        <span class="xp-level-label">Level ${c.level}</span>
+        <span class="xp-numbers">${c.xp} / ${c.xp_to_next} XP</span>
+      </div>
+      <div class="xp-bar-wrap">
+        <div class="xp-bar" style="width:${xpPct}%"></div>
+        <div class="xp-bar-text">${xpPct}%</div>
+      </div>
     </div>
   </div>
   <div class="char-gear">${gearRows}</div>
   ${setBonusHtml}
-  <div class="xp-section">
-    <div class="xp-header">
-      <span class="xp-level-label">Level ${c.level}</span>
-      <span class="xp-numbers">${c.xp} / ${c.xp_to_next} XP</span>
-    </div>
-    <div class="xp-bar-wrap">
-      <div class="xp-bar" style="width:${xpPct}%"></div>
-      <div class="xp-bar-text">${xpPct}%</div>
-    </div>
-  </div>
 </div>`;
     }).join("");
 

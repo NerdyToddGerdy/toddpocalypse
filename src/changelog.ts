@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.30.8";
+export const VERSION = "v2.30.9";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.30.9",
+    date: "2026-05-19",
+    changes: [
+      "Mobile char-card redesigned: hero sprite, name/class/DPS, and HP+XP bars now appear in a single compact row with equipment below",
+    ],
+  },
   {
     version: "v2.30.8",
     date: "2026-05-19",
