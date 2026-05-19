@@ -421,17 +421,8 @@ function renderFloorProgress(state: GameStateDict): void {
   floorProgressKey = newKey;
 
 
-  if (isBoss) {
-    $("monsters-left-text").textContent = "★ BOSS FIGHT ★";
-    $("monsters-left-text").className = "boss-text";
-  } else if (isElite) {
-    $("monsters-left-text").textContent = "⚡ ELITE ENEMY ⚡";
-    $("monsters-left-text").className = "elite-text";
-  } else {
-    $("monsters-left-text").textContent =
-      left === 1 ? "1 monster until boss" : `${left} monsters until boss`;
-    $("monsters-left-text").className = "";
-  }
+  $("monsters-left-text").textContent = "";
+  $("monsters-left-text").className = "";
 
   const row = $("floor-pip-row");
   row.innerHTML = Array.from({ length: total }, (_, i) =>
