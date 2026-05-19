@@ -249,6 +249,28 @@ function companionName(cls: string, slotIdx: number): string {
   return (COMPANION_NAMES[cls] ?? COMPANION_NAMES.fighter)[slotIdx] ?? "Companion";
 }
 
+const RUNE_TIER_UP: Record<string, string> = { lesser: "greater", greater: "flawless", flawless: "ancient" };
+
+/** Generates a random set piece at the given effective level (random set, random slot from that set). */
+function randomSetDrop(effectiveLevel: number): GearItem {
+  const setDef = SET_DEFS[Math.floor(Math.random() * SET_DEFS.length)];
+  const setSlot = setDef.slots[Math.floor(Math.random() * setDef.slots.length)] as import("./gear.js").Slot;
+  return getSetItem(setDef.id, setSlot, effectiveLevel);
+}
+
+/** Applies the per-character side effect (xp/hp/defense) of buying one upgrade level. dps/click are read on tick. */
+function applyUpgradeStatEffect(char: Character, type: UpgradeType): void {
+  if (type === "xp") {
+    char.xpMultiplier += UPGRADE_EFFECTS.xp;
+  } else if (type === "hp") {
+    const hpGain = Math.round(char.maxHealth * HP_UPGRADE_EFFECT);
+    char.maxHealth += hpGain;
+    char.health = Math.min(char.maxHealth, char.health + hpGain);
+  } else if (type === "defense") {
+    char.damageReduction = Math.min(0.95, char.damageReduction + DEFENSE_UPGRADE_EFFECT);
+  }
+}
+
 /** Fraction of missing HP restored after each enemy kill. */
 export const COMBAT_HEAL_FRACTION = 0.12;
 
@@ -934,15 +956,11 @@ export class GameState {
     return this.respond();
   }
 
-  /** Adds fuel from inventory artifacts to a target inventory artifact; levels up on threshold with overflow cascade. */
-  addFuelToArtifact(targetInvIdx: number, fuelInvIdxs: number[]): string {
-    if (targetInvIdx < 0 || targetInvIdx >= this.artifactInventory.length) return this.respond();
-    const target = this.artifactInventory[targetInvIdx];
+  private fuelArtifact(target: ArtifactInstance, fuelInvIdxs: number[], excludeIdx: number): boolean {
     const valid = fuelInvIdxs.every(
-      fi => fi !== targetInvIdx && fi >= 0 && fi < this.artifactInventory.length && this.artifactInventory[fi].id === target.id
+      fi => fi !== excludeIdx && fi >= 0 && fi < this.artifactInventory.length && this.artifactInventory[fi].id === target.id
     );
-    if (!valid) return this.respond();
-
+    if (!valid) return false;
     const totalUnits = fuelInvIdxs.reduce((sum, fi) => sum + artifactFuelValue(this.artifactInventory[fi].level), 0);
     // Remove fuel from highest index first to avoid index shifting
     for (const fi of [...fuelInvIdxs].sort((a, b) => b - a)) this.artifactInventory.splice(fi, 1);
@@ -952,6 +970,13 @@ export class GameState {
       target.level += 1;
       this.addLog(`✨ ${ARTIFACT_DEFS[target.id].name} leveled up to +${target.level}!`);
     }
+    return true;
+  }
+
+  /** Adds fuel from inventory artifacts to a target inventory artifact; levels up on threshold with overflow cascade. */
+  addFuelToArtifact(targetInvIdx: number, fuelInvIdxs: number[]): string {
+    if (targetInvIdx < 0 || targetInvIdx >= this.artifactInventory.length) return this.respond();
+    this.fuelArtifact(this.artifactInventory[targetInvIdx], fuelInvIdxs, targetInvIdx);
     return this.respond();
   }
 
@@ -961,42 +986,31 @@ export class GameState {
     if (!char || slotIdx < 0 || slotIdx >= 3) return this.respond();
     const target = char.artifactSlots[slotIdx];
     if (!target) return this.respond();
-    const valid = fuelInvIdxs.every(
-      fi => fi >= 0 && fi < this.artifactInventory.length && this.artifactInventory[fi].id === target.id
-    );
-    if (!valid) return this.respond();
-
-    const totalUnits = fuelInvIdxs.reduce((sum, fi) => sum + artifactFuelValue(this.artifactInventory[fi].level), 0);
-    for (const fi of [...fuelInvIdxs].sort((a, b) => b - a)) this.artifactInventory.splice(fi, 1);
-    target.fuel += totalUnits;
-    while (target.fuel >= artifactUpgradeCost(target.level)) {
-      target.fuel -= artifactUpgradeCost(target.level);
-      target.level += 1;
-      this.addLog(`✨ ${ARTIFACT_DEFS[target.id].name} leveled up to +${target.level}!`);
-    }
+    this.fuelArtifact(target, fuelInvIdxs, -1);
     return this.respond();
   }
 
   /** Sells an equipped artifact directly from a character slot, granting gold. */
+  private sellArtifactInstance(inst: ArtifactInstance): void {
+    const value = artifactSellValue(inst.id, inst.level);
+    this.earnGold(value);
+    this.addLog(`Sold ${ARTIFACT_DEFS[inst.id].name}${inst.level > 0 ? ` +${inst.level}` : ""} for ${value}g.`);
+  }
+
   sellEquippedArtifact(charIdx: number, slotIdx: number): string {
     const char = this.party.team[charIdx];
     if (!char || slotIdx < 0 || slotIdx >= 3) return this.respond();
     const inst = char.artifactSlots[slotIdx];
     if (!inst) return this.respond();
     char.artifactSlots[slotIdx] = null;
-    const value = artifactSellValue(inst.id, inst.level);
-    this.earnGold(value);
-    this.addLog(`Sold ${ARTIFACT_DEFS[inst.id].name}${inst.level > 0 ? ` +${inst.level}` : ""} for ${value}g.`);
+    this.sellArtifactInstance(inst);
     return this.respond();
   }
 
   /** Sells an artifact instance from the inventory for gold (sell value scales with level). */
   sellArtifact(invIdx: number): string {
     if (invIdx < 0 || invIdx >= this.artifactInventory.length) return this.respond();
-    const instance = this.artifactInventory.splice(invIdx, 1)[0];
-    const value = artifactSellValue(instance.id, instance.level);
-    this.earnGold(value);
-    this.addLog(`Sold ${ARTIFACT_DEFS[instance.id].name}${instance.level > 0 ? ` +${instance.level}` : ""} for ${value}g.`);
+    this.sellArtifactInstance(this.artifactInventory.splice(invIdx, 1)[0]);
     return this.respond();
   }
 
@@ -1014,14 +1028,7 @@ export class GameState {
     this.lifetimeUpgradesBought += 1;
     const char = this.party.team.find((c) => c.name === charName);
     if (!char) return this.respond();
-    if (ut === "xp") char.xpMultiplier += UPGRADE_EFFECTS.xp;
-    else if (ut === "hp") {
-      const hpGain = Math.round(char.maxHealth * HP_UPGRADE_EFFECT);
-      char.maxHealth += hpGain;
-      char.health = Math.min(char.maxHealth, char.health + hpGain);
-    } else if (ut === "defense") {
-      char.damageReduction = Math.min(0.95, char.damageReduction + DEFENSE_UPGRADE_EFFECT);
-    }
+    applyUpgradeStatEffect(char, ut);
     this.addLog(`${charName}: ${ut} upgraded!`);
     return this.respond();
   }
@@ -1119,40 +1126,13 @@ export class GameState {
     this.party.addPlayer(lead);
     this.upgrades[leadName] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
 
-    if ((this.prestigeUpgrades["party_slot_2"] ?? 0) > 0) {
-      const cls2 = this.prestigePartyClasses["slot_2"] ?? "fighter";
-      const n2 = companionName(cls2, 0);
-      const comp = new Character(n2, cls2, 1);
-      this.party.addPlayer(comp);
-      this.upgrades[n2] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
-    }
-    if ((this.prestigeUpgrades["party_slot_3"] ?? 0) > 0) {
-      const cls3 = this.prestigePartyClasses["slot_3"] ?? "fighter";
-      const n3 = companionName(cls3, 1);
-      const ally = new Character(n3, cls3, 1);
-      this.party.addPlayer(ally);
-      this.upgrades[n3] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
-    }
-    if ((this.prestigeUpgrades["party_slot_4"] ?? 0) > 0) {
-      const cls4 = this.prestigePartyClasses["slot_4"] ?? "fighter";
-      const n4 = companionName(cls4, 2);
-      const vet = new Character(n4, cls4, 1);
-      this.party.addPlayer(vet);
-      this.upgrades[n4] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
-    }
-    if ((this.prestigeUpgrades["party_slot_5"] ?? 0) > 0) {
-      const cls5 = this.prestigePartyClasses["slot_5"] ?? "fighter";
-      const n5 = companionName(cls5, 3);
-      const champ = new Character(n5, cls5, 1);
-      this.party.addPlayer(champ);
-      this.upgrades[n5] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
-    }
-    if ((this.prestigeUpgrades["party_slot_6"] ?? 0) > 0) {
-      const cls6 = this.prestigePartyClasses["slot_6"] ?? "fighter";
-      const n6 = companionName(cls6, 4);
-      const chosen = new Character(n6, cls6, 1);
-      this.party.addPlayer(chosen);
-      this.upgrades[n6] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
+    for (let slot = 2; slot <= 6; slot++) {
+      if ((this.prestigeUpgrades[`party_slot_${slot}`] ?? 0) > 0) {
+        const cls = this.prestigePartyClasses[`slot_${slot}`] ?? "fighter";
+        const n = companionName(cls, slot - 2);
+        this.party.addPlayer(new Character(n, cls, 1));
+        this.upgrades[n] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
+      }
     }
 
     const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
@@ -1291,51 +1271,16 @@ export class GameState {
     this.prestigePoints -= cost;
     this.prestigeUpgrades[type] = (this.prestigeUpgrades[type] ?? 0) + 1;
 
-    if (type === "party_slot_2") {
+    const slotMatch = /^party_slot_([2-6])$/.exec(type);
+    if (slotMatch) {
+      const slot = parseInt(slotMatch[1], 10);
       const cls = characterClass ?? "fighter";
-      this.prestigePartyClasses["slot_2"] = cls;
-      const n = companionName(cls, 0);
+      this.prestigePartyClasses[`slot_${slot}`] = cls;
+      const n = companionName(cls, slot - 2);
       const comp = new Character(n, cls, 1);
       this.party.addPlayer(comp);
       this.upgrades[n] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
-      const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
-      comp.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
-    } else if (type === "party_slot_3") {
-      const cls = characterClass ?? "fighter";
-      this.prestigePartyClasses["slot_3"] = cls;
-      const n = companionName(cls, 1);
-      const ally = new Character(n, cls, 1);
-      this.party.addPlayer(ally);
-      this.upgrades[n] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
-      const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
-      ally.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
-    } else if (type === "party_slot_4") {
-      const cls = characterClass ?? "fighter";
-      this.prestigePartyClasses["slot_4"] = cls;
-      const n = companionName(cls, 2);
-      const vet = new Character(n, cls, 1);
-      this.party.addPlayer(vet);
-      this.upgrades[n] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
-      const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
-      vet.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
-    } else if (type === "party_slot_5") {
-      const cls = characterClass ?? "fighter";
-      this.prestigePartyClasses["slot_5"] = cls;
-      const n = companionName(cls, 3);
-      const champ = new Character(n, cls, 1);
-      this.party.addPlayer(champ);
-      this.upgrades[n] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
-      const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
-      champ.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
-    } else if (type === "party_slot_6") {
-      const cls = characterClass ?? "fighter";
-      this.prestigePartyClasses["slot_6"] = cls;
-      const n = companionName(cls, 4);
-      const chosen = new Character(n, cls, 1);
-      this.party.addPlayer(chosen);
-      this.upgrades[n] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
-      const xpStacks = this.prestigeUpgrades["xp_bonus"] ?? 0;
-      chosen.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
+      comp.xpMultiplier += XP_BONUS_PER_LEVEL * (this.prestigeUpgrades["xp_bonus"] ?? 0);
     } else if (type === "xp_bonus") {
       for (const c of this.party.team) {
         c.xpMultiplier += XP_BONUS_PER_LEVEL;
@@ -1417,8 +1362,7 @@ export class GameState {
     const def1 = RUNE_DEFS[runeId1];
     const def2 = RUNE_DEFS[runeId2];
     if (!def1 || !def2 || def1.type !== def2.type || def1.tier !== def2.tier) return this.respond();
-    const TIER_UP: Record<string, string> = { lesser: "greater", greater: "flawless", flawless: "ancient" };
-    const nextTier = TIER_UP[def1.tier];
+    const nextTier = RUNE_TIER_UP[def1.tier];
     if (!nextTier) return this.respond(); // ancient cannot be combined
     // Forge 2: lesser→greater. Forge 3: greater→flawless. Forge 4: flawless→ancient.
     if (def1.tier === "flawless" && forge < 4) return this.respond();
@@ -1445,7 +1389,6 @@ export class GameState {
     if (!(this.prestigeUpgrades["combine_all_runes"] ?? 0)) return this.respond();
     const forge = this.guildUpgrades["rune_forge"] ?? 0;
     if (forge < 2) return this.respond();
-    const TIER_UP: Record<string, string> = { lesser: "greater", greater: "flawless", flawless: "ancient" };
     const tiersAllowed = ["lesser"];
     if (forge >= 3) tiersAllowed.push("greater");
     if (forge >= 4) tiersAllowed.push("flawless");
@@ -1463,7 +1406,7 @@ export class GameState {
           if (idxs.length >= 2) {
             this.runeInventory.splice(idxs[1], 1);
             this.runeInventory.splice(idxs[0], 1);
-            this.runeInventory.push(RUNE_DEFS[`${type}_${TIER_UP[tier]}`]);
+            this.runeInventory.push(RUNE_DEFS[`${type}_${RUNE_TIER_UP[tier]}`]);
             this.lifetimeRunesCombined++;
             combined++;
             changed = true;
@@ -1891,20 +1834,14 @@ export class GameState {
       this.earnGold(this.enemy.gold_reward * (1 + partyGoldBonus) * goldMasteryMult * prestigeGoldMult * partySizeMult * artifactGoldMult);
       this.lifetimeBossKills += 1;
       if (this.lootPool.length < this.lootMax) {
-        const effectiveLevel = this.dungeonLevel + this.dungeonIndex * 5;
-        const setDef = SET_DEFS[Math.floor(Math.random() * SET_DEFS.length)];
-        const setSlot = setDef.slots[Math.floor(Math.random() * setDef.slots.length)] as import("./gear.js").Slot;
-        const drop = getSetItem(setDef.id, setSlot, effectiveLevel);
+        const drop = randomSetDrop(this.dungeonLevel + this.dungeonIndex * 5);
         this.lootPool.push(drop);
         if (drop.quality === "divine") this.lifetimeDivine = 1;
         else if (QUAL.indexOf(drop.quality as typeof QUAL[number]) >= QUAL.indexOf("legendary")) this.lifetimeLegendary = 1;
         this.addLog(`Dropped: ${drop.getName()}!`);
       }
       if ((this.guildUpgrades["rune_forge"] ?? 0) >= 1 && Math.random() < 0.20) {
-        const lesserIds = Object.keys(RUNE_DEFS).filter(id => id.endsWith("_lesser"));
-        const runeId = lesserIds[Math.floor(Math.random() * lesserIds.length)];
-        this.runeInventory.push(RUNE_DEFS[runeId]);
-        this.addLog(`Boss dropped a ${RUNE_DEFS[runeId].name}!`);
+        this.dropRandomLesserRune("Boss");
       }
       // Artifact drop: dungeon 3+ (dungeonIndex >= 2), 10% chance
       if (this.dungeonIndex >= 2 && Math.random() < 0.10) {
@@ -1943,16 +1880,10 @@ export class GameState {
         this.addLog(`Dropped: ${drop.getName()}!`);
       }
       if (this.enemy.isElite && (this.guildUpgrades["rune_forge"] ?? 0) >= 1 && Math.random() < 0.10) {
-        const lesserIds = Object.keys(RUNE_DEFS).filter(id => id.endsWith("_lesser"));
-        const runeId = lesserIds[Math.floor(Math.random() * lesserIds.length)];
-        this.runeInventory.push(RUNE_DEFS[runeId]);
-        this.addLog(`Elite dropped a ${RUNE_DEFS[runeId].name}!`);
+        this.dropRandomLesserRune("Elite");
       }
       if (this.enemy.isElite && Math.random() < 0.15 && this.lootPool.length < this.lootMax) {
-        const effectiveLevel = this.dungeonLevel + this.dungeonIndex * 5;
-        const setDef = SET_DEFS[Math.floor(Math.random() * SET_DEFS.length)];
-        const setSlot = setDef.slots[Math.floor(Math.random() * setDef.slots.length)] as import("./gear.js").Slot;
-        const setDrop = getSetItem(setDef.id, setSlot, effectiveLevel);
+        const setDrop = randomSetDrop(this.dungeonLevel + this.dungeonIndex * 5);
         this.lootPool.push(setDrop);
         this.addLog(`Elite dropped a set piece: ${setDrop.getName()}!`);
       }
@@ -1962,11 +1893,8 @@ export class GameState {
         .find(s => s?.id === "executioners_mark");
       if (this.enemy.isElite && execMarkSlot) {
         const checks = execMarkSlot.level + 1;
-        const effectiveLevel = this.dungeonLevel + this.dungeonIndex * 5;
         for (let i = 0; i < checks && this.lootPool.length < this.lootMax; i++) {
-          const setDef = SET_DEFS[Math.floor(Math.random() * SET_DEFS.length)];
-          const setSlot = setDef.slots[Math.floor(Math.random() * setDef.slots.length)] as import("./gear.js").Slot;
-          const execDrop = getSetItem(setDef.id, setSlot, effectiveLevel);
+          const execDrop = randomSetDrop(this.dungeonLevel + this.dungeonIndex * 5);
           this.lootPool.push(execDrop);
           this.addLog(`⚔ Executioner's Mark: ${execDrop.getName()}!`);
         }
@@ -2002,6 +1930,14 @@ export class GameState {
       c.health = c.maxHealth;
     }
     this.enemy = generateEnemy(this.checkpointLevel);
+  }
+
+  /** Drops a random lesser-tier rune into the rune inventory and logs it with the given source label. */
+  private dropRandomLesserRune(source: string): void {
+    const lesserIds = Object.keys(RUNE_DEFS).filter(id => id.endsWith("_lesser"));
+    const runeId = lesserIds[Math.floor(Math.random() * lesserIds.length)];
+    this.runeInventory.push(RUNE_DEFS[runeId]);
+    this.addLog(`${source} dropped a ${RUNE_DEFS[runeId].name}!`);
   }
 
   /** Passes a displaced item to the best recipient if it is an upgrade for them; otherwise sells it. */
@@ -2159,14 +2095,7 @@ export class GameState {
         const { char, type } = cheapest;
         this.gold -= cheapest.cost;
         this.upgrades[char.name][type] += 1;
-        if (type === "xp") char.xpMultiplier += UPGRADE_EFFECTS.xp;
-        else if (type === "hp") {
-          const hpGain = Math.round(char.maxHealth * HP_UPGRADE_EFFECT);
-          char.maxHealth += hpGain;
-          char.health = Math.min(char.maxHealth, char.health + hpGain);
-        } else if (type === "defense") {
-          char.damageReduction = Math.min(0.95, char.damageReduction + DEFENSE_UPGRADE_EFFECT);
-        }
+        applyUpgradeStatEffect(char, type);
         this.addLog(`Auto Upgrade: ${char.name} ${type} → Lv${this.upgrades[char.name][type]}`);
         bought = true;
       }
