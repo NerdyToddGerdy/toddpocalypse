@@ -2547,7 +2547,7 @@ function buildPartyTooltipHTML(party: CharDict[]): string {
   `;
 }
 
-function formatStats(stats: GearStats): string {
+function statParts(stats: GearStats): string[] {
   const parts: string[] = [];
   if (stats.dps)        parts.push(`+${stats.dps.toFixed(1)} DPS`);
   if (stats.maxHp)      parts.push(`+${stats.maxHp} HP`);
@@ -2558,21 +2558,16 @@ function formatStats(stats: GearStats): string {
   if (stats.lifesteal)  parts.push(`+${(stats.lifesteal * 100).toFixed(0)}% Life`);
   if (stats.haste)      parts.push(`+${(stats.haste * 100).toFixed(0)}% Haste`);
   if (stats.xpBonus)    parts.push(`+${(stats.xpBonus * 100).toFixed(0)}% XP`);
-  return parts.join("  ") || "+0";
+  return parts;
+}
+
+function formatStats(stats: GearStats): string {
+  return statParts(stats).join("  ") || "+0";
 }
 
 /** Renders loot chest stats as individual <span> elements for grid layout, with tri indicator on first stat. */
 function formatLootStats(tri: string, stats: GearStats): string {
-  const parts: string[] = [];
-  if (stats.dps)        parts.push(`+${stats.dps.toFixed(1)} DPS`);
-  if (stats.maxHp)      parts.push(`+${stats.maxHp} HP`);
-  if (stats.clickBonus) parts.push(`+${stats.clickBonus.toFixed(1)} Click`);
-  if (stats.defense)    parts.push(`+${(stats.defense * 100).toFixed(0)}% Def`);
-  if (stats.critChance) parts.push(`+${(stats.critChance * 100).toFixed(0)}% Crit`);
-  if (stats.goldBonus)  parts.push(`+${(stats.goldBonus * 100).toFixed(0)}% Gold`);
-  if (stats.lifesteal)  parts.push(`+${(stats.lifesteal * 100).toFixed(0)}% Life`);
-  if (stats.haste)      parts.push(`+${(stats.haste * 100).toFixed(0)}% Haste`);
-  if (stats.xpBonus)    parts.push(`+${(stats.xpBonus * 100).toFixed(0)}% XP`);
+  const parts = statParts(stats);
   if (parts.length === 0) return '<span class="loot-stat">+0</span>';
   return parts.map((p, i) => `<span class="loot-stat">${i === 0 && tri ? tri : ""}${p}</span>`).join("");
 }

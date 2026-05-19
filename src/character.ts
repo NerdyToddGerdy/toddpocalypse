@@ -229,55 +229,47 @@ export class Character {
   }
 
   private addRune(rune: Rune): void {
-    switch (rune.statKey) {
-      case "dps":       this.dps += rune.value; break;
-      case "maxHp":     this.maxHealth += rune.value; this.health = Math.min(this.health + rune.value, this.maxHealth); break;
-      case "haste":     this.haste += rune.value; break;
-      case "goldBonus": this.goldBonus += rune.value; break;
-      case "xpMultiplier": this.xpMultiplier += rune.value; break;
-      case "critChance": this.critChance += rune.value; break;
-    }
+    this.applyRuneDelta(rune, 1);
   }
 
   private subtractRune(rune: Rune): void {
+    this.applyRuneDelta(rune, -1);
+  }
+
+  private applyRuneDelta(rune: Rune, sign: 1 | -1): void {
+    const v = rune.value * sign;
     switch (rune.statKey) {
-      case "dps":       this.dps -= rune.value; break;
-      case "maxHp":     this.maxHealth -= rune.value; this.health = Math.min(this.health, this.maxHealth); break;
-      case "haste":     this.haste -= rune.value; break;
-      case "goldBonus": this.goldBonus -= rune.value; break;
-      case "xpMultiplier": this.xpMultiplier -= rune.value; break;
-      case "critChance": this.critChance -= rune.value; break;
+      case "dps":          this.dps += v; break;
+      case "maxHp":        this.maxHealth += v; this.health = Math.min(sign > 0 ? this.health + v : this.health, this.maxHealth); break;
+      case "haste":        this.haste += v; break;
+      case "goldBonus":    this.goldBonus += v; break;
+      case "xpMultiplier": this.xpMultiplier += v; break;
+      case "critChance":   this.critChance += v; break;
     }
   }
 
   /** Adds all stat bonuses from a GearStats object to this character. */
   private applyStats(s: import("./gear.js").GearStats): void {
-    this.dps += s.dps ?? 0;
-    const hp = s.maxHp ?? 0;
-    this.maxHealth += hp;
-    this.health = Math.min(this.health + hp, this.maxHealth);
-    this.clickBonus += s.clickBonus ?? 0;
-    this.damageReduction = Math.min(0.95, this.damageReduction + (s.defense ?? 0));
-    this.xpMultiplier += s.xpBonus ?? 0;
-    this.critChance += s.critChance ?? 0;
-    this.goldBonus += s.goldBonus ?? 0;
-    this.lifesteal += s.lifesteal ?? 0;
-    this.haste += s.haste ?? 0;
+    this.applyStatsDelta(s, 1);
   }
 
   /** Removes all stat bonuses from a GearStats object from this character. */
   private removeStats(s: import("./gear.js").GearStats): void {
-    this.dps -= s.dps ?? 0;
-    const hp = s.maxHp ?? 0;
-    this.maxHealth -= hp;
-    this.health = Math.min(this.health, this.maxHealth);
-    this.clickBonus -= s.clickBonus ?? 0;
-    this.damageReduction = Math.max(0, this.damageReduction - (s.defense ?? 0));
-    this.xpMultiplier -= s.xpBonus ?? 0;
-    this.critChance -= s.critChance ?? 0;
-    this.goldBonus -= s.goldBonus ?? 0;
-    this.lifesteal -= s.lifesteal ?? 0;
-    this.haste -= s.haste ?? 0;
+    this.applyStatsDelta(s, -1);
+  }
+
+  private applyStatsDelta(s: import("./gear.js").GearStats, sign: 1 | -1): void {
+    this.dps += (s.dps ?? 0) * sign;
+    const hp = (s.maxHp ?? 0) * sign;
+    this.maxHealth += hp;
+    this.health = Math.min(sign > 0 ? this.health + hp : this.health, this.maxHealth);
+    this.clickBonus += (s.clickBonus ?? 0) * sign;
+    this.damageReduction = Math.max(0, Math.min(0.95, this.damageReduction + (s.defense ?? 0) * sign));
+    this.xpMultiplier += (s.xpBonus ?? 0) * sign;
+    this.critChance += (s.critChance ?? 0) * sign;
+    this.goldBonus += (s.goldBonus ?? 0) * sign;
+    this.lifesteal += (s.lifesteal ?? 0) * sign;
+    this.haste += (s.haste ?? 0) * sign;
   }
 
   /** Recomputes named-set bonuses from the current inventory and applies the delta.
