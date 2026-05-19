@@ -1195,10 +1195,10 @@ function renderPrestigeShop(state: GameStateDict): void {
   type SortableItem = { atMax: boolean; cost: number; html: string };
   const allItems: SortableItem[] = [];
 
-  // Party Members card enters the sort pool
+  // Party Members card enters the sort pool; locked (prereq missing) sorts just above owned items
   allItems.push({
     atMax: partySlotAtMax,
-    cost: partySlotAtMax ? Infinity : nextSlotCost,
+    cost: partySlotAtMax || partySlotPrereqMissing ? Infinity : nextSlotCost,
     html: partyMembersCard,
   });
 

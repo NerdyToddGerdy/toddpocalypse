@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.31.0";
+export const VERSION = "v2.31.1";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.31.1",
+    date: "2026-05-19",
+    changes: [
+      "Renown list: locked Party Members card now sorts just above owned items instead of floating among purchasable ones",
+    ],
+  },
   {
     version: "v2.31.0",
     date: "2026-05-19",
