@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.31.2";
+export const VERSION = "v2.31.3";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.31.3",
+    date: "2026-05-19",
+    changes: [
+      "Hovering the hero sprite now shows the same character stat tooltip as hovering the name",
+    ],
+  },
   {
     version: "v2.31.2",
     date: "2026-05-19",

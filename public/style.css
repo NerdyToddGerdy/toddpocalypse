@@ -840,6 +840,7 @@ main {
     image-rendering: pixelated;
     border-radius: 4px;
     align-self: center;
+    cursor: help;
 }
 
 .char-name { font-weight: 700; margin-bottom: 2px; }
