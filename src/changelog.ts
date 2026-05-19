@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.31.11";
+export const VERSION = "v2.31.12";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.31.12",
+    date: "2026-05-19",
+    changes: [
+      "Internal: type consolidation — added EnemyDict, aligned CharacterDict.artifact_slots and GameStateDict.artifact_inventory with ArtifactInstance",
+    ],
+  },
   {
     version: "v2.31.11",
     date: "2026-05-19",

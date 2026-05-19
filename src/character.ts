@@ -130,7 +130,7 @@ export interface CharacterDict {
   runes?: Partial<Record<Slot, Rune>>;
   applied_set_bonuses?: Record<string, GearStats>;
   locked_slots?: string[];
-  artifact_slots?: ({ id: string; level: number; fuel?: number } | null)[];
+  artifact_slots?: (ArtifactInstance | null)[];
 }
 
 /** A player character or companion with class stats, equipment, and abilities. */

@@ -91,6 +91,20 @@ export interface Enemy {
   isElite?: boolean;
 }
 
+/** Serialized, plain-object form of an {@link Enemy}.
+ *  Differs from Enemy only in the boss/elite flag naming (snake_case in saves). */
+export interface EnemyDict {
+  name: string;
+  level: number;
+  max_hp: number;
+  hp: number;
+  xp_reward: number;
+  gold_reward: number;
+  attack_dps: number;
+  is_boss: boolean;
+  is_elite?: boolean;
+}
+
 /** Returns a uniformly random element from an array. */
 function pick<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];

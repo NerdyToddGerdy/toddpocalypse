@@ -1,7 +1,7 @@
 import { Character, type Rune } from "./character.js";
 import { Party } from "./party.js";
 import { GearItem, getItem, getSetItem, SET_DEFS, gearPower, QUAL, SLOTS, autoSellThreshold, type GearItemDict } from "./gear.js";
-import { generateEnemy, generateBoss, generateEliteEnemy, ENEMY_NOUNS, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT, type Enemy } from "./dungeon.js";
+import { generateEnemy, generateBoss, generateEliteEnemy, ENEMY_NOUNS, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT, type Enemy, type EnemyDict } from "./dungeon.js";
 import { ARTIFACT_DEFS, ARTIFACT_DROP_POOL, LEGACY_UPGRADED_MAP, artifactUpgradeCost, artifactSellValue, artifactFuelValue, artifactStatLabel, type ArtifactEffectId, type ArtifactInstance } from "./artifacts.js";
 export { ARTIFACT_DEFS, ARTIFACT_DROP_POOL, artifactUpgradeCost, artifactSellValue, artifactFuelValue, artifactStatLabel };
 export type { ArtifactInstance };
@@ -412,7 +412,7 @@ export interface GameStateDict {
   deaths: number;
   highest_level: number;
   monsters_left: number;
-  enemy: { name: string; level: number; hp: number; max_hp: number; xp_reward: number; gold_reward: number; attack_dps: number; is_boss: boolean; is_elite?: boolean };
+  enemy: EnemyDict;
   party: ReturnType<Character["toDict"]>[];
   loot_pool: GearItemDict[];
   upgrades: Record<string, Record<UpgradeType, { level: number; cost: number; effect: number }>>;
@@ -461,7 +461,7 @@ export interface GameStateDict {
   rune_inventory: Rune[];
   earned_titles: string[];
   gear_stash: GearItemDict[];
-  artifact_inventory?: { id: string; level: number }[];
+  artifact_inventory?: ArtifactInstance[];
   kill_streak?: number;
   earned_avatars?: string[];
   earned_borders?: string[];
