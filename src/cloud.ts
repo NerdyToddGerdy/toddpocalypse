@@ -80,13 +80,7 @@ export function resetSessionId(): string {
     return getOrCreateSessionId();
 }
 
-/**
- * Attempts to claim this device as the active save device.
- * The caller should call resetSessionId() first so a fresh session is sent.
- * Pass force=true to bypass the 409 session lock via ?force=true query param (no CORS header needed).
- * Returns "ok", "conflict" (other device's session still live), or "error".
- */
-export async function cloudClaimSession(token: string, data: string, force = false): Promise<"ok" | "conflict" | "error"> {
+async function putSave(token: string, data: string, force: boolean): Promise<"ok" | "conflict" | "error"> {
     try {
         const url = `${API_URL}/save${force ? "?force=true" : ""}`;
         const res = await fetch(url, {
@@ -104,6 +98,16 @@ export async function cloudClaimSession(token: string, data: string, force = fal
     } catch {
         return "error";
     }
+}
+
+/**
+ * Attempts to claim this device as the active save device.
+ * The caller should call resetSessionId() first so a fresh session is sent.
+ * Pass force=true to bypass the 409 session lock via ?force=true query param (no CORS header needed).
+ * Returns "ok", "conflict" (other device's session still live), or "error".
+ */
+export function cloudClaimSession(token: string, data: string, force = false): Promise<"ok" | "conflict" | "error"> {
+    return putSave(token, data, force);
 }
 
 /** Builds the Cognito hosted-UI login URL with the correct redirect_uri for the current host. */
@@ -131,21 +135,6 @@ export async function cloudLoad(token: string): Promise<string | null> {
 }
 
 /** Writes save data to DynamoDB. Returns "ok", "conflict" (another session active), or "error". */
-export async function cloudSave(token: string, data: string): Promise<"ok" | "conflict" | "error"> {
-    try {
-        const res = await fetch(`${API_URL}/save`, {
-            method: "PUT",
-            headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-                "X-Session-Id": getOrCreateSessionId(),
-            },
-            body: data,
-        });
-        if (res.status === 409) return "conflict";
-        if (!res.ok) return "error";
-        return "ok";
-    } catch {
-        return "error";
-    }
+export function cloudSave(token: string, data: string): Promise<"ok" | "conflict" | "error"> {
+    return putSave(token, data, false);
 }
