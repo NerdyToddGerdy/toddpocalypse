@@ -1,3 +1,12 @@
+/** Noun suffixes for boss names — equal counts of male and female titles. */
+export const BOSS_NOUNS = [
+  "Lord",    "Lady",
+  "King",    "Queen",
+  "Emperor", "Empress",
+  "Warlord", "Matriarch",
+  "Overlord", "Sovereign",
+];
+
 /** Title adjectives for boss enemies. */
 const BOSS_TITLES = [
   "Abyssal",
@@ -118,7 +127,7 @@ export function generateEnemy(dungeonLevel: number, dungeonIndex = 0): Enemy {
  *  Each dungeon beyond the first adds 25% to HP/attack and 15% to gold. */
 export function generateBoss(dungeonLevel: number, dungeonIndex = 0): Enemy {
   const mult = 1 + dungeonIndex * 0.40;
-  const name = `The ${pick(BOSS_TITLES)} ${pick(ENEMY_NOUNS)} Lord`;
+  const name = `The ${pick(BOSS_TITLES)} ${pick(ENEMY_NOUNS)} ${pick(BOSS_NOUNS)}`;
   const hp = Math.floor(100 * Math.pow(1.3, dungeonLevel) * mult);
   const xpReward = Math.max(5, dungeonLevel * 9 + 5);
   const goldReward = Math.max(5, Math.floor(dungeonLevel * 15 * (1 + dungeonIndex * 0.15) * (1 + dungeonLevel * GOLD_LEVEL_MULT)));

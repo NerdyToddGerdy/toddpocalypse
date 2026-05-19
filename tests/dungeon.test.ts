@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateEnemy, generateBoss, generateEliteEnemy, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT, GOLD_LEVEL_MULT, ENEMY_ATTACK_EXPONENT } from "../src/dungeon.js";
+import { generateEnemy, generateBoss, generateEliteEnemy, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT, GOLD_LEVEL_MULT, ENEMY_ATTACK_EXPONENT, BOSS_NOUNS } from "../src/dungeon.js";
 
 describe("GOLD_LEVEL_MULT", () => {
   it("is 0.01", () => {
@@ -199,6 +199,28 @@ describe("generateBoss", () => {
 
   it("dungeonIndex=0 is backward compatible", () => {
     expect(generateBoss(5, 0).max_hp).toBe(generateBoss(5).max_hp);
+  });
+});
+
+describe("BOSS_NOUNS", () => {
+  it("is exported and has an even number of entries", () => {
+    expect(BOSS_NOUNS.length % 2).toBe(0);
+  });
+
+  it("has at least 6 entries", () => {
+    expect(BOSS_NOUNS.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it("boss names end with one of the BOSS_NOUNS", () => {
+    for (let i = 0; i < 50; i++) {
+      const lastName = generateBoss(5).name.split(" ").pop()!;
+      expect(BOSS_NOUNS).toContain(lastName);
+    }
+  });
+
+  it("boss names use more than one noun across many rolls", () => {
+    const nouns = new Set(Array.from({ length: 200 }, () => generateBoss(5).name.split(" ").pop()));
+    expect(nouns.size).toBeGreaterThan(1);
   });
 });
 
