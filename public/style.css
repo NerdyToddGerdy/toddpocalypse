@@ -836,7 +836,6 @@ main {
 #party-gear-toggle.active { opacity: 1; color: var(--accent); }
 
 #party-panel.gear-hidden .char-gear,
-#party-panel.gear-hidden .char-abilities,
 #party-panel.gear-hidden .char-rune-row,
 #party-panel.gear-hidden .char-artifact-row {
     display: none;
@@ -844,8 +843,7 @@ main {
 
 /* When gear is visible: hide rune/artifact/ability rows from header — portrait sizes to name/class/DPS */
 #party-panel:not(.gear-hidden) .char-rune-row,
-#party-panel:not(.gear-hidden) .char-artifact-row,
-#party-panel:not(.gear-hidden) .char-abilities {
+#party-panel:not(.gear-hidden) .char-artifact-row {
     display: none;
 }
 
@@ -894,6 +892,7 @@ main {
 
 .char-name { font-weight: 700; margin-bottom: 2px; }
 .char-class { font-size: 0.78rem; color: var(--muted); margin-bottom: 6px; }
+.char-level { font-size: 0.72rem; color: var(--border); font-weight: 400; }
 
 .char-header {
     display: contents;
@@ -975,7 +974,9 @@ main {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin: 6px 0 2px;
+  margin: 8px 0 2px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
 }
 
 .char-rune-row {
