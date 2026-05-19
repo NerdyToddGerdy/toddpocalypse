@@ -103,6 +103,20 @@ function applyTheme(theme: Theme): void {
   });
 }
 
+const BOSS_BORDER_PREFIXES = [
+  "abyssal","ancient","cursed","decrepit","dread","eternal","forsaken","foul",
+  "frightening","hideous","infernal","monstrous","ravager","rotting","savage",
+  "shadow","shadowy","terrible","titan","twisted","undying","venomous","vile",
+  "warlord","wretched",
+];
+
+function preloadBossAssets(): void {
+  for (const prefix of BOSS_BORDER_PREFIXES) {
+    const img = new Image();
+    img.src = `border_${prefix}.png`;
+  }
+}
+
 /** Loads the persisted theme from localStorage (defaulting to "arcane") and applies it. */
 function initTheme(): void {
   const saved = localStorage.getItem(THEME_KEY);
@@ -3236,14 +3250,20 @@ function initEnemySticky(): void {
   const hdr = document.querySelector("header") as HTMLElement;
   const enemyPanel = document.getElementById("enemy-panel");
   if (!enemyPanel) return;
-  const observer = new IntersectionObserver(
-    ([entry]) => hdr.classList.toggle("enemy-scrolled", !entry.isIntersecting),
-    { rootMargin: `-${hdr.offsetHeight}px 0px 0px 0px`, threshold: 0 }
-  );
-  observer.observe(enemyPanel);
+
+  function update() {
+    const rect = enemyPanel!.getBoundingClientRect();
+    hdr.classList.toggle("enemy-scrolled", rect.bottom <= hdr.offsetHeight);
+  }
+
+  window.addEventListener("scroll", update, { passive: true });
+  document.querySelector("main")?.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("resize", update, { passive: true });
+  update();
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  preloadBossAssets();
   initTheme();
   initHeaderHeightVar();
   initEnemySticky();

@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.31.6";
+export const VERSION = "v2.31.8";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,20 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.31.8",
+    date: "2026-05-19",
+    changes: [
+      "Fix: boss portrait border sometimes missing on first appearance — all border images now preloaded at startup",
+    ],
+  },
+  {
+    version: "v2.31.7",
+    date: "2026-05-19",
+    changes: [
+      "Sticky enemy bar: now reliably appears on scroll using getBoundingClientRect rather than IntersectionObserver with a stale rootMargin",
+    ],
+  },
   {
     version: "v2.31.6",
     date: "2026-05-19",
