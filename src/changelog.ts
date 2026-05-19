@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.31.1";
+export const VERSION = "v2.31.2";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.31.2",
+    date: "2026-05-19",
+    changes: [
+      "Desktop char-cards now use the same single-row layout as mobile — sprite | info | HP+XP bars in one row, gear full-width below",
+    ],
+  },
   {
     version: "v2.31.1",
     date: "2026-05-19",
