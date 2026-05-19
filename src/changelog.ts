@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.30.7";
+export const VERSION = "v2.30.8";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.30.8",
+    date: "2026-05-19",
+    changes: [
+      "Boss portrait borders now glow with their accent color only when enraged — each border has a unique color matched to its artwork (cyan Titan, purple Abyssal, red Dread, gold Eternal, white Forsaken, orange Infernal, grey Shadow, green Undying, bronze Ravager, silver Ancient)",
+    ],
+  },
   {
     version: "v2.30.7",
     date: "2026-05-19",

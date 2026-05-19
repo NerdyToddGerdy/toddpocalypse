@@ -524,14 +524,20 @@ main {
     image-rendering: pixelated;
     pointer-events: none;
 }
-#monster-border[src*="titan"] {
-    animation: titan-border-pulse 2s ease-in-out infinite;
-    filter: drop-shadow(0 0 6px #f59e0b) drop-shadow(0 0 14px #b45309cc);
+@keyframes border-enrage-pulse {
+    0%, 100% { filter: drop-shadow(0 0 5px var(--bgc)) drop-shadow(0 0 12px var(--bgc-dim)); }
+    50%       { filter: drop-shadow(0 0 10px var(--bgc)) drop-shadow(0 0 22px var(--bgc)) drop-shadow(0 0 3px #ffffff88); }
 }
-@keyframes titan-border-pulse {
-    0%, 100% { filter: drop-shadow(0 0 6px #f59e0b) drop-shadow(0 0 14px #b45309cc); }
-    50%       { filter: drop-shadow(0 0 12px #fbbf24) drop-shadow(0 0 24px #f59e0bcc) drop-shadow(0 0 4px #fff8); }
-}
+#portrait-inner.enraged #monster-border[src*="abyssal"] { --bgc:#a855f7; --bgc-dim:#a855f788; animation:border-enrage-pulse 2s ease-in-out infinite; }
+#portrait-inner.enraged #monster-border[src*="ancient"] { --bgc:#9ca3af; --bgc-dim:#9ca3af88; animation:border-enrage-pulse 2s ease-in-out infinite; }
+#portrait-inner.enraged #monster-border[src*="dread"]   { --bgc:#dc2626; --bgc-dim:#dc262688; animation:border-enrage-pulse 2s ease-in-out infinite; }
+#portrait-inner.enraged #monster-border[src*="eternal"] { --bgc:#f59e0b; --bgc-dim:#f59e0b88; animation:border-enrage-pulse 2s ease-in-out infinite; }
+#portrait-inner.enraged #monster-border[src*="forsaken"]{ --bgc:#e2e8f0; --bgc-dim:#e2e8f088; animation:border-enrage-pulse 2s ease-in-out infinite; }
+#portrait-inner.enraged #monster-border[src*="infernal"]{ --bgc:#f97316; --bgc-dim:#f9731688; animation:border-enrage-pulse 2s ease-in-out infinite; }
+#portrait-inner.enraged #monster-border[src*="ravager"] { --bgc:#b45309; --bgc-dim:#b4530988; animation:border-enrage-pulse 2s ease-in-out infinite; }
+#portrait-inner.enraged #monster-border[src*="shadow"]  { --bgc:#94a3b8; --bgc-dim:#94a3b888; animation:border-enrage-pulse 2s ease-in-out infinite; }
+#portrait-inner.enraged #monster-border[src*="titan"]   { --bgc:#38bdf8; --bgc-dim:#38bdf888; animation:border-enrage-pulse 2s ease-in-out infinite; }
+#portrait-inner.enraged #monster-border[src*="undying"] { --bgc:#4ade80; --bgc-dim:#4ade8088; animation:border-enrage-pulse 2s ease-in-out infinite; }
 
 /* Slide in from the left (depth gauge side) */
 @keyframes bossPortraitIn {
