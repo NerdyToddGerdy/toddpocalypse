@@ -132,6 +132,55 @@ header {
     position: sticky;
     top: 0;
     z-index: 55;
+    overflow: visible;
+}
+
+#enemy-sticky {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 5px 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-6px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+header.enemy-scrolled #enemy-sticky {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+#enemy-sticky-name {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+#enemy-sticky-hp-wrap {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    height: 10px;
+    overflow: hidden;
+    position: relative;
+}
+
+#enemy-sticky-hp-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--danger), #f87171);
+    border-radius: 6px;
+    transition: width 0.1s linear;
 }
 
 header h1 {

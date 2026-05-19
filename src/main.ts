@@ -190,6 +190,8 @@ function render(state: GameStateDict): void {
   const enemy = state.enemy;
   $("enemy-name").textContent = enemy.name;
   $("enemy-level").textContent = `Level ${enemy.level}`;
+  const stickyNameEl = document.getElementById("enemy-sticky-name");
+  if (stickyNameEl) stickyNameEl.textContent = `${enemy.name} · Lv ${enemy.level}`;
   const enemyPanel = document.getElementById("enemy-panel")!;
   enemyPanel.classList.toggle("elite-enemy", !!enemy.is_elite);
   enemyPanel.classList.toggle("boss-enemy", !!enemy.is_boss);
@@ -228,6 +230,8 @@ function render(state: GameStateDict): void {
   const pct = Math.max(0, (enemy.hp / enemy.max_hp) * 100);
   ($("enemy-hp-bar") as HTMLElement).style.width = pct + "%";
   $("enemy-hp-text").textContent = `${formatNumber(Math.ceil(enemy.hp))} / ${formatNumber(enemy.max_hp)}`;
+  const stickyHpBar = document.getElementById("enemy-sticky-hp-bar") as HTMLElement | null;
+  if (stickyHpBar) stickyHpBar.style.width = pct + "%";
 
   // Enrage bar (boss/elite only)
   const enrageEl = $("enemy-enrage-bar-wrap") as HTMLElement;
@@ -3237,9 +3241,21 @@ function initHeaderHeightVar(): void {
   new ResizeObserver(update).observe(hdr);
 }
 
+function initEnemySticky(): void {
+  const hdr = document.querySelector("header") as HTMLElement;
+  const enemyPanel = document.getElementById("enemy-panel");
+  if (!enemyPanel) return;
+  const observer = new IntersectionObserver(
+    ([entry]) => hdr.classList.toggle("enemy-scrolled", !entry.isIntersecting),
+    { rootMargin: `-${hdr.offsetHeight}px 0px 0px 0px`, threshold: 0 }
+  );
+  observer.observe(enemyPanel);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   initTheme();
   initHeaderHeightVar();
+  initEnemySticky();
   initSaveBackup();
   initMobileTabs();
   initSidebarTabs();
