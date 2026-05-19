@@ -2035,7 +2035,7 @@ main {
         gap: 12px;
         padding: 12px;
         padding-left: 56px; /* 44px gauge + 12px gap */
-        padding-bottom: 296px; /* room for fixed enemy panel + party hp bar + tab bar */
+        padding-bottom: 245px; /* room for fixed enemy panel + party hp bar + tab bar */
         overflow-y: auto;
     }
 
@@ -2058,7 +2058,7 @@ main {
         flex-direction: column;
         align-items: center;
         /* top padding tracks the live header height via JS ResizeObserver */
-        padding: var(--header-h, 148px) 4px 264px;
+        padding: var(--header-h, 148px) 4px 215px;
         gap: 4px;
         background: var(--surface);
         border-right: 1px solid var(--border);
@@ -2083,9 +2083,10 @@ main {
         border-right: none;
         border-bottom: none;
         border-top: 1px solid var(--border);
-        padding: 10px 12px;
-        gap: 6px;
+        padding: 7px 10px;
+        gap: 4px;
     }
+    #enemy-content { gap: 3px; }
 
     #mobile-party-hp-bar {
         display: flex;
@@ -2163,24 +2164,25 @@ main {
 
     footer { display: none; }
 
-    #enemy-name  { font-size: 0.9rem; }
-    #enemy-level { font-size: 0.72rem; }
-    .hp-bar-wrap { height: 16px; }
-    #enemy-hp-text { font-size: 0.65rem; }
+    #enemy-name  { font-size: 0.85rem; }
+    #enemy-level { font-size: 0.68rem; }
+    .hp-bar-wrap { height: 14px; }
+    #enemy-hp-text { font-size: 0.62rem; }
     #floor-progress {
         flex-direction: row;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         align-items: center;
-        gap: 4px 8px;
+        gap: 4px 6px;
     }
-    #monsters-left-text { font-size: 0.68rem; flex: 0 0 auto; text-align: left; height: 1.4rem; line-height: 1.4rem; }
-    #floor-pip-row { flex: 1; justify-content: flex-end; gap: 3px; }
-    .floor-pip { width: 8px; height: 5px; }
-    #checkpoint-display { width: 100%; font-size: 0.65rem; text-align: right; }
-    #attack-btn { padding: 10px; font-size: 0.95rem; margin-top: 2px; }
+    #monsters-left-text { font-size: 0.64rem; flex: 0 0 auto; text-align: left; height: 1.2rem; line-height: 1.2rem; }
+    #floor-pip-row { flex: 1; justify-content: center; gap: 2px; }
+    .floor-pip { width: 7px; height: 4px; }
+    #checkpoint-display { flex: 0 0 auto; font-size: 0.6rem; text-align: right; white-space: nowrap; overflow: hidden; max-width: 30%; text-overflow: ellipsis; }
+    #attack-btn { padding: 6px 10px; font-size: 0.9rem; margin-top: 0; }
+    #attack-row { margin-top: 0; gap: 5px; }
 
-    #loot-panel  { order: 1; }
-    #party-panel { order: 2; }
+    #party-panel { order: 1; }
+    #loot-panel  { order: 2; }
 
     #prestige-panel.prestige-locked  { display: none !important; }
     #guild-hall-panel.guild-locked   { display: none !important; }
