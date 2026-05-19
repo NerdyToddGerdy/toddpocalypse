@@ -977,6 +977,7 @@ main {
   margin: 8px 0 2px;
   padding-top: 6px;
   border-top: 1px solid var(--border);
+  grid-column: 1 / -1;
 }
 
 .char-rune-row {

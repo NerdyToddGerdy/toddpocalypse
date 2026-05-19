@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.31.9";
+export const VERSION = "v2.31.10";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.31.10",
+    date: "2026-05-19",
+    changes: [
+      "Char-cards: passive skill badges now wrap horizontally instead of stacking vertically",
+    ],
+  },
   {
     version: "v2.31.9",
     date: "2026-05-19",
