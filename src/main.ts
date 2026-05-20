@@ -625,7 +625,7 @@ function renderParty(state: GameStateDict): void {
       const artifactSlots: (ArtifactInstance | null)[] = c.artifact_slots ?? [null, null, null];
       const artifactBadgesHtml = artifactSlots.map((inst, si) => {
         if (!inst) return `<span class="char-artifact-badge empty" title="Artifact slot ${si + 1}: empty">·</span>`;
-        const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
+        const def = ARTIFACT_DEFS[inst.id];
         const statLabel = def ? artifactStatLabel(def.id, inst.level) : "";
         const artifactJson = encodeURIComponent(JSON.stringify({ id: inst.id, level: inst.level, name: def?.name ?? inst.id, icon: def?.icon ?? "✨", stat: statLabel }));
         return `<span class="char-artifact-badge filled${inst.level > 0 ? " upgraded" : ""}" data-artifact="${artifactJson}">${def?.icon ?? "✨"}${inst.level > 0 ? `<sup>+${inst.level}</sup>` : ""}</span>`;
@@ -1605,13 +1605,13 @@ function renderArtifactPanel(state: GameStateDict): void {
   if (!invEl) return;
 
   function instLabel(inst: ArtifactInstance): string {
-    const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
+    const def = ARTIFACT_DEFS[inst.id];
     return `${def?.icon ?? "✨"} ${def?.name ?? inst.id}${inst.level > 0 ? ` <span class="artifact-level-badge">+${inst.level}</span>` : ""}`;
   }
 
   const sortedArtifactIndices = artifactInv.map((_, i) => i).sort((a, b) => {
-    const defA = ARTIFACT_DEFS[artifactInv[a].id as keyof typeof ARTIFACT_DEFS];
-    const defB = ARTIFACT_DEFS[artifactInv[b].id as keyof typeof ARTIFACT_DEFS];
+    const defA = ARTIFACT_DEFS[artifactInv[a].id];
+    const defB = ARTIFACT_DEFS[artifactInv[b].id];
     const nameCmp = (defA?.name ?? artifactInv[a].id).localeCompare(defB?.name ?? artifactInv[b].id);
     if (nameCmp !== 0) return nameCmp;
     return artifactInv[b].level - artifactInv[a].level; // higher level first within same name
@@ -1621,7 +1621,7 @@ function renderArtifactPanel(state: GameStateDict): void {
     ? `<div class="artifact-empty">No artifacts in inventory.</div>`
     : sortedArtifactIndices.map(i => {
         const inst = artifactInv[i];
-        const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
+        const def = ARTIFACT_DEFS[inst.id];
         if (!def) return "";
         const sellVal = def.sellValue * (inst.level + 1);
         const fuelCount = artifactInv.filter((o, j) => j !== i && o.id === inst.id).length;
@@ -1644,7 +1644,7 @@ function renderArtifactPanel(state: GameStateDict): void {
     const artifactOptions = artifactInv.length === 0
       ? `<option value="">— no artifacts —</option>`
       : artifactInv.map((inst, i) => {
-          const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
+          const def = ARTIFACT_DEFS[inst.id];
           const lvlLabel = inst.level > 0 ? ` +${inst.level}` : "";
           return `<option value="${i}">${def?.icon ?? "✨"} ${def?.name ?? inst.id}${lvlLabel}</option>`;
         }).join("");
@@ -1654,7 +1654,7 @@ function renderArtifactPanel(state: GameStateDict): void {
       const slots: (ArtifactInstance | null)[] = c.artifact_slots ?? [null, null, null];
       const slotRows = slots.map((inst, slotIdx) => {
         if (inst) {
-          const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
+          const def = ARTIFACT_DEFS[inst.id];
           return `<div class="artifact-slot filled" data-action="open-equipped-artifact-modal" data-char-idx="${charIdx}" data-slot-idx="${slotIdx}" role="button" tabindex="0">
             <span class="artifact-slot-icon">${def?.icon ?? "✨"}</span>
             <span class="artifact-slot-name">${def?.name ?? inst.id}${inst.level > 0 ? ` <span class="artifact-level-badge">+${inst.level}</span>` : ""}</span>
@@ -1745,7 +1745,7 @@ function renderArtifactModalBody(state: GameStateDict): void {
   }
   if (!inst) { closeArtifactModal(); return; }
 
-  const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
+  const def = ARTIFACT_DEFS[inst.id];
   if (!def) { closeArtifactModal(); return; }
 
   const titleEl = document.getElementById("artifact-detail-title");
@@ -3627,7 +3627,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (game) {
         const state = JSON.parse(game.respond()) as GameStateDict;
         renderProfileWidget(state);
-        renderHallOfFame((state.retired_heroes ?? []) as RetiredHero[]);
+        renderHallOfFame(state.retired_heroes ?? []);
       }
       $("hall-of-fame-modal").classList.add("open");
     }
