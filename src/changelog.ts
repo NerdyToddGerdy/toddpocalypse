@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.31.19";
+export const VERSION = "v2.31.20";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.31.20",
+    date: "2026-05-20",
+    changes: [
+      "Auto Upgrade toggle added to the loot panel alongside Auto Equip and Auto Sell — appears once the Auto Upgrade prestige upgrade is owned",
+    ],
+  },
   {
     version: "v2.31.19",
     date: "2026-05-20",

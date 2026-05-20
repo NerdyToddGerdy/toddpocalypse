@@ -431,6 +431,7 @@ export interface GameStateDict {
   auto_sell_qualities: string[];
   auto_equip_enabled: boolean;
   auto_sell_enabled: boolean;
+  auto_upgrade_enabled: boolean;
   floor_kills: number;
   dungeon_index: number;
   idle_gold_rate: number;
@@ -524,6 +525,8 @@ export class GameState {
   autoEquipEnabled = true;
   /** Whether auto-sell runs automatically on loot drops. */
   autoSellEnabled = true;
+  /** Whether auto-upgrade runs automatically after each kill. */
+  autoUpgradeEnabled = true;
   /** Floor to respawn on after a party wipe (set every 10 floors). */
   checkpointLevel = 1;
   /** Regular kills on the current floor (resets when the boss spawns). */
@@ -1213,6 +1216,7 @@ export class GameState {
     this.autoSellQualities = [];
     this.autoEquipEnabled = true;
     this.autoSellEnabled = true;
+    this.autoUpgradeEnabled = true;
     this.skillCooldowns = {};
     this.activeEffects = {};
     this.killStreak = 0;
@@ -1582,6 +1586,7 @@ export class GameState {
       auto_sell_qualities: [...this.autoSellQualities],
       auto_equip_enabled: this.autoEquipEnabled,
       auto_sell_enabled: this.autoSellEnabled,
+      auto_upgrade_enabled: this.autoUpgradeEnabled,
       floor_kills: this.floorKills,
       dungeon_index: this.dungeonIndex,
       idle_gold_rate: this.idleGoldRate,
@@ -2004,9 +2009,10 @@ export class GameState {
   }
 
   /** Sells all loot items matching the auto-sell quality list, skipping items that are upgrades. */
-  toggleAutoAction(type: "auto_equip" | "auto_sell"): string {
+  toggleAutoAction(type: "auto_equip" | "auto_sell" | "auto_upgrade"): string {
     if (type === "auto_equip") this.autoEquipEnabled = !this.autoEquipEnabled;
     else if (type === "auto_sell") this.autoSellEnabled = !this.autoSellEnabled;
+    else if (type === "auto_upgrade") this.autoUpgradeEnabled = !this.autoUpgradeEnabled;
     return this.respond();
   }
 
@@ -2078,6 +2084,7 @@ export class GameState {
 
   private runAutoUpgrade(): void {
     if (!(this.prestigeUpgrades["auto_upgrade"] > 0)) return;
+    if (!this.autoUpgradeEnabled) return;
     const upgradeTypes: UpgradeType[] = ["dps", "xp", "click", "hp", "defense"];
     let bought = true;
     while (bought) {
@@ -2154,6 +2161,7 @@ export class GameState {
     gs.autoSellQualities = [...(d.auto_sell_qualities ?? [])];
     gs.autoEquipEnabled = d.auto_equip_enabled ?? true;
     gs.autoSellEnabled = d.auto_sell_enabled ?? true;
+    gs.autoUpgradeEnabled = d.auto_upgrade_enabled ?? true;
     gs.checkpointLevel = d.checkpoint_level ?? 1;
     gs.floorKills = d.floor_kills ?? 0;
     gs.dungeonIndex = d.dungeon_index ?? 0;

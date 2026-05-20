@@ -786,8 +786,9 @@ function applySlotHighlight(): void {
 function renderLoot(state: GameStateDict): void {
   const loot = state.loot_pool;
   const ups = state.prestige_upgrades;
-  const autoSellOwned = (ups["auto_seller"] ?? 0) > 0;
-  const autoEquipOwned = (ups["auto_equip"] ?? 0) > 0;
+  const autoSellOwned    = (ups["auto_seller"]  ?? 0) > 0;
+  const autoEquipOwned   = (ups["auto_equip"]   ?? 0) > 0;
+  const autoUpgradeOwned = (ups["auto_upgrade"] ?? 0) > 0;
   const stashUnlocked = (ups["stash"] ?? 0) > 0;
   const stash = state.gear_stash ?? [];
   const stashSizes = [3, 6, 10, 15];
@@ -797,15 +798,16 @@ function renderLoot(state: GameStateDict): void {
 
   // Auto-action toggles
   const togglesSection = document.getElementById("auto-toggles-section")!;
-  const hasToggles = autoEquipOwned || autoSellOwned;
+  const hasToggles = autoEquipOwned || autoSellOwned || autoUpgradeOwned;
   togglesSection.hidden = !hasToggles;
   if (hasToggles) {
-    const togglesKey = `${autoEquipOwned}|${state.auto_equip_enabled}|${autoSellOwned}|${state.auto_sell_enabled}`;
+    const togglesKey = `${autoEquipOwned}|${state.auto_equip_enabled}|${autoSellOwned}|${state.auto_sell_enabled}|${autoUpgradeOwned}|${state.auto_upgrade_enabled}`;
     if (togglesSection.dataset.key !== togglesKey) {
       togglesSection.dataset.key = togglesKey;
       const btns = [
-        autoEquipOwned ? `<button class="auto-toggle-btn${state.auto_equip_enabled ? " on" : ""}" data-action="toggle-auto-action" data-type="auto_equip">Auto Equip: ${state.auto_equip_enabled ? "ON" : "OFF"}</button>` : "",
-        autoSellOwned  ? `<button class="auto-toggle-btn${state.auto_sell_enabled  ? " on" : ""}" data-action="toggle-auto-action" data-type="auto_sell">Auto Sell: ${state.auto_sell_enabled ? "ON" : "OFF"}</button>` : "",
+        autoEquipOwned   ? `<button class="auto-toggle-btn${state.auto_equip_enabled   ? " on" : ""}" data-action="toggle-auto-action" data-type="auto_equip">Auto Equip: ${state.auto_equip_enabled ? "ON" : "OFF"}</button>` : "",
+        autoSellOwned    ? `<button class="auto-toggle-btn${state.auto_sell_enabled    ? " on" : ""}" data-action="toggle-auto-action" data-type="auto_sell">Auto Sell: ${state.auto_sell_enabled ? "ON" : "OFF"}</button>` : "",
+        autoUpgradeOwned ? `<button class="auto-toggle-btn${state.auto_upgrade_enabled ? " on" : ""}" data-action="toggle-auto-action" data-type="auto_upgrade">Auto Upgrade: ${state.auto_upgrade_enabled ? "ON" : "OFF"}</button>` : "",
       ].filter(Boolean).join("");
       togglesSection.innerHTML = btns;
     }
