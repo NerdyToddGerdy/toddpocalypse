@@ -1,7 +1,7 @@
-import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock, ARTIFACT_DEFS, artifactFuelValue, artifactStatLabel, AVATAR_DEFS, BORDER_DEFS, formatNumber, LEGACY_UNLOCKS, type RetiredHero, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT, DEFENSE_UPGRADE_EFFECT } from "./engine.js";
+import { GameState, type GameStateDict, type ArtifactInstance, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock, ARTIFACT_DEFS, artifactFuelValue, artifactStatLabel, AVATAR_DEFS, BORDER_DEFS, formatNumber, LEGACY_UNLOCKS, type RetiredHero, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT, DEFENSE_UPGRADE_EFFECT } from "./engine.js";
 import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, SET_DEFS, buildSetBonusHTML, type GearStats, type GearItemDict } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
-import { CLASS_ABILITIES } from "./character.js";
+import { CLASS_ABILITIES, type Rune } from "./character.js";
 import { parseAuthHash, getStoredToken, storeToken, clearToken, getLoginUrl, cloudLoad, cloudSave, cloudClaimSession, resetSessionId, getOrCreateSessionId } from "./cloud.js";
 
 const HERO_IMG: Record<string, string> = {
@@ -191,11 +191,11 @@ import { KILLS_PER_LEVEL, killsForFloor, CORRUPTION_FLOOR, CORRUPTION_RATE_PER_F
 
 /** Full re-render of all UI panels from a GameStateDict snapshot. */
 function render(state: GameStateDict): void {
-  const currentDeaths = state.deaths as number;
+  const currentDeaths = state.deaths;
   if (lastDeathCount === null) {
     lastDeathCount = currentDeaths;
   } else if (currentDeaths > lastDeathCount) {
-    showDeathToast(state.dungeon_level as number);
+    showDeathToast(state.dungeon_level);
     lastDeathCount = currentDeaths;
   } else if (currentDeaths < lastDeathCount) {
     lastDeathCount = currentDeaths;
@@ -350,7 +350,7 @@ function render(state: GameStateDict): void {
   const totalHp = aliveMembers.reduce((s, c) => s + Math.ceil(c.health), 0);
   const totalMaxHp = state.party.reduce((s, c) => s + c.max_health, 0);
   const totalDps = aliveMembers.reduce((s, c) => {
-    const upgLevel = (state.upgrades[c.name]?.dps as { level: number } | undefined)?.level ?? 0;
+    const upgLevel = state.upgrades[c.name]?.dps?.level ?? 0;
     return s + c.dps * (1 + DPS_UPGRADE_EFFECT * upgLevel);
   }, 0);
   $("stat-party-hp").textContent = `${totalHp}/${totalMaxHp}`;
@@ -397,8 +397,8 @@ function render(state: GameStateDict): void {
 let tabVisKey = "";
 /** Hides the Prestige and Guild tabs until the player has reached the unlock thresholds. */
 function updateTabVisibility(state: GameStateDict): void {
-  const ups = state.prestige_upgrades as Record<string, number>;
-  const guildUpgrades = state.guild_upgrades as Record<string, number>;
+  const ups = state.prestige_upgrades;
+  const guildUpgrades = state.guild_upgrades;
   const prestigeUnlocked = state.lifetime_best_level >= PRESTIGE_UNLOCK_LEVEL || state.total_prestiges > 0;
   // unlocked by prestige purchase, or already has guild items (backward compat for existing saves)
   const guildUnlocked = (ups["guild_hall_access"] ?? 0) > 0
@@ -461,7 +461,7 @@ function renderDepthGauge(state: GameStateDict): void {
   const current = state.dungeon_level;
   const highest = state.highest_level;
   const maxDisplay = Math.max(highest + 3, 10);
-  const deathFloors = state.death_floors as Record<number, number> ?? {};
+  const deathFloors = state.death_floors ?? {};
 
   const newKey = `${current}|${highest}|${state.checkpoint_level}|${JSON.stringify(deathFloors)}`;
   if (newKey === depthKey) return;
@@ -524,7 +524,7 @@ function renderParty(state: GameStateDict): void {
   const newLootKey = state.loot_pool.map(i => i.slot + i.name).join("|");
   // Health, XP, and loot pool are intentionally excluded — they are updated in-place below.
   const newStructKey = JSON.stringify(
-    state.party.map((c) => [c.level, c.dps, JSON.stringify(c.equipment), c.abilities.join(","), JSON.stringify(c.runes ?? {}), JSON.stringify((c as any).applied_set_bonuses ?? {}), JSON.stringify((c as any).locked_slots ?? []), JSON.stringify((c as any).artifact_slots ?? [])])
+    state.party.map((c) => [c.level, c.dps, JSON.stringify(c.equipment), c.abilities.join(","), JSON.stringify(c.runes ?? {}), JSON.stringify(c.applied_set_bonuses ?? {}), JSON.stringify(c.locked_slots ?? []), JSON.stringify(c.artifact_slots ?? [])])
   ) + "|" + (state.earned_title ?? "");
 
   if (newStructKey !== partyStructKey) {
@@ -535,7 +535,7 @@ function renderParty(state: GameStateDict): void {
         JSON.parse(prevEquipJsonByChar[ci] ?? "{}") ?? {};
       Object.entries(c.equipment).forEach(([slot, item]) => {
         const prevName = prevEquip[slot]?.name ?? null;
-        const newName = (item as { name: string } | null)?.name ?? null;
+        const newName = item?.name ?? null;
         if (newName !== null && newName !== prevName) changedSlots.push([ci, slot]);
       });
     });
@@ -548,7 +548,7 @@ function renderParty(state: GameStateDict): void {
 
     if (partyH2) partyH2.dataset.party = encodeURIComponent(JSON.stringify(
       state.party.map(c => {
-        const upgLevel = (state.upgrades[c.name]?.dps as { level: number } | undefined)?.level ?? 0;
+        const upgLevel = state.upgrades[c.name]?.dps?.level ?? 0;
         return { ...c, effective_dps: c.dps * (1 + DPS_UPGRADE_EFFECT * upgLevel) };
       })
     ));
@@ -560,7 +560,7 @@ function renderParty(state: GameStateDict): void {
           .map((item, idx) => ({ item, idx }))
           .filter(({ item }) => item.slot === matchSlot);
       };
-      const lockedSlots = new Set<string>((c as any).locked_slots ?? []);
+      const lockedSlots = new Set<string>(c.locked_slots ?? []);
       const gearRows = Object.entries(c.equipment)
         .map(([slot, item]) => {
           const locked = lockedSlots.has(slot);
@@ -568,10 +568,10 @@ function renderParty(state: GameStateDict): void {
           if (item) {
             const qc = qualityClass(item.quality);
             const itemJson = encodeURIComponent(JSON.stringify(item));
-            const isSetPiece = !!(item as any).set_name;
+            const isSetPiece = !!item.set_name;
             return `<div class="gear-row filled${isSetPiece ? " set-piece" : ""}${locked ? " gear-locked" : ""}" data-slot="${slot}" data-item="${itemJson}">
               <span class="gear-icon">${SLOT_ICONS[slot]}</span>
-              <span class="gear-name ${qc}">${(item as any).short_name ?? item.name}</span>
+              <span class="gear-name ${qc}">${item.short_name ?? item.name}</span>
               <span class="gear-bonus ${qc}">${formatStats(item.stats ?? { dps: item.damage })}</span>
               ${lockBtn}
               <button class="gear-unequip-btn" data-action="unequip-gear" data-char="${ci}" data-slot="${slot}" title="Unequip">✕</button>
@@ -598,10 +598,10 @@ function renderParty(state: GameStateDict): void {
         })
         .join("");
       const gearDps = Object.values(c.equipment).reduce((sum, item) =>
-        sum + ((item as GearItemDict | null)?.stats?.dps ?? 0), 0);
+        sum + (item?.stats?.dps ?? 0), 0);
       const runeDps = Object.values(c.runes ?? {}).reduce((sum, rune) =>
         sum + (rune?.statKey === "dps" ? (rune?.value ?? 0) : 0), 0);
-      const upgLevel = (state.upgrades[c.name]?.dps as { level: number } | undefined)?.level ?? 0;
+      const upgLevel = state.upgrades[c.name]?.dps?.level ?? 0;
       const upgMult = 1 + DPS_UPGRADE_EFFECT * upgLevel;
       const upgDps = c.dps * (upgMult - 1);
       const dpsData = encodeURIComponent(JSON.stringify({ total: c.dps * upgMult, base: Math.max(0, c.dps - gearDps - runeDps), gear: gearDps, runes: runeDps, upgDps }));
@@ -616,16 +616,16 @@ function renderParty(state: GameStateDict): void {
       const charJson = encodeURIComponent(JSON.stringify({ ...c, effective_dps: c.dps * upgMult }));
       const heroImg = HERO_IMG[c.character_class] ?? HERO_IMG.fighter;
       const runeRowHtml = ALL_SLOTS.map(slot => {
-        const rune = (c.runes ?? {})[slot as keyof typeof c.runes];
+        const rune: Rune | undefined = c.runes?.[slot];
         if (!rune) return `<span class="tt-rune-slot empty"></span>`;
-        const tierClass = (rune as any).tier ?? "lesser";
-        const runeJson = encodeURIComponent(JSON.stringify({ ...(rune as object), slotLabel: SLOT_LABELS[slot] ?? slot }));
+        const tierClass = rune.tier ?? "lesser";
+        const runeJson = encodeURIComponent(JSON.stringify({ ...rune, slotLabel: SLOT_LABELS[slot] ?? slot }));
         return `<span class="tt-rune-slot ${tierClass}" data-rune="${runeJson}"></span>`;
       }).join("");
-      const artifactSlots: ({ id: string; level: number } | null)[] = (c as any).artifact_slots ?? [null, null, null];
+      const artifactSlots: (ArtifactInstance | null)[] = c.artifact_slots ?? [null, null, null];
       const artifactBadgesHtml = artifactSlots.map((inst, si) => {
         if (!inst) return `<span class="char-artifact-badge empty" title="Artifact slot ${si + 1}: empty">·</span>`;
-        const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
+        const def = ARTIFACT_DEFS[inst.id];
         const statLabel = def ? artifactStatLabel(def.id, inst.level) : "";
         const artifactJson = encodeURIComponent(JSON.stringify({ id: inst.id, level: inst.level, name: def?.name ?? inst.id, icon: def?.icon ?? "✨", stat: statLabel }));
         return `<span class="char-artifact-badge filled${inst.level > 0 ? " upgraded" : ""}" data-artifact="${artifactJson}">${def?.icon ?? "✨"}${inst.level > 0 ? `<sup>+${inst.level}</sup>` : ""}</span>`;
@@ -638,7 +638,7 @@ function renderParty(state: GameStateDict): void {
       const equippedItems = Object.values(c.equipment).filter(Boolean) as GearItemDict[];
       const setPieceCounts: Record<string, number> = {};
       for (const item of equippedItems) {
-        const sn = (item as any).set_name as string | undefined;
+        const sn = item.set_name;
         if (sn) setPieceCounts[sn] = (setPieceCounts[sn] ?? 0) + 1;
       }
       const setBonus2pcActive = SET_DEFS.filter(d => (setPieceCounts[d.name] ?? 0) >= 2);
@@ -744,13 +744,13 @@ function renderParty(state: GameStateDict): void {
     state.loot_pool.forEach((item, idx) => {
       const slot = item.slot === "ring2" ? "ring1" : item.slot;
       if (!lootBySlot.has(slot)) lootBySlot.set(slot, []);
-      lootBySlot.get(slot)!.push({ item: item as GearItemDict, idx });
+      lootBySlot.get(slot)!.push({ item, idx });
     });
     const lootCards = partyEl.querySelectorAll<HTMLElement>(".char-card");
     state.party.forEach((c, ci) => {
       const card = lootCards[ci];
       if (!card) return;
-      const lockedSlots = new Set<string>((c as any).locked_slots ?? []);
+      const lockedSlots = new Set<string>(c.locked_slots ?? []);
       card.querySelectorAll<HTMLElement>(".gear-row.empty").forEach(row => {
         const slot = row.dataset.slot;
         if (!slot) return;
@@ -762,7 +762,7 @@ function renderParty(state: GameStateDict): void {
         if (options.length > 0) {
           const optHtml = options.map(({ item: li, idx }) => {
             const qc = qualityClass(li.quality);
-            return `<option value="${idx}" class="${qc}">${(li as any).short_name ?? li.name} (${formatStats(li.stats ?? { dps: li.damage })})</option>`;
+            return `<option value="${idx}" class="${qc}">${li.short_name ?? li.name} (${formatStats(li.stats ?? { dps: li.damage })})</option>`;
           }).join("");
           newRowHtml = `<div class="gear-row empty gear-row-equip${locked ? " gear-locked" : ""}" data-slot="${slot}"><span class="gear-icon">${SLOT_ICONS[slot]}</span><select class="gear-loot-select">${optHtml}</select><button class="gear-equip-from-slot-btn" data-action="equip-loot-on-char" data-char="${ci}" data-slot="${slot}">Equip</button>${lockBtn}</div>`;
         } else {
@@ -785,11 +785,11 @@ function applySlotHighlight(): void {
 /** Renders the loot chest with equip/sell buttons and auto-seller quality checkboxes. */
 function renderLoot(state: GameStateDict): void {
   const loot = state.loot_pool;
-  const ups = state.prestige_upgrades as Record<string, number>;
+  const ups = state.prestige_upgrades;
   const autoSellOwned = (ups["auto_seller"] ?? 0) > 0;
   const autoEquipOwned = (ups["auto_equip"] ?? 0) > 0;
   const stashUnlocked = (ups["stash"] ?? 0) > 0;
-  const stash: GameStateDict["loot_pool"] = (state as any).gear_stash ?? [];
+  const stash = state.gear_stash ?? [];
   const stashSizes = [3, 6, 10, 15];
   const stashLevel = ups["stash"] ?? 0;
   const stashMax = stashSizes[stashLevel - 1] ?? 15;
@@ -800,12 +800,12 @@ function renderLoot(state: GameStateDict): void {
   const hasToggles = autoEquipOwned || autoSellOwned;
   togglesSection.hidden = !hasToggles;
   if (hasToggles) {
-    const togglesKey = `${autoEquipOwned}|${(state as any).auto_equip_enabled}|${autoSellOwned}|${(state as any).auto_sell_enabled}`;
+    const togglesKey = `${autoEquipOwned}|${state.auto_equip_enabled}|${autoSellOwned}|${state.auto_sell_enabled}`;
     if (togglesSection.dataset.key !== togglesKey) {
       togglesSection.dataset.key = togglesKey;
       const btns = [
-        autoEquipOwned ? `<button class="auto-toggle-btn${(state as any).auto_equip_enabled ? " on" : ""}" data-action="toggle-auto-action" data-type="auto_equip">Auto Equip: ${(state as any).auto_equip_enabled ? "ON" : "OFF"}</button>` : "",
-        autoSellOwned  ? `<button class="auto-toggle-btn${(state as any).auto_sell_enabled  ? " on" : ""}" data-action="toggle-auto-action" data-type="auto_sell">Auto Sell: ${(state as any).auto_sell_enabled  ? "ON" : "OFF"}</button>` : "",
+        autoEquipOwned ? `<button class="auto-toggle-btn${state.auto_equip_enabled ? " on" : ""}" data-action="toggle-auto-action" data-type="auto_equip">Auto Equip: ${state.auto_equip_enabled ? "ON" : "OFF"}</button>` : "",
+        autoSellOwned  ? `<button class="auto-toggle-btn${state.auto_sell_enabled  ? " on" : ""}" data-action="toggle-auto-action" data-type="auto_sell">Auto Sell: ${state.auto_sell_enabled ? "ON" : "OFF"}</button>` : "",
       ].filter(Boolean).join("");
       togglesSection.innerHTML = btns;
     }
@@ -832,7 +832,7 @@ function renderLoot(state: GameStateDict): void {
           const [tri, triCls] = lootTier(item, state.party);
           const qc = qualityClass(item.quality);
           const itemJson = encodeURIComponent(JSON.stringify(item));
-          const setName = (item as any).set_name as string | undefined;
+          const setName = item.set_name;
           const displayName = setName ? `${setName} ${item.slot_display}` : (item.short_name ?? item.name);
           return `
 <div class="loot-item${setName ? " set-piece" : ""}" data-slot="${item.slot}" data-item="${itemJson}">
@@ -868,13 +868,13 @@ function renderLoot(state: GameStateDict): void {
 
 /** Renders the gear stash panel if the stash upgrade is purchased. */
 function renderStash(state: GameStateDict): void {
-  const ups = state.prestige_upgrades as Record<string, number>;
+  const ups = state.prestige_upgrades;
   const stashLevel = ups["stash"] ?? 0;
   const section = document.getElementById("stash-section")!;
   section.hidden = stashLevel === 0;
   if (stashLevel === 0) return;
 
-  const stash: GameStateDict["loot_pool"] = (state as any).gear_stash ?? [];
+  const stash = state.gear_stash ?? [];
   const stashSizes = [3, 6, 10, 15];
   const stashMax = stashSizes[stashLevel - 1] ?? 15;
   const partyNames = state.party.map(c => c.name);
@@ -893,7 +893,7 @@ function renderStash(state: GameStateDict): void {
   container.innerHTML = stash.map((item, idx) => {
     const qc = qualityClass(item.quality);
     const statsText = formatLootStats("", item.stats ?? {});
-    const setName = (item as any).set_name as string | undefined;
+    const setName = item.set_name;
     const displayName = setName ? `${setName} ${item.slot_display}` : (item.short_name ?? item.name);
     const charSel = multiChar
       ? `<select class="stash-char-select">${charOptions}</select>`
@@ -1032,17 +1032,17 @@ function updateProfileDropdownStats(state: GameStateDict): void {
     const el = document.getElementById(id);
     if (el) el.textContent = val;
   };
-  const hero = state.party?.[0] as any;
+  const hero = state.party?.[0];
   if (hero) {
     set("pstat-hero-name",   hero.name ?? "—");
     set("pstat-hero-class",  hero.character_class ?? "—");
     set("pstat-hero-level",  String(hero.level ?? 1));
     set("pstat-hero-floor",  String(state.dungeon_level ?? 1));
-    set("pstat-hero-gold",   formatNumber(state.gold as number ?? 0) + "g");
+    set("pstat-hero-gold",   formatNumber(state.gold ?? 0) + "g");
     set("pstat-hero-kills",  String(state.kills ?? 0));
     set("pstat-hero-deaths", String(state.deaths ?? 0));
   }
-  set("pstat-acc-dungeon",   String((state.dungeon_index as number ?? 0) + 1));
+  set("pstat-acc-dungeon",   String((state.dungeon_index ?? 0) + 1));
   set("pstat-acc-best",      String(state.lifetime_best_level ?? 1));
   set("pstat-acc-prestiges", String(state.total_prestiges ?? 0));
   set("pstat-acc-kills",     String(state.lifetime_kills ?? 0));
@@ -1121,7 +1121,7 @@ function renderCustomizeModal(state: GameStateDict): void {
   const earnedBorders = new Set<string>(state.earned_borders ?? ["none"]);
   const selectedAvatar = state.selected_avatar ?? "default";
   const selectedBorder = state.selected_border ?? "none";
-  const earnedTitles: string[] = (state.earned_titles as string[] | undefined) ?? [];
+  const earnedTitles: string[] = state.earned_titles ?? [];
   const selectedTitle = state.earned_title ?? "nobody";
   const allTitles = ["nobody", ...earnedTitles];
 
@@ -1170,8 +1170,8 @@ function renderPrestigeShop(state: GameStateDict): void {
   const pts = state.prestige_points;
   $("prestige-points-display").textContent = pts > 0 ? `(${formatNumber(pts)} renown)` : "";
 
-  const ups = state.prestige_upgrades as Record<string, number>;
-  const guildUpgrades = state.guild_upgrades as Record<string, number>;
+  const ups = state.prestige_upgrades;
+  const guildUpgrades = state.guild_upgrades;
   const companionHall = guildUpgrades["companion_hall"] ?? 0;
 
   // --- Party Members unified card ---
@@ -1248,7 +1248,7 @@ function renderPrestigeShop(state: GameStateDict): void {
     return a.cost - b.cost;
   });
 
-  const guildUps = state.guild_upgrades as Record<string, number>;
+  const guildUps = state.guild_upgrades;
   const eternalUnlocked = (guildUps["eternal_cycle"] ?? 0) >= 1;
   const autoEnabled = state.auto_prestige_enabled ?? false;
   const autoThreshold = state.auto_prestige_threshold ?? 5;
@@ -1320,7 +1320,7 @@ function guildUpgradePreview(type: string, stacks: number, lootMax: number): str
 }
 
 function renderGuildHall(state: GameStateDict): void {
-  const owned = state.guild_upgrades as Record<string, number>;
+  const owned = state.guild_upgrades;
   const affordKey = Object.keys(GUILD_HALL_META).map(type => {
     const stacks = owned[type] ?? 0;
     const costs = GUILD_HALL_COSTS[type];
@@ -1362,8 +1362,8 @@ function renderGuildHall(state: GameStateDict): void {
   }).join("");
 
   const runeForge = owned["rune_forge"] ?? 0;
-  const runeInv: any[] = state.rune_inventory ?? [];
-  const hasCombineAll = (state.prestige_upgrades as Record<string, number>)?.["combine_all_runes"] >= 1;
+  const runeInv: Rune[] = state.rune_inventory ?? [];
+  const hasCombineAll = (state.prestige_upgrades["combine_all_runes"] ?? 0) >= 1;
 
   $("guild-hall-items").innerHTML = upgradesHtml;
   renderPartyRunePanel(runeInv, state.party, runeForge);
@@ -1383,7 +1383,7 @@ const SLOT_LABELS: Record<string, string> = {
 };
 
 
-function renderPartyRunePanel(runeInv: any[], party: any[], runeForge: number): void {
+function renderPartyRunePanel(runeInv: Rune[], party: CharDict[], runeForge: number): void {
   const el = $("party-rune-panel");
   if (runeForge < 1) {
     el.innerHTML = `<div class="prune-empty">Unlock the Rune Forge in the Guild Hall to start socketing runes.</div>`;
@@ -1395,17 +1395,17 @@ function renderPartyRunePanel(runeInv: any[], party: any[], runeForge: number): 
   const runeOptions = runeInv.length === 0
     ? `<option value="">— no runes —</option>`
     : [...runeInv]
-        .sort((a: any, b: any) => {
+        .sort((a, b) => {
           const td = TIER_ORDER_PR.indexOf(b.tier) - TIER_ORDER_PR.indexOf(a.tier);
           return td !== 0 ? td : a.type.localeCompare(b.type);
         })
-        .map((r: any) => {
+        .map(r => {
           const icon = RUNE_ICONS[r.type] ?? "🔮";
           return `<option value="${r.id}">${TIER_ICONS[r.tier] ?? "◆"} ${icon} ${r.name}</option>`;
         }).join("");
   const hasRunes = runeInv.length > 0;
 
-  const charBlocks = party.map((c: any, charIdx: number) => {
+  const charBlocks = party.map((c, charIdx) => {
     const slots = ALL_SLOTS.map(slot => {
       const rune = c.runes?.[slot];
       const icon = SLOT_ICONS[slot] ?? "◻";
@@ -1445,7 +1445,7 @@ function renderPartyRunePanel(runeInv: any[], party: any[], runeForge: number): 
   el.innerHTML = charBlocks;
 }
 
-function buildSlotOptions(char: any): string {
+function buildSlotOptions(char: CharDict): string {
   return ALL_SLOTS.map(s => {
     const existing = char.runes?.[s];
     const label = SLOT_LABELS[s] + (existing ? ` (${existing.tier})` : "");
@@ -1453,7 +1453,7 @@ function buildSlotOptions(char: any): string {
   }).join("");
 }
 
-function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number, hasCombineAll = false): void {
+function renderLootRuneInventory(runeInv: Rune[], party: CharDict[], runeForge: number, hasCombineAll = false): void {
   const runesTabBtn = document.getElementById("loot-stab-runes");
   if (runesTabBtn) runesTabBtn.hidden = runeForge < 1;
   const runeCountEl = document.getElementById("loot-rune-count");
@@ -1462,7 +1462,7 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
   // Dot is set after combinePairs + ancientCount are computed — see below
   if (runeForge < 1) { el.innerHTML = ""; return; }
 
-  const charOptions = party.map((c: any, i: number) =>
+  const charOptions = party.map((c, i) =>
     `<option value="${i}">${c.name}</option>`
   ).join("");
 
@@ -1470,7 +1470,7 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
   const SELL_VALUES: Record<string, number> = { lesser: 10, greater: 30, flawless: 90, ancient: 250 };
   const TIER_ORDER = ["lesser", "greater", "flawless", "ancient"];
 
-  const sortedRuneInv = [...runeInv].sort((a: any, b: any) => {
+  const sortedRuneInv = [...runeInv].sort((a, b) => {
     const tierDiff = TIER_ORDER.indexOf(b.tier) - TIER_ORDER.indexOf(a.tier);
     if (tierDiff !== 0) return tierDiff;
     return a.type.localeCompare(b.type);
@@ -1478,7 +1478,7 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
 
   const items = sortedRuneInv.length === 0
     ? `<div class="prune-empty">No runes — bosses have a 20% chance to drop one, elites have a 10% chance.</div>`
-    : sortedRuneInv.map((rune: any, _: number) => {
+    : sortedRuneInv.map(rune => {
         const i = runeInv.indexOf(rune);
         const runeIcon = RUNE_ICONS[rune.type] ?? "🔮";
         const statLabel = RUNE_STAT_LABELS[rune.statKey] ?? rune.statKey;
@@ -1504,10 +1504,10 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
         </div>`;
       }).join("");
 
-  const sellAllVal = runeInv.reduce((s: number, r: any) => s + (SELL_VALUES[r.tier] ?? 10), 0);
+  const sellAllVal = runeInv.reduce((s, r) => s + (SELL_VALUES[r.tier] ?? 10), 0);
 
-  const maxCombineTier = runeForge >= 4 ? "flawless" : runeForge >= 3 ? "greater" : "lesser";
-  const combinePairs = runeForge >= 2 ? findCombinePairs(runeInv, maxCombineTier as any) : [];
+  const maxCombineTier: Rune["tier"] = runeForge >= 4 ? "flawless" : runeForge >= 3 ? "greater" : "lesser";
+  const combinePairs = runeForge >= 2 ? findCombinePairs(runeInv, maxCombineTier) : [];
   const combineAllBtn = hasCombineAll && runeForge >= 2 && combinePairs.length > 0
     ? `<button class="rune-combine-all-btn" data-action="combine-all-runes">Combine All</button>`
     : "";
@@ -1528,7 +1528,7 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
           ? `<div class="rune-combine-hint">Rune Forge Tier 4 unlocks combining flawless runes into ancient.</div>`
           : "";
 
-  const ancientCount = runeInv.filter((r: any) => r.tier === "ancient").length;
+  const ancientCount = runeInv.filter(r => r.tier === "ancient").length;
   const canForge = ancientCount >= 10;
   const runeHasAction = canForge || combinePairs.length > 0;
   const runeDotEl = document.getElementById("loot-rune-dot");
@@ -1566,14 +1566,14 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
 }
 
 function renderArtifactPanel(state: GameStateDict): void {
-  const artifactInv: { id: string; level: number }[] = (state as any).artifact_inventory ?? [];
+  const artifactInv: ArtifactInstance[] = state.artifact_inventory ?? [];
   const party = state.party;
 
-  const newArtKey = artifactInv.map(a => `${a.id}:${a.level}`).join(",") + "|" + party.map((c: any) => (c.artifact_slots ?? []).map((s: any) => s ? `${s.id}:${s.level}` : "null").join(",")).join("|");
+  const newArtKey = artifactInv.map(a => `${a.id}:${a.level}`).join(",") + "|" + party.map(c => (c.artifact_slots ?? []).map(s => s ? `${s.id}:${s.level}` : "null").join(",")).join("|");
   if (newArtKey === artifactKey) return;
   artifactKey = newArtKey;
 
-  const hasAnyArtifact = artifactInv.length > 0 || party.some((c: any) => c.artifact_slots?.some((s: any) => s !== null));
+  const hasAnyArtifact = artifactInv.length > 0 || party.some(c => c.artifact_slots?.some(s => s !== null));
 
   const lootArtBtn = document.getElementById("loot-stab-artifacts");
   const ptabBtn = document.getElementById("ptab-artifacts-btn");
@@ -1593,8 +1593,8 @@ function renderArtifactPanel(state: GameStateDict): void {
   if (artifactDotEl) artifactDotEl.hidden = !levelUpPossible;
 
   // Build character + slot options for equip dropdowns
-  const charSlotOptions = party.map((c: any, ci: number) => {
-    const slots: ({ id: string; level: number } | null)[] = c.artifact_slots ?? [null, null, null];
+  const charSlotOptions = party.map((c, ci) => {
+    const slots: (ArtifactInstance | null)[] = c.artifact_slots ?? [null, null, null];
     return slots.map((s, si) =>
       s ? "" : `<option value="${ci}:${si}">${c.name} — slot ${si + 1}</option>`
     ).join("");
@@ -1604,14 +1604,14 @@ function renderArtifactPanel(state: GameStateDict): void {
   const invEl = document.getElementById("artifact-inventory");
   if (!invEl) return;
 
-  function instLabel(inst: { id: string; level: number }): string {
-    const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
+  function instLabel(inst: ArtifactInstance): string {
+    const def = ARTIFACT_DEFS[inst.id];
     return `${def?.icon ?? "✨"} ${def?.name ?? inst.id}${inst.level > 0 ? ` <span class="artifact-level-badge">+${inst.level}</span>` : ""}`;
   }
 
   const sortedArtifactIndices = artifactInv.map((_, i) => i).sort((a, b) => {
-    const defA = ARTIFACT_DEFS[artifactInv[a].id as keyof typeof ARTIFACT_DEFS];
-    const defB = ARTIFACT_DEFS[artifactInv[b].id as keyof typeof ARTIFACT_DEFS];
+    const defA = ARTIFACT_DEFS[artifactInv[a].id];
+    const defB = ARTIFACT_DEFS[artifactInv[b].id];
     const nameCmp = (defA?.name ?? artifactInv[a].id).localeCompare(defB?.name ?? artifactInv[b].id);
     if (nameCmp !== 0) return nameCmp;
     return artifactInv[b].level - artifactInv[a].level; // higher level first within same name
@@ -1621,7 +1621,7 @@ function renderArtifactPanel(state: GameStateDict): void {
     ? `<div class="artifact-empty">No artifacts in inventory.</div>`
     : sortedArtifactIndices.map(i => {
         const inst = artifactInv[i];
-        const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
+        const def = ARTIFACT_DEFS[inst.id];
         if (!def) return "";
         const sellVal = def.sellValue * (inst.level + 1);
         const fuelCount = artifactInv.filter((o, j) => j !== i && o.id === inst.id).length;
@@ -1644,17 +1644,17 @@ function renderArtifactPanel(state: GameStateDict): void {
     const artifactOptions = artifactInv.length === 0
       ? `<option value="">— no artifacts —</option>`
       : artifactInv.map((inst, i) => {
-          const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
+          const def = ARTIFACT_DEFS[inst.id];
           const lvlLabel = inst.level > 0 ? ` +${inst.level}` : "";
           return `<option value="${i}">${def?.icon ?? "✨"} ${def?.name ?? inst.id}${lvlLabel}</option>`;
         }).join("");
     const hasArtifacts = artifactInv.length > 0;
 
-    const charBlocks = party.map((c: any, charIdx: number) => {
-      const slots: ({ id: string; level: number } | null)[] = c.artifact_slots ?? [null, null, null];
+    const charBlocks = party.map((c, charIdx) => {
+      const slots: (ArtifactInstance | null)[] = c.artifact_slots ?? [null, null, null];
       const slotRows = slots.map((inst, slotIdx) => {
         if (inst) {
-          const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
+          const def = ARTIFACT_DEFS[inst.id];
           return `<div class="artifact-slot filled" data-action="open-equipped-artifact-modal" data-char-idx="${charIdx}" data-slot-idx="${slotIdx}" role="button" tabindex="0">
             <span class="artifact-slot-icon">${def?.icon ?? "✨"}</span>
             <span class="artifact-slot-name">${def?.name ?? inst.id}${inst.level > 0 ? ` <span class="artifact-level-badge">+${inst.level}</span>` : ""}</span>
@@ -1683,7 +1683,7 @@ function renderArtifactPanel(state: GameStateDict): void {
 }
 
 function openArtifactModal(invIdx: number, state: GameStateDict): void {
-  const inv: { id: string; level: number }[] = (state as any).artifact_inventory ?? [];
+  const inv: ArtifactInstance[] = state.artifact_inventory ?? [];
   const inst = inv[invIdx];
   if (!inst) return;
   artifactModalArtId = inst.id;
@@ -1703,7 +1703,7 @@ function closeArtifactModal(): void {
 }
 
 function openEquippedArtifactModal(charIdx: number, slotIdx: number, state: GameStateDict): void {
-  const inst = (state.party[charIdx] as any)?.artifact_slots?.[slotIdx];
+  const inst = state.party[charIdx]?.artifact_slots?.[slotIdx];
   if (!inst) return;
   artifactModalArtId = inst.id;
   artifactModalTargetIdx = -1;
@@ -1719,20 +1719,20 @@ function renderArtifactModalBody(state: GameStateDict): void {
   const el = document.getElementById("artifact-detail-body");
   if (!el) return;
 
-  const inv: { id: string; level: number; fuel: number }[] = (state as any).artifact_inventory ?? [];
+  const inv: ArtifactInstance[] = state.artifact_inventory ?? [];
   const party = state.party;
 
   // Resolve target artifact and context (equipped or inventory)
   const isEquipped = artifactModalTargetIdx === -1 && artifactModalCharIdx >= 0;
-  let inst: { id: string; level: number; fuel: number } | null = null;
+  let inst: ArtifactInstance | null = null;
   let charName = "";
 
   if (isEquipped) {
-    const char = party[artifactModalCharIdx] as any;
+    const char = party[artifactModalCharIdx];
     const raw = char?.artifact_slots?.[artifactModalSlotIdx];
     if (!raw || raw.id !== artifactModalArtId) { closeArtifactModal(); return; }
     inst = { id: raw.id, level: raw.level ?? 0, fuel: raw.fuel ?? 0 };
-    charName = char.name ?? "";
+    charName = char?.name ?? "";
   } else {
     const raw = inv[artifactModalTargetIdx];
     if (!raw || raw.id !== artifactModalArtId) {
@@ -1745,7 +1745,7 @@ function renderArtifactModalBody(state: GameStateDict): void {
   }
   if (!inst) { closeArtifactModal(); return; }
 
-  const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
+  const def = ARTIFACT_DEFS[inst.id];
   if (!def) { closeArtifactModal(); return; }
 
   const titleEl = document.getElementById("artifact-detail-title");
@@ -1818,8 +1818,8 @@ function renderArtifactModalBody(state: GameStateDict): void {
         </button>
       </div>`;
   } else {
-    const charSlotOptions = party.map((c: any, ci: number) => {
-      const slots: ({ id: string; level: number } | null)[] = c.artifact_slots ?? [null, null, null];
+    const charSlotOptions = party.map((c, ci) => {
+      const slots: (ArtifactInstance | null)[] = c.artifact_slots ?? [null, null, null];
       return slots.map((s, si) =>
         s ? "" : `<option value="${ci}:${si}">${c.name} — slot ${si + 1}</option>`
       ).join("");
@@ -1952,7 +1952,7 @@ function applyFuelBarPreview(storedFuel: number, instLevel: number, totalAdded: 
   if (label) label.textContent = `${fuel} / ${level + 1} units (preview)`;
 }
 
-function findCombinePairs(runeInv: any[], maxTier: "lesser" | "greater" | "flawless" | "ancient" = "lesser"): { id1: string; id2: string; type: string; tier: string; name: string; result: string }[] {
+function findCombinePairs(runeInv: Rune[], maxTier: Rune["tier"] = "lesser"): { id1: string; id2: string; type: string; tier: string; name: string; result: string }[] {
   const TIER_ORDER = ["lesser", "greater", "flawless", "ancient"];
   const maxIdx = TIER_ORDER.indexOf(maxTier);
   const combinableTiers = TIER_ORDER.slice(0, maxIdx + 1);
@@ -2076,7 +2076,7 @@ function updateLifetimeStats(state: GameStateDict): void {
   const enemyKillsEl = document.getElementById("lt-enemy-kills");
   const enemySection = document.getElementById("lt-enemy-section");
   if (!enemyKillsEl || !enemySection) return;
-  const ekMap = state.lifetime_enemy_kills as Record<string, number>;
+  const ekMap = state.lifetime_enemy_kills;
   const entries = Object.entries(ekMap).sort((a, b) => b[1] - a[1]);
   if (entries.length === 0) {
     enemySection.hidden = true;
@@ -2096,7 +2096,7 @@ function updateShopBadge(state: GameStateDict): void {
     const ups = state.upgrades[c.name];
     return ups && Object.values(ups).some(u => state.gold >= u.cost);
   });
-  const ups = state.prestige_upgrades as Record<string, number>;
+  const ups = state.prestige_upgrades;
   const canBuyPrestige = Object.keys(PRESTIGE_SHOP_META).some(type => {
     const owned = ups[type] ?? 0;
     const atMax = owned >= (PRESTIGE_SHOP_META[type]?.max ?? 1);
@@ -2108,11 +2108,11 @@ function updateShopBadge(state: GameStateDict): void {
     const cost = prestigeUpgradeCost(type, owned);
     return !atMax && !prereqMissing && state.dungeon_index >= dungeonReq && state.prestige_points >= cost;
   });
-  const guildUpgrades = state.guild_upgrades as Record<string, number>;
+  const guildUpgrades = state.guild_upgrades;
   const guildUnlocked = (ups["guild_hall_access"] ?? 0) > 0;
   const canBuyGuild = guildUnlocked && Object.entries(GUILD_HALL_COSTS).some(([type, costs]) => {
     const owned = guildUpgrades[type] ?? 0;
-    const dungeonReq = (GUILD_HALL_DUNGEON_REQ as Record<string, number>)[type] ?? 0;
+    const dungeonReq = GUILD_HALL_DUNGEON_REQ[type] ?? 0;
     return owned < costs.length && state.dungeon_index >= dungeonReq && state.gold >= costs[owned];
   });
   badge.hidden = !(canBuyUpgrade || canBuyPrestige || canBuyGuild);
@@ -2429,7 +2429,7 @@ function appendLog(msg: string): void {
   while (log.children.length > 50) log.lastElementChild!.remove();
 }
 
-function buildRuneTooltipHTML(rune: any): string {
+function buildRuneTooltipHTML(rune: Rune & { slotLabel: string }): string {
   const icon = RUNE_ICONS[rune.type] ?? "🔮";
   const statLabel = RUNE_STAT_LABELS[rune.statKey] ?? rune.statKey;
   const TIER_LABELS: Record<string, string> = { lesser: "Lesser", greater: "Greater", flawless: "Flawless", ancient: "Ancient" };
@@ -2483,16 +2483,18 @@ function buildTooltipHTML(item: GearItemDict, equippedSetCount = 0): string {
 }
 
 type CharDict = GameStateDict["party"][number];
+/** CharDict augmented with the renderer-computed effective_dps (base dps × upgrade multiplier). */
+type CharDictWithEffectiveDps = CharDict & { effective_dps?: number };
 
 function statRow(label: string, value: string, cls = ""): string {
   return `<div class="tt-stat-row"><span class="tt-stat-label">${label}</span><span class="tt-stat-val${cls ? " " + cls : ""}">${value}</span></div>`;
 }
 
-function buildCharTooltipHTML(c: CharDict): string {
+function buildCharTooltipHTML(c: CharDictWithEffectiveDps): string {
   const classAbilities = CLASS_ABILITIES[c.character_class] ?? [];
   const unlocked = classAbilities.filter(a => c.abilities.includes(a.id));
   const rows = [
-    statRow("DPS",        `${((c as any).effective_dps ?? c.dps).toFixed(1)}`,                   "tt-dps"),
+    statRow("DPS",        `${(c.effective_dps ?? c.dps).toFixed(1)}`,                   "tt-dps"),
     statRow("HP",         `${Math.ceil(c.health)} / ${c.max_health}`, "tt-hp"),
     c.click_bonus   > 0 ? statRow("Click Dmg",   `+${c.click_bonus.toFixed(1)}`,           "tt-click") : "",
     c.damage_reduction > 0 ? statRow("Defense",  `+${(c.damage_reduction * 100).toFixed(0)}%`, "tt-def")   : "",
@@ -2503,12 +2505,12 @@ function buildCharTooltipHTML(c: CharDict): string {
     c.xp_multiplier > 1 ? statRow("XP Bonus",    `${(c.xp_multiplier * 100).toFixed(0)}%`, "tt-xp")   : "",
   ].filter(Boolean).join("");
   const runeSquares = ALL_SLOTS.map(slot => {
-    const rune = (c.runes ?? {})[slot as keyof typeof c.runes];
+    const rune: Rune | undefined = c.runes?.[slot];
     if (!rune) return `<span class="tt-rune-slot empty" title="${SLOT_LABELS[slot] ?? slot}: empty"></span>`;
-    const tierClass = (rune as any).tier ?? "lesser";
-    const icon = RUNE_ICONS[(rune as any).type] ?? "🔮";
-    const statLabel = RUNE_STAT_LABELS[(rune as any).statKey] ?? (rune as any).statKey;
-    return `<span class="tt-rune-slot ${tierClass}" title="${SLOT_LABELS[slot] ?? slot}: ${icon} +${(rune as any).value} ${statLabel}"></span>`;
+    const tierClass = rune.tier ?? "lesser";
+    const icon = RUNE_ICONS[rune.type] ?? "🔮";
+    const statLabel = RUNE_STAT_LABELS[rune.statKey] ?? rune.statKey;
+    return `<span class="tt-rune-slot ${tierClass}" title="${SLOT_LABELS[slot] ?? slot}: ${icon} +${rune.value} ${statLabel}"></span>`;
   }).join("");
   const runeBadges = `<div class="tt-divider"></div><div class="tt-rune-row">${runeSquares}</div>`;
   const abilityBadges = unlocked.length
@@ -2526,9 +2528,9 @@ function buildCharTooltipHTML(c: CharDict): string {
   `;
 }
 
-function buildPartyTooltipHTML(party: CharDict[]): string {
+function buildPartyTooltipHTML(party: CharDictWithEffectiveDps[]): string {
   const alive = party.filter(c => c.health > 0);
-  const totalDps  = alive.reduce((s, c) => s + ((c as any).effective_dps ?? c.dps), 0);
+  const totalDps  = alive.reduce((s, c) => s + (c.effective_dps ?? c.dps), 0);
   const totalHp   = party.reduce((s, c) => s + Math.ceil(c.health), 0);
   const totalMaxHp = party.reduce((s, c) => s + c.max_health, 0);
   const members = party.map(c =>
@@ -3123,7 +3125,7 @@ function continueGame(saved: GameStateDict): void {
 function isAutoAttackUnlocked(): boolean {
   if (!game) return false;
   const state = JSON.parse(game.respond()) as GameStateDict;
-  return ((state.guild_upgrades as Record<string, number>)["auto_attack"] ?? 0) >= 1;
+  return ((state.guild_upgrades)["auto_attack"] ?? 0) >= 1;
 }
 
 function updateAutoAttackButton(): void {
@@ -3625,7 +3627,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (game) {
         const state = JSON.parse(game.respond()) as GameStateDict;
         renderProfileWidget(state);
-        renderHallOfFame((state.retired_heroes ?? []) as RetiredHero[]);
+        renderHallOfFame(state.retired_heroes ?? []);
       }
       $("hall-of-fame-modal").classList.add("open");
     }

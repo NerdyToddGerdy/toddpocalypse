@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.31.11";
+export const VERSION = "v2.31.19";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,62 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.31.19",
+    date: "2026-05-20",
+    changes: [
+      "Internal: type consolidation — removed redundant `inst.id as keyof typeof ARTIFACT_DEFS` casts (ArtifactInstance.id is already ArtifactEffectId) and a `state.retired_heroes as RetiredHero[]` cast",
+    ],
+  },
+  {
+    version: "v2.31.18",
+    date: "2026-05-20",
+    changes: [
+      "Internal: type consolidation — engine.ts and character.ts now use imported Slot/GearStats types instead of inline import() casts, and legacy artifact loaders use explicit (string | ArtifactInstance) unions",
+    ],
+  },
+  {
+    version: "v2.31.17",
+    date: "2026-05-20",
+    changes: [
+      "Internal: type consolidation — removed redundant casts on GearItemDict fields (set_name, short_name), state.prestige_upgrades, state.guild_upgrades, state.death_floors, and state.party[0]",
+    ],
+  },
+  {
+    version: "v2.31.16",
+    date: "2026-05-20",
+    changes: [
+      "Internal: type consolidation — runeInv/party/findCombinePairs/buildRuneTooltipHTML now use Rune and CharDict types instead of any[]",
+    ],
+  },
+  {
+    version: "v2.31.15",
+    date: "2026-05-20",
+    changes: [
+      "Internal: type consolidation — removed remaining inline artifact slot shapes and `c: any` party-map casts in renderArtifactPanel and renderArtifactModalBody, leveraging CharDict and ArtifactInstance",
+    ],
+  },
+  {
+    version: "v2.31.14",
+    date: "2026-05-20",
+    changes: [
+      "Internal: type consolidation — removed (state as any) casts in main.ts and replaced inline artifact shapes with the ArtifactInstance type",
+    ],
+  },
+  {
+    version: "v2.31.13",
+    date: "2026-05-20",
+    changes: [
+      "Internal: type consolidation — removed (c as any) casts in main.ts for CharacterDict fields (artifact_slots, locked_slots, applied_set_bonuses) and Rune fields (tier, type, statKey, value)",
+    ],
+  },
+  {
+    version: "v2.31.12",
+    date: "2026-05-19",
+    changes: [
+      "Internal: type consolidation — added EnemyDict, aligned CharacterDict.artifact_slots and GameStateDict.artifact_inventory with ArtifactInstance",
+    ],
+  },
   {
     version: "v2.31.11",
     date: "2026-05-19",

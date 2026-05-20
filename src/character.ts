@@ -130,7 +130,7 @@ export interface CharacterDict {
   runes?: Partial<Record<Slot, Rune>>;
   applied_set_bonuses?: Record<string, GearStats>;
   locked_slots?: string[];
-  artifact_slots?: ({ id: string; level: number; fuel?: number } | null)[];
+  artifact_slots?: (ArtifactInstance | null)[];
 }
 
 /** A player character or companion with class stats, equipment, and abilities. */
@@ -249,16 +249,16 @@ export class Character {
   }
 
   /** Adds all stat bonuses from a GearStats object to this character. */
-  private applyStats(s: import("./gear.js").GearStats): void {
+  private applyStats(s: GearStats): void {
     this.applyStatsDelta(s, 1);
   }
 
   /** Removes all stat bonuses from a GearStats object from this character. */
-  private removeStats(s: import("./gear.js").GearStats): void {
+  private removeStats(s: GearStats): void {
     this.applyStatsDelta(s, -1);
   }
 
-  private applyStatsDelta(s: import("./gear.js").GearStats, sign: 1 | -1): void {
+  private applyStatsDelta(s: GearStats, sign: 1 | -1): void {
     this.dps += (s.dps ?? 0) * sign;
     const hp = (s.maxHp ?? 0) * sign;
     this.maxHealth += hp;
@@ -407,7 +407,9 @@ export class Character {
     if (d.locked_slots) {
       c.lockedSlots = new Set(d.locked_slots as Slot[]);
     }
-    c.artifactSlots = (d.artifact_slots ?? [null, null, null]).map(s => {
+    // Legacy saves may store artifact IDs as plain strings; current format is ArtifactInstance.
+    const rawSlots = (d.artifact_slots ?? [null, null, null]) as (string | ArtifactInstance | null)[];
+    c.artifactSlots = rawSlots.map(s => {
       if (!s) return null;
       if (typeof s === "string") {
         return LEGACY_UPGRADED_MAP[s]
