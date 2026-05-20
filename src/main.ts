@@ -789,7 +789,7 @@ function renderLoot(state: GameStateDict): void {
   const autoSellOwned = (ups["auto_seller"] ?? 0) > 0;
   const autoEquipOwned = (ups["auto_equip"] ?? 0) > 0;
   const stashUnlocked = (ups["stash"] ?? 0) > 0;
-  const stash: GameStateDict["loot_pool"] = (state as any).gear_stash ?? [];
+  const stash = state.gear_stash ?? [];
   const stashSizes = [3, 6, 10, 15];
   const stashLevel = ups["stash"] ?? 0;
   const stashMax = stashSizes[stashLevel - 1] ?? 15;
@@ -800,12 +800,12 @@ function renderLoot(state: GameStateDict): void {
   const hasToggles = autoEquipOwned || autoSellOwned;
   togglesSection.hidden = !hasToggles;
   if (hasToggles) {
-    const togglesKey = `${autoEquipOwned}|${(state as any).auto_equip_enabled}|${autoSellOwned}|${(state as any).auto_sell_enabled}`;
+    const togglesKey = `${autoEquipOwned}|${state.auto_equip_enabled}|${autoSellOwned}|${state.auto_sell_enabled}`;
     if (togglesSection.dataset.key !== togglesKey) {
       togglesSection.dataset.key = togglesKey;
       const btns = [
-        autoEquipOwned ? `<button class="auto-toggle-btn${(state as any).auto_equip_enabled ? " on" : ""}" data-action="toggle-auto-action" data-type="auto_equip">Auto Equip: ${(state as any).auto_equip_enabled ? "ON" : "OFF"}</button>` : "",
-        autoSellOwned  ? `<button class="auto-toggle-btn${(state as any).auto_sell_enabled  ? " on" : ""}" data-action="toggle-auto-action" data-type="auto_sell">Auto Sell: ${(state as any).auto_sell_enabled  ? "ON" : "OFF"}</button>` : "",
+        autoEquipOwned ? `<button class="auto-toggle-btn${state.auto_equip_enabled ? " on" : ""}" data-action="toggle-auto-action" data-type="auto_equip">Auto Equip: ${state.auto_equip_enabled ? "ON" : "OFF"}</button>` : "",
+        autoSellOwned  ? `<button class="auto-toggle-btn${state.auto_sell_enabled  ? " on" : ""}" data-action="toggle-auto-action" data-type="auto_sell">Auto Sell: ${state.auto_sell_enabled ? "ON" : "OFF"}</button>` : "",
       ].filter(Boolean).join("");
       togglesSection.innerHTML = btns;
     }
@@ -874,7 +874,7 @@ function renderStash(state: GameStateDict): void {
   section.hidden = stashLevel === 0;
   if (stashLevel === 0) return;
 
-  const stash: GameStateDict["loot_pool"] = (state as any).gear_stash ?? [];
+  const stash = state.gear_stash ?? [];
   const stashSizes = [3, 6, 10, 15];
   const stashMax = stashSizes[stashLevel - 1] ?? 15;
   const partyNames = state.party.map(c => c.name);
@@ -1566,7 +1566,7 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
 }
 
 function renderArtifactPanel(state: GameStateDict): void {
-  const artifactInv: { id: string; level: number }[] = (state as any).artifact_inventory ?? [];
+  const artifactInv: ArtifactInstance[] = state.artifact_inventory ?? [];
   const party = state.party;
 
   const newArtKey = artifactInv.map(a => `${a.id}:${a.level}`).join(",") + "|" + party.map((c: any) => (c.artifact_slots ?? []).map((s: any) => s ? `${s.id}:${s.level}` : "null").join(",")).join("|");
@@ -1604,7 +1604,7 @@ function renderArtifactPanel(state: GameStateDict): void {
   const invEl = document.getElementById("artifact-inventory");
   if (!invEl) return;
 
-  function instLabel(inst: { id: string; level: number }): string {
+  function instLabel(inst: ArtifactInstance): string {
     const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
     return `${def?.icon ?? "✨"} ${def?.name ?? inst.id}${inst.level > 0 ? ` <span class="artifact-level-badge">+${inst.level}</span>` : ""}`;
   }
@@ -1683,7 +1683,7 @@ function renderArtifactPanel(state: GameStateDict): void {
 }
 
 function openArtifactModal(invIdx: number, state: GameStateDict): void {
-  const inv: { id: string; level: number }[] = (state as any).artifact_inventory ?? [];
+  const inv: ArtifactInstance[] = state.artifact_inventory ?? [];
   const inst = inv[invIdx];
   if (!inst) return;
   artifactModalArtId = inst.id;
@@ -1719,12 +1719,12 @@ function renderArtifactModalBody(state: GameStateDict): void {
   const el = document.getElementById("artifact-detail-body");
   if (!el) return;
 
-  const inv: { id: string; level: number; fuel: number }[] = (state as any).artifact_inventory ?? [];
+  const inv: ArtifactInstance[] = state.artifact_inventory ?? [];
   const party = state.party;
 
   // Resolve target artifact and context (equipped or inventory)
   const isEquipped = artifactModalTargetIdx === -1 && artifactModalCharIdx >= 0;
-  let inst: { id: string; level: number; fuel: number } | null = null;
+  let inst: ArtifactInstance | null = null;
   let charName = "";
 
   if (isEquipped) {

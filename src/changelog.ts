@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.31.13";
+export const VERSION = "v2.31.14";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.31.14",
+    date: "2026-05-20",
+    changes: [
+      "Internal: type consolidation — removed (state as any) casts in main.ts and replaced inline artifact shapes with the ArtifactInstance type",
+    ],
+  },
   {
     version: "v2.31.13",
     date: "2026-05-20",
