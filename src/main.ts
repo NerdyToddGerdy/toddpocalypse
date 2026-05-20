@@ -1569,11 +1569,11 @@ function renderArtifactPanel(state: GameStateDict): void {
   const artifactInv: ArtifactInstance[] = state.artifact_inventory ?? [];
   const party = state.party;
 
-  const newArtKey = artifactInv.map(a => `${a.id}:${a.level}`).join(",") + "|" + party.map((c: any) => (c.artifact_slots ?? []).map((s: any) => s ? `${s.id}:${s.level}` : "null").join(",")).join("|");
+  const newArtKey = artifactInv.map(a => `${a.id}:${a.level}`).join(",") + "|" + party.map(c => (c.artifact_slots ?? []).map(s => s ? `${s.id}:${s.level}` : "null").join(",")).join("|");
   if (newArtKey === artifactKey) return;
   artifactKey = newArtKey;
 
-  const hasAnyArtifact = artifactInv.length > 0 || party.some((c: any) => c.artifact_slots?.some((s: any) => s !== null));
+  const hasAnyArtifact = artifactInv.length > 0 || party.some(c => c.artifact_slots?.some(s => s !== null));
 
   const lootArtBtn = document.getElementById("loot-stab-artifacts");
   const ptabBtn = document.getElementById("ptab-artifacts-btn");
@@ -1593,8 +1593,8 @@ function renderArtifactPanel(state: GameStateDict): void {
   if (artifactDotEl) artifactDotEl.hidden = !levelUpPossible;
 
   // Build character + slot options for equip dropdowns
-  const charSlotOptions = party.map((c: any, ci: number) => {
-    const slots: ({ id: string; level: number } | null)[] = c.artifact_slots ?? [null, null, null];
+  const charSlotOptions = party.map((c, ci) => {
+    const slots: (ArtifactInstance | null)[] = c.artifact_slots ?? [null, null, null];
     return slots.map((s, si) =>
       s ? "" : `<option value="${ci}:${si}">${c.name} — slot ${si + 1}</option>`
     ).join("");
@@ -1650,8 +1650,8 @@ function renderArtifactPanel(state: GameStateDict): void {
         }).join("");
     const hasArtifacts = artifactInv.length > 0;
 
-    const charBlocks = party.map((c: any, charIdx: number) => {
-      const slots: ({ id: string; level: number } | null)[] = c.artifact_slots ?? [null, null, null];
+    const charBlocks = party.map((c, charIdx) => {
+      const slots: (ArtifactInstance | null)[] = c.artifact_slots ?? [null, null, null];
       const slotRows = slots.map((inst, slotIdx) => {
         if (inst) {
           const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
@@ -1703,7 +1703,7 @@ function closeArtifactModal(): void {
 }
 
 function openEquippedArtifactModal(charIdx: number, slotIdx: number, state: GameStateDict): void {
-  const inst = (state.party[charIdx] as any)?.artifact_slots?.[slotIdx];
+  const inst = state.party[charIdx]?.artifact_slots?.[slotIdx];
   if (!inst) return;
   artifactModalArtId = inst.id;
   artifactModalTargetIdx = -1;
@@ -1728,11 +1728,11 @@ function renderArtifactModalBody(state: GameStateDict): void {
   let charName = "";
 
   if (isEquipped) {
-    const char = party[artifactModalCharIdx] as any;
+    const char = party[artifactModalCharIdx];
     const raw = char?.artifact_slots?.[artifactModalSlotIdx];
     if (!raw || raw.id !== artifactModalArtId) { closeArtifactModal(); return; }
     inst = { id: raw.id, level: raw.level ?? 0, fuel: raw.fuel ?? 0 };
-    charName = char.name ?? "";
+    charName = char?.name ?? "";
   } else {
     const raw = inv[artifactModalTargetIdx];
     if (!raw || raw.id !== artifactModalArtId) {
@@ -1818,8 +1818,8 @@ function renderArtifactModalBody(state: GameStateDict): void {
         </button>
       </div>`;
   } else {
-    const charSlotOptions = party.map((c: any, ci: number) => {
-      const slots: ({ id: string; level: number } | null)[] = c.artifact_slots ?? [null, null, null];
+    const charSlotOptions = party.map((c, ci) => {
+      const slots: (ArtifactInstance | null)[] = c.artifact_slots ?? [null, null, null];
       return slots.map((s, si) =>
         s ? "" : `<option value="${ci}:${si}">${c.name} — slot ${si + 1}</option>`
       ).join("");
