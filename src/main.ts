@@ -1362,7 +1362,7 @@ function renderGuildHall(state: GameStateDict): void {
   }).join("");
 
   const runeForge = owned["rune_forge"] ?? 0;
-  const runeInv: any[] = state.rune_inventory ?? [];
+  const runeInv: Rune[] = state.rune_inventory ?? [];
   const hasCombineAll = (state.prestige_upgrades as Record<string, number>)?.["combine_all_runes"] >= 1;
 
   $("guild-hall-items").innerHTML = upgradesHtml;
@@ -1383,7 +1383,7 @@ const SLOT_LABELS: Record<string, string> = {
 };
 
 
-function renderPartyRunePanel(runeInv: any[], party: any[], runeForge: number): void {
+function renderPartyRunePanel(runeInv: Rune[], party: CharDict[], runeForge: number): void {
   const el = $("party-rune-panel");
   if (runeForge < 1) {
     el.innerHTML = `<div class="prune-empty">Unlock the Rune Forge in the Guild Hall to start socketing runes.</div>`;
@@ -1395,17 +1395,17 @@ function renderPartyRunePanel(runeInv: any[], party: any[], runeForge: number): 
   const runeOptions = runeInv.length === 0
     ? `<option value="">— no runes —</option>`
     : [...runeInv]
-        .sort((a: any, b: any) => {
+        .sort((a, b) => {
           const td = TIER_ORDER_PR.indexOf(b.tier) - TIER_ORDER_PR.indexOf(a.tier);
           return td !== 0 ? td : a.type.localeCompare(b.type);
         })
-        .map((r: any) => {
+        .map(r => {
           const icon = RUNE_ICONS[r.type] ?? "🔮";
           return `<option value="${r.id}">${TIER_ICONS[r.tier] ?? "◆"} ${icon} ${r.name}</option>`;
         }).join("");
   const hasRunes = runeInv.length > 0;
 
-  const charBlocks = party.map((c: any, charIdx: number) => {
+  const charBlocks = party.map((c, charIdx) => {
     const slots = ALL_SLOTS.map(slot => {
       const rune = c.runes?.[slot];
       const icon = SLOT_ICONS[slot] ?? "◻";
@@ -1445,7 +1445,7 @@ function renderPartyRunePanel(runeInv: any[], party: any[], runeForge: number): 
   el.innerHTML = charBlocks;
 }
 
-function buildSlotOptions(char: any): string {
+function buildSlotOptions(char: CharDict): string {
   return ALL_SLOTS.map(s => {
     const existing = char.runes?.[s];
     const label = SLOT_LABELS[s] + (existing ? ` (${existing.tier})` : "");
@@ -1453,7 +1453,7 @@ function buildSlotOptions(char: any): string {
   }).join("");
 }
 
-function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number, hasCombineAll = false): void {
+function renderLootRuneInventory(runeInv: Rune[], party: CharDict[], runeForge: number, hasCombineAll = false): void {
   const runesTabBtn = document.getElementById("loot-stab-runes");
   if (runesTabBtn) runesTabBtn.hidden = runeForge < 1;
   const runeCountEl = document.getElementById("loot-rune-count");
@@ -1462,7 +1462,7 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
   // Dot is set after combinePairs + ancientCount are computed — see below
   if (runeForge < 1) { el.innerHTML = ""; return; }
 
-  const charOptions = party.map((c: any, i: number) =>
+  const charOptions = party.map((c, i) =>
     `<option value="${i}">${c.name}</option>`
   ).join("");
 
@@ -1470,7 +1470,7 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
   const SELL_VALUES: Record<string, number> = { lesser: 10, greater: 30, flawless: 90, ancient: 250 };
   const TIER_ORDER = ["lesser", "greater", "flawless", "ancient"];
 
-  const sortedRuneInv = [...runeInv].sort((a: any, b: any) => {
+  const sortedRuneInv = [...runeInv].sort((a, b) => {
     const tierDiff = TIER_ORDER.indexOf(b.tier) - TIER_ORDER.indexOf(a.tier);
     if (tierDiff !== 0) return tierDiff;
     return a.type.localeCompare(b.type);
@@ -1478,7 +1478,7 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
 
   const items = sortedRuneInv.length === 0
     ? `<div class="prune-empty">No runes — bosses have a 20% chance to drop one, elites have a 10% chance.</div>`
-    : sortedRuneInv.map((rune: any, _: number) => {
+    : sortedRuneInv.map(rune => {
         const i = runeInv.indexOf(rune);
         const runeIcon = RUNE_ICONS[rune.type] ?? "🔮";
         const statLabel = RUNE_STAT_LABELS[rune.statKey] ?? rune.statKey;
@@ -1504,10 +1504,10 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
         </div>`;
       }).join("");
 
-  const sellAllVal = runeInv.reduce((s: number, r: any) => s + (SELL_VALUES[r.tier] ?? 10), 0);
+  const sellAllVal = runeInv.reduce((s, r) => s + (SELL_VALUES[r.tier] ?? 10), 0);
 
-  const maxCombineTier = runeForge >= 4 ? "flawless" : runeForge >= 3 ? "greater" : "lesser";
-  const combinePairs = runeForge >= 2 ? findCombinePairs(runeInv, maxCombineTier as any) : [];
+  const maxCombineTier: Rune["tier"] = runeForge >= 4 ? "flawless" : runeForge >= 3 ? "greater" : "lesser";
+  const combinePairs = runeForge >= 2 ? findCombinePairs(runeInv, maxCombineTier) : [];
   const combineAllBtn = hasCombineAll && runeForge >= 2 && combinePairs.length > 0
     ? `<button class="rune-combine-all-btn" data-action="combine-all-runes">Combine All</button>`
     : "";
@@ -1528,7 +1528,7 @@ function renderLootRuneInventory(runeInv: any[], party: any[], runeForge: number
           ? `<div class="rune-combine-hint">Rune Forge Tier 4 unlocks combining flawless runes into ancient.</div>`
           : "";
 
-  const ancientCount = runeInv.filter((r: any) => r.tier === "ancient").length;
+  const ancientCount = runeInv.filter(r => r.tier === "ancient").length;
   const canForge = ancientCount >= 10;
   const runeHasAction = canForge || combinePairs.length > 0;
   const runeDotEl = document.getElementById("loot-rune-dot");
@@ -1952,7 +1952,7 @@ function applyFuelBarPreview(storedFuel: number, instLevel: number, totalAdded: 
   if (label) label.textContent = `${fuel} / ${level + 1} units (preview)`;
 }
 
-function findCombinePairs(runeInv: any[], maxTier: "lesser" | "greater" | "flawless" | "ancient" = "lesser"): { id1: string; id2: string; type: string; tier: string; name: string; result: string }[] {
+function findCombinePairs(runeInv: Rune[], maxTier: Rune["tier"] = "lesser"): { id1: string; id2: string; type: string; tier: string; name: string; result: string }[] {
   const TIER_ORDER = ["lesser", "greater", "flawless", "ancient"];
   const maxIdx = TIER_ORDER.indexOf(maxTier);
   const combinableTiers = TIER_ORDER.slice(0, maxIdx + 1);
@@ -2429,7 +2429,7 @@ function appendLog(msg: string): void {
   while (log.children.length > 50) log.lastElementChild!.remove();
 }
 
-function buildRuneTooltipHTML(rune: any): string {
+function buildRuneTooltipHTML(rune: Rune & { slotLabel: string }): string {
   const icon = RUNE_ICONS[rune.type] ?? "🔮";
   const statLabel = RUNE_STAT_LABELS[rune.statKey] ?? rune.statKey;
   const TIER_LABELS: Record<string, string> = { lesser: "Lesser", greater: "Greater", flawless: "Flawless", ancient: "Ancient" };
