@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.31.12";
+export const VERSION = "v2.31.13";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.31.13",
+    date: "2026-05-20",
+    changes: [
+      "Internal: type consolidation — removed (c as any) casts in main.ts for CharacterDict fields (artifact_slots, locked_slots, applied_set_bonuses) and Rune fields (tier, type, statKey, value)",
+    ],
+  },
   {
     version: "v2.31.12",
     date: "2026-05-19",

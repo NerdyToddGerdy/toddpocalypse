@@ -1,7 +1,7 @@
-import { GameState, type GameStateDict, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock, ARTIFACT_DEFS, artifactFuelValue, artifactStatLabel, AVATAR_DEFS, BORDER_DEFS, formatNumber, LEGACY_UNLOCKS, type RetiredHero, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT, DEFENSE_UPGRADE_EFFECT } from "./engine.js";
+import { GameState, type GameStateDict, type ArtifactInstance, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock, ARTIFACT_DEFS, artifactFuelValue, artifactStatLabel, AVATAR_DEFS, BORDER_DEFS, formatNumber, LEGACY_UNLOCKS, type RetiredHero, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT, DEFENSE_UPGRADE_EFFECT } from "./engine.js";
 import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, SET_DEFS, buildSetBonusHTML, type GearStats, type GearItemDict } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
-import { CLASS_ABILITIES } from "./character.js";
+import { CLASS_ABILITIES, type Rune } from "./character.js";
 import { parseAuthHash, getStoredToken, storeToken, clearToken, getLoginUrl, cloudLoad, cloudSave, cloudClaimSession, resetSessionId, getOrCreateSessionId } from "./cloud.js";
 
 const HERO_IMG: Record<string, string> = {
@@ -524,7 +524,7 @@ function renderParty(state: GameStateDict): void {
   const newLootKey = state.loot_pool.map(i => i.slot + i.name).join("|");
   // Health, XP, and loot pool are intentionally excluded — they are updated in-place below.
   const newStructKey = JSON.stringify(
-    state.party.map((c) => [c.level, c.dps, JSON.stringify(c.equipment), c.abilities.join(","), JSON.stringify(c.runes ?? {}), JSON.stringify((c as any).applied_set_bonuses ?? {}), JSON.stringify((c as any).locked_slots ?? []), JSON.stringify((c as any).artifact_slots ?? [])])
+    state.party.map((c) => [c.level, c.dps, JSON.stringify(c.equipment), c.abilities.join(","), JSON.stringify(c.runes ?? {}), JSON.stringify(c.applied_set_bonuses ?? {}), JSON.stringify(c.locked_slots ?? []), JSON.stringify(c.artifact_slots ?? [])])
   ) + "|" + (state.earned_title ?? "");
 
   if (newStructKey !== partyStructKey) {
@@ -560,7 +560,7 @@ function renderParty(state: GameStateDict): void {
           .map((item, idx) => ({ item, idx }))
           .filter(({ item }) => item.slot === matchSlot);
       };
-      const lockedSlots = new Set<string>((c as any).locked_slots ?? []);
+      const lockedSlots = new Set<string>(c.locked_slots ?? []);
       const gearRows = Object.entries(c.equipment)
         .map(([slot, item]) => {
           const locked = lockedSlots.has(slot);
@@ -616,13 +616,13 @@ function renderParty(state: GameStateDict): void {
       const charJson = encodeURIComponent(JSON.stringify({ ...c, effective_dps: c.dps * upgMult }));
       const heroImg = HERO_IMG[c.character_class] ?? HERO_IMG.fighter;
       const runeRowHtml = ALL_SLOTS.map(slot => {
-        const rune = (c.runes ?? {})[slot as keyof typeof c.runes];
+        const rune: Rune | undefined = c.runes?.[slot];
         if (!rune) return `<span class="tt-rune-slot empty"></span>`;
-        const tierClass = (rune as any).tier ?? "lesser";
-        const runeJson = encodeURIComponent(JSON.stringify({ ...(rune as object), slotLabel: SLOT_LABELS[slot] ?? slot }));
+        const tierClass = rune.tier ?? "lesser";
+        const runeJson = encodeURIComponent(JSON.stringify({ ...rune, slotLabel: SLOT_LABELS[slot] ?? slot }));
         return `<span class="tt-rune-slot ${tierClass}" data-rune="${runeJson}"></span>`;
       }).join("");
-      const artifactSlots: ({ id: string; level: number } | null)[] = (c as any).artifact_slots ?? [null, null, null];
+      const artifactSlots: (ArtifactInstance | null)[] = c.artifact_slots ?? [null, null, null];
       const artifactBadgesHtml = artifactSlots.map((inst, si) => {
         if (!inst) return `<span class="char-artifact-badge empty" title="Artifact slot ${si + 1}: empty">·</span>`;
         const def = ARTIFACT_DEFS[inst.id as keyof typeof ARTIFACT_DEFS];
@@ -750,7 +750,7 @@ function renderParty(state: GameStateDict): void {
     state.party.forEach((c, ci) => {
       const card = lootCards[ci];
       if (!card) return;
-      const lockedSlots = new Set<string>((c as any).locked_slots ?? []);
+      const lockedSlots = new Set<string>(c.locked_slots ?? []);
       card.querySelectorAll<HTMLElement>(".gear-row.empty").forEach(row => {
         const slot = row.dataset.slot;
         if (!slot) return;
@@ -2483,16 +2483,18 @@ function buildTooltipHTML(item: GearItemDict, equippedSetCount = 0): string {
 }
 
 type CharDict = GameStateDict["party"][number];
+/** CharDict augmented with the renderer-computed effective_dps (base dps × upgrade multiplier). */
+type CharDictWithEffectiveDps = CharDict & { effective_dps?: number };
 
 function statRow(label: string, value: string, cls = ""): string {
   return `<div class="tt-stat-row"><span class="tt-stat-label">${label}</span><span class="tt-stat-val${cls ? " " + cls : ""}">${value}</span></div>`;
 }
 
-function buildCharTooltipHTML(c: CharDict): string {
+function buildCharTooltipHTML(c: CharDictWithEffectiveDps): string {
   const classAbilities = CLASS_ABILITIES[c.character_class] ?? [];
   const unlocked = classAbilities.filter(a => c.abilities.includes(a.id));
   const rows = [
-    statRow("DPS",        `${((c as any).effective_dps ?? c.dps).toFixed(1)}`,                   "tt-dps"),
+    statRow("DPS",        `${(c.effective_dps ?? c.dps).toFixed(1)}`,                   "tt-dps"),
     statRow("HP",         `${Math.ceil(c.health)} / ${c.max_health}`, "tt-hp"),
     c.click_bonus   > 0 ? statRow("Click Dmg",   `+${c.click_bonus.toFixed(1)}`,           "tt-click") : "",
     c.damage_reduction > 0 ? statRow("Defense",  `+${(c.damage_reduction * 100).toFixed(0)}%`, "tt-def")   : "",
@@ -2503,12 +2505,12 @@ function buildCharTooltipHTML(c: CharDict): string {
     c.xp_multiplier > 1 ? statRow("XP Bonus",    `${(c.xp_multiplier * 100).toFixed(0)}%`, "tt-xp")   : "",
   ].filter(Boolean).join("");
   const runeSquares = ALL_SLOTS.map(slot => {
-    const rune = (c.runes ?? {})[slot as keyof typeof c.runes];
+    const rune: Rune | undefined = c.runes?.[slot];
     if (!rune) return `<span class="tt-rune-slot empty" title="${SLOT_LABELS[slot] ?? slot}: empty"></span>`;
-    const tierClass = (rune as any).tier ?? "lesser";
-    const icon = RUNE_ICONS[(rune as any).type] ?? "🔮";
-    const statLabel = RUNE_STAT_LABELS[(rune as any).statKey] ?? (rune as any).statKey;
-    return `<span class="tt-rune-slot ${tierClass}" title="${SLOT_LABELS[slot] ?? slot}: ${icon} +${(rune as any).value} ${statLabel}"></span>`;
+    const tierClass = rune.tier ?? "lesser";
+    const icon = RUNE_ICONS[rune.type] ?? "🔮";
+    const statLabel = RUNE_STAT_LABELS[rune.statKey] ?? rune.statKey;
+    return `<span class="tt-rune-slot ${tierClass}" title="${SLOT_LABELS[slot] ?? slot}: ${icon} +${rune.value} ${statLabel}"></span>`;
   }).join("");
   const runeBadges = `<div class="tt-divider"></div><div class="tt-rune-row">${runeSquares}</div>`;
   const abilityBadges = unlocked.length
@@ -2526,9 +2528,9 @@ function buildCharTooltipHTML(c: CharDict): string {
   `;
 }
 
-function buildPartyTooltipHTML(party: CharDict[]): string {
+function buildPartyTooltipHTML(party: CharDictWithEffectiveDps[]): string {
   const alive = party.filter(c => c.health > 0);
-  const totalDps  = alive.reduce((s, c) => s + ((c as any).effective_dps ?? c.dps), 0);
+  const totalDps  = alive.reduce((s, c) => s + (c.effective_dps ?? c.dps), 0);
   const totalHp   = party.reduce((s, c) => s + Math.ceil(c.health), 0);
   const totalMaxHp = party.reduce((s, c) => s + c.max_health, 0);
   const members = party.map(c =>
