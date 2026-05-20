@@ -1,6 +1,6 @@
 import { Character, type Rune } from "./character.js";
 import { Party } from "./party.js";
-import { GearItem, getItem, getSetItem, SET_DEFS, gearPower, QUAL, SLOTS, autoSellThreshold, type GearItemDict } from "./gear.js";
+import { GearItem, getItem, getSetItem, SET_DEFS, gearPower, QUAL, SLOTS, autoSellThreshold, type GearItemDict, type Slot } from "./gear.js";
 import { generateEnemy, generateBoss, generateEliteEnemy, ENEMY_NOUNS, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT, type Enemy, type EnemyDict } from "./dungeon.js";
 import { ARTIFACT_DEFS, ARTIFACT_DROP_POOL, LEGACY_UPGRADED_MAP, artifactUpgradeCost, artifactSellValue, artifactFuelValue, artifactStatLabel, type ArtifactEffectId, type ArtifactInstance } from "./artifacts.js";
 export { ARTIFACT_DEFS, ARTIFACT_DROP_POOL, artifactUpgradeCost, artifactSellValue, artifactFuelValue, artifactStatLabel };
@@ -254,7 +254,7 @@ const RUNE_TIER_UP: Record<string, string> = { lesser: "greater", greater: "flaw
 /** Generates a random set piece at the given effective level (random set, random slot from that set). */
 function randomSetDrop(effectiveLevel: number): GearItem {
   const setDef = SET_DEFS[Math.floor(Math.random() * SET_DEFS.length)];
-  const setSlot = setDef.slots[Math.floor(Math.random() * setDef.slots.length)] as import("./gear.js").Slot;
+  const setSlot = setDef.slots[Math.floor(Math.random() * setDef.slots.length)] as Slot;
   return getSetItem(setDef.id, setSlot, effectiveLevel);
 }
 
@@ -823,7 +823,7 @@ export class GameState {
     const canStash = this.gearStash.length < this.stashMax;
     const canLoot = this.lootPool.length < this.lootMax;
     if (!canStash && !canLoot) return this.respond();
-    const item = char.inventory.remove(slot as any);
+    const item = char.inventory.remove(slot as Slot);
     if (!item) return this.respond();
     char.recomputeSetBonuses();
     if (canStash) {
@@ -1140,7 +1140,7 @@ export class GameState {
       c.xpMultiplier += XP_BONUS_PER_LEVEL * xpStacks;
       const runes = savedRunes.get(c.name) ?? {};
       for (const [slot, rune] of Object.entries(runes)) {
-        if (rune) c.applyRune(slot as import("./gear.js").Slot, rune);
+        if (rune) c.applyRune(slot as Slot, rune);
       }
       const locked = savedLockedSlots.get(c.name);
       if (locked) c.lockedSlots = locked;
@@ -1332,7 +1332,7 @@ export class GameState {
 
   /** Sockets a rune from the inventory into a character's gear slot. Requires Rune Forge ≥ 1.
    *  Tier 1: old rune is destroyed. Tier 2+: old rune is returned to inventory. Returns serialized JSON. */
-  brandRune(charIdx: number, slot: import("./gear.js").Slot, runeId: string): string {
+  brandRune(charIdx: number, slot: Slot, runeId: string): string {
     if ((this.guildUpgrades["rune_forge"] ?? 0) < 1) return this.respond();
     const inventoryIdx = this.runeInventory.findIndex(r => r.id === runeId);
     if (inventoryIdx === -1) return this.respond();
@@ -1347,7 +1347,7 @@ export class GameState {
   }
 
   /** Removes the rune from the given slot and returns it to the inventory. */
-  unbrandRune(charIdx: number, slot: import("./gear.js").Slot): string {
+  unbrandRune(charIdx: number, slot: Slot): string {
     const char = this.party.team[charIdx];
     if (!char) return this.respond();
     const old = char.removeRune(slot);
@@ -1997,7 +1997,7 @@ export class GameState {
   toggleGearLock(charIdx: number, slot: string): string {
     const char = this.party.team[charIdx];
     if (!char) return this.respond();
-    const s = slot as import("./gear.js").Slot;
+    const s = slot as Slot;
     if (char.lockedSlots.has(s)) char.lockedSlots.delete(s);
     else char.lockedSlots.add(s);
     return this.respond();
@@ -2184,7 +2184,9 @@ export class GameState {
     gs.lifetimeUpgradesBought = d.lifetime_upgrades_bought ?? 0;
     gs.runeInventory = [...(d.rune_inventory ?? [])];
     gs.gearStash = (d.gear_stash ?? []).map(item => GearItem.fromDict(item));
-    gs.artifactInventory = (d.artifact_inventory ?? []).map((item: any) => {
+    // Legacy saves may store artifact IDs as plain strings; current format is ArtifactInstance
+    const rawArtifacts = (d.artifact_inventory ?? []) as (string | ArtifactInstance)[];
+    gs.artifactInventory = rawArtifacts.map(item => {
       if (typeof item === "string") {
         return LEGACY_UPGRADED_MAP[item]
           ? { ...LEGACY_UPGRADED_MAP[item], fuel: 0 }
@@ -2512,7 +2514,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     reward: { type: "border", cosmetic: "arcane" },
     getValue: gs =>
       gs.runeInventory.some(r => r.tier === "ancient") ||
-      gs.party.team.some(c => Object.values(c.runes ?? {}).some((r: any) => r?.tier === "ancient")) ? 1 : 0,
+      gs.party.team.some(c => Object.values(c.runes ?? {}).some(r => r?.tier === "ancient")) ? 1 : 0,
   },
   {
     id: "gem_collector", name: "Gem Collector",

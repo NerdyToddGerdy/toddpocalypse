@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.31.17";
+export const VERSION = "v2.31.18";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.31.18",
+    date: "2026-05-20",
+    changes: [
+      "Internal: type consolidation — engine.ts and character.ts now use imported Slot/GearStats types instead of inline import() casts, and legacy artifact loaders use explicit (string | ArtifactInstance) unions",
+    ],
+  },
   {
     version: "v2.31.17",
     date: "2026-05-20",
