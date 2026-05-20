@@ -191,11 +191,11 @@ import { KILLS_PER_LEVEL, killsForFloor, CORRUPTION_FLOOR, CORRUPTION_RATE_PER_F
 
 /** Full re-render of all UI panels from a GameStateDict snapshot. */
 function render(state: GameStateDict): void {
-  const currentDeaths = state.deaths as number;
+  const currentDeaths = state.deaths;
   if (lastDeathCount === null) {
     lastDeathCount = currentDeaths;
   } else if (currentDeaths > lastDeathCount) {
-    showDeathToast(state.dungeon_level as number);
+    showDeathToast(state.dungeon_level);
     lastDeathCount = currentDeaths;
   } else if (currentDeaths < lastDeathCount) {
     lastDeathCount = currentDeaths;
@@ -350,7 +350,7 @@ function render(state: GameStateDict): void {
   const totalHp = aliveMembers.reduce((s, c) => s + Math.ceil(c.health), 0);
   const totalMaxHp = state.party.reduce((s, c) => s + c.max_health, 0);
   const totalDps = aliveMembers.reduce((s, c) => {
-    const upgLevel = (state.upgrades[c.name]?.dps as { level: number } | undefined)?.level ?? 0;
+    const upgLevel = state.upgrades[c.name]?.dps?.level ?? 0;
     return s + c.dps * (1 + DPS_UPGRADE_EFFECT * upgLevel);
   }, 0);
   $("stat-party-hp").textContent = `${totalHp}/${totalMaxHp}`;
@@ -397,8 +397,8 @@ function render(state: GameStateDict): void {
 let tabVisKey = "";
 /** Hides the Prestige and Guild tabs until the player has reached the unlock thresholds. */
 function updateTabVisibility(state: GameStateDict): void {
-  const ups = state.prestige_upgrades as Record<string, number>;
-  const guildUpgrades = state.guild_upgrades as Record<string, number>;
+  const ups = state.prestige_upgrades;
+  const guildUpgrades = state.guild_upgrades;
   const prestigeUnlocked = state.lifetime_best_level >= PRESTIGE_UNLOCK_LEVEL || state.total_prestiges > 0;
   // unlocked by prestige purchase, or already has guild items (backward compat for existing saves)
   const guildUnlocked = (ups["guild_hall_access"] ?? 0) > 0
@@ -461,7 +461,7 @@ function renderDepthGauge(state: GameStateDict): void {
   const current = state.dungeon_level;
   const highest = state.highest_level;
   const maxDisplay = Math.max(highest + 3, 10);
-  const deathFloors = state.death_floors as Record<number, number> ?? {};
+  const deathFloors = state.death_floors ?? {};
 
   const newKey = `${current}|${highest}|${state.checkpoint_level}|${JSON.stringify(deathFloors)}`;
   if (newKey === depthKey) return;
@@ -535,7 +535,7 @@ function renderParty(state: GameStateDict): void {
         JSON.parse(prevEquipJsonByChar[ci] ?? "{}") ?? {};
       Object.entries(c.equipment).forEach(([slot, item]) => {
         const prevName = prevEquip[slot]?.name ?? null;
-        const newName = (item as { name: string } | null)?.name ?? null;
+        const newName = item?.name ?? null;
         if (newName !== null && newName !== prevName) changedSlots.push([ci, slot]);
       });
     });
@@ -548,7 +548,7 @@ function renderParty(state: GameStateDict): void {
 
     if (partyH2) partyH2.dataset.party = encodeURIComponent(JSON.stringify(
       state.party.map(c => {
-        const upgLevel = (state.upgrades[c.name]?.dps as { level: number } | undefined)?.level ?? 0;
+        const upgLevel = state.upgrades[c.name]?.dps?.level ?? 0;
         return { ...c, effective_dps: c.dps * (1 + DPS_UPGRADE_EFFECT * upgLevel) };
       })
     ));
@@ -568,10 +568,10 @@ function renderParty(state: GameStateDict): void {
           if (item) {
             const qc = qualityClass(item.quality);
             const itemJson = encodeURIComponent(JSON.stringify(item));
-            const isSetPiece = !!(item as any).set_name;
+            const isSetPiece = !!item.set_name;
             return `<div class="gear-row filled${isSetPiece ? " set-piece" : ""}${locked ? " gear-locked" : ""}" data-slot="${slot}" data-item="${itemJson}">
               <span class="gear-icon">${SLOT_ICONS[slot]}</span>
-              <span class="gear-name ${qc}">${(item as any).short_name ?? item.name}</span>
+              <span class="gear-name ${qc}">${item.short_name ?? item.name}</span>
               <span class="gear-bonus ${qc}">${formatStats(item.stats ?? { dps: item.damage })}</span>
               ${lockBtn}
               <button class="gear-unequip-btn" data-action="unequip-gear" data-char="${ci}" data-slot="${slot}" title="Unequip">✕</button>
@@ -598,10 +598,10 @@ function renderParty(state: GameStateDict): void {
         })
         .join("");
       const gearDps = Object.values(c.equipment).reduce((sum, item) =>
-        sum + ((item as GearItemDict | null)?.stats?.dps ?? 0), 0);
+        sum + (item?.stats?.dps ?? 0), 0);
       const runeDps = Object.values(c.runes ?? {}).reduce((sum, rune) =>
         sum + (rune?.statKey === "dps" ? (rune?.value ?? 0) : 0), 0);
-      const upgLevel = (state.upgrades[c.name]?.dps as { level: number } | undefined)?.level ?? 0;
+      const upgLevel = state.upgrades[c.name]?.dps?.level ?? 0;
       const upgMult = 1 + DPS_UPGRADE_EFFECT * upgLevel;
       const upgDps = c.dps * (upgMult - 1);
       const dpsData = encodeURIComponent(JSON.stringify({ total: c.dps * upgMult, base: Math.max(0, c.dps - gearDps - runeDps), gear: gearDps, runes: runeDps, upgDps }));
@@ -638,7 +638,7 @@ function renderParty(state: GameStateDict): void {
       const equippedItems = Object.values(c.equipment).filter(Boolean) as GearItemDict[];
       const setPieceCounts: Record<string, number> = {};
       for (const item of equippedItems) {
-        const sn = (item as any).set_name as string | undefined;
+        const sn = item.set_name;
         if (sn) setPieceCounts[sn] = (setPieceCounts[sn] ?? 0) + 1;
       }
       const setBonus2pcActive = SET_DEFS.filter(d => (setPieceCounts[d.name] ?? 0) >= 2);
@@ -744,7 +744,7 @@ function renderParty(state: GameStateDict): void {
     state.loot_pool.forEach((item, idx) => {
       const slot = item.slot === "ring2" ? "ring1" : item.slot;
       if (!lootBySlot.has(slot)) lootBySlot.set(slot, []);
-      lootBySlot.get(slot)!.push({ item: item as GearItemDict, idx });
+      lootBySlot.get(slot)!.push({ item, idx });
     });
     const lootCards = partyEl.querySelectorAll<HTMLElement>(".char-card");
     state.party.forEach((c, ci) => {
@@ -762,7 +762,7 @@ function renderParty(state: GameStateDict): void {
         if (options.length > 0) {
           const optHtml = options.map(({ item: li, idx }) => {
             const qc = qualityClass(li.quality);
-            return `<option value="${idx}" class="${qc}">${(li as any).short_name ?? li.name} (${formatStats(li.stats ?? { dps: li.damage })})</option>`;
+            return `<option value="${idx}" class="${qc}">${li.short_name ?? li.name} (${formatStats(li.stats ?? { dps: li.damage })})</option>`;
           }).join("");
           newRowHtml = `<div class="gear-row empty gear-row-equip${locked ? " gear-locked" : ""}" data-slot="${slot}"><span class="gear-icon">${SLOT_ICONS[slot]}</span><select class="gear-loot-select">${optHtml}</select><button class="gear-equip-from-slot-btn" data-action="equip-loot-on-char" data-char="${ci}" data-slot="${slot}">Equip</button>${lockBtn}</div>`;
         } else {
@@ -785,7 +785,7 @@ function applySlotHighlight(): void {
 /** Renders the loot chest with equip/sell buttons and auto-seller quality checkboxes. */
 function renderLoot(state: GameStateDict): void {
   const loot = state.loot_pool;
-  const ups = state.prestige_upgrades as Record<string, number>;
+  const ups = state.prestige_upgrades;
   const autoSellOwned = (ups["auto_seller"] ?? 0) > 0;
   const autoEquipOwned = (ups["auto_equip"] ?? 0) > 0;
   const stashUnlocked = (ups["stash"] ?? 0) > 0;
@@ -832,7 +832,7 @@ function renderLoot(state: GameStateDict): void {
           const [tri, triCls] = lootTier(item, state.party);
           const qc = qualityClass(item.quality);
           const itemJson = encodeURIComponent(JSON.stringify(item));
-          const setName = (item as any).set_name as string | undefined;
+          const setName = item.set_name;
           const displayName = setName ? `${setName} ${item.slot_display}` : (item.short_name ?? item.name);
           return `
 <div class="loot-item${setName ? " set-piece" : ""}" data-slot="${item.slot}" data-item="${itemJson}">
@@ -868,7 +868,7 @@ function renderLoot(state: GameStateDict): void {
 
 /** Renders the gear stash panel if the stash upgrade is purchased. */
 function renderStash(state: GameStateDict): void {
-  const ups = state.prestige_upgrades as Record<string, number>;
+  const ups = state.prestige_upgrades;
   const stashLevel = ups["stash"] ?? 0;
   const section = document.getElementById("stash-section")!;
   section.hidden = stashLevel === 0;
@@ -893,7 +893,7 @@ function renderStash(state: GameStateDict): void {
   container.innerHTML = stash.map((item, idx) => {
     const qc = qualityClass(item.quality);
     const statsText = formatLootStats("", item.stats ?? {});
-    const setName = (item as any).set_name as string | undefined;
+    const setName = item.set_name;
     const displayName = setName ? `${setName} ${item.slot_display}` : (item.short_name ?? item.name);
     const charSel = multiChar
       ? `<select class="stash-char-select">${charOptions}</select>`
@@ -1032,17 +1032,17 @@ function updateProfileDropdownStats(state: GameStateDict): void {
     const el = document.getElementById(id);
     if (el) el.textContent = val;
   };
-  const hero = state.party?.[0] as any;
+  const hero = state.party?.[0];
   if (hero) {
     set("pstat-hero-name",   hero.name ?? "—");
     set("pstat-hero-class",  hero.character_class ?? "—");
     set("pstat-hero-level",  String(hero.level ?? 1));
     set("pstat-hero-floor",  String(state.dungeon_level ?? 1));
-    set("pstat-hero-gold",   formatNumber(state.gold as number ?? 0) + "g");
+    set("pstat-hero-gold",   formatNumber(state.gold ?? 0) + "g");
     set("pstat-hero-kills",  String(state.kills ?? 0));
     set("pstat-hero-deaths", String(state.deaths ?? 0));
   }
-  set("pstat-acc-dungeon",   String((state.dungeon_index as number ?? 0) + 1));
+  set("pstat-acc-dungeon",   String((state.dungeon_index ?? 0) + 1));
   set("pstat-acc-best",      String(state.lifetime_best_level ?? 1));
   set("pstat-acc-prestiges", String(state.total_prestiges ?? 0));
   set("pstat-acc-kills",     String(state.lifetime_kills ?? 0));
@@ -1121,7 +1121,7 @@ function renderCustomizeModal(state: GameStateDict): void {
   const earnedBorders = new Set<string>(state.earned_borders ?? ["none"]);
   const selectedAvatar = state.selected_avatar ?? "default";
   const selectedBorder = state.selected_border ?? "none";
-  const earnedTitles: string[] = (state.earned_titles as string[] | undefined) ?? [];
+  const earnedTitles: string[] = state.earned_titles ?? [];
   const selectedTitle = state.earned_title ?? "nobody";
   const allTitles = ["nobody", ...earnedTitles];
 
@@ -1170,8 +1170,8 @@ function renderPrestigeShop(state: GameStateDict): void {
   const pts = state.prestige_points;
   $("prestige-points-display").textContent = pts > 0 ? `(${formatNumber(pts)} renown)` : "";
 
-  const ups = state.prestige_upgrades as Record<string, number>;
-  const guildUpgrades = state.guild_upgrades as Record<string, number>;
+  const ups = state.prestige_upgrades;
+  const guildUpgrades = state.guild_upgrades;
   const companionHall = guildUpgrades["companion_hall"] ?? 0;
 
   // --- Party Members unified card ---
@@ -1248,7 +1248,7 @@ function renderPrestigeShop(state: GameStateDict): void {
     return a.cost - b.cost;
   });
 
-  const guildUps = state.guild_upgrades as Record<string, number>;
+  const guildUps = state.guild_upgrades;
   const eternalUnlocked = (guildUps["eternal_cycle"] ?? 0) >= 1;
   const autoEnabled = state.auto_prestige_enabled ?? false;
   const autoThreshold = state.auto_prestige_threshold ?? 5;
@@ -1320,7 +1320,7 @@ function guildUpgradePreview(type: string, stacks: number, lootMax: number): str
 }
 
 function renderGuildHall(state: GameStateDict): void {
-  const owned = state.guild_upgrades as Record<string, number>;
+  const owned = state.guild_upgrades;
   const affordKey = Object.keys(GUILD_HALL_META).map(type => {
     const stacks = owned[type] ?? 0;
     const costs = GUILD_HALL_COSTS[type];
@@ -1363,7 +1363,7 @@ function renderGuildHall(state: GameStateDict): void {
 
   const runeForge = owned["rune_forge"] ?? 0;
   const runeInv: Rune[] = state.rune_inventory ?? [];
-  const hasCombineAll = (state.prestige_upgrades as Record<string, number>)?.["combine_all_runes"] >= 1;
+  const hasCombineAll = (state.prestige_upgrades["combine_all_runes"] ?? 0) >= 1;
 
   $("guild-hall-items").innerHTML = upgradesHtml;
   renderPartyRunePanel(runeInv, state.party, runeForge);
@@ -2076,7 +2076,7 @@ function updateLifetimeStats(state: GameStateDict): void {
   const enemyKillsEl = document.getElementById("lt-enemy-kills");
   const enemySection = document.getElementById("lt-enemy-section");
   if (!enemyKillsEl || !enemySection) return;
-  const ekMap = state.lifetime_enemy_kills as Record<string, number>;
+  const ekMap = state.lifetime_enemy_kills;
   const entries = Object.entries(ekMap).sort((a, b) => b[1] - a[1]);
   if (entries.length === 0) {
     enemySection.hidden = true;
@@ -2096,7 +2096,7 @@ function updateShopBadge(state: GameStateDict): void {
     const ups = state.upgrades[c.name];
     return ups && Object.values(ups).some(u => state.gold >= u.cost);
   });
-  const ups = state.prestige_upgrades as Record<string, number>;
+  const ups = state.prestige_upgrades;
   const canBuyPrestige = Object.keys(PRESTIGE_SHOP_META).some(type => {
     const owned = ups[type] ?? 0;
     const atMax = owned >= (PRESTIGE_SHOP_META[type]?.max ?? 1);
@@ -2108,11 +2108,11 @@ function updateShopBadge(state: GameStateDict): void {
     const cost = prestigeUpgradeCost(type, owned);
     return !atMax && !prereqMissing && state.dungeon_index >= dungeonReq && state.prestige_points >= cost;
   });
-  const guildUpgrades = state.guild_upgrades as Record<string, number>;
+  const guildUpgrades = state.guild_upgrades;
   const guildUnlocked = (ups["guild_hall_access"] ?? 0) > 0;
   const canBuyGuild = guildUnlocked && Object.entries(GUILD_HALL_COSTS).some(([type, costs]) => {
     const owned = guildUpgrades[type] ?? 0;
-    const dungeonReq = (GUILD_HALL_DUNGEON_REQ as Record<string, number>)[type] ?? 0;
+    const dungeonReq = GUILD_HALL_DUNGEON_REQ[type] ?? 0;
     return owned < costs.length && state.dungeon_index >= dungeonReq && state.gold >= costs[owned];
   });
   badge.hidden = !(canBuyUpgrade || canBuyPrestige || canBuyGuild);
@@ -3125,7 +3125,7 @@ function continueGame(saved: GameStateDict): void {
 function isAutoAttackUnlocked(): boolean {
   if (!game) return false;
   const state = JSON.parse(game.respond()) as GameStateDict;
-  return ((state.guild_upgrades as Record<string, number>)["auto_attack"] ?? 0) >= 1;
+  return ((state.guild_upgrades)["auto_attack"] ?? 0) >= 1;
 }
 
 function updateAutoAttackButton(): void {

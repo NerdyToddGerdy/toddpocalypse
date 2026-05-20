@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.31.16";
+export const VERSION = "v2.31.17";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.31.17",
+    date: "2026-05-20",
+    changes: [
+      "Internal: type consolidation — removed redundant casts on GearItemDict fields (set_name, short_name), state.prestige_upgrades, state.guild_upgrades, state.death_floors, and state.party[0]",
+    ],
+  },
   {
     version: "v2.31.16",
     date: "2026-05-20",
