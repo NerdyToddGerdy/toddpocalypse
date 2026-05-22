@@ -839,8 +839,7 @@ main {
     display: none;
 }
 
-/* When gear is visible: hide rune/artifact/ability rows from header — portrait sizes to name/class/DPS */
-#party-panel:not(.gear-hidden) .char-rune-row,
+/* When gear is visible: hide artifact row from header — rune squares always shown */
 #party-panel:not(.gear-hidden) .char-artifact-row {
     display: none;
 }
