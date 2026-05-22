@@ -2127,8 +2127,16 @@ main {
     #left-col-panels { display: contents; }
     #party-panel     { width: auto; }
 
-    #monster-portrait-wrap.boss-visible { width: 72px; }
-    #portrait-inner { width: 72px; height: 110px; }
+    #monster-portrait-wrap {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        pointer-events: none;
+        z-index: 1;
+    }
+    #monster-portrait-wrap.boss-visible { width: 60px; }
+    #portrait-inner { width: 60px; height: 92px; }
     #sidebar   { display: contents; background: none; border: none; border-radius: 0; }
     #sidebar-tabs { display: none; }
 
@@ -2321,9 +2329,8 @@ main {
         transition: color 0.15s, border-color 0.15s;
     }
 
-    .mobile-tab-btn span {
-        font-size: 0.65rem;
-        letter-spacing: 0.5px;
+    .mobile-tab-btn span:not(.tab-badge) {
+        display: none;
     }
 
     .mobile-tab-btn.active {

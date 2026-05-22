@@ -2600,7 +2600,8 @@ function slotLabel(slot: string): string {
 
 const TAB_PANELS: Record<string, string[]> = {
   combat:   ["enemy-panel", "party-panel", "loot-panel"],
-  shop:     ["upgrades-panel", "prestige-panel", "guild-hall-panel"],
+  shop:     ["upgrades-panel", "prestige-panel"],
+  guild:    ["guild-hall-panel"],
   log:      ["log-panel"],
 };
 

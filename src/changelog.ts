@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.31.20";
+export const VERSION = "v2.31.21";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.31.21",
+    date: "2026-05-21",
+    changes: [
+      "Mobile: tab bar shows icons only — labels hidden to save space",
+      "Mobile: Guild Hall now correctly appears under the Guild tab instead of the Shop tab",
+      "Mobile: boss/elite portrait no longer steals flex width — absolutely overlaid so enemy content stays full-width",
+    ],
+  },
   {
     version: "v2.31.20",
     date: "2026-05-20",
