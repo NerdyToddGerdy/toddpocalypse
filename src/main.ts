@@ -2679,7 +2679,7 @@ function buildSkillTooltipHTML(a: AbilityCardData): string {
     <div class="tt-stat-row"><span class="tt-stat-label">${a.desc}</span></div>`;
 }
 
-const TOOLTIP_SELECTORS = ".gear-row.filled[data-item], .loot-item[data-item], .char-name[data-char], .hero-sprite[data-char], #party-panel h2[data-party], [data-active-skill], .char-dps[data-dps], .tt-rune-slot[data-rune], .char-artifact-badge[data-artifact], .set-bonus-badge[data-set]";
+const TOOLTIP_SELECTORS = ".gear-row.filled[data-item], .loot-item[data-item], .char-name[data-char], .hero-sprite[data-char], #party-panel h2[data-party], [data-active-skill], .char-dps[data-dps], .tt-rune-slot[data-rune], .char-artifact-badge[data-artifact], .set-bonus-badge[data-set], .ability-badge[data-skill]";
 
 function buildActiveSkillTooltipHTML(skillId: string, skillState?: { remaining: number; expiry: number; totalCooldown: number; isActive: boolean; onCooldown: boolean }): string {
   const name = SKILL_NAMES[skillId] ?? skillId;
@@ -2812,7 +2812,7 @@ function initMobileItemCard(): void {
   const closeBtn = overlay.querySelector<HTMLElement>(".mic-close")!;
   const backdrop = overlay.querySelector<HTMLElement>(".mic-backdrop")!;
 
-  const MOBILE_SELECTORS = ".gear-row.filled[data-item], .loot-item[data-item], .char-name[data-char], .ability-badge[data-skill]";
+  const MOBILE_SELECTORS = TOOLTIP_SELECTORS;
 
   function openCard(html: string): void {
     content.innerHTML = html;

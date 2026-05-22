@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.31.23";
+export const VERSION = "v2.31.24";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.31.24",
+    date: "2026-05-21",
+    changes: [
+      "Mobile: all hover-tooltip items now tappable — hero sprite, DPS, rune slots, artifact badges, set bonus badges, passive skill badges",
+    ],
+  },
   {
     version: "v2.31.23",
     date: "2026-05-21",
