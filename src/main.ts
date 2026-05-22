@@ -1461,9 +1461,7 @@ function openRuneReplaceModal(charIdx: number, slot: string): void {
   const modal = document.getElementById("rune-replace-modal")!;
   const title = document.getElementById("rune-replace-title")!;
   const body = document.getElementById("rune-replace-body")!;
-  const confirm = document.getElementById("rune-replace-confirm") as HTMLButtonElement;
   title.textContent = `Socket Rune — ${SLOT_LABELS[slot] ?? slot}`;
-  confirm.disabled = true;
   if (lastRuneInv.length === 0) {
     body.innerHTML = `<div class="prune-empty">No runes in inventory.</div>`;
   } else {
@@ -1554,7 +1552,6 @@ function initRuneSlotPanel(): void {
 
   const replaceModal = document.getElementById("rune-replace-modal")!;
   const replaceBody = document.getElementById("rune-replace-body")!;
-  const confirm = document.getElementById("rune-replace-confirm") as HTMLButtonElement;
 
   document.getElementById("rune-replace-close")!.addEventListener("click", closeRuneReplaceModal);
   replaceModal.addEventListener("click", (e) => { if (e.target === replaceModal) closeRuneReplaceModal(); });
@@ -1562,15 +1559,9 @@ function initRuneSlotPanel(): void {
   replaceBody.addEventListener("click", (e) => {
     const item = (e.target as HTMLElement).closest<HTMLElement>(".rr-rune-item");
     if (!item) return;
-    replaceBody.querySelectorAll(".rr-rune-item").forEach(el => el.classList.remove("selected"));
-    item.classList.add("selected");
-    rrSelectedId = item.dataset.runeId!;
-    confirm.disabled = false;
-  });
-
-  confirm.addEventListener("click", () => {
-    if (rrSelectedId && rrCharIdx >= 0) {
-      call("brandRune", rrCharIdx, rrSlot, rrSelectedId);
+    const runeId = item.dataset.runeId!;
+    if (runeId && rrCharIdx >= 0) {
+      call("brandRune", rrCharIdx, rrSlot, runeId);
       closeRuneReplaceModal();
     }
   });

@@ -4290,8 +4290,6 @@ footer {
 .rr-rune-item.selected { border-color: var(--accent2); background: rgba(200,160,60,0.1); }
 .rr-tier-badge { font-size: 0.7rem; }
 .rr-rune-stat { margin-left: auto; color: var(--hp-green); font-size: 0.72rem; }
-#rune-replace-footer { padding: 10px 12px; border-top: 1px solid var(--border); }
-#rune-replace-confirm { width: 100%; padding: 9px; font-size: 0.85rem; }
 
 .prune-inv-section {
     margin-top: 4px;
