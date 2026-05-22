@@ -1432,7 +1432,7 @@ function renderPartyRunePanel(runeInv: Rune[], party: CharDict[], runeForge: num
             data-rune-name="${PDOLL_TIER_ICONS[rune.tier] ?? "◆"} ${runeIcon} ${rune.name}"
             data-rune-stat="+${rune.value} ${statLabel}"
             data-rune="${runeData}"
-            aria-expanded="false">${slotIcon}</button>
+            aria-expanded="false">${runeIcon}</button>
           <span class="pdoll-slot-label">${shortLabel}</span>
         </div>`;
       }
