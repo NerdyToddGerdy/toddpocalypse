@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.31.29";
+export const VERSION = "v2.31.30";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.31.30",
+    date: "2026-05-21",
+    changes: [
+      "Party runes redesigned as paper-doll layout — slots arranged in body shape; tap a slot to see rune details and replace/remove; stats summary bar shows total rune bonuses per hero",
+    ],
+  },
   {
     version: "v2.31.29",
     date: "2026-05-21",

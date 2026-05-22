@@ -1383,29 +1383,33 @@ const SLOT_LABELS: Record<string, string> = {
   main_hand: "Main Hand", off_hand: "Off Hand", helmet: "Helmet", chest: "Chest",
   gloves: "Gloves", legs: "Legs", shoes: "Shoes", ring1: "Ring 1", ring2: "Ring 2",
 };
+const PDOLL_TIER_ICONS: Record<string, string> = { lesser: "◆", greater: "★", flawless: "✦", ancient: "✸" };
+const PDOLL_TIER_ORDER = ["lesser", "greater", "flawless", "ancient"];
 
+let lastRuneInv: Rune[] = [];
+let rrCharIdx = -1;
+let rrSlot = "";
+let rrSelectedId = "";
+
+function runeStatSummary(c: CharDict): string {
+  const totals: Record<string, number> = {};
+  for (const rune of Object.values(c.runes ?? {})) {
+    if (!rune) continue;
+    totals[rune.statKey] = (totals[rune.statKey] ?? 0) + rune.value;
+  }
+  const chips = Object.entries(totals)
+    .map(([key, val]) => `<span class="pdoll-stat-chip">+${val} ${RUNE_STAT_LABELS[key] ?? key}</span>`)
+    .join("");
+  return chips || `<span class="pdoll-stats-empty">No runes socketed</span>`;
+}
 
 function renderPartyRunePanel(runeInv: Rune[], party: CharDict[], runeForge: number): void {
+  lastRuneInv = runeInv;
   const el = $("party-rune-panel");
   if (runeForge < 1) {
     el.innerHTML = `<div class="prune-empty">Unlock the Rune Forge in the Guild Hall to start socketing runes.</div>`;
     return;
   }
-
-  const TIER_ICONS: Record<string, string> = { lesser: "◆", greater: "★", flawless: "✦", ancient: "✸" };
-  const TIER_ORDER_PR = ["lesser", "greater", "flawless", "ancient"];
-  const runeOptions = runeInv.length === 0
-    ? `<option value="">— no runes —</option>`
-    : [...runeInv]
-        .sort((a, b) => {
-          const td = TIER_ORDER_PR.indexOf(b.tier) - TIER_ORDER_PR.indexOf(a.tier);
-          return td !== 0 ? td : a.type.localeCompare(b.type);
-        })
-        .map(r => {
-          const icon = RUNE_ICONS[r.type] ?? "🔮";
-          return `<option value="${r.id}">${TIER_ICONS[r.tier] ?? "◆"} ${icon} ${r.name}</option>`;
-        }).join("");
-  const hasRunes = runeInv.length > 0;
 
   const charBlocks = party.map((c, charIdx) => {
     const slots = ALL_SLOTS.map(slot => {
@@ -1415,36 +1419,160 @@ function renderPartyRunePanel(runeInv: Rune[], party: CharDict[], runeForge: num
       if (rune) {
         const runeIcon = RUNE_ICONS[rune.type] ?? "🔮";
         const statLabel = RUNE_STAT_LABELS[rune.statKey] ?? rune.statKey;
-        return `<div class="prune-slot-row">
-          <span class="prune-slot-icon">${icon}</span>
-          <span class="prune-slot-name">${label}</span>
-          <div class="prune-rune-badge filled ${rune.tier}">
-            <span class="rune-tier-badge ${rune.tier}">${TIER_ICONS[rune.tier] ?? "◆"}</span>
-            <span>${runeIcon} ${rune.name}</span>
-            <span class="prune-rune-stat">+${rune.value} ${statLabel}</span>
-            <button class="prune-remove-btn" data-action="unbrand-rune" data-char-idx="${charIdx}" data-slot="${slot}" title="Remove rune">✕</button>
-          </div>
-        </div>`;
+        return `<button class="pdoll-slot equipped ${rune.tier}"
+          data-slot="${slot}" data-char-idx="${charIdx}"
+          data-rune-name="${PDOLL_TIER_ICONS[rune.tier] ?? "◆"} ${runeIcon} ${rune.name}"
+          data-rune-stat="+${rune.value} ${statLabel}"
+          title="${label}" aria-expanded="false">${runeIcon}</button>`;
       }
-      return `<div class="prune-slot-row">
-        <span class="prune-slot-icon">${icon}</span>
-        <span class="prune-slot-name">${label}</span>
-        ${hasRunes
-          ? `<div class="prune-rune-badge empty prune-brand-row">
-               <select class="prune-rune-select" data-char-idx="${charIdx}" data-slot="${slot}">${runeOptions}</select>
-               <button class="prune-brand-btn" data-action="prune-brand-rune" data-char-idx="${charIdx}" data-slot="${slot}">Brand</button>
-             </div>`
-          : `<div class="prune-rune-badge empty">empty</div>`}
-      </div>`;
+      return `<button class="pdoll-slot empty"
+        data-slot="${slot}" data-char-idx="${charIdx}"
+        title="${label}" aria-expanded="false">${icon}</button>`;
     }).join("");
 
     return `<div class="prune-char-block">
+      <div class="pdoll-stats-bar">${runeStatSummary(c)}</div>
       <div class="prune-char-name">${c.name} — ${c.character_class}</div>
-      <div class="prune-slots">${slots}</div>
+      <div class="pdoll-grid">${slots}</div>
+      <div class="pdoll-detail" hidden></div>
     </div>`;
   }).join("");
 
   el.innerHTML = charBlocks;
+}
+
+function openRuneReplaceModal(charIdx: number, slot: string): void {
+  rrCharIdx = charIdx;
+  rrSlot = slot;
+  rrSelectedId = "";
+  const modal = document.getElementById("rune-replace-modal")!;
+  const title = document.getElementById("rune-replace-title")!;
+  const body = document.getElementById("rune-replace-body")!;
+  const confirm = document.getElementById("rune-replace-confirm") as HTMLButtonElement;
+  title.textContent = `Socket Rune — ${SLOT_LABELS[slot] ?? slot}`;
+  confirm.disabled = true;
+  if (lastRuneInv.length === 0) {
+    body.innerHTML = `<div class="prune-empty">No runes in inventory.</div>`;
+  } else {
+    body.innerHTML = [...lastRuneInv]
+      .sort((a, b) => {
+        const td = PDOLL_TIER_ORDER.indexOf(b.tier) - PDOLL_TIER_ORDER.indexOf(a.tier);
+        return td !== 0 ? td : a.name.localeCompare(b.name);
+      })
+      .map(r => {
+        const icon = RUNE_ICONS[r.type] ?? "🔮";
+        const statLabel = RUNE_STAT_LABELS[r.statKey] ?? r.statKey;
+        return `<button class="rr-rune-item" data-rune-id="${r.id}">
+          <span class="rr-tier-badge rune-tier-badge ${r.tier}">${PDOLL_TIER_ICONS[r.tier] ?? "◆"}</span>
+          <span>${icon} ${r.name}</span>
+          <span class="rr-rune-stat">+${r.value} ${statLabel}</span>
+        </button>`;
+      }).join("");
+  }
+  modal.classList.add("open");
+}
+
+function closeRuneReplaceModal(): void {
+  rrCharIdx = -1;
+  rrSlot = "";
+  rrSelectedId = "";
+  document.getElementById("rune-replace-modal")!.classList.remove("open");
+}
+
+function initRuneSlotPanel(): void {
+  const panel = document.getElementById("party-rune-panel")!;
+
+  panel.addEventListener("click", (e) => {
+    const target = e.target as HTMLElement;
+
+    const slotBtn = target.closest<HTMLElement>(".pdoll-slot");
+    if (slotBtn) {
+      const block = slotBtn.closest<HTMLElement>(".prune-char-block")!;
+      const detail = block.querySelector<HTMLElement>(".pdoll-detail")!;
+      const isOpen = slotBtn.getAttribute("aria-expanded") === "true";
+
+      block.querySelectorAll<HTMLElement>(".pdoll-slot").forEach(b => b.setAttribute("aria-expanded", "false"));
+
+      if (isOpen) {
+        detail.hidden = true;
+        return;
+      }
+
+      const slot = slotBtn.dataset.slot!;
+      const charIdx = slotBtn.dataset.charIdx!;
+      const isEquipped = slotBtn.classList.contains("equipped");
+      const slotLabel = SLOT_LABELS[slot] ?? slot;
+
+      let bodyHtml: string;
+      if (isEquipped) {
+        bodyHtml = `
+          <div class="pdoll-detail-rune">${slotBtn.dataset.runeName ?? ""}</div>
+          <div class="pdoll-detail-stat">${slotBtn.dataset.runeStat ?? ""}</div>
+          <div class="pdoll-detail-actions">
+            <button class="pdoll-remove-btn" data-action="pdoll-remove" data-char-idx="${charIdx}" data-slot="${slot}">Remove</button>
+            <button class="pdoll-replace-btn" data-action="pdoll-open-replace" data-char-idx="${charIdx}" data-slot="${slot}">Replace</button>
+          </div>`;
+      } else {
+        bodyHtml = `
+          <div class="pdoll-detail-empty">No rune socketed</div>
+          <div class="pdoll-detail-actions">
+            <button class="pdoll-replace-btn" data-action="pdoll-open-replace" data-char-idx="${charIdx}" data-slot="${slot}">Socket Rune</button>
+          </div>`;
+      }
+
+      detail.innerHTML = `
+        <div class="pdoll-detail-header">
+          <span class="pdoll-detail-slot-name">${slotLabel}</span>
+          <button class="pdoll-detail-close">✕</button>
+        </div>
+        ${bodyHtml}`;
+      detail.hidden = false;
+      slotBtn.setAttribute("aria-expanded", "true");
+      return;
+    }
+
+    if (target.closest(".pdoll-detail-close")) {
+      const block = target.closest<HTMLElement>(".prune-char-block")!;
+      block.querySelector<HTMLElement>(".pdoll-detail")!.hidden = true;
+      block.querySelectorAll<HTMLElement>(".pdoll-slot").forEach(b => b.setAttribute("aria-expanded", "false"));
+      return;
+    }
+
+    const actionBtn = target.closest<HTMLElement>("[data-action]");
+    if (!actionBtn) return;
+    const action = actionBtn.dataset.action;
+    const charIdx = parseInt(actionBtn.dataset.charIdx!, 10);
+    const slot = actionBtn.dataset.slot!;
+
+    if (action === "pdoll-remove") {
+      call("unbrandRune", charIdx, slot);
+    } else if (action === "pdoll-open-replace") {
+      openRuneReplaceModal(charIdx, slot);
+    }
+  });
+
+  const modal = document.getElementById("rune-replace-modal")!;
+  const body = document.getElementById("rune-replace-body")!;
+  const confirm = document.getElementById("rune-replace-confirm") as HTMLButtonElement;
+
+  document.getElementById("rune-replace-close")!.addEventListener("click", closeRuneReplaceModal);
+  modal.addEventListener("click", (e) => { if (e.target === modal) closeRuneReplaceModal(); });
+
+  body.addEventListener("click", (e) => {
+    const item = (e.target as HTMLElement).closest<HTMLElement>(".rr-rune-item");
+    if (!item) return;
+    body.querySelectorAll(".rr-rune-item").forEach(el => el.classList.remove("selected"));
+    item.classList.add("selected");
+    rrSelectedId = item.dataset.runeId!;
+    confirm.disabled = false;
+  });
+
+  confirm.addEventListener("click", () => {
+    if (rrSelectedId && rrCharIdx >= 0) {
+      call("brandRune", rrCharIdx, rrSlot, rrSelectedId);
+      closeRuneReplaceModal();
+    }
+  });
 }
 
 function buildSlotOptions(char: CharDict): string {
@@ -3325,6 +3453,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initCombatSubTabs();
   initShopSubTabs();
   initMobileTabs();
+  initRuneSlotPanel();
   initSidebarTabs();
   initLootSubtabs();
   initItemTooltip();
@@ -3551,19 +3680,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const charIdx = parseInt((row.querySelector(".rune-char-select") as HTMLSelectElement).value, 10);
       const slot = (row.querySelector(".rune-slot-select") as HTMLSelectElement).value;
       call("brandRune", charIdx, slot, runeId);
-    }
-    else if (action === "prune-brand-rune") {
-      const charIdx = parseInt(btn.dataset.charIdx!, 10);
-      const slot = btn.dataset.slot!;
-      const row = btn.closest(".prune-brand-row")!;
-      const sel = row.querySelector(".prune-rune-select") as HTMLSelectElement;
-      const runeId = sel.value;
-      if (runeId) call("brandRune", charIdx, slot, runeId);
-    }
-    else if (action === "unbrand-rune") {
-      const charIdx = parseInt(btn.dataset.charIdx!, 10);
-      const slot = btn.dataset.slot!;
-      call("unbrandRune", charIdx, slot);
     }
     else if (action === "combine-runes") {
       const row = btn.closest(".rune-combine-section")!;
