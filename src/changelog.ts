@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.31.25";
+export const VERSION = "v2.31.26";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.31.26",
+    date: "2026-05-21",
+    changes: [
+      "Mobile shop tab: Upgrades / Renown sub-tab bar — switch panels without scrolling; selection persists across sessions",
+    ],
+  },
   {
     version: "v2.31.25",
     date: "2026-05-21",

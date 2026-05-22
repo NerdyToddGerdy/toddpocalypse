@@ -2615,6 +2615,7 @@ const SIDEBAR_TAB_PANELS: Record<string, string[]> = {
 };
 
 let applyCombatSubTab: (() => void) | null = null;
+let applyShopSubTab: (() => void) | null = null;
 
 function initCombatSubTabs(): void {
   const bar = document.getElementById("combat-subtabs")!;
@@ -2638,10 +2639,33 @@ function initCombatSubTabs(): void {
   switchSub(saved);
 }
 
+function initShopSubTabs(): void {
+  const bar = document.getElementById("shop-subtabs")!;
+  const mainEl = document.querySelector("main")!;
+  const saved = localStorage.getItem("shop-sub-tab") ?? "upgrades";
+
+  function switchSub(which: string): void {
+    bar.querySelectorAll<HTMLElement>(".shop-stab").forEach(b =>
+      b.classList.toggle("active", b.dataset.shopStab === which)
+    );
+    mainEl.dataset.shopSub = which;
+    localStorage.setItem("shop-sub-tab", which);
+  }
+
+  applyShopSubTab = () => switchSub(mainEl.dataset.shopSub ?? saved);
+
+  bar.querySelectorAll<HTMLElement>(".shop-stab").forEach(btn =>
+    btn.addEventListener("click", () => switchSub(btn.dataset.shopStab!))
+  );
+
+  switchSub(saved);
+}
+
 function initMobileTabs(): void {
   const allPanelIds = Object.values(TAB_PANELS).flat();
   const tabs = document.querySelectorAll<HTMLElement>(".mobile-tab-btn");
   const combatSubBar = document.getElementById("combat-subtabs")!;
+  const shopSubBar = document.getElementById("shop-subtabs")!;
 
   function showTab(tab: string): void {
     allPanelIds.forEach(id => document.getElementById(id)?.classList.remove("tab-visible"));
@@ -2649,7 +2673,9 @@ function initMobileTabs(): void {
     tabs.forEach(btn => btn.classList.toggle("active", btn.dataset.tab === tab));
     const isMobile = window.matchMedia("(max-width: 1280px)").matches;
     combatSubBar.style.display = isMobile && tab === "combat" ? "flex" : "none";
+    shopSubBar.style.display = isMobile && tab === "shop" ? "flex" : "none";
     if (tab === "combat") applyCombatSubTab?.();
+    if (tab === "shop") applyShopSubTab?.();
   }
 
   tabs.forEach(btn => btn.addEventListener("click", () => showTab(btn.dataset.tab!)));
@@ -3297,6 +3323,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initEnemySticky();
   initSaveBackup();
   initCombatSubTabs();
+  initShopSubTabs();
   initMobileTabs();
   initSidebarTabs();
   initLootSubtabs();
