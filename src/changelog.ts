@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.31.31";
+export const VERSION = "v2.31.32";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.31.32",
+    date: "2026-05-21",
+    changes: [
+      "Rune paper doll: each slot now shows a slot symbol (helmet/chest/etc.) so equipped runes are identifiable; hover over an equipped rune slot shows a full tooltip",
+    ],
+  },
   {
     version: "v2.31.31",
     date: "2026-05-21",

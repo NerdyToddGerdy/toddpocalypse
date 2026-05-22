@@ -1411,23 +1411,37 @@ function renderPartyRunePanel(runeInv: Rune[], party: CharDict[], runeForge: num
     return;
   }
 
+  const SLOT_SHORT: Record<string, string> = {
+    main_hand: "Main", off_hand: "Off", helmet: "Helm", chest: "Chest",
+    gloves: "Gloves", legs: "Legs", shoes: "Shoes", ring1: "Ring 1", ring2: "Ring 2",
+  };
+
   const charBlocks = party.map((c, charIdx) => {
     const slots = ALL_SLOTS.map(slot => {
       const rune = c.runes?.[slot];
-      const icon = SLOT_ICONS[slot] ?? "◻";
+      const slotIcon = SLOT_ICONS[slot] ?? "◻";
       const label = SLOT_LABELS[slot] ?? slot;
+      const shortLabel = SLOT_SHORT[slot] ?? label;
       if (rune) {
         const runeIcon = RUNE_ICONS[rune.type] ?? "🔮";
         const statLabel = RUNE_STAT_LABELS[rune.statKey] ?? rune.statKey;
-        return `<button class="pdoll-slot equipped ${rune.tier}"
-          data-slot="${slot}" data-char-idx="${charIdx}"
-          data-rune-name="${PDOLL_TIER_ICONS[rune.tier] ?? "◆"} ${runeIcon} ${rune.name}"
-          data-rune-stat="+${rune.value} ${statLabel}"
-          title="${label}" aria-expanded="false">${runeIcon}</button>`;
+        const runeData = encodeURIComponent(JSON.stringify({ ...rune, slotLabel: label }));
+        return `<div class="pdoll-slot-cell" data-slot="${slot}">
+          <button class="pdoll-slot equipped ${rune.tier}"
+            data-slot="${slot}" data-char-idx="${charIdx}"
+            data-rune-name="${PDOLL_TIER_ICONS[rune.tier] ?? "◆"} ${runeIcon} ${rune.name}"
+            data-rune-stat="+${rune.value} ${statLabel}"
+            data-rune="${runeData}"
+            aria-expanded="false">${slotIcon}</button>
+          <span class="pdoll-slot-label">${shortLabel}</span>
+        </div>`;
       }
-      return `<button class="pdoll-slot empty"
-        data-slot="${slot}" data-char-idx="${charIdx}"
-        title="${label}" aria-expanded="false">${icon}</button>`;
+      return `<div class="pdoll-slot-cell" data-slot="${slot}">
+        <button class="pdoll-slot empty"
+          data-slot="${slot}" data-char-idx="${charIdx}"
+          aria-expanded="false">${slotIcon}</button>
+        <span class="pdoll-slot-label">${shortLabel}</span>
+      </div>`;
     }).join("");
 
     return `<div class="prune-char-block">
@@ -2848,7 +2862,7 @@ function buildSkillTooltipHTML(a: AbilityCardData): string {
     <div class="tt-stat-row"><span class="tt-stat-label">${a.desc}</span></div>`;
 }
 
-const TOOLTIP_SELECTORS = ".gear-row.filled[data-item], .loot-item[data-item], .char-name[data-char], .hero-sprite[data-char], #party-panel h2[data-party], [data-active-skill], .char-dps[data-dps], .tt-rune-slot[data-rune], .char-artifact-badge[data-artifact], .set-bonus-badge[data-set], .ability-badge[data-skill]";
+const TOOLTIP_SELECTORS = ".gear-row.filled[data-item], .loot-item[data-item], .char-name[data-char], .hero-sprite[data-char], #party-panel h2[data-party], [data-active-skill], .char-dps[data-dps], .tt-rune-slot[data-rune], .pdoll-slot.equipped[data-rune], .char-artifact-badge[data-artifact], .set-bonus-badge[data-set], .ability-badge[data-skill]";
 
 function buildActiveSkillTooltipHTML(skillId: string, skillState?: { remaining: number; expiry: number; totalCooldown: number; isActive: boolean; onCooldown: boolean }): string {
   const name = SKILL_NAMES[skillId] ?? skillId;

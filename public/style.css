@@ -4201,6 +4201,14 @@ footer {
 .pdoll-grid [data-slot="ring1"]     { grid-area: ring1; }
 .pdoll-grid [data-slot="ring2"]     { grid-area: ring2; }
 
+.pdoll-slot-cell {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.pdoll-slot-label {
+    font-size: 0.58rem; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.04em; line-height: 1; white-space: nowrap;
+}
+
 .pdoll-slot {
     width: 48px; height: 48px; border-radius: 50%;
     background: var(--surface); border: 2px solid var(--border);
