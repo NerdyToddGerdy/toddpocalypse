@@ -1434,7 +1434,6 @@ function renderPartyRunePanel(runeInv: Rune[], party: CharDict[], runeForge: num
       <div class="pdoll-stats-bar">${runeStatSummary(c)}</div>
       <div class="prune-char-name">${c.name} — ${c.character_class}</div>
       <div class="pdoll-grid">${slots}</div>
-      <div class="pdoll-detail" hidden></div>
     </div>`;
   }).join("");
 
@@ -1479,89 +1478,77 @@ function closeRuneReplaceModal(): void {
   document.getElementById("rune-replace-modal")!.classList.remove("open");
 }
 
+function openRuneSlotDetailModal(slotBtn: HTMLElement): void {
+  const slot = slotBtn.dataset.slot!;
+  const charIdx = slotBtn.dataset.charIdx!;
+  const isEquipped = slotBtn.classList.contains("equipped");
+  const modal = document.getElementById("rune-slot-detail-modal")!;
+  document.getElementById("rsd-title")!.textContent = SLOT_LABELS[slot] ?? slot;
+  const body = document.getElementById("rsd-body")!;
+  if (isEquipped) {
+    body.innerHTML = `
+      <div class="pdoll-detail-rune">${slotBtn.dataset.runeName ?? ""}</div>
+      <div class="pdoll-detail-stat">${slotBtn.dataset.runeStat ?? ""}</div>
+      <div class="pdoll-detail-actions">
+        <button class="pdoll-remove-btn" data-action="pdoll-remove" data-char-idx="${charIdx}" data-slot="${slot}">Remove</button>
+        <button class="pdoll-replace-btn" data-action="pdoll-open-replace" data-char-idx="${charIdx}" data-slot="${slot}">Replace</button>
+      </div>`;
+  } else {
+    body.innerHTML = `
+      <div class="pdoll-detail-empty">No rune socketed</div>
+      <div class="pdoll-detail-actions">
+        <button class="pdoll-replace-btn" data-action="pdoll-open-replace" data-char-idx="${charIdx}" data-slot="${slot}">Socket Rune</button>
+      </div>`;
+  }
+  modal.classList.add("open");
+  slotBtn.setAttribute("aria-expanded", "true");
+}
+
+function closeRuneSlotDetailModal(): void {
+  document.getElementById("rune-slot-detail-modal")!.classList.remove("open");
+  document.querySelectorAll<HTMLElement>(".pdoll-slot[aria-expanded='true']")
+    .forEach(b => b.setAttribute("aria-expanded", "false"));
+}
+
 function initRuneSlotPanel(): void {
   const panel = document.getElementById("party-rune-panel")!;
 
   panel.addEventListener("click", (e) => {
     const target = e.target as HTMLElement;
-
     const slotBtn = target.closest<HTMLElement>(".pdoll-slot");
-    if (slotBtn) {
-      const block = slotBtn.closest<HTMLElement>(".prune-char-block")!;
-      const detail = block.querySelector<HTMLElement>(".pdoll-detail")!;
-      const isOpen = slotBtn.getAttribute("aria-expanded") === "true";
+    if (slotBtn) { openRuneSlotDetailModal(slotBtn); return; }
+  });
 
-      block.querySelectorAll<HTMLElement>(".pdoll-slot").forEach(b => b.setAttribute("aria-expanded", "false"));
+  const detailModal = document.getElementById("rune-slot-detail-modal")!;
+  document.getElementById("rsd-close")!.addEventListener("click", closeRuneSlotDetailModal);
+  detailModal.addEventListener("click", (e) => { if (e.target === detailModal) closeRuneSlotDetailModal(); });
 
-      if (isOpen) {
-        detail.hidden = true;
-        return;
-      }
-
-      const slot = slotBtn.dataset.slot!;
-      const charIdx = slotBtn.dataset.charIdx!;
-      const isEquipped = slotBtn.classList.contains("equipped");
-      const slotLabel = SLOT_LABELS[slot] ?? slot;
-
-      let bodyHtml: string;
-      if (isEquipped) {
-        bodyHtml = `
-          <div class="pdoll-detail-rune">${slotBtn.dataset.runeName ?? ""}</div>
-          <div class="pdoll-detail-stat">${slotBtn.dataset.runeStat ?? ""}</div>
-          <div class="pdoll-detail-actions">
-            <button class="pdoll-remove-btn" data-action="pdoll-remove" data-char-idx="${charIdx}" data-slot="${slot}">Remove</button>
-            <button class="pdoll-replace-btn" data-action="pdoll-open-replace" data-char-idx="${charIdx}" data-slot="${slot}">Replace</button>
-          </div>`;
-      } else {
-        bodyHtml = `
-          <div class="pdoll-detail-empty">No rune socketed</div>
-          <div class="pdoll-detail-actions">
-            <button class="pdoll-replace-btn" data-action="pdoll-open-replace" data-char-idx="${charIdx}" data-slot="${slot}">Socket Rune</button>
-          </div>`;
-      }
-
-      detail.innerHTML = `
-        <div class="pdoll-detail-header">
-          <span class="pdoll-detail-slot-name">${slotLabel}</span>
-          <button class="pdoll-detail-close">✕</button>
-        </div>
-        ${bodyHtml}`;
-      detail.hidden = false;
-      slotBtn.setAttribute("aria-expanded", "true");
-      return;
-    }
-
-    if (target.closest(".pdoll-detail-close")) {
-      const block = target.closest<HTMLElement>(".prune-char-block")!;
-      block.querySelector<HTMLElement>(".pdoll-detail")!.hidden = true;
-      block.querySelectorAll<HTMLElement>(".pdoll-slot").forEach(b => b.setAttribute("aria-expanded", "false"));
-      return;
-    }
-
-    const actionBtn = target.closest<HTMLElement>("[data-action]");
+  detailModal.addEventListener("click", (e) => {
+    const actionBtn = (e.target as HTMLElement).closest<HTMLElement>("[data-action]");
     if (!actionBtn) return;
     const action = actionBtn.dataset.action;
     const charIdx = parseInt(actionBtn.dataset.charIdx!, 10);
     const slot = actionBtn.dataset.slot!;
-
     if (action === "pdoll-remove") {
       call("unbrandRune", charIdx, slot);
+      closeRuneSlotDetailModal();
     } else if (action === "pdoll-open-replace") {
+      closeRuneSlotDetailModal();
       openRuneReplaceModal(charIdx, slot);
     }
   });
 
-  const modal = document.getElementById("rune-replace-modal")!;
-  const body = document.getElementById("rune-replace-body")!;
+  const replaceModal = document.getElementById("rune-replace-modal")!;
+  const replaceBody = document.getElementById("rune-replace-body")!;
   const confirm = document.getElementById("rune-replace-confirm") as HTMLButtonElement;
 
   document.getElementById("rune-replace-close")!.addEventListener("click", closeRuneReplaceModal);
-  modal.addEventListener("click", (e) => { if (e.target === modal) closeRuneReplaceModal(); });
+  replaceModal.addEventListener("click", (e) => { if (e.target === replaceModal) closeRuneReplaceModal(); });
 
-  body.addEventListener("click", (e) => {
+  replaceBody.addEventListener("click", (e) => {
     const item = (e.target as HTMLElement).closest<HTMLElement>(".rr-rune-item");
     if (!item) return;
-    body.querySelectorAll(".rr-rune-item").forEach(el => el.classList.remove("selected"));
+    replaceBody.querySelectorAll(".rr-rune-item").forEach(el => el.classList.remove("selected"));
     item.classList.add("selected");
     rrSelectedId = item.dataset.runeId!;
     confirm.disabled = false;
