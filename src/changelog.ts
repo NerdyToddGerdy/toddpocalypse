@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.31.34";
+export const VERSION = "v2.31.35";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.31.35",
+    date: "2026-05-21",
+    changes: [
+      "Rune doll visual polish — medallion-depth slot circles, warm amber atmosphere card, tier-colored radial backgrounds, glowing stat chips, styled modals",
+    ],
+  },
   {
     version: "v2.31.34",
     date: "2026-05-21",
