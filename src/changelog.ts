@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.31.22";
+export const VERSION = "v2.31.23";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.31.23",
+    date: "2026-05-21",
+    changes: [
+      "Mobile: checkpoint text hidden from enemy panel — depth gauge on the left already shows it",
+    ],
+  },
   {
     version: "v2.31.22",
     date: "2026-05-21",

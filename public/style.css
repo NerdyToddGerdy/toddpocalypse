@@ -2272,7 +2272,7 @@ main {
     #monsters-left-text { font-size: 0.64rem; flex: 0 0 auto; text-align: left; height: 1.2rem; line-height: 1.2rem; }
     #floor-pip-row { flex: 1; justify-content: center; gap: 2px; }
     .floor-pip { width: 7px; height: 4px; }
-    #checkpoint-display { flex: 0 0 auto; font-size: 0.6rem; text-align: right; white-space: nowrap; overflow: hidden; max-width: 30%; text-overflow: ellipsis; }
+    #checkpoint-display { display: none; }
     #attack-btn { padding: 6px 10px; font-size: 0.9rem; margin-top: 0; }
     #attack-row { margin-top: 0; gap: 5px; }
 
