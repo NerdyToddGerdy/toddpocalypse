@@ -2249,7 +2249,6 @@ main {
     #creation-box { width: min(340px, 92vw); }
 
     #party-cards { grid-template-columns: 1fr; }
-    #party-rune-panel { grid-template-columns: 1fr; }
 
     /* Mobile char-card: tighter columns than desktop */
     .char-card {
@@ -5040,3 +5039,7 @@ footer {
 .retire-unlock-title { font-size: 0.76rem; color: var(--accent); font-weight: 700; margin-bottom: 6px; letter-spacing: 1px; }
 .retire-unlock-item { font-size: 0.82rem; color: var(--text); margin: 3px 0; }
 .retire-unlock-none { color: var(--muted); font-size: 0.8rem; text-align: center; padding: 8px 0; border-color: var(--border); background: none; }
+
+@media (max-width: 1280px) {
+    #party-rune-panel { grid-template-columns: 1fr; }
+}
