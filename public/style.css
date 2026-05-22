@@ -2127,15 +2127,7 @@ main {
     #left-col-panels { display: contents; }
     #party-panel     { width: auto; }
 
-    #monster-portrait-wrap {
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        pointer-events: none;
-        z-index: 1;
-    }
-    #monster-portrait-wrap.boss-visible { width: 60px; }
+    #monster-portrait-wrap { width: 60px; flex-shrink: 0; }
     #portrait-inner { width: 60px; height: 92px; }
     #sidebar   { display: contents; background: none; border: none; border-radius: 0; }
     #sidebar-tabs { display: none; }

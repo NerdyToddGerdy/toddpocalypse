@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.31.21";
+export const VERSION = "v2.31.22";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.31.22",
+    date: "2026-05-21",
+    changes: [
+      "Mobile: boss/elite portrait sits in the flex row as before — space always reserved so layout never shifts between regular and boss enemies",
+    ],
+  },
   {
     version: "v2.31.21",
     date: "2026-05-21",
