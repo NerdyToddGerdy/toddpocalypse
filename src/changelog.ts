@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.31.24";
+export const VERSION = "v2.31.25";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.31.25",
+    date: "2026-05-21",
+    changes: [
+      "Mobile combat: Party / Equipment sub-tab bar — switch between hero cards and loot without scrolling; selection persists across sessions",
+    ],
+  },
   {
     version: "v2.31.24",
     date: "2026-05-21",

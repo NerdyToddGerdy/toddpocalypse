@@ -2614,14 +2614,42 @@ const SIDEBAR_TAB_PANELS: Record<string, string[]> = {
   log:      ["log-panel"],
 };
 
+let applyCombatSubTab: (() => void) | null = null;
+
+function initCombatSubTabs(): void {
+  const bar = document.getElementById("combat-subtabs")!;
+  const mainEl = document.querySelector("main")!;
+  const saved = localStorage.getItem("combat-sub-tab") ?? "party";
+
+  function switchSub(which: string): void {
+    bar.querySelectorAll<HTMLElement>(".combat-stab").forEach(b =>
+      b.classList.toggle("active", b.dataset.combatStab === which)
+    );
+    mainEl.dataset.combatSub = which;
+    localStorage.setItem("combat-sub-tab", which);
+  }
+
+  applyCombatSubTab = () => switchSub(mainEl.dataset.combatSub ?? saved);
+
+  bar.querySelectorAll<HTMLElement>(".combat-stab").forEach(btn =>
+    btn.addEventListener("click", () => switchSub(btn.dataset.combatStab!))
+  );
+
+  switchSub(saved);
+}
+
 function initMobileTabs(): void {
   const allPanelIds = Object.values(TAB_PANELS).flat();
   const tabs = document.querySelectorAll<HTMLElement>(".mobile-tab-btn");
+  const combatSubBar = document.getElementById("combat-subtabs")!;
 
   function showTab(tab: string): void {
     allPanelIds.forEach(id => document.getElementById(id)?.classList.remove("tab-visible"));
     TAB_PANELS[tab]?.forEach(id => document.getElementById(id)?.classList.add("tab-visible"));
     tabs.forEach(btn => btn.classList.toggle("active", btn.dataset.tab === tab));
+    const isMobile = window.matchMedia("(max-width: 1280px)").matches;
+    combatSubBar.style.display = isMobile && tab === "combat" ? "flex" : "none";
+    if (tab === "combat") applyCombatSubTab?.();
   }
 
   tabs.forEach(btn => btn.addEventListener("click", () => showTab(btn.dataset.tab!)));
@@ -3268,6 +3296,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initHeaderHeightVar();
   initEnemySticky();
   initSaveBackup();
+  initCombatSubTabs();
   initMobileTabs();
   initSidebarTabs();
   initLootSubtabs();
