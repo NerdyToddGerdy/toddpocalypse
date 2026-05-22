@@ -4182,6 +4182,7 @@ footer {
     align-items: center;
     gap: 8px;
     font-size: 0.75rem;
+    overflow: hidden;
 }
 
 .prune-slot-icon { flex-shrink: 0; width: 18px; text-align: center; }
@@ -4195,6 +4196,7 @@ footer {
 
 .prune-rune-badge {
     flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: 5px;
@@ -4203,6 +4205,7 @@ footer {
     border-radius: 5px;
     padding: 3px 7px;
     font-size: 0.72rem;
+    overflow: hidden;
 }
 
 .prune-rune-badge.empty {
@@ -4232,6 +4235,7 @@ footer {
 
 .prune-brand-row {
     flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: 4px;
@@ -4239,6 +4243,8 @@ footer {
 }
 .prune-rune-select {
     flex: 1;
+    min-width: 0;
+    width: 0;
     font-size: 0.68rem;
     background: var(--surface);
     color: var(--text);
