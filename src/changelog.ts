@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.31.38";
+export const VERSION = "v2.31.39";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.31.39",
+    date: "2026-05-21",
+    changes: [
+      "Fix Eternal Cycle not appearing in Renown without refresh — guild_upgrades was missing from the prestige shop render cache key",
+    ],
+  },
   {
     version: "v2.31.38",
     date: "2026-05-21",

@@ -1165,7 +1165,7 @@ function renderCustomizeModal(state: GameStateDict): void {
 
 /** Renders the Prestige Shop item list, marking purchased one-time items and unaffordable items. */
 function renderPrestigeShop(state: GameStateDict): void {
-  const newKey = JSON.stringify(state.prestige_upgrades) + "|" + state.prestige_points + "|" + state.highest_level + "|" + JSON.stringify(state.auto_sell_qualities) + "|" + state.dungeon_index + "|" + state.auto_prestige_enabled + "|" + state.auto_prestige_threshold;
+  const newKey = JSON.stringify(state.prestige_upgrades) + "|" + state.prestige_points + "|" + state.highest_level + "|" + JSON.stringify(state.auto_sell_qualities) + "|" + state.dungeon_index + "|" + state.auto_prestige_enabled + "|" + state.auto_prestige_threshold + "|" + JSON.stringify(state.guild_upgrades);
   if (newKey === prestigeKey) return;
   prestigeKey = newKey;
 
