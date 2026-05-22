@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.31.37";
+export const VERSION = "v2.31.38";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.31.38",
+    date: "2026-05-21",
+    changes: [
+      "Party Runes tab button hidden until Rune Forge is unlocked",
+    ],
+  },
   {
     version: "v2.31.37",
     date: "2026-05-21",

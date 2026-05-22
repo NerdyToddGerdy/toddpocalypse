@@ -1406,6 +1406,8 @@ function runeStatSummary(c: CharDict): string {
 function renderPartyRunePanel(runeInv: Rune[], party: CharDict[], runeForge: number): void {
   lastRuneInv = runeInv;
   const el = $("party-rune-panel");
+  const ptabRunesBtn = document.querySelector<HTMLButtonElement>('.ptab-btn[data-ptab="runes"]');
+  if (ptabRunesBtn) ptabRunesBtn.hidden = runeForge < 1;
   if (runeForge < 1) {
     el.innerHTML = `<div class="prune-empty">Unlock the Rune Forge in the Guild Hall to start socketing runes.</div>`;
     return;
