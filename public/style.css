@@ -2249,6 +2249,7 @@ main {
     #creation-box { width: min(340px, 92vw); }
 
     #party-cards { grid-template-columns: 1fr; }
+    #party-rune-panel { grid-template-columns: 1fr; }
 
     /* Mobile char-card: tighter columns than desktop */
     .char-card {
