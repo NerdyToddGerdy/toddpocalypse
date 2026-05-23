@@ -5176,7 +5176,7 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
 }
 
 /* ── Constellation Panel ─────────────────────────────────────────────────── */
-#constellation-panel { padding: 12px 14px; }
+#constellation-panel { width: 100%; padding: 12px 14px; }
 #constellation-panel h2 { color: var(--accent2); margin: 0 0 10px; font-size: 0.95rem; letter-spacing: 0.08em; }
 
 .cdoll-shard-header {

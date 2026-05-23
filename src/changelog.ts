@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.3";
+export const VERSION = "v2.32.4";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.4",
+    date: "2026-05-23",
+    changes: [
+      "Fix: constellation panel now takes full width in left column instead of appearing next to the enemy panel",
+    ],
+  },
   {
     version: "v2.32.3",
     date: "2026-05-23",
