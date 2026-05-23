@@ -2210,6 +2210,7 @@ main {
     }
 
     #party-panel,
+    #constellation-panel,
     #upgrades-panel,
     #loot-panel,
     #prestige-panel,
@@ -5136,6 +5137,42 @@ footer {
 
 @media (max-width: 1280px) {
     #party-rune-panel { grid-template-columns: 1fr; }
+}
+
+/* ── Left-col sub-tabs (Party / Stars toggle) ────────────────────────────── */
+#left-col-subtabs {
+    display: flex;
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.lcol-stab {
+    flex: 1;
+    padding: 8px 12px;
+    background: none;
+    border: none;
+    border-right: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.82rem;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+}
+.lcol-stab:last-child { border-right: none; }
+.lcol-stab.active {
+    color: var(--accent2);
+    background: rgba(200,160,60,0.08);
+}
+.lcol-stab:hover:not(.active) { color: var(--text); background: rgba(255,255,255,0.04); }
+
+/* Toggle visibility based on data-left-sub attribute on <main> */
+main[data-left-sub="party"] #constellation-panel { display: none !important; }
+main[data-left-sub="stars"] #party-panel { display: none !important; }
+@media (max-width: 1280px) {
+    main[data-left-sub="stars"] #loot-panel { display: none !important; }
 }
 
 /* ── Constellation Panel ─────────────────────────────────────────────────── */

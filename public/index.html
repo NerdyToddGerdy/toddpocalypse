@@ -111,7 +111,7 @@
   </div>
 </header>
 
-<main>
+<main data-left-sub="party">
 
   <!-- Dungeon depth gauge — leftmost column -->
   <div id="depth-gauge">
@@ -142,6 +142,11 @@
 
   <!-- Left column wrapper -->
   <div id="left-col">
+
+    <div id="left-col-subtabs" hidden>
+      <button class="lcol-stab active" data-lcol-stab="party">⚔ Party</button>
+      <button class="lcol-stab" id="lcol-stab-stars" data-lcol-stab="stars">✦ Stars</button>
+    </div>
 
     <div id="left-col-panels">
 
@@ -187,13 +192,15 @@
             <button class="ptab-btn active" data-ptab="party">Party</button>
             <button class="ptab-btn" data-ptab="runes">🔮 Runes</button>
             <button class="ptab-btn" id="ptab-artifacts-btn" data-ptab="artifacts" hidden>✨ Artifacts</button>
-            <button class="ptab-btn" id="ptab-constellation-btn" data-ptab="constellation" hidden>✦ Stars</button>
           </div>
         </div>
         <div id="party-cards"></div>
         <div id="party-rune-panel" hidden></div>
         <div id="party-artifact-panel" hidden></div>
-        <div id="party-constellation-panel" hidden><div id="constellation-content"></div></div>
+      </section>
+
+      <section id="constellation-panel">
+        <div id="constellation-content"></div>
       </section>
 
     </div>

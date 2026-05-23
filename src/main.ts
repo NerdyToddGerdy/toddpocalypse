@@ -416,9 +416,9 @@ function updateTabVisibility(state: GameStateDict): void {
   if (stabPrestige) stabPrestige.hidden = !prestigeUnlocked;
   if (stabGuild)    stabGuild.hidden    = !guildUnlocked;
 
-  // Party sub-tab for constellations
-  const ptabConstellation = document.getElementById("ptab-constellation-btn") as HTMLButtonElement | null;
-  if (ptabConstellation) ptabConstellation.hidden = !constellationUnlocked;
+  // Left-col sub-tab bar for constellations
+  const lcoldSubtabs = document.getElementById("left-col-subtabs");
+  if (lcoldSubtabs) lcoldSubtabs.hidden = !constellationUnlocked;
 
   // Mobile tabs
   const mobileGuild = document.querySelector<HTMLElement>(".mobile-tab-btn[data-tab='guild']");
@@ -1465,7 +1465,7 @@ function renderConstellationPanel(state: GameStateDict): void {
 }
 
 function initConstellationPanel(): void {
-  const panel = document.getElementById("party-panel");
+  const panel = document.getElementById("constellation-panel");
   if (!panel) return;
 
   panel.addEventListener("click", (e) => {
@@ -2863,7 +2863,7 @@ function slotLabel(slot: string): string {
 }
 
 const TAB_PANELS: Record<string, string[]> = {
-  combat:        ["enemy-panel", "party-panel", "loot-panel"],
+  combat:        ["enemy-panel", "party-panel", "constellation-panel", "loot-panel"],
   shop:          ["upgrades-panel", "prestige-panel"],
   guild:         ["guild-hall-panel"],
   log:           ["log-panel"],
@@ -3490,7 +3490,6 @@ function initPartyPanelTabs(): void {
   const cardsEl = $("party-cards");
   const runeEl = $("party-rune-panel");
   const artEl = $("party-artifact-panel");
-  const constellationEl = $("party-constellation-panel");
   const gearToggle = $("party-gear-toggle");
 
   switchPartyTab = (which: string) => {
@@ -3498,13 +3497,32 @@ function initPartyPanelTabs(): void {
     cardsEl.hidden = which !== "party";
     runeEl.hidden = which !== "runes";
     artEl.hidden = which !== "artifacts";
-    constellationEl.hidden = which !== "constellation";
     gearToggle.hidden = which !== "party";
   };
 
   tabs.forEach(tab => {
     tab.addEventListener("click", () => switchPartyTab(tab.dataset.ptab!));
   });
+}
+
+function initLeftColSubTabs(): void {
+  const bar = document.getElementById("left-col-subtabs")!;
+  const mainEl = document.querySelector("main")!;
+  const saved = localStorage.getItem("left-col-sub") ?? "party";
+
+  function switchSub(which: string): void {
+    bar.querySelectorAll<HTMLElement>(".lcol-stab").forEach(b =>
+      b.classList.toggle("active", b.dataset.lcolStab === which)
+    );
+    mainEl.dataset.leftSub = which;
+    localStorage.setItem("left-col-sub", which);
+  }
+
+  bar.querySelectorAll<HTMLElement>(".lcol-stab").forEach(btn =>
+    btn.addEventListener("click", () => switchSub(btn.dataset.lcolStab!))
+  );
+
+  switchSub(saved);
 }
 
 function initSaveBackup(): void {
@@ -3593,6 +3611,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initMobileTabs();
   initRuneSlotPanel();
   initConstellationPanel();
+  initLeftColSubTabs();
   initSidebarTabs();
   initLootSubtabs();
   initItemTooltip();

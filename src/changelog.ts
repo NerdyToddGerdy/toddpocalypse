@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.2";
+export const VERSION = "v2.32.3";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.3",
+    date: "2026-05-23",
+    changes: [
+      "Constellations panel moved to left column as a sibling of the party panel — ⚔ Party / ✦ Stars toggle bar appears above both panels once the Constellation Chart is purchased",
+    ],
+  },
   {
     version: "v2.32.2",
     date: "2026-05-23",
