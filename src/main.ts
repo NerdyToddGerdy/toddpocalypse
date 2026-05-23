@@ -3002,6 +3002,7 @@ const LOOT_TO_PTAB: Record<string, string> = {
 };
 
 let switchPartyTab: (which: string) => void = () => {};
+let switchLeftColSub: (which: string) => void = () => {};
 
 function initLootSubtabs(): void {
   const btns = document.querySelectorAll<HTMLElement>(".loot-stab");
@@ -3434,6 +3435,7 @@ async function initAuth(): Promise<GameStateDict | null> {
 /** Creates a fresh GameState, clears any existing save, and starts the 100ms game loop. */
 function startGame(name: string, characterClass: string): void {
   $("creation-overlay").style.display = "none";
+  switchLeftColSub("party");
   if (game?.needsHeroCreation) {
     const json = game.createHeroAfterRetirement(name, characterClass);
     render(JSON.parse(json));
@@ -3555,6 +3557,7 @@ function initLeftColSubTabs(): void {
     btn.addEventListener("click", () => switchSub(btn.dataset.lcolStab!))
   );
 
+  switchLeftColSub = switchSub;
   switchSub(saved);
 }
 

@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.13";
+export const VERSION = "v2.32.14";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.14",
+    date: "2026-05-23",
+    changes: [
+      "Fix: party panel hidden after save reset when constellation view was previously active — new hero creation now resets the left column to the party tab",
+    ],
+  },
   {
     version: "v2.32.13",
     date: "2026-05-23",
