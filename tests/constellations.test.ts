@@ -130,9 +130,28 @@ describe("CONSTELLATION_NODE_DEFS integrity", () => {
   it("each constellation has exactly one start node", () => {
     for (let c = 1; c <= 7; c++) {
       const starts = Object.values(CONSTELLATION_NODE_DEFS).filter(
-        d => d.constellation === c && d.isStart
+        d => d.constellation === c && d.type === "start"
       );
       expect(starts.length).toBe(1);
+    }
+  });
+
+  it("exactly one center node exists and is isStart", () => {
+    const centers = Object.values(CONSTELLATION_NODE_DEFS).filter(d => d.type === "center");
+    expect(centers.length).toBe(1);
+    expect(centers[0].isStart).toBe(true);
+  });
+
+  it("no start nodes connect directly to each other (no cross-constellation edges)", () => {
+    const startIds = new Set(
+      Object.values(CONSTELLATION_NODE_DEFS).filter(d => d.type === "start").map(d => d.id)
+    );
+    for (const def of Object.values(CONSTELLATION_NODE_DEFS)) {
+      if (def.type === "keystone") {
+        for (const conn of def.connections) {
+          expect(startIds.has(conn), `keystone ${def.id} connects to start ${conn}`).toBe(false);
+        }
+      }
     }
   });
 
@@ -162,46 +181,59 @@ describe("GameState.unlockConstellationNode", () => {
     gs.constellationShards = 20;
   });
 
-  it("allows unlocking a start node without adjacency", () => {
-    const result = JSON.parse(gs.unlockConstellationNode("warrior_start"));
-    expect(result.constellation_nodes).toContain("warrior_start");
+  it("allows unlocking the center node without adjacency (isStart)", () => {
+    const result = JSON.parse(gs.unlockConstellationNode("center"));
+    expect(result.constellation_nodes).toContain("center");
     expect(result.constellation_shards).toBe(19); // cost 1
   });
 
-  it("deducts the correct shard cost", () => {
+  it("blocks unlocking a start node without center unlocked", () => {
+    const before = gs.constellationShards;
+    const result = JSON.parse(gs.unlockConstellationNode("warrior_start"));
+    expect(result.constellation_nodes).not.toContain("warrior_start");
+    expect(result.constellation_shards).toBe(before);
+  });
+
+  it("allows unlocking a start node after center is unlocked", () => {
+    gs.unlockConstellationNode("center");
+    const result = JSON.parse(gs.unlockConstellationNode("warrior_start"));
+    expect(result.constellation_nodes).toContain("warrior_start");
+  });
+
+  it("blocks unlocking a notable without a minor unlocked", () => {
+    gs.unlockConstellationNode("center");
     gs.unlockConstellationNode("warrior_start");
-    const result = JSON.parse(gs.unlockConstellationNode("warrior_notable1")); // cost 2, but not adjacent to start
-    // warrior_notable1 is NOT adjacent to warrior_start, so this should fail
+    const result = JSON.parse(gs.unlockConstellationNode("warrior_notable1"));
     expect(result.constellation_nodes).not.toContain("warrior_notable1");
+  });
+
+  it("allows unlocking adjacent nodes after parent is unlocked", () => {
+    gs.unlockConstellationNode("center");
+    gs.unlockConstellationNode("warrior_start");
+    gs.unlockConstellationNode("warrior_minor1");
+    const result = JSON.parse(gs.unlockConstellationNode("warrior_notable1"));
+    expect(result.constellation_nodes).toContain("warrior_notable1");
   });
 
   it("blocks non-adjacent non-start nodes", () => {
     const before = gs.constellationShards;
     const result = JSON.parse(gs.unlockConstellationNode("warrior_keystone"));
-    // warrior_keystone is not a start node and no adjacent nodes are unlocked
     expect(result.constellation_nodes).not.toContain("warrior_keystone");
-    expect(result.constellation_shards).toBe(before); // no shards spent
-  });
-
-  it("allows unlocking adjacent nodes after parent is unlocked", () => {
-    gs.unlockConstellationNode("warrior_start");         // start → unlocked
-    gs.unlockConstellationNode("warrior_minor1");        // adjacent to start
-    const result = JSON.parse(gs.unlockConstellationNode("warrior_notable1")); // adjacent to minor1
-    expect(result.constellation_nodes).toContain("warrior_notable1");
+    expect(result.constellation_shards).toBe(before);
   });
 
   it("blocks unlock when not enough shards", () => {
     gs.constellationShards = 0;
-    const result = JSON.parse(gs.unlockConstellationNode("warrior_start"));
-    expect(result.constellation_nodes).not.toContain("warrior_start");
+    const result = JSON.parse(gs.unlockConstellationNode("center"));
+    expect(result.constellation_nodes).not.toContain("center");
     expect(result.constellation_shards).toBe(0);
   });
 
   it("does not double-unlock an already-unlocked node", () => {
-    gs.unlockConstellationNode("warrior_start");
+    gs.unlockConstellationNode("center");
     const shardsAfterFirst = gs.constellationShards;
-    gs.unlockConstellationNode("warrior_start");
-    expect(gs.constellationShards).toBe(shardsAfterFirst); // no additional deduction
+    gs.unlockConstellationNode("center");
+    expect(gs.constellationShards).toBe(shardsAfterFirst);
   });
 });
 
@@ -213,12 +245,13 @@ describe("GameState.respecConstellation", () => {
   beforeEach(() => {
     gs = new GameState();
     gs.constellationShards = 20;
-    gs.unlockConstellationNode("warrior_start");  // costs 1 → 19 shards
-    gs.unlockConstellationNode("warrior_minor1"); // costs 1 → 18 shards
+    gs.unlockConstellationNode("center");         // costs 1 → 19 shards
+    gs.unlockConstellationNode("warrior_start");  // costs 1 → 18 shards
+    gs.unlockConstellationNode("warrior_minor1"); // costs 1 → 17 shards
   });
 
   it("refunds all spent shards minus 10 fee", () => {
-    // spent 2 shards, have 18; respec: get 2 back, lose 10 fee → net 18 + 2 - 10 = 10
+    // spent 3 shards (center+warrior_start+warrior_minor1), have 17; respec: 17 + 3 - 10 = 10
     const result = JSON.parse(gs.respecConstellation());
     expect(result.constellation_shards).toBe(10);
   });
@@ -275,6 +308,7 @@ describe("lastStandActive keystone", () => {
     const gs = new GameState();
     gs.constellationShards = 100;
     // Unlock entire guardian path to keystone
+    gs.unlockConstellationNode("center");
     gs.unlockConstellationNode("guardian_start");
     gs.unlockConstellationNode("guardian_minor1");
     gs.unlockConstellationNode("guardian_notable1");
@@ -296,6 +330,7 @@ describe("lastStandActive keystone", () => {
   it("last stand only fires once per floor", () => {
     const gs = new GameState();
     gs.constellationShards = 100;
+    gs.unlockConstellationNode("center");
     gs.unlockConstellationNode("guardian_start");
     gs.unlockConstellationNode("guardian_minor1");
     gs.unlockConstellationNode("guardian_notable1");

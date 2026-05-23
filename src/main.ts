@@ -1431,7 +1431,7 @@ function renderConstellationPanel(state: GameStateDict): void {
 
   const svgNodes = Object.values(defs).map(def => {
     const on = nodeSet.has(def.id);
-    const r = def.type === "keystone" ? 14 : def.type === "notable" ? 10 : 8;
+    const r = def.type === "center" ? 16 : def.type === "keystone" ? 14 : def.type === "notable" ? 10 : 8;
     const cls = [
       "cdoll-node",
       def.type,
@@ -2036,9 +2036,16 @@ function renderArtifactModalBody(state: GameStateDict): void {
     (sum, fi) => sum + artifactFuelValue(inv[fi]?.level ?? 0), 0
   );
 
+  const allSelected = fuelCandidates.length > 0 && fuelCandidates.every(c => artifactModalFuelSelected.has(c.invIdx));
+  const anySelected = fuelCandidates.some(c => artifactModalFuelSelected.has(c.invIdx));
   const fuelListHtml = fuelCandidates.length === 0
     ? `<div class="amodal-no-fuel">No other copies in inventory.</div>`
-    : fuelCandidates.map(c => {
+    : `<label class="amodal-fuel-item amodal-fuel-select-all">
+        <input type="checkbox" id="amodal-fuel-select-all"${allSelected ? " checked" : ""}>
+        <span class="amodal-fuel-label">Select all</span>
+        <span class="amodal-fuel-unit">${fuelCandidates.length} artifact${fuelCandidates.length !== 1 ? "s" : ""}</span>
+       </label>` +
+      fuelCandidates.map(c => {
         const checked = artifactModalFuelSelected.has(c.invIdx) ? " checked" : "";
         const lvlLabel = c.level > 0 ? ` <span class="artifact-level-badge">+${c.level}</span>` : "";
         const units = artifactFuelValue(c.level);
@@ -2124,24 +2131,47 @@ function renderArtifactModalBody(state: GameStateDict): void {
     ${fuelSection}
     ${actionsHtml}`;
 
+  function syncFuelUI(): void {
+    const total = [...artifactModalFuelSelected].reduce(
+      (s, idx) => s + artifactFuelValue(inv[idx]?.level ?? 0), 0
+    );
+    const btn = document.getElementById("amodal-addfuel-btn") as HTMLButtonElement | null;
+    if (btn) {
+      btn.disabled = total === 0;
+      btn.textContent = total > 0 ? `Add ${total} fuel unit${total === 1 ? "" : "s"}` : "Select artifacts below";
+    }
+    applyFuelBarPreview(inst!.fuel, inst!.level, total);
+    const allCb = document.getElementById("amodal-fuel-select-all") as HTMLInputElement | null;
+    if (allCb) {
+      const all = fuelCandidates.every(c => artifactModalFuelSelected.has(c.invIdx));
+      const any = fuelCandidates.some(c => artifactModalFuelSelected.has(c.invIdx));
+      allCb.checked = all;
+      allCb.indeterminate = !all && any;
+    }
+  }
+
   // Wire checkboxes — no cap, any combination allowed
   el.querySelectorAll<HTMLInputElement>(".amodal-fuel-check").forEach(cb => {
     cb.addEventListener("change", () => {
       const fi = parseInt(cb.dataset.fuelIdx!, 10);
       if (cb.checked) artifactModalFuelSelected.add(fi);
       else artifactModalFuelSelected.delete(fi);
-
-      const total = [...artifactModalFuelSelected].reduce(
-        (s, idx) => s + artifactFuelValue(inv[idx]?.level ?? 0), 0
-      );
-      const btn = document.getElementById("amodal-addfuel-btn") as HTMLButtonElement | null;
-      if (btn) {
-        btn.disabled = total === 0;
-        btn.textContent = total > 0 ? `Add ${total} fuel unit${total === 1 ? "" : "s"}` : "Select artifacts below";
-      }
-      applyFuelBarPreview(inst.fuel, inst.level, total);
+      syncFuelUI();
     });
   });
+
+  const selectAllCb = document.getElementById("amodal-fuel-select-all") as HTMLInputElement | null;
+  if (selectAllCb) {
+    selectAllCb.indeterminate = !allSelected && anySelected;
+    selectAllCb.addEventListener("change", () => {
+      if (selectAllCb.checked) fuelCandidates.forEach(c => artifactModalFuelSelected.add(c.invIdx));
+      else artifactModalFuelSelected.clear();
+      el.querySelectorAll<HTMLInputElement>(".amodal-fuel-check").forEach(cb => {
+        cb.checked = selectAllCb.checked;
+      });
+      syncFuelUI();
+    });
+  }
 }
 
 /** Animates the artifact fuel progress bar to preview the effect of adding `totalAdded` fuel units.

@@ -4909,6 +4909,8 @@ footer {
 .amodal-fuel-item input[type="checkbox"] { accent-color: #7c3aed; width: 14px; height: 14px; flex-shrink: 0; cursor: pointer; }
 .amodal-fuel-item:has(input:checked) { background: rgba(124,58,237,0.12); border-color: #7c3aed55; }
 .amodal-fuel-label { flex: 1; }
+.amodal-fuel-select-all { border-bottom: 1px solid var(--border); margin-bottom: 4px; padding-bottom: 6px; opacity: 0.85; }
+.amodal-fuel-select-all .amodal-fuel-label { font-weight: 600; }
 .amodal-no-fuel { font-size: 0.8rem; color: var(--muted); margin-bottom: 10px; }
 .amodal-fuel-unit { font-size: 0.72rem; color: #4ade80; margin-left: auto; flex-shrink: 0; }
 .amodal-addfuel-btn { display: block; width: 100%; padding: 8px 12px; background: #16a34a; color: #fff; border: none; border-radius: 6px; font-size: 0.88rem; font-weight: 700; cursor: pointer; text-align: center; margin-top: 8px; }
@@ -5201,6 +5203,9 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
 /* SVG nodes */
 .cdoll-node { cursor: pointer; transition: filter 0.12s; }
 .cdoll-node-group:hover .cdoll-node { filter: brightness(1.4); }
+.cdoll-node.center.unlocked  { fill: #7c3aed; stroke: #c4b5fd; stroke-width: 3;
+  filter: drop-shadow(0 0 10px rgba(167,139,250,0.7)); }
+.cdoll-node.center.locked    { fill: rgba(30,20,50,0.95); stroke: rgba(167,139,250,0.4); stroke-width: 2; stroke-dasharray: 4 2; }
 .cdoll-node.unlocked.minor   { fill: rgba(200,160,60,0.45); stroke: var(--accent2); stroke-width: 2; }
 .cdoll-node.unlocked.notable { fill: #6d28d9; stroke: #a78bfa; stroke-width: 2; }
 .cdoll-node.unlocked.keystone {
