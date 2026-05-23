@@ -1265,6 +1265,9 @@ export class GameState {
       if (unlock.border) this.earnedBorders.add(unlock.border);
     }
 
+    // Preserve account-wide constellation access across retirement
+    const savedConstellationAccess = this.guildUpgrades["constellation_access"] ?? 0;
+
     // Hard reset — wipe everything except permanents
     this.kills = 0;
     this.deaths = 0;
@@ -1282,7 +1285,7 @@ export class GameState {
     this.totalPrestiges = 0;
     this.prestigeUpgrades = {};
     this.prestigePartyClasses = {};
-    this.guildUpgrades = {};
+    this.guildUpgrades = savedConstellationAccess > 0 ? { constellation_access: savedConstellationAccess } : {};
     this.runeInventory = [];
     this.artifactInventory = [];
     this.gearStash = [];

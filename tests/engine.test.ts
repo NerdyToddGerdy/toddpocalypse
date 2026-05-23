@@ -5404,6 +5404,46 @@ describe("retireHero", () => {
   });
 });
 
+// ─── constellation persistence through retirement ─────────────────────────
+
+describe("constellation persistence through retirement", () => {
+  function makeRetirableWithConstellation(): GameState {
+    const gs = new GameState("Hero", "fighter");
+    gs.dungeonIndex = 1;
+    gs.guildUpgrades["constellation_access"] = 1;
+    gs.constellationShards = 15;
+    gs.unlockedConstellationNodes.add("warrior_start");
+    gs.achievementsUnlocked.add("first_prestige");
+    return gs;
+  }
+
+  it("preserves constellation_access guild upgrade through retirement", () => {
+    const gs = makeRetirableWithConstellation();
+    gs.retireHero();
+    expect(gs.guildUpgrades["constellation_access"]).toBe(1);
+  });
+
+  it("preserves constellationShards through retirement", () => {
+    const gs = makeRetirableWithConstellation();
+    gs.retireHero();
+    expect(gs.constellationShards).toBe(15);
+  });
+
+  it("preserves unlocked constellation nodes through retirement", () => {
+    const gs = makeRetirableWithConstellation();
+    gs.retireHero();
+    expect(gs.unlockedConstellationNodes.has("warrior_start")).toBe(true);
+  });
+
+  it("does not restore constellation_access if it was never purchased", () => {
+    const gs = new GameState("Hero", "fighter");
+    gs.dungeonIndex = 1;
+    gs.achievementsUnlocked.add("first_prestige");
+    gs.retireHero();
+    expect(gs.guildUpgrades["constellation_access"] ?? 0).toBe(0);
+  });
+});
+
 // ─── legacy title integration ──────────────────────────────────────────────
 
 describe("legacy title integration", () => {
