@@ -419,6 +419,7 @@ function updateTabVisibility(state: GameStateDict): void {
   // Left-col sub-tab bar for constellations
   const lcoldSubtabs = document.getElementById("left-col-subtabs");
   if (lcoldSubtabs) lcoldSubtabs.hidden = !constellationUnlocked;
+  if (!constellationUnlocked) switchLeftColSub("party");
 
   // Mobile tabs
   const mobileGuild = document.querySelector<HTMLElement>(".mobile-tab-btn[data-tab='guild']");
