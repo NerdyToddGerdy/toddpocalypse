@@ -1,4 +1,4 @@
-import { GameState, type GameStateDict, type ArtifactInstance, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock, ARTIFACT_DEFS, artifactFuelValue, artifactStatLabel, AVATAR_DEFS, BORDER_DEFS, formatNumber, LEGACY_UNLOCKS, type RetiredHero, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT, DEFENSE_UPGRADE_EFFECT } from "./engine.js";
+import { GameState, type GameStateDict, type ArtifactInstance, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock, ARTIFACT_DEFS, artifactFuelValue, artifactStatLabel, AVATAR_DEFS, BORDER_DEFS, formatNumber, LEGACY_UNLOCKS, type RetiredHero, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT, DEFENSE_UPGRADE_EFFECT, CONSTELLATION_NODE_DEFS } from "./engine.js";
 import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, SET_DEFS, buildSetBonusHTML, type GearStats, type GearItemDict } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES, type Rune } from "./character.js";
@@ -37,6 +37,7 @@ const GUILD_HALL_META: Record<string, { icon: string; name: string; desc: string
   auto_attack:         { icon: "⚔", name: "Auto-Attack",      desc: "Automatically fires a click attack every second. Toggle the AUTO button next to the Attack button." },
   eternal_cycle:       { icon: "⟳", name: "Eternal Cycle",    desc: "Automatically return to town when a run would yield at least N renown. Set the threshold and toggle below." },
   rune_forge:          { icon: "🔮", name: "Rune Forge",       desc: "Socket runes into gear slots for flat stat bonuses. Bosses drop runes at 20%, elites at 10%. Tier 2: recover replaced runes + combine 2 lessers → greater. Tier 3: combine 2 greaters → flawless. Tier 4: combine 2 flawless → ancient." },
+  constellation_access: { icon: "✦", name: "Constellation Chart", desc: "Unlock the Constellations passive tree. Invest soul shards to permanently empower your party. Shards are earned by venturing to new dungeons.", dungeonReq: 1 },
 };
 
 const SLOT_ICONS: Record<string, string> = {
@@ -379,6 +380,7 @@ function render(state: GameStateDict): void {
   renderUpgrades(state);
   renderPrestigeShop(state);
   renderGuildHall(state);
+  renderConstellationPanel(state);
   renderArtifactPanel(state);
   renderSkillButton(state);
   renderCompanionSkills(state);
@@ -403,19 +405,24 @@ function updateTabVisibility(state: GameStateDict): void {
   // unlocked by prestige purchase, or already has guild items (backward compat for existing saves)
   const guildUnlocked = (ups["guild_hall_access"] ?? 0) > 0
     || Object.values(guildUpgrades).some(v => v > 0);
-  const newKey = `${prestigeUnlocked}|${guildUnlocked}`;
+  const constellationUnlocked = (guildUpgrades["constellation_access"] ?? 0) > 0;
+  const newKey = `${prestigeUnlocked}|${guildUnlocked}|${constellationUnlocked}`;
   if (newKey === tabVisKey) return;
   tabVisKey = newKey;
 
   // Sidebar tabs
   const stabPrestige = document.querySelector<HTMLElement>(".stab-btn[data-stab='prestige']");
   const stabGuild    = document.querySelector<HTMLElement>(".stab-btn[data-stab='guild']");
-  if (stabPrestige) stabPrestige.hidden = !prestigeUnlocked;
-  if (stabGuild)    stabGuild.hidden    = !guildUnlocked;
+  const stabConstellation = document.querySelector<HTMLElement>(".stab-btn[data-stab='constellation']");
+  if (stabPrestige)      stabPrestige.hidden      = !prestigeUnlocked;
+  if (stabGuild)         stabGuild.hidden         = !guildUnlocked;
+  if (stabConstellation) stabConstellation.hidden = !constellationUnlocked;
 
   // Mobile tabs
-  const mobileGuild = document.querySelector<HTMLElement>(".mobile-tab-btn[data-tab='guild']");
-  if (mobileGuild) mobileGuild.hidden = !guildUnlocked;
+  const mobileGuild         = document.querySelector<HTMLElement>(".mobile-tab-btn[data-tab='guild']");
+  const mobileConstellation = document.querySelector<HTMLElement>(".mobile-tab-btn[data-tab='constellation']");
+  if (mobileGuild)         mobileGuild.hidden         = !guildUnlocked;
+  if (mobileConstellation) mobileConstellation.hidden = !constellationUnlocked;
 
   // Mobile shop panel visibility — hide until unlocked so the shop tab doesn't show empty sections
   $("prestige-panel").classList.toggle("prestige-locked", !prestigeUnlocked);
@@ -1370,6 +1377,136 @@ function renderGuildHall(state: GameStateDict): void {
   $("guild-hall-items").innerHTML = upgradesHtml;
   renderPartyRunePanel(runeInv, state.party, runeForge);
   renderLootRuneInventory(runeInv, state.party, runeForge, hasCombineAll);
+}
+
+// ── Constellation Panel ─────────────────────────────────────────────────────
+
+const CONSTELLATION_NAMES: Record<number, string> = {
+  1: "The Warrior", 2: "The Guardian", 3: "Fortune's Eye",
+  4: "Sage's Light", 5: "The Hunter", 6: "The Wanderer", 7: "Runesmith's Lore",
+};
+
+let constellationKey = "";
+
+function renderConstellationPanel(state: GameStateDict): void {
+  const unlocked = (state.guild_upgrades["constellation_access"] ?? 0) > 0;
+  const nodes: string[] = state.constellation_nodes ?? [];
+  const shards = state.constellation_shards ?? 0;
+  const newKey = `${unlocked}|${shards}|${nodes.join(",")}`;
+  if (newKey === constellationKey) return;
+  constellationKey = newKey;
+
+  const el = document.getElementById("constellation-content");
+  if (!el) return;
+
+  if (!unlocked) {
+    el.innerHTML = `<div class="prune-empty">Purchase the Constellation Chart in the Guild Hall to unlock the passive tree.</div>`;
+    return;
+  }
+
+  const nodeSet = new Set(nodes);
+  const defs = CONSTELLATION_NODE_DEFS;
+
+  // Build deduplicated edge list
+  const edgeSet = new Set<string>();
+  const edges: Array<{ a: string; b: string }> = [];
+  for (const def of Object.values(defs)) {
+    for (const conn of def.connections) {
+      const key = [def.id, conn].sort().join("|");
+      if (!edgeSet.has(key)) {
+        edgeSet.add(key);
+        edges.push({ a: def.id, b: conn });
+      }
+    }
+  }
+
+  const svgLines = edges.map(({ a, b }) => {
+    const da = defs[a], db = defs[b];
+    if (!da || !db) return "";
+    const bothOn = nodeSet.has(a) && nodeSet.has(b);
+    const oneOn  = nodeSet.has(a) || nodeSet.has(b);
+    const cls = bothOn ? "cdoll-edge both-unlocked" : oneOn ? "cdoll-edge one-unlocked" : "cdoll-edge locked";
+    return `<line class="${cls}" x1="${da.x}" y1="${da.y}" x2="${db.x}" y2="${db.y}" />`;
+  }).join("");
+
+  const svgNodes = Object.values(defs).map(def => {
+    const on = nodeSet.has(def.id);
+    const r = def.type === "keystone" ? 14 : def.type === "notable" ? 10 : 8;
+    const cls = [
+      "cdoll-node",
+      def.type,
+      on ? "unlocked" : "locked",
+      def.isStart ? "start" : "",
+    ].filter(Boolean).join(" ");
+    const label = def.label.length > 10 ? def.label.substring(0, 9) + "…" : def.label;
+    return `<g class="cdoll-node-group" data-node-id="${def.id}">
+      <circle class="${cls}" cx="${def.x}" cy="${def.y}" r="${r}" />
+      <text x="${def.x}" y="${def.y + r + 9}" text-anchor="middle" class="cdoll-node-text">${label}</text>
+    </g>`;
+  }).join("");
+
+  const respecBtn = nodes.length > 0
+    ? `<button class="cdoll-respec-btn" data-action="respec-constellation">Respec (costs 10 ✦ shards, refunds the rest)</button>`
+    : "";
+
+  el.dataset.nodes = JSON.stringify(nodes);
+  el.dataset.shards = String(shards);
+  el.innerHTML = `
+    <div class="cdoll-shard-header">✦ ${shards} Soul Shard${shards !== 1 ? "s" : ""}</div>
+    <div class="cdoll-svg-wrap">
+      <svg viewBox="0 0 600 560" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:600px">
+        <g class="cdoll-edges">${svgLines}</g>
+        <g class="cdoll-nodes">${svgNodes}</g>
+      </svg>
+    </div>
+    <div id="cdoll-detail" class="cdoll-detail" hidden></div>
+    ${respecBtn}
+  `;
+}
+
+function initConstellationPanel(): void {
+  const panel = document.getElementById("constellation-panel");
+  if (!panel) return;
+
+  panel.addEventListener("click", (e) => {
+    const target = e.target as HTMLElement;
+    const nodeGroup = target.closest<HTMLElement>(".cdoll-node-group");
+    if (nodeGroup?.dataset.nodeId) {
+      const nodeId = nodeGroup.dataset.nodeId;
+      const def = CONSTELLATION_NODE_DEFS[nodeId];
+      if (!def) return;
+      const detail = document.getElementById("cdoll-detail");
+      if (!detail) return;
+      const nodeSet = new Set(JSON.parse(document.getElementById("constellation-content")?.dataset.nodes ?? "[]") as string[]);
+      const shards = parseInt(document.getElementById("constellation-content")?.dataset.shards ?? "0");
+      const on = nodeSet.has(nodeId);
+      const isAdjacentUnlocked = def.isStart || def.connections.some(c => nodeSet.has(c));
+      const canAfford = shards >= def.cost;
+      const btnLabel = on ? "Unlocked ✓"
+        : !isAdjacentUnlocked ? "Unlock adjacent node first"
+        : !canAfford ? `Need ${def.cost} ✦ shards`
+        : `Unlock (${def.cost} ✦ shard${def.cost !== 1 ? "s" : ""})`;
+      const disabled = on || !isAdjacentUnlocked || !canAfford ? "disabled" : "";
+      detail.innerHTML = `
+        <div class="cdoll-detail-header">
+          <span class="cdoll-detail-name">${def.label}</span>
+          <span class="cdoll-detail-cost">${CONSTELLATION_NAMES[def.constellation]} · ${def.type}</span>
+        </div>
+        <div class="cdoll-detail-desc">${def.description}</div>
+        <button class="cdoll-unlock-btn" data-action="unlock-node" data-node-id="${nodeId}" ${disabled}>${btnLabel}</button>
+      `;
+      detail.hidden = false;
+      return;
+    }
+
+    const action = (target.closest("[data-action]") as HTMLElement)?.dataset.action;
+    if (action === "unlock-node") {
+      const nodeId = (target.closest("[data-node-id]") as HTMLElement)?.dataset.nodeId;
+      if (nodeId) call("unlockConstellationNode", nodeId);
+    } else if (action === "respec-constellation") {
+      call("respecConstellation");
+    }
+  });
 }
 
 const RUNE_STAT_LABELS: Record<string, string> = {
@@ -2721,19 +2858,21 @@ function slotLabel(slot: string): string {
 }
 
 const TAB_PANELS: Record<string, string[]> = {
-  combat:   ["enemy-panel", "party-panel", "loot-panel"],
-  shop:     ["upgrades-panel", "prestige-panel"],
-  guild:    ["guild-hall-panel"],
-  log:      ["log-panel"],
+  combat:        ["enemy-panel", "party-panel", "loot-panel"],
+  shop:          ["upgrades-panel", "prestige-panel"],
+  guild:         ["guild-hall-panel"],
+  constellation: ["constellation-panel"],
+  log:           ["log-panel"],
 };
 
 const SIDEBAR_TAB_PANELS: Record<string, string[]> = {
-  upgrades: ["upgrades-panel"],
-  loot:     ["loot-panel"],
-  prestige: ["prestige-panel"],
-  guild:    ["guild-hall-panel"],
-  feats:    ["feats-panel"],
-  log:      ["log-panel"],
+  upgrades:      ["upgrades-panel"],
+  loot:          ["loot-panel"],
+  prestige:      ["prestige-panel"],
+  guild:         ["guild-hall-panel"],
+  constellation: ["constellation-panel"],
+  feats:         ["feats-panel"],
+  log:           ["log-panel"],
 };
 
 let applyCombatSubTab: (() => void) | null = null;
@@ -3448,6 +3587,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initShopSubTabs();
   initMobileTabs();
   initRuneSlotPanel();
+  initConstellationPanel();
   initSidebarTabs();
   initLootSubtabs();
   initItemTooltip();

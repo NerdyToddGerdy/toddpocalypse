@@ -1,4 +1,7 @@
 import { Character, type Rune } from "./character.js";
+import { getConstellationBonuses, CONSTELLATION_NODE_DEFS, type ConstellationBonuses } from "./constellations.js";
+export { CONSTELLATION_NODE_DEFS };
+export type { ConstellationBonuses };
 import { Party } from "./party.js";
 import { GearItem, getItem, getSetItem, SET_DEFS, gearPower, QUAL, SLOTS, autoSellThreshold, type GearItemDict, type Slot } from "./gear.js";
 import { generateEnemy, generateBoss, generateEliteEnemy, ENEMY_NOUNS, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT, type Enemy, type EnemyDict } from "./dungeon.js";
@@ -161,9 +164,10 @@ export const GUILD_HALL_COSTS: Record<string, number[]> = {
   skill_consecrate:    [5_000],
   skill_volley:        [5_000],
   skill_entangle:      [5_000],
-  auto_attack:         [3_000],
-  eternal_cycle:       [8_000],
-  rune_forge:          [5_000, 10_000, 20_000, 40_000],
+  auto_attack:            [3_000],
+  eternal_cycle:          [8_000],
+  rune_forge:             [5_000, 10_000, 20_000, 40_000],
+  constellation_access:   [10_000],
 };
 
 /** All rune definitions: 6 types × 4 tiers (Lesser → Greater → Flawless → Ancient, each 2× the previous). */
@@ -479,6 +483,8 @@ export interface GameStateDict {
   unlocked_hero_classes?: string[];
   legacy_titles?: string[];
   needs_hero_creation?: boolean;
+  constellation_shards?: number;
+  constellation_nodes?: string[];
 }
 
 /** Central game loop: owns all mutable state and exposes action methods that return serialized JSON. */
@@ -610,6 +616,12 @@ export class GameState {
   legacyTitles: Set<string> = new Set();
   /** True when a hard reset has occurred and the player must create a new hero. */
   needsHeroCreation = false;
+  /** Soul shards available to spend in the Constellation tree. */
+  constellationShards = 0;
+  /** Set of unlocked constellation node IDs. */
+  unlockedConstellationNodes: Set<string> = new Set();
+  /** Tracks whether Last Stand has fired this floor. */
+  lastStandUsedThisFloor = false;
 
   /** Current loot chest capacity, expanding with Expanded Armory guild upgrades. */
   get lootMax(): number { return 8 + 2 * (this.guildUpgrades["expanded_armory"] ?? 0); }
@@ -673,6 +685,7 @@ export class GameState {
     const arcaneSurgeMult = (this.activeEffects["skill_arcane_surge"] ?? 0) > 0 ? ARCANE_SURGE_MULT : 1.0;
     const volleyMult = (this.activeEffects["skill_volley"] ?? 0) > 0 ? VOLLEY_MULT : 1.0;
 
+    const cb = getConstellationBonuses([...this.unlockedConstellationNodes]);
     let baseDps = 0;
     const partyHaste = this.party.team.reduce((s, c) => c.isAlive() ? s + c.haste : s, 0);
     for (const c of this.party.team) {
@@ -693,15 +706,28 @@ export class GameState {
       if (sigilSlot) dps *= (1 + ARTIFACT_DEFS["warlords_sigil"].effectValue * (sigilSlot.level + 1));
       // Soulbrand: crit bonus per rune, scales with level
       const soulSlot = c.artifactSlots.find(s => s?.id === "soulbrand");
-      let totalCrit = c.critChance;
+      let totalCrit = c.critChance + cb.critChanceBonus;
       if (soulSlot) {
         totalCrit += ARTIFACT_DEFS[soulSlot.id].effectValue * (soulSlot.level + 1) * Object.values(c.runes).filter(Boolean).length;
       }
-      if (totalCrit > 0 && Math.random() < totalCrit) dps *= 2;
+      const critMult = cb.perfectKillActive ? 3 : 2;
+      if (totalCrit > 0 && Math.random() < totalCrit) dps *= critMult;
       baseDps += dps;
     }
+    // Runesmith: add extra DPS from rune bonuses above baseline
+    if (cb.runeBonusMultiplier > 1.0) {
+      for (const c of this.party.team) {
+        if (!c.isAlive()) continue;
+        const runeBaseDps = Object.values(c.runes ?? {})
+          .filter(Boolean)
+          .reduce((s, r) => (r as Rune).statKey === "dps" ? s + (r as Rune).value : s, 0);
+        baseDps += runeBaseDps * (cb.runeBonusMultiplier - 1.0);
+      }
+    }
     const dpsPrestigeMult = 1 + DPS_BONUS_PER_LEVEL * (this.prestigeUpgrades["dps_bonus"] ?? 0);
-    const totalDps = baseDps * (1 + partyHaste) * dpsPrestigeMult;
+    const partyBelow50 = this.party.team.some(c => c.isAlive() && c.health <= c.maxHealth * 0.5);
+    const berserkerBonus = (cb.berserkerActive && partyBelow50) ? 1.30 : 1.0;
+    const totalDps = baseDps * (1 + partyHaste * cb.hasteMultiplier) * dpsPrestigeMult * cb.dpsMultiplier * berserkerBonus;
     const dmgMult = (hasExpose ? EXPOSE_WEAKNESS_MULT : 1.0) * (hasMark ? 1.20 : 1.0) * battleCryMult * shadowStrikeTick * arcaneSurgeMult * volleyMult * (divineWrathActive ? 1.15 : 1.0);
     const damageDealt = totalDps * dmgMult * dt;
     this.enemy.hp -= damageDealt;
@@ -740,9 +766,10 @@ export class GameState {
       let artifactDmgReduction = 0;
       const coreSlot = target.artifactSlots.find(s => s?.id === "wardens_core");
       if (coreSlot) artifactDmgReduction = ARTIFACT_DEFS[coreSlot.id].effectValue * (coreSlot.level + 1);
-      const totalDmgReduction = Math.min(0.50, target.damageReduction + artifactDmgReduction);
+      const totalDmgReduction = Math.min(0.50, target.damageReduction + artifactDmgReduction) + Math.min(0.35, cb.defenseBonus / 100);
       const entangleMult = (this.activeEffects["skill_entangle"] ?? 0) > 0 ? (1 - ENTANGLE_REDUCTION) : 1.0;
-      target.health -= this.enemy.attack_dps * entangleMult * this.bossEnrageMult * partySizeMult * dt * (1 - totalDmgReduction);
+      const phaseReduction = cb.phaseStepActive ? 0.85 : 1.0;
+      target.health -= this.enemy.attack_dps * entangleMult * this.bossEnrageMult * partySizeMult * dt * (1 - totalDmgReduction) * phaseReduction;
       target.health = Math.max(0, target.health);
     }
 
@@ -770,17 +797,19 @@ export class GameState {
     if (manual) this.lifetimeClicks++;
     const totalDps = this.party.team.reduce((s, c) => c.isAlive() ? s + this.effectiveDps(c) : s, 0);
     const clickBonus = this.party.team.reduce((s, c) => c.isAlive() ? s + c.clickBonus : s, 0);
-    let damage = Math.max(1.0, totalDps * CLICK_DAMAGE_MULTIPLIER * 0.1 + clickBonus) * this.clickUpgradeMult();
+    const clickCb = getConstellationBonuses([...this.unlockedConstellationNodes]);
+    let damage = Math.max(1.0, totalDps * CLICK_DAMAGE_MULTIPLIER * 0.1 + clickBonus) * this.clickUpgradeMult() * clickCb.clickDpsMultiplier;
     if (this.party.team.some(c => c.isAlive() && c.abilities.includes("empower"))) damage *= EMPOWER_MULTIPLIER;
     const shadowStrikeActive = (this.activeEffects["skill_shadow_strike"] ?? 0) > 0;
     if (shadowStrikeActive) damage *= SHADOW_STRIKE_MULT;
     const hasLuckyStrike = this.party.team.some(c => c.isAlive() && c.abilities.includes("lucky_strike"));
     const hasEagleEye = this.party.team.some(c => c.isAlive() && c.abilities.includes("eagle_eye"));
+    const clickCritMult = clickCb.perfectKillActive ? 3 : 2;
     if (hasLuckyStrike && Math.random() < LUCKY_STRIKE_CHANCE) {
       damage *= LUCKY_STRIKE_MULTIPLIER;
       this.addLog(`Lucky Strike! ${damage.toFixed(1)} dmg!`);
     } else if (hasEagleEye && Math.random() < 0.30) {
-      damage *= 2;
+      damage *= clickCritMult;
       this.addLog(`Eagle Eye! ${damage.toFixed(1)} dmg!`);
     } else {
       this.addLog(`You strike for ${damage.toFixed(1)}!`);
@@ -1085,8 +1114,51 @@ export class GameState {
     this.log = [];
     this.enemy = generateEnemy(1, this.dungeonIndex);
 
+    if (this.totalPrestiges > 0) {
+      this.constellationShards += this.totalPrestiges;
+      this.addLog(`✦ +${this.totalPrestiges} soul shard${this.totalPrestiges !== 1 ? "s" : ""} from constellation reward!`);
+    }
     this.addLog(`Ventured to dungeon ${this.dungeonIndex + 1}! Total idle: ${this.idleGoldRate.toFixed(1)} gold/sec.`);
     return this.respond();
+  }
+
+  /** Unlocks a constellation node if adjacent (or a start node) and shards are sufficient. */
+  unlockConstellationNode(nodeId: string): string {
+    const def = CONSTELLATION_NODE_DEFS[nodeId];
+    if (!def) return this.respond();
+    if (this.unlockedConstellationNodes.has(nodeId)) return this.respond();
+    const isAccessible = def.isStart ||
+      def.connections.some(c => this.unlockedConstellationNodes.has(c));
+    if (!isAccessible) return this.respond();
+    if (this.constellationShards < def.cost) return this.respond();
+    this.constellationShards -= def.cost;
+    this.unlockedConstellationNodes.add(nodeId);
+    return this.respond();
+  }
+
+  /** Resets all constellation nodes, refunding shards minus a 10-shard fee. */
+  respecConstellation(): string {
+    if (this.constellationShards < 10) return this.respond();
+    const spent = [...this.unlockedConstellationNodes].reduce(
+      (sum, id) => sum + (CONSTELLATION_NODE_DEFS[id]?.cost ?? 0), 0
+    );
+    this.constellationShards += spent - 10;
+    this.unlockedConstellationNodes.clear();
+    return this.respond();
+  }
+
+  /** Applies the Last Stand effect for any hero at 0 HP if the keystone is active and not yet used this floor. */
+  applyLastStandIfActive(): void {
+    const cb = getConstellationBonuses([...this.unlockedConstellationNodes]);
+    if (!cb.lastStandActive || this.lastStandUsedThisFloor) return;
+    for (const c of this.party.team) {
+      if (c.health <= 0) {
+        c.health = 1;
+        this.lastStandUsedThisFloor = true;
+        this.addLog(`✦ Last Stand! ${c.name} survives at 1 HP!`);
+        return;
+      }
+    }
   }
 
   /** Resets the current run, awards prestige points, and rebuilds the party from prestige upgrades. Returns serialized JSON. */
@@ -1635,6 +1707,8 @@ export class GameState {
       unlocked_hero_classes: [...this.unlockedHeroClasses],
       legacy_titles: [...this.legacyTitles],
       needs_hero_creation: this.needsHeroCreation,
+      constellation_shards: this.constellationShards,
+      constellation_nodes: [...this.unlockedConstellationNodes],
     };
   }
 
@@ -1776,7 +1850,9 @@ export class GameState {
       // Phantom Compass: per-character XP bonus, scales with level
       const compassSlot = c.artifactSlots.find(s => s?.id === "phantom_compass");
       const xpMult = compassSlot ? 1 + ARTIFACT_DEFS["phantom_compass"].effectValue * (compassSlot.level + 1) : 1;
-      c.gainXp(xp * xpMult);
+      const xpCb = getConstellationBonuses([...this.unlockedConstellationNodes]);
+      const constellationXpMult = xpCb.xpMultiplier + (xpCb.ancientWisdomActive ? this.dungeonIndex * 0.02 : 0);
+      c.gainXp(xp * xpMult * constellationXpMult);
       c.health = Math.min(c.maxHealth, c.health + (c.maxHealth - c.health) * COMBAT_HEAL_FRACTION);
       while (c.pendingPartyAbilities.length > 0) {
         const ability = c.pendingPartyAbilities.shift()!;
@@ -1835,8 +1911,9 @@ export class GameState {
         artifactGoldMult = Math.max(artifactGoldMult, mult);
       }
     }
+    const constellationGoldMult = getConstellationBonuses([...this.unlockedConstellationNodes]).goldMultiplier;
     if (this.enemy.isBoss) {
-      this.earnGold(this.enemy.gold_reward * (1 + partyGoldBonus) * goldMasteryMult * prestigeGoldMult * partySizeMult * artifactGoldMult);
+      this.earnGold(this.enemy.gold_reward * (1 + partyGoldBonus) * goldMasteryMult * prestigeGoldMult * partySizeMult * artifactGoldMult * constellationGoldMult);
       this.lifetimeBossKills += 1;
       if (this.lootPool.length < this.lootMax) {
         const drop = randomSetDrop(this.dungeonLevel + this.dungeonIndex * 5);
@@ -1866,6 +1943,7 @@ export class GameState {
         this.checkpointLevel = this.dungeonLevel;
         this.addLog(`⚑ Checkpoint! Respawn set to floor ${this.checkpointLevel}.`);
       }
+      this.lastStandUsedThisFloor = false;
       this.addLog(`Descending to level ${this.dungeonLevel}!`);
       this.enemy = this.spawnNextEnemy();
     } else {
@@ -1878,7 +1956,9 @@ export class GameState {
       const dropChance = Math.min(0.75, DROP_CHANCE + this.dungeonIndex * 0.05 + gearLuckBonus + fortunesEyeBonus);
       if ((this.enemy.isElite || Math.random() < dropChance) && this.lootPool.length < this.lootMax) {
         const effectiveLevel = this.dungeonLevel + this.dungeonIndex * 5;
-        const drop = getItem(undefined, effectiveLevel);
+        const lootCb = getConstellationBonuses([...this.unlockedConstellationNodes]);
+        const qualityBoost = (lootCb.lootQualityBonus > 0 && Math.random() < lootCb.lootQualityBonus / 100) ? 8 : 0;
+        const drop = getItem(undefined, effectiveLevel + qualityBoost);
         this.lootPool.push(drop);
         if (drop.quality === "divine") this.lifetimeDivine = 1;
         else if (QUAL.indexOf(drop.quality as typeof QUAL[number]) >= QUAL.indexOf("legendary")) this.lifetimeLegendary = 1;
@@ -2218,6 +2298,8 @@ export class GameState {
     gs.unlockedHeroClasses = new Set(d.unlocked_hero_classes ?? ["fighter", "rogue", "mage"]);
     gs.legacyTitles = new Set(d.legacy_titles ?? []);
     gs.needsHeroCreation = d.needs_hero_creation ?? false;
+    gs.constellationShards = d.constellation_shards ?? 0;
+    gs.unlockedConstellationNodes = new Set(d.constellation_nodes ?? []);
 
     // Backfill cosmetic rewards for saves predating the avatar/border reward system
     for (const def of ACHIEVEMENTS) {

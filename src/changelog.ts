@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.31.39";
+export const VERSION = "v2.32.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,17 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.0",
+    date: "2026-05-23",
+    changes: [
+      "Constellations passive skill tree — 56 nodes across 7 themed constellations (Warrior, Guardian, Fortune, Sage, Hunter, Wanderer, Runesmith)",
+      "Soul Shards: new resource earned by venturing to new dungeons (1 per prestige done)",
+      "Unlock the tree via the new Constellation Chart Guild Hall upgrade (dungeon 2+)",
+      "Node effects: DPS, HP, gold, XP, click damage, haste, defense, crit, rune bonus, loot quality; 7 keystones with unique mechanics",
+      "Full respec available for 10 soul shards",
+    ],
+  },
   {
     version: "v2.31.39",
     date: "2026-05-21",

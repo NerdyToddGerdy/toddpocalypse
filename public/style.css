@@ -5137,3 +5137,72 @@ footer {
 @media (max-width: 1280px) {
     #party-rune-panel { grid-template-columns: 1fr; }
 }
+
+/* ── Constellation Panel ─────────────────────────────────────────────────── */
+#constellation-panel { padding: 12px 14px; }
+#constellation-panel h2 { color: var(--accent2); margin: 0 0 10px; font-size: 0.95rem; letter-spacing: 0.08em; }
+
+.cdoll-shard-header {
+    font-size: 0.88rem; font-weight: 700; color: var(--accent2);
+    margin-bottom: 12px; letter-spacing: 0.04em;
+    text-shadow: 0 0 10px rgba(200,160,60,0.35);
+}
+
+.cdoll-svg-wrap {
+    width: 100%; max-width: 600px; margin: 0 auto;
+    overflow: auto; display: block; border-radius: 8px;
+    background: radial-gradient(ellipse at 50% 50%, rgba(30,20,8,0.7) 0%, rgba(14,14,20,0.95) 80%);
+    border: 1px solid rgba(160,120,40,0.2);
+}
+
+/* SVG edges */
+.cdoll-edge { stroke-linecap: round; }
+.cdoll-edge.both-unlocked { stroke: rgba(200,160,60,0.6); stroke-width: 1.5; }
+.cdoll-edge.one-unlocked  { stroke: rgba(130,100,40,0.3); stroke-width: 1; }
+.cdoll-edge.locked        { stroke: rgba(50,50,70,0.55); stroke-width: 1; }
+
+/* SVG nodes */
+.cdoll-node { cursor: pointer; transition: filter 0.12s; }
+.cdoll-node-group:hover .cdoll-node { filter: brightness(1.4); }
+.cdoll-node.unlocked.minor   { fill: rgba(200,160,60,0.45); stroke: var(--accent2); stroke-width: 2; }
+.cdoll-node.unlocked.notable { fill: #6d28d9; stroke: #a78bfa; stroke-width: 2; }
+.cdoll-node.unlocked.keystone {
+    fill: #b45309; stroke: #f59e0b; stroke-width: 3;
+    filter: drop-shadow(0 0 8px rgba(245,158,11,0.65));
+}
+.cdoll-node.unlocked.start { fill: rgba(200,160,60,0.6); stroke: var(--accent2); stroke-width: 2; }
+.cdoll-node.locked { fill: rgba(20,18,30,0.92); stroke: rgba(90,90,120,0.4); stroke-width: 1.5; }
+.cdoll-node.locked.start { stroke-dasharray: 4 2; stroke: rgba(200,160,60,0.5); }
+
+/* Node labels */
+.cdoll-node-text {
+    font-size: 7px; fill: rgba(180,160,100,0.65);
+    pointer-events: none; user-select: none;
+}
+
+/* Detail card */
+.cdoll-detail {
+    background: radial-gradient(ellipse 120% 80% at 50% 0%, rgba(60,40,10,0.45) 0%, var(--surface2) 60%);
+    border: 1px solid rgba(160,120,40,0.35);
+    border-radius: 8px; padding: 10px 12px; margin-top: 10px;
+    animation: pdoll-slide-in 0.12s ease-out;
+}
+.cdoll-detail-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.cdoll-detail-name { font-size: 0.85rem; font-weight: 700; color: var(--accent2); }
+.cdoll-detail-cost { font-size: 0.7rem; color: var(--muted); }
+.cdoll-detail-desc { font-size: 0.77rem; color: var(--text); margin-bottom: 10px; }
+.cdoll-unlock-btn {
+    padding: 5px 14px; font-size: 0.78rem;
+    background: var(--accent2); border: none; color: #000; border-radius: 5px; cursor: pointer;
+    font-weight: 600;
+}
+.cdoll-unlock-btn:disabled { opacity: 0.4; cursor: not-allowed; background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+
+/* Respec button */
+.cdoll-respec-btn {
+    margin-top: 12px; width: 100%; padding: 7px; font-size: 0.75rem;
+    background: none; border: 1px solid rgba(239,68,68,0.5);
+    color: rgba(239,68,68,0.8); border-radius: 5px; cursor: pointer;
+    transition: border-color 0.1s, color 0.1s;
+}
+.cdoll-respec-btn:hover { border-color: #ef4444; color: #ef4444; }
