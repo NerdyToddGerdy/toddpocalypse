@@ -1667,7 +1667,12 @@ function initRuneSlotPanel(): void {
   panel.addEventListener("click", (e) => {
     const target = e.target as HTMLElement;
     const slotBtn = target.closest<HTMLElement>(".pdoll-slot");
-    if (slotBtn) { openRuneSlotDetailModal(slotBtn); return; }
+    if (!slotBtn) return;
+    if (slotBtn.classList.contains("empty")) {
+      openRuneReplaceModal(parseInt(slotBtn.dataset.charIdx!, 10), slotBtn.dataset.slot!);
+    } else {
+      openRuneSlotDetailModal(slotBtn);
+    }
   });
 
   const detailModal = document.getElementById("rune-slot-detail-modal")!;

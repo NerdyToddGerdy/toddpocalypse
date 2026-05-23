@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.1";
+export const VERSION = "v2.32.2";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.2",
+    date: "2026-05-23",
+    changes: [
+      "Empty rune slots open the socket modal directly instead of showing an intermediate empty-slot detail",
+    ],
+  },
   {
     version: "v2.32.1",
     date: "2026-05-23",
