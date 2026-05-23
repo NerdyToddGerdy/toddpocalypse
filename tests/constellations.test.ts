@@ -90,8 +90,8 @@ describe("getConstellationBonuses", () => {
   });
 
   it("defense nodes accumulate additively", () => {
-    const b = getConstellationBonuses(["guardian_minor3", "guardian_minor4", "guardian_notable2"]);
-    expect(b.defenseBonus).toBeCloseTo(2 + 2 + 5);
+    const b = getConstellationBonuses(["guardian_minor3", "guardian_notable2"]);
+    expect(b.defenseBonus).toBeCloseTo(2 + 5);
   });
 
   it("crit chance nodes accumulate additively as fractions", () => {

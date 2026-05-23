@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.7";
+export const VERSION = "v2.32.8";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.8",
+    date: "2026-05-23",
+    changes: [
+      "Constellation node layout: reduced to 3 minors per constellation with ±15° angular spread, eliminating overlap between adjacent constellations",
+    ],
+  },
   {
     version: "v2.32.7",
     date: "2026-05-23",
