@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.0";
+export const VERSION = "v2.32.1";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.1",
+    date: "2026-05-23",
+    changes: [
+      "Constellations moved to party sub-tab (✦ Stars) — switches with Party, Runes, Artifacts instead of occupying a sidebar tab",
+    ],
+  },
   {
     version: "v2.32.0",
     date: "2026-05-23",

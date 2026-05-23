@@ -413,16 +413,16 @@ function updateTabVisibility(state: GameStateDict): void {
   // Sidebar tabs
   const stabPrestige = document.querySelector<HTMLElement>(".stab-btn[data-stab='prestige']");
   const stabGuild    = document.querySelector<HTMLElement>(".stab-btn[data-stab='guild']");
-  const stabConstellation = document.querySelector<HTMLElement>(".stab-btn[data-stab='constellation']");
-  if (stabPrestige)      stabPrestige.hidden      = !prestigeUnlocked;
-  if (stabGuild)         stabGuild.hidden         = !guildUnlocked;
-  if (stabConstellation) stabConstellation.hidden = !constellationUnlocked;
+  if (stabPrestige) stabPrestige.hidden = !prestigeUnlocked;
+  if (stabGuild)    stabGuild.hidden    = !guildUnlocked;
+
+  // Party sub-tab for constellations
+  const ptabConstellation = document.getElementById("ptab-constellation-btn") as HTMLButtonElement | null;
+  if (ptabConstellation) ptabConstellation.hidden = !constellationUnlocked;
 
   // Mobile tabs
-  const mobileGuild         = document.querySelector<HTMLElement>(".mobile-tab-btn[data-tab='guild']");
-  const mobileConstellation = document.querySelector<HTMLElement>(".mobile-tab-btn[data-tab='constellation']");
-  if (mobileGuild)         mobileGuild.hidden         = !guildUnlocked;
-  if (mobileConstellation) mobileConstellation.hidden = !constellationUnlocked;
+  const mobileGuild = document.querySelector<HTMLElement>(".mobile-tab-btn[data-tab='guild']");
+  if (mobileGuild) mobileGuild.hidden = !guildUnlocked;
 
   // Mobile shop panel visibility — hide until unlocked so the shop tab doesn't show empty sections
   $("prestige-panel").classList.toggle("prestige-locked", !prestigeUnlocked);
@@ -1465,7 +1465,7 @@ function renderConstellationPanel(state: GameStateDict): void {
 }
 
 function initConstellationPanel(): void {
-  const panel = document.getElementById("constellation-panel");
+  const panel = document.getElementById("party-panel");
   if (!panel) return;
 
   panel.addEventListener("click", (e) => {
@@ -2861,7 +2861,6 @@ const TAB_PANELS: Record<string, string[]> = {
   combat:        ["enemy-panel", "party-panel", "loot-panel"],
   shop:          ["upgrades-panel", "prestige-panel"],
   guild:         ["guild-hall-panel"],
-  constellation: ["constellation-panel"],
   log:           ["log-panel"],
 };
 
@@ -2870,7 +2869,6 @@ const SIDEBAR_TAB_PANELS: Record<string, string[]> = {
   loot:          ["loot-panel"],
   prestige:      ["prestige-panel"],
   guild:         ["guild-hall-panel"],
-  constellation: ["constellation-panel"],
   feats:         ["feats-panel"],
   log:           ["log-panel"],
 };
@@ -3487,6 +3485,7 @@ function initPartyPanelTabs(): void {
   const cardsEl = $("party-cards");
   const runeEl = $("party-rune-panel");
   const artEl = $("party-artifact-panel");
+  const constellationEl = $("party-constellation-panel");
   const gearToggle = $("party-gear-toggle");
 
   switchPartyTab = (which: string) => {
@@ -3494,6 +3493,7 @@ function initPartyPanelTabs(): void {
     cardsEl.hidden = which !== "party";
     runeEl.hidden = which !== "runes";
     artEl.hidden = which !== "artifacts";
+    constellationEl.hidden = which !== "constellation";
     gearToggle.hidden = which !== "party";
   };
 
