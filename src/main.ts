@@ -2493,12 +2493,13 @@ function renderFeats(state: GameStateDict): void {
     </div>`;
   }
 
-  const unlocked = new Set(state.achievements_unlocked ?? []);
-  const progress = state.achievement_progress ?? {};
-  const progressBucket = ACHIEVEMENTS.map(def => Math.floor((progress[def.id] ?? 0) / 50) * 50).join(",");
-  const newKey = `${state.achievements_unlocked?.join(",")}|${featsFilter}|${progressBucket}`;
+  const unlockedCount = state.achievements_unlocked?.length ?? 0;
+  const newKey = `${unlockedCount}|${featsFilter}|${state.achievement_progress_ts ?? 0}`;
   if (newKey === featsKey) return;
   featsKey = newKey;
+
+  const unlocked = new Set(state.achievements_unlocked ?? []);
+  const progress = state.achievement_progress ?? {};
 
   const categories = ["combat", "explorer", "collector", "wealth", "prestige", "guild", "runes"];
   const byCategory: Record<string, typeof ACHIEVEMENTS> = {};

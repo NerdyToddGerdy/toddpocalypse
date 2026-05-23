@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.11";
+export const VERSION = "v2.32.12";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.12",
+    date: "2026-05-23",
+    changes: [
+      "Memory: toDict() passes live references for log, rune_inventory, pending_achievements, and lifetime_enemy_kills instead of copying them every tick",
+      "Memory: renderFeats cache key was joining 150+ achievement IDs and computing 37 progress buckets every tick before the early-return check — replaced with count + 1s timestamp key",
+    ],
+  },
   {
     version: "v2.32.11",
     date: "2026-05-23",

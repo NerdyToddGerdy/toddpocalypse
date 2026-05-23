@@ -474,6 +474,7 @@ export interface GameStateDict {
   selected_border?: string;
   lifetime_clicks?: number;
   achievement_progress?: Record<string, number>;
+  achievement_progress_ts?: number;
   auto_prestige_enabled?: boolean;
   auto_prestige_threshold?: number;
   boss_enrage_time?: number;
@@ -1669,12 +1670,12 @@ export class GameState {
           ) as Record<UpgradeType, { level: number; cost: number; effect: number }>,
         ]),
       ),
-      log: [...this.log],
+      log: this.log,
       prestige_points: this.prestigePoints,
       lifetime_kills: this.lifetimeKills + this.kills,
       lifetime_deaths: this.lifetimeDeaths + this.deaths,
       lifetime_best_level: Math.max(this.lifetimeBestLevel, this.highestLevel),
-      lifetime_enemy_kills: { ...this.lifetimeEnemyKills },
+      lifetime_enemy_kills: this.lifetimeEnemyKills,
       total_prestiges: this.totalPrestiges,
       prestige_upgrades: { ...this.prestigeUpgrades },
       prestige_party_classes: { ...this.prestigePartyClasses },
@@ -1714,8 +1715,8 @@ export class GameState {
       lifetime_runes_combined: this.lifetimeRunesCombined,
       lifetime_skill_activations: this.lifetimeSkillActivations,
       lifetime_upgrades_bought: this.lifetimeUpgradesBought,
-      pending_achievements: [...this.pendingAchievements],
-      rune_inventory: [...this.runeInventory],
+      pending_achievements: this.pendingAchievements,
+      rune_inventory: this.runeInventory,
       earned_titles: (this._titlesCache ??= this.computeEarnedTitles()),
       gear_stash: this.gearStash.map(i => i.toDict()),
       artifact_inventory: this.artifactInventory.map(a => ({ id: a.id, level: a.level, fuel: a.fuel })),
@@ -1733,6 +1734,7 @@ export class GameState {
         }
         return this._achCache;
       })(),
+      achievement_progress_ts: this._achCacheTime,
       auto_prestige_enabled: this.autoPrestigeEnabled,
       auto_prestige_threshold: this.autoPrestigeThreshold,
       boss_enrage_time: this.bossEncounterTime,
