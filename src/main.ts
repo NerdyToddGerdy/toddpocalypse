@@ -175,8 +175,8 @@ function call<K extends keyof GameState>(method: K, ...args: any[]): void {
   if (!game) return;
   try {
     const fn = game[method] as unknown as (...a: any[]) => string;
-    const json = fn.apply(game, args);
-    render(JSON.parse(json) as GameStateDict);
+    fn.apply(game, args);
+    render(game.getState());
     const now = Date.now();
     if (method !== "tick" || now - lastTickSaveTime >= TICK_SAVE_INTERVAL_MS) {
       lastTickSaveTime = now;
@@ -1336,8 +1336,12 @@ function renderGuildHall(state: GameStateDict): void {
     if (stacks >= costs.length) return "max";
     return state.gold >= costs[stacks] ? "yes" : "no";
   }).join(",");
-  const runeInvKey = JSON.stringify(state.rune_inventory ?? []);
-  const newKey = JSON.stringify(state.guild_upgrades) + "|" + affordKey + "|" + state.dungeon_index + "|" + runeInvKey + "|" + JSON.stringify(state.party.map(c => c.runes));
+  const inv = state.rune_inventory ?? [];
+  const runeInvKey = inv.length > 0 ? `${inv.length}:${inv[0].id}:${inv[inv.length - 1].id}` : "0";
+  const socketKey = state.party.map(c =>
+    Object.values(c.runes ?? {}).filter(Boolean).map((r: any) => r.id).join(",")
+  ).join("|");
+  const newKey = JSON.stringify(state.guild_upgrades) + "|" + affordKey + "|" + state.dungeon_index + "|" + runeInvKey + "|" + socketKey;
   if (newKey === guildKey) return;
   guildKey = newKey;
 
@@ -2354,7 +2358,7 @@ function updatePrestigeButton(state: GameStateDict): void {
 
 /** Populates the Lifetime Stats modal with totals and the enemy kill breakdown. */
 function updateLifetimeStats(state: GameStateDict): void {
-  const newKey = `${state.lifetime_kills}|${state.lifetime_deaths}|${state.lifetime_best_level}|${state.total_prestiges}|${state.dungeon_index}|${JSON.stringify(state.lifetime_enemy_kills)}`;
+  const newKey = `${state.lifetime_kills}|${state.lifetime_deaths}|${state.lifetime_best_level}|${state.total_prestiges}|${state.dungeon_index}`;
   if (newKey === lifetimeStatsKey) return;
   lifetimeStatsKey = newKey;
 

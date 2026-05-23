@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.10";
+export const VERSION = "v2.32.11";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.11",
+    date: "2026-05-23",
+    changes: [
+      "Memory: eliminate JSON.stringify+JSON.parse on every tick — render now reads directly from cached GameStateDict in respond()",
+      "Memory: renderLifetimeStats cache key no longer JSON.stringifies the full enemy kills map every tick",
+      "Memory: renderGuildHall cache key no longer JSON.stringifies full rune inventory and party runes every tick",
+    ],
+  },
   {
     version: "v2.32.10",
     date: "2026-05-23",

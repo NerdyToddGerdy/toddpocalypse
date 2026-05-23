@@ -627,6 +627,7 @@ export class GameState {
   private _achCache: Record<string, number> = {};
   private _achCacheTime = 0;
   private _titlesCache: string[] | null = null;
+  private _stateCache: GameStateDict | null = null;
 
   /** Current loot chest capacity, expanding with Expanded Armory guild upgrades. */
   get lootMax(): number { return 8 + 2 * (this.guildUpgrades["expanded_armory"] ?? 0); }
@@ -1619,9 +1620,16 @@ export class GameState {
 
   /** Serializes the current game state to a JSON string for the renderer. */
   respond(): string {
-    const json = JSON.stringify(this.toDict());
+    const dict = this.toDict();
+    this._stateCache = dict;
+    const json = JSON.stringify(dict);
     this.pendingAchievements = [];
     return json;
+  }
+
+  /** Returns the GameStateDict from the most recent respond() call, or recomputes if needed. */
+  getState(): GameStateDict {
+    return this._stateCache ?? this.toDict();
   }
 
   /** Returns a plain-object snapshot of all game state, used by respond() and fromDict(). */
