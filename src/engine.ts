@@ -1114,9 +1114,10 @@ export class GameState {
     this.log = [];
     this.enemy = generateEnemy(1, this.dungeonIndex);
 
-    if (this.totalPrestiges > 0) {
-      this.constellationShards += this.totalPrestiges;
-      this.addLog(`✦ +${this.totalPrestiges} soul shard${this.totalPrestiges !== 1 ? "s" : ""} from constellation reward!`);
+    const shardsEarned = Math.floor(this.totalPrestiges / 10);
+    if (shardsEarned > 0) {
+      this.constellationShards += shardsEarned;
+      this.addLog(`✦ +${shardsEarned} soul shard${shardsEarned !== 1 ? "s" : ""} from constellation reward!`);
     }
     this.addLog(`Ventured to dungeon ${this.dungeonIndex + 1}! Total idle: ${this.idleGoldRate.toFixed(1)} gold/sec.`);
     return this.respond();

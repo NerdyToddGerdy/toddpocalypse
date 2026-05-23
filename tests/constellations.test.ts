@@ -240,14 +240,22 @@ describe("GameState.respecConstellation", () => {
 // ── Engine: venture() grants shards ─────────────────────────────────────────
 
 describe("GameState.venture shard grant", () => {
-  it("grants totalPrestiges shards on venture", () => {
+  it("grants floor(totalPrestiges/10) shards on venture", () => {
     const gs = new GameState();
-    gs.totalPrestiges = 3;
+    gs.totalPrestiges = 35;
     gs.constellationShards = 0;
-    // Make venture possible
     gs.highestLevel = 100;
     gs.venture();
-    expect(gs.constellationShards).toBe(3);
+    expect(gs.constellationShards).toBe(3); // floor(35/10)
+  });
+
+  it("grants 0 shards if fewer than 10 prestiges done", () => {
+    const gs = new GameState();
+    gs.totalPrestiges = 9;
+    gs.constellationShards = 5;
+    gs.highestLevel = 100;
+    gs.venture();
+    expect(gs.constellationShards).toBe(5); // unchanged
   });
 
   it("grants 0 shards if no prestiges done", () => {
