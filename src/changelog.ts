@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.9";
+export const VERSION = "v2.32.10";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.10",
+    date: "2026-05-23",
+    changes: [
+      "Fix Hall of Renown items being hard to click during rapid combat: highest_level was spuriously included in the prestige shop cache key, causing a full innerHTML rebuild on every boss kill",
+    ],
+  },
   {
     version: "v2.32.9",
     date: "2026-05-23",
