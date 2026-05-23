@@ -623,6 +623,11 @@ export class GameState {
   /** Tracks whether Last Stand has fired this floor. */
   lastStandUsedThisFloor = false;
 
+  private _cbCache: ConstellationBonuses | null = null;
+  private _achCache: Record<string, number> = {};
+  private _achCacheTime = 0;
+  private _titlesCache: string[] | null = null;
+
   /** Current loot chest capacity, expanding with Expanded Armory guild upgrades. */
   get lootMax(): number { return 8 + 2 * (this.guildUpgrades["expanded_armory"] ?? 0); }
   /** Maximum stash capacity based on the stash prestige upgrade level (0 if not unlocked). */
@@ -644,6 +649,13 @@ export class GameState {
   /** Returns the effective DPS for a character, applying the per-level DPS upgrade multiplier. */
   private effectiveDps(c: Character): number {
     return c.dps * (1 + DPS_UPGRADE_EFFECT * (this.upgrades[c.name]?.dps ?? 0));
+  }
+
+  private get constellationBonuses(): ConstellationBonuses {
+    if (!this._cbCache) {
+      this._cbCache = getConstellationBonuses([...this.unlockedConstellationNodes]);
+    }
+    return this._cbCache;
   }
 
   /** Returns the click damage multiplier from click upgrades across all alive party members. */
@@ -685,7 +697,7 @@ export class GameState {
     const arcaneSurgeMult = (this.activeEffects["skill_arcane_surge"] ?? 0) > 0 ? ARCANE_SURGE_MULT : 1.0;
     const volleyMult = (this.activeEffects["skill_volley"] ?? 0) > 0 ? VOLLEY_MULT : 1.0;
 
-    const cb = getConstellationBonuses([...this.unlockedConstellationNodes]);
+    const cb = this.constellationBonuses;
     let baseDps = 0;
     const partyHaste = this.party.team.reduce((s, c) => c.isAlive() ? s + c.haste : s, 0);
     for (const c of this.party.team) {
@@ -781,6 +793,7 @@ export class GameState {
       }
     }
 
+    this.applyLastStandIfActive();
     if (this.party.team.every(c => !c.isAlive())) {
       this.onPlayerDeath();
     }
@@ -797,7 +810,7 @@ export class GameState {
     if (manual) this.lifetimeClicks++;
     const totalDps = this.party.team.reduce((s, c) => c.isAlive() ? s + this.effectiveDps(c) : s, 0);
     const clickBonus = this.party.team.reduce((s, c) => c.isAlive() ? s + c.clickBonus : s, 0);
-    const clickCb = getConstellationBonuses([...this.unlockedConstellationNodes]);
+    const clickCb = this.constellationBonuses;
     let damage = Math.max(1.0, totalDps * CLICK_DAMAGE_MULTIPLIER * 0.1 + clickBonus) * this.clickUpgradeMult() * clickCb.clickDpsMultiplier;
     if (this.party.team.some(c => c.isAlive() && c.abilities.includes("empower"))) damage *= EMPOWER_MULTIPLIER;
     const shadowStrikeActive = (this.activeEffects["skill_shadow_strike"] ?? 0) > 0;
@@ -1134,6 +1147,7 @@ export class GameState {
     if (this.constellationShards < def.cost) return this.respond();
     this.constellationShards -= def.cost;
     this.unlockedConstellationNodes.add(nodeId);
+    this._cbCache = null;
     return this.respond();
   }
 
@@ -1145,12 +1159,13 @@ export class GameState {
     );
     this.constellationShards += spent - 10;
     this.unlockedConstellationNodes.clear();
+    this._cbCache = null;
     return this.respond();
   }
 
   /** Applies the Last Stand effect for any hero at 0 HP if the keystone is active and not yet used this floor. */
   applyLastStandIfActive(): void {
-    const cb = getConstellationBonuses([...this.unlockedConstellationNodes]);
+    const cb = this.constellationBonuses;
     if (!cb.lastStandActive || this.lastStandUsedThisFloor) return;
     for (const c of this.party.team) {
       if (c.health <= 0) {
@@ -1261,6 +1276,7 @@ export class GameState {
     if (unlock) {
       for (const cls of unlock.classes) this.unlockedHeroClasses.add(cls);
       this.legacyTitles.add(unlock.title);
+      this._titlesCache = null;
       if (unlock.avatar) this.earnedAvatars.add(unlock.avatar);
       if (unlock.border) this.earnedBorders.add(unlock.border);
     }
@@ -1692,7 +1708,7 @@ export class GameState {
       lifetime_upgrades_bought: this.lifetimeUpgradesBought,
       pending_achievements: [...this.pendingAchievements],
       rune_inventory: [...this.runeInventory],
-      earned_titles: this.computeEarnedTitles(),
+      earned_titles: (this._titlesCache ??= this.computeEarnedTitles()),
       gear_stash: this.gearStash.map(i => i.toDict()),
       artifact_inventory: this.artifactInventory.map(a => ({ id: a.id, level: a.level, fuel: a.fuel })),
       kill_streak: this.killStreak,
@@ -1701,7 +1717,14 @@ export class GameState {
       selected_avatar: this.selectedAvatar,
       selected_border: this.selectedBorder,
       lifetime_clicks: this.lifetimeClicks,
-      achievement_progress: Object.fromEntries(ACHIEVEMENTS.map(def => [def.id, def.getValue(this)])),
+      achievement_progress: (() => {
+        const now = Date.now();
+        if (now - this._achCacheTime > 1000) {
+          this._achCache = Object.fromEntries(ACHIEVEMENTS.map(def => [def.id, def.getValue(this)]));
+          this._achCacheTime = now;
+        }
+        return this._achCache;
+      })(),
       auto_prestige_enabled: this.autoPrestigeEnabled,
       auto_prestige_threshold: this.autoPrestigeThreshold,
       boss_enrage_time: this.bossEncounterTime,
@@ -1761,6 +1784,7 @@ export class GameState {
   /** Checks all achievements against current state; awards any newly crossed thresholds. Returns newly unlocked achievements (also queued to pendingAchievements for toast display). */
   checkAchievements(): AchievementUnlock[] {
     const newly: AchievementUnlock[] = [];
+    let unlockedSomething = false;
     for (const def of ACHIEVEMENTS) {
       const val = def.getValue(this);
       if (def.tiers) {
@@ -1770,6 +1794,7 @@ export class GameState {
             const hadAnyTier = def.tiers.some(t2 => this.achievementsUnlocked.has(`${def.id}_${t2.label}`));
             this.achievementsUnlocked.add(key);
             this.applyReward(tier.reward);
+            unlockedSomething = true;
             const unlock: AchievementUnlock = { id: def.id, tier: tier.label, name: def.name, reward: tier.reward, wasHidden: def.hidden && !hadAnyTier };
             newly.push(unlock);
             this.pendingAchievements.push(unlock);
@@ -1779,12 +1804,14 @@ export class GameState {
         if (!this.achievementsUnlocked.has(def.id) && val >= 1) {
           this.achievementsUnlocked.add(def.id);
           this.applyReward(def.reward);
+          unlockedSomething = true;
           const unlock: AchievementUnlock = { id: def.id, name: def.name, reward: def.reward, wasHidden: def.hidden };
           newly.push(unlock);
           this.pendingAchievements.push(unlock);
         }
       }
     }
+    if (unlockedSomething) this._titlesCache = null;
     return newly;
   }
 
@@ -1850,12 +1877,12 @@ export class GameState {
     if (this.enemy.isElite) this.lifetimeEliteKills += 1;
     const xp = this.enemy.xp_reward;
     this.addLog(`${name} defeated! +${xp}xp`);
+    const xpCb = this.constellationBonuses;
+    const constellationXpMult = xpCb.xpMultiplier + (xpCb.ancientWisdomActive ? this.dungeonIndex * 0.02 : 0);
     for (const c of this.party.team) {
       // Phantom Compass: per-character XP bonus, scales with level
       const compassSlot = c.artifactSlots.find(s => s?.id === "phantom_compass");
       const xpMult = compassSlot ? 1 + ARTIFACT_DEFS["phantom_compass"].effectValue * (compassSlot.level + 1) : 1;
-      const xpCb = getConstellationBonuses([...this.unlockedConstellationNodes]);
-      const constellationXpMult = xpCb.xpMultiplier + (xpCb.ancientWisdomActive ? this.dungeonIndex * 0.02 : 0);
       c.gainXp(xp * xpMult * constellationXpMult);
       c.health = Math.min(c.maxHealth, c.health + (c.maxHealth - c.health) * COMBAT_HEAL_FRACTION);
       while (c.pendingPartyAbilities.length > 0) {
@@ -1915,7 +1942,7 @@ export class GameState {
         artifactGoldMult = Math.max(artifactGoldMult, mult);
       }
     }
-    const constellationGoldMult = getConstellationBonuses([...this.unlockedConstellationNodes]).goldMultiplier;
+    const constellationGoldMult = this.constellationBonuses.goldMultiplier;
     if (this.enemy.isBoss) {
       this.earnGold(this.enemy.gold_reward * (1 + partyGoldBonus) * goldMasteryMult * prestigeGoldMult * partySizeMult * artifactGoldMult * constellationGoldMult);
       this.lifetimeBossKills += 1;
@@ -1960,7 +1987,7 @@ export class GameState {
       const dropChance = Math.min(0.75, DROP_CHANCE + this.dungeonIndex * 0.05 + gearLuckBonus + fortunesEyeBonus);
       if ((this.enemy.isElite || Math.random() < dropChance) && this.lootPool.length < this.lootMax) {
         const effectiveLevel = this.dungeonLevel + this.dungeonIndex * 5;
-        const lootCb = getConstellationBonuses([...this.unlockedConstellationNodes]);
+        const lootCb = this.constellationBonuses;
         const qualityBoost = (lootCb.lootQualityBonus > 0 && Math.random() < lootCb.lootQualityBonus / 100) ? 8 : 0;
         const drop = getItem(undefined, effectiveLevel + qualityBoost);
         this.lootPool.push(drop);

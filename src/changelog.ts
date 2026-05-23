@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.8";
+export const VERSION = "v2.32.9";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,16 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.9",
+    date: "2026-05-23",
+    changes: [
+      "Memory optimization: constellation bonuses cached per-tick (was recomputed 7+ times per enemy death); reduced Chrome memory pressure from ~1.6 GB peak",
+      "Bug fix: Last Stand keystone now actually fires — applyLastStandIfActive() was never called in tick()",
+      "Memory optimization: achievement_progress throttled to 1s refresh (was 37 getValue() calls every 100ms)",
+      "Memory optimization: earned_titles cached with dirty flag (was recomputed every tick)",
+    ],
+  },
   {
     version: "v2.32.8",
     date: "2026-05-23",
