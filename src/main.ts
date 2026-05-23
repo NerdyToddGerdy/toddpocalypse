@@ -530,9 +530,7 @@ function renderParty(state: GameStateDict): void {
   // Health and XP are intentionally excluded — they are updated in-place below.
   const newLootKey = state.loot_pool.map(i => i.slot + i.name).join("|");
   // Health, XP, and loot pool are intentionally excluded — they are updated in-place below.
-  const newStructKey = JSON.stringify(
-    state.party.map((c) => [c.level, c.dps, JSON.stringify(c.equipment), c.abilities.join(","), JSON.stringify(c.runes ?? {}), JSON.stringify(c.applied_set_bonuses ?? {}), JSON.stringify(c.locked_slots ?? []), JSON.stringify(c.artifact_slots ?? [])])
-  ) + "|" + (state.earned_title ?? "");
+  const newStructKey = `${state.party_version ?? 0}|${state.earned_title ?? ""}`;
 
   if (newStructKey !== partyStructKey) {
     // Detect changed gear slots for the flash animation
@@ -3204,7 +3202,7 @@ function openPartyClassModal(slotType: string): void {
   const desc = $("party-class-desc");
 
   // Show/hide guild-unlocked classes
-  const guildUpgrades = game ? (JSON.parse(game.respond()) as GameStateDict).guild_upgrades : {};
+  const guildUpgrades = game ? game.getState().guild_upgrades : {};
   const paladinBtn = document.getElementById("party-class-paladin");
   const rangerBtn = document.getElementById("party-class-ranger");
   const druidBtn = document.getElementById("party-class-druid");
@@ -3267,7 +3265,7 @@ function hideSessionConflictBanner(): void {
 /** Serializes game state to localStorage every tick; writes to DynamoDB at most once per 30 seconds. */
 async function saveGame(): Promise<void> {
   if (!game) return;
-  const data = game.respond();
+  const data = game.getLastJson() || game.respond();
   localStorage.setItem(SAVE_KEY, data);
   const token = getStoredToken();
   const now = Date.now();

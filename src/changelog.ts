@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.12";
+export const VERSION = "v2.32.13";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,16 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.13",
+    date: "2026-05-23",
+    changes: [
+      "Perf: cache loot pool, gear stash, artifact inventory, upgrades, and achievements list in toDict() — rebuilt only on mutation, not every tick",
+      "Perf: saveGame() reuses the JSON string from the last respond() instead of re-serializing",
+      "Perf: renderParty struct cache key replaced from nested JSON.stringify to a cheap partyVersion integer",
+      "Perf: openPartyClassModal reads guild_upgrades from cached state instead of calling respond()",
+    ],
+  },
   {
     version: "v2.32.12",
     date: "2026-05-23",

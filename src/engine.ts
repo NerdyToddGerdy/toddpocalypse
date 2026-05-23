@@ -486,6 +486,7 @@ export interface GameStateDict {
   needs_hero_creation?: boolean;
   constellation_shards?: number;
   constellation_nodes?: string[];
+  party_version?: number;
 }
 
 /** Central game loop: owns all mutable state and exposes action methods that return serialized JSON. */
@@ -629,6 +630,14 @@ export class GameState {
   private _achCacheTime = 0;
   private _titlesCache: string[] | null = null;
   private _stateCache: GameStateDict | null = null;
+  private _lastJson = "";
+  private _lootCache: GearItemDict[] | null = null;
+  private _stashCache: GearItemDict[] | null = null;
+  private _artifactInvCache: { id: ArtifactEffectId; level: number; fuel: number }[] | null = null;
+  private _upgradesCache: GameStateDict["upgrades"] | null = null;
+  private _achievementsListCache: string[] | null = null;
+  /** Incremented on any structural party change (level, gear, runes, artifacts). Used as a cheap render cache key. */
+  partyVersion = 0;
 
   /** Current loot chest capacity, expanding with Expanded Armory guild upgrades. */
   get lootMax(): number { return 8 + 2 * (this.guildUpgrades["expanded_armory"] ?? 0); }
@@ -844,6 +853,8 @@ export class GameState {
     this.lifetimeLoot += 1;
     this.addLog(`${target.name} equips ${item.getName()}!`);
     if (old) this.disposeItem(old);
+    this._lootCache = null;
+    this.partyVersion++;
     this.checkAchievements();
     return this.respond();
   }
@@ -859,6 +870,8 @@ export class GameState {
     this.lifetimeLoot += 1;
     this.addLog(`${char.name} equips ${item.getName()}!`);
     if (old) this.lootPool.push(old);
+    this._lootCache = null;
+    this.partyVersion++;
     this.checkAchievements();
     return this.respond();
   }
@@ -875,9 +888,12 @@ export class GameState {
     char.recomputeSetBonuses();
     if (canStash) {
       this.gearStash.push(item);
+      this._stashCache = null;
     } else {
       this.lootPool.push(item);
+      this._lootCache = null;
     }
+    this.partyVersion++;
     this.addLog(`${char.name} unequips ${item.getName()}.`);
     return this.respond();
   }
@@ -890,12 +906,15 @@ export class GameState {
     const item = this.gearStash.splice(stashIdx, 1)[0];
     const old = char.equipItem(item);
     char.recomputeSetBonuses();
+    this._stashCache = null;
+    this.partyVersion++;
     this.addLog(`${char.name} equips ${item.getName()} from stash!`);
     if (old) {
       if (this.gearStash.length < this.stashMax) {
         this.gearStash.push(old);
       } else if (this.lootPool.length < this.lootMax) {
         this.lootPool.push(old);
+        this._lootCache = null;
       } else {
         this.earnGold(old.sellValue);
         this.lifetimeSold += 1;
@@ -911,6 +930,8 @@ export class GameState {
     if (this.gearStash.length >= this.stashMax) return this.respond();
     const item = this.lootPool.splice(lootIdx, 1)[0];
     this.gearStash.push(item);
+    this._lootCache = null;
+    this._stashCache = null;
     this.addLog(`${item.getName()} moved to stash.`);
     return this.respond();
   }
@@ -921,6 +942,7 @@ export class GameState {
     const item = this.gearStash.splice(stashIdx, 1)[0];
     this.earnGold(item.sellValue);
     this.lifetimeSold += 1;
+    this._stashCache = null;
     this.addLog(`Sold ${item.getName()} for ${item.sellValue}g.`);
     this.checkAchievements();
     return this.respond();
@@ -945,6 +967,8 @@ export class GameState {
     }
     this.lootPool = [];
     for (const char of this.party.team) char.recomputeSetBonuses();
+    this._lootCache = null;
+    this.partyVersion++;
     this.checkAchievements();
     return this.respond();
   }
@@ -958,6 +982,7 @@ export class GameState {
     }
     this.lootPool = [];
     this.lifetimeSold += count;
+    this._lootCache = null;
     this.checkAchievements();
     return this.respond();
   }
@@ -969,6 +994,7 @@ export class GameState {
     const isDivine = item.quality === "divine";
     this.earnGold(item.sellValue);
     this.lifetimeSold += 1;
+    this._lootCache = null;
     this.addLog(`Sold ${item.getName()} for ${item.sellValue}g.`);
     if (isDivine) this.lifetimeDivineSold = 1;
     this.checkAchievements();
@@ -985,6 +1011,8 @@ export class GameState {
     const instance = this.artifactInventory.splice(invIdx, 1)[0];
     char.artifactSlots[slotIdx] = instance;
     if (existing) this.artifactInventory.push(existing);
+    this._artifactInvCache = null;
+    this.partyVersion++;
     const label = instance.level > 0 ? `${ARTIFACT_DEFS[instance.id].name} +${instance.level}` : ARTIFACT_DEFS[instance.id].name;
     this.addLog(`${char.name} equips ${label}!`);
     return this.respond();
@@ -999,6 +1027,8 @@ export class GameState {
     if (!instance) return this.respond();
     char.artifactSlots[slotIdx] = null;
     this.artifactInventory.push(instance);
+    this._artifactInvCache = null;
+    this.partyVersion++;
     this.addLog(`${char.name} unequips ${ARTIFACT_DEFS[instance.id].name}.`);
     return this.respond();
   }
@@ -1024,6 +1054,7 @@ export class GameState {
   addFuelToArtifact(targetInvIdx: number, fuelInvIdxs: number[]): string {
     if (targetInvIdx < 0 || targetInvIdx >= this.artifactInventory.length) return this.respond();
     this.fuelArtifact(this.artifactInventory[targetInvIdx], fuelInvIdxs, targetInvIdx);
+    this._artifactInvCache = null;
     return this.respond();
   }
 
@@ -1034,6 +1065,8 @@ export class GameState {
     const target = char.artifactSlots[slotIdx];
     if (!target) return this.respond();
     this.fuelArtifact(target, fuelInvIdxs, -1);
+    this._artifactInvCache = null;
+    this.partyVersion++;
     return this.respond();
   }
 
@@ -1051,6 +1084,7 @@ export class GameState {
     if (!inst) return this.respond();
     char.artifactSlots[slotIdx] = null;
     this.sellArtifactInstance(inst);
+    this.partyVersion++;
     return this.respond();
   }
 
@@ -1058,6 +1092,7 @@ export class GameState {
   sellArtifact(invIdx: number): string {
     if (invIdx < 0 || invIdx >= this.artifactInventory.length) return this.respond();
     this.sellArtifactInstance(this.artifactInventory.splice(invIdx, 1)[0]);
+    this._artifactInvCache = null;
     return this.respond();
   }
 
@@ -1076,6 +1111,8 @@ export class GameState {
     const char = this.party.team.find((c) => c.name === charName);
     if (!char) return this.respond();
     applyUpgradeStatEffect(char, ut);
+    this._upgradesCache = null;
+    this.partyVersion++;
     this.addLog(`${charName}: ${ut} upgraded!`);
     return this.respond();
   }
@@ -1128,6 +1165,10 @@ export class GameState {
     this.gearStash = [];
     this.log = [];
     this.enemy = generateEnemy(1, this.dungeonIndex);
+    this._lootCache = null;
+    this._stashCache = null;
+    this._upgradesCache = null;
+    this.partyVersion++;
 
     const shardsEarned = Math.floor(this.totalPrestiges / 10);
     if (shardsEarned > 0) {
@@ -1218,6 +1259,9 @@ export class GameState {
     const lead = new Character(leadName, leadClass, 1);
     this.party.addPlayer(lead);
     this.upgrades[leadName] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
+    this._lootCache = null;
+    this._upgradesCache = null;
+    this.partyVersion++;
 
     for (let slot = 2; slot <= 6; slot++) {
       if ((this.prestigeUpgrades[`party_slot_${slot}`] ?? 0) > 0) {
@@ -1321,6 +1365,11 @@ export class GameState {
     // Mark that a new hero must be created before gameplay resumes
     this.needsHeroCreation = true;
     this.enemy = generateEnemy(1, 0);
+    this._lootCache = null;
+    this._stashCache = null;
+    this._artifactInvCache = null;
+    this._upgradesCache = null;
+    this.partyVersion++;
 
     return this.respond();
   }
@@ -1335,6 +1384,8 @@ export class GameState {
     this.upgrades[name] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
     this.needsHeroCreation = false;
     this.enemy = generateEnemy(1, 0);
+    this._upgradesCache = null;
+    this.partyVersion++;
     this.addLog(`Welcome, ${name} the ${characterClass}!`);
     return this.respond();
   }
@@ -1379,6 +1430,8 @@ export class GameState {
       this.party.addPlayer(comp);
       this.upgrades[n] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
       comp.xpMultiplier += XP_BONUS_PER_LEVEL * (this.prestigeUpgrades["xp_bonus"] ?? 0);
+      this._upgradesCache = null;
+      this.partyVersion++;
     } else if (type === "xp_bonus") {
       for (const c of this.party.team) {
         c.xpMultiplier += XP_BONUS_PER_LEVEL;
@@ -1441,6 +1494,7 @@ export class GameState {
     if (old && (this.guildUpgrades["rune_forge"] ?? 0) >= 2) {
       this.runeInventory.push(old);
     }
+    this.partyVersion++;
     return this.respond();
   }
 
@@ -1450,6 +1504,7 @@ export class GameState {
     if (!char) return this.respond();
     const old = char.removeRune(slot);
     if (old) this.runeInventory.push(old);
+    this.partyVersion++;
     return this.respond();
   }
 
@@ -1623,10 +1678,13 @@ export class GameState {
   respond(): string {
     const dict = this.toDict();
     this._stateCache = dict;
-    const json = JSON.stringify(dict);
+    this._lastJson = JSON.stringify(dict);
     this.pendingAchievements = [];
-    return json;
+    return this._lastJson;
   }
+
+  /** Returns the last JSON string produced by respond(), for use by save routines without re-serializing. */
+  getLastJson(): string { return this._lastJson; }
 
   /** Returns the GameStateDict from the most recent respond() call, or recomputes if needed. */
   getState(): GameStateDict {
@@ -1654,8 +1712,8 @@ export class GameState {
         is_elite: this.enemy.isElite,
       },
       party: this.party.team.map((c) => c.toDict()),
-      loot_pool: this.lootPool.map((i) => i.toDict()),
-      upgrades: Object.fromEntries(
+      loot_pool: (this._lootCache !== null && this._lootCache.length === this.lootPool.length ? this._lootCache : (this._lootCache = this.lootPool.map((i) => i.toDict()))),
+      upgrades: (this._upgradesCache ??= Object.fromEntries(
         Object.entries(this.upgrades).map(([name, utypes]) => [
           name,
           Object.fromEntries(
@@ -1669,7 +1727,7 @@ export class GameState {
             ]),
           ) as Record<UpgradeType, { level: number; cost: number; effect: number }>,
         ]),
-      ),
+      )),
       log: this.log,
       prestige_points: this.prestigePoints,
       lifetime_kills: this.lifetimeKills + this.kills,
@@ -1701,7 +1759,7 @@ export class GameState {
       run_id: this.runId,
       loot_max: this.lootMax,
       saved_at: Date.now(),
-      achievements_unlocked: [...this.achievementsUnlocked],
+      achievements_unlocked: (this._achievementsListCache ??= [...this.achievementsUnlocked]),
       earned_title: this.earnedTitle,
       lifetime_gold: this.lifetimeGold,
       lifetime_loot: this.lifetimeLoot,
@@ -1718,8 +1776,8 @@ export class GameState {
       pending_achievements: this.pendingAchievements,
       rune_inventory: this.runeInventory,
       earned_titles: (this._titlesCache ??= this.computeEarnedTitles()),
-      gear_stash: this.gearStash.map(i => i.toDict()),
-      artifact_inventory: this.artifactInventory.map(a => ({ id: a.id, level: a.level, fuel: a.fuel })),
+      gear_stash: (this._stashCache !== null && this._stashCache.length === this.gearStash.length ? this._stashCache : (this._stashCache = this.gearStash.map(i => i.toDict()))),
+      artifact_inventory: (this._artifactInvCache !== null && this._artifactInvCache.length === this.artifactInventory.length ? this._artifactInvCache : (this._artifactInvCache = this.artifactInventory.map(a => ({ id: a.id as ArtifactEffectId, level: a.level, fuel: a.fuel })))),
       kill_streak: this.killStreak,
       earned_avatars: [...this.earnedAvatars],
       earned_borders: [...this.earnedBorders],
@@ -1746,6 +1804,7 @@ export class GameState {
       needs_hero_creation: this.needsHeroCreation,
       constellation_shards: this.constellationShards,
       constellation_nodes: [...this.unlockedConstellationNodes],
+      party_version: this.partyVersion,
     };
   }
 
@@ -1821,7 +1880,10 @@ export class GameState {
         }
       }
     }
-    if (unlockedSomething) this._titlesCache = null;
+    if (unlockedSomething) {
+      this._titlesCache = null;
+      this._achievementsListCache = null;
+    }
     return newly;
   }
 
@@ -1889,6 +1951,7 @@ export class GameState {
     this.addLog(`${name} defeated! +${xp}xp`);
     const xpCb = this.constellationBonuses;
     const constellationXpMult = xpCb.xpMultiplier + (xpCb.ancientWisdomActive ? this.dungeonIndex * 0.02 : 0);
+    const levelsBeforeXp = this.party.team.map(c => c.level);
     for (const c of this.party.team) {
       // Phantom Compass: per-character XP bonus, scales with level
       const compassSlot = c.artifactSlots.find(s => s?.id === "phantom_compass");
@@ -1917,6 +1980,7 @@ export class GameState {
     }
 
     this.killStreak += 1;
+    if (this.party.team.some((c, i) => c.level > levelsBeforeXp[i])) this.partyVersion++;
 
     // Druid wild_growth: heals all living members 2% maxHP on each kill
     if (this.party.team.some(c => c.isAlive() && c.abilities.includes("wild_growth"))) {
@@ -2035,6 +2099,8 @@ export class GameState {
         this.enemy = this.spawnNextEnemy();
       }
     }
+    this._lootCache = null;
+    this._artifactInvCache = null;
     this.runAutoUpgrade();
     this.checkAchievements();
   }
@@ -2152,6 +2218,7 @@ export class GameState {
     this.earnGold(gold);
     this.lifetimeSold += toSell.length;
     this.lootPool = this.lootPool.filter(item => !toSell.includes(item));
+    this._lootCache = null;
     this.addLog(`Auto Seller: sold ${toSell.length} item(s) for ${gold}g`);
   }
 
@@ -2171,6 +2238,7 @@ export class GameState {
   private runAutoEquip(): void {
     if (!(this.prestigeUpgrades["auto_equip"] > 0)) return;
     if (!this.autoEquipEnabled) return;
+    let anyEquipped = false;
     let found = true;
     while (found) {
       found = false;
@@ -2183,10 +2251,15 @@ export class GameState {
           target.recomputeSetBonuses();
           this.addLog(`Auto Equip: ${target.name} equips ${item.getName()}!`);
           if (old) this.disposeItem(old);
+          anyEquipped = true;
           found = true;
           break;
         }
       }
+    }
+    if (anyEquipped) {
+      this._lootCache = null;
+      this.partyVersion++;
     }
   }
 
