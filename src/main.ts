@@ -1,4 +1,4 @@
-import { GameState, type GameStateDict, type ArtifactInstance, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock, ARTIFACT_DEFS, artifactFuelValue, artifactStatLabel, AVATAR_DEFS, BORDER_DEFS, formatNumber, LEGACY_UNLOCKS, type RetiredHero, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT, DEFENSE_UPGRADE_EFFECT, CONSTELLATION_NODE_DEFS } from "./engine.js";
+import { GameState, type GameStateDict, type ArtifactInstance, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, GUILD_HALL_PREREQS, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock, ARTIFACT_DEFS, artifactFuelValue, artifactStatLabel, AVATAR_DEFS, BORDER_DEFS, formatNumber, LEGACY_UNLOCKS, type RetiredHero, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT, DEFENSE_UPGRADE_EFFECT, CONSTELLATION_NODE_DEFS } from "./engine.js";
 import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, SET_DEFS, buildSetBonusHTML, type GearStats, type GearItemDict } from "./gear.js";
 import { VERSION, CHANGELOG } from "./changelog.js";
 import { CLASS_ABILITIES, type Rune } from "./character.js";
@@ -25,8 +25,8 @@ const CLASS_DESCS: Record<string, string> = {
 const GUILD_HALL_META: Record<string, { icon: string; name: string; desc: string; dungeonReq?: number }> = {
   companion_hall:      { icon: "🏰", name: "Companion Hall",   desc: "Unlock Party Slot IV (stack 1), Slot V (stack 2), and Slot VI (stack 3) in the Hall of Renown." },
   expanded_armory:     { icon: "🗄", name: "Expanded Armory",  desc: "+2 loot chest capacity per stack (max 14)." },
-  class_paladin:       { icon: "🛡", name: "Recruit: Paladin", desc: "Unlock Paladin as a recruitable class for companions." },
-  class_ranger:        { icon: "🏹", name: "Recruit: Ranger",  desc: "Unlock Ranger as a recruitable class for companions." },
+  class_paladin:       { icon: "🛡", name: "Recruit: Paladin", desc: "Unlock Paladin as a recruitable class for companions. Dungeon 2+.", dungeonReq: 1 },
+  class_ranger:        { icon: "🏹", name: "Recruit: Ranger",  desc: "Unlock Ranger as a recruitable class for companions. Dungeon 2+.", dungeonReq: 1 },
   class_druid:         { icon: "🌿", name: "Recruit: Druid",   desc: "Unlock Druid as a recruitable class. Dungeon 3+.", dungeonReq: 2 },
   skill_battle_cry:    { icon: "📯", name: "Battle Cry",       desc: "Fighter: ×2 party DPS for 8 kills. 20-kill cooldown." },
   skill_shadow_strike: { icon: "🌑", name: "Shadow Strike",    desc: "Rogue: ×3 all damage (tick + click) for 5 kills. 20-kill cooldown." },
@@ -37,7 +37,7 @@ const GUILD_HALL_META: Record<string, { icon: string; name: string; desc: string
   auto_attack:         { icon: "⚔", name: "Auto-Attack",      desc: "Automatically fires a click attack every second. Toggle the AUTO button next to the Attack button." },
   eternal_cycle:       { icon: "⟳", name: "Eternal Cycle",    desc: "Automatically return to town when a run would yield at least N renown. Set the threshold and toggle below." },
   rune_forge:          { icon: "🔮", name: "Rune Forge",       desc: "Socket runes into gear slots for flat stat bonuses. Bosses drop runes at 20%, elites at 10%. Tier 2: recover replaced runes + combine 2 lessers → greater. Tier 3: combine 2 greaters → flawless. Tier 4: combine 2 flawless → ancient." },
-  constellation_access: { icon: "✦", name: "Constellation Chart", desc: "Unlock the Constellations passive tree. Invest soul shards to permanently empower your party. Shards are earned by venturing to new dungeons.", dungeonReq: 1 },
+  constellation_access: { icon: "✦", name: "Constellation Chart", desc: "Unlock the Constellations passive tree. Invest soul shards to permanently empower your party. Shards are earned by venturing to new dungeons.", dungeonReq: 2 },
 };
 
 const SLOT_ICONS: Record<string, string> = {
@@ -1398,18 +1398,22 @@ function renderGuildHall(state: GameStateDict): void {
     if (a.atMax !== b.atMax) return a.atMax ? 1 : -1;
     return a.nextCost - b.nextCost;
   }).map(({ type, meta, stacks, costs, atMax, nextCost }) => {
-    const canAfford = !atMax && state.gold >= nextCost;
-    const disabled = atMax || !canAfford;
+    const prereqKey = GUILD_HALL_PREREQS[type];
+    const prereqMet = !prereqKey || (owned[prereqKey] ?? 0) > 0;
+    const prereqName = prereqKey ? (GUILD_HALL_META[prereqKey]?.name ?? prereqKey) : "";
+    const canAfford = !atMax && prereqMet && state.gold >= nextCost;
+    const disabled = atMax || !canAfford || !prereqMet;
     const stackLabel = costs.length > 1 ? (atMax ? ` (${stacks}/${costs.length})` : stacks > 0 ? ` (${stacks}/${costs.length})` : "") : atMax ? " ✓" : "";
     const preview = atMax ? "" : guildUpgradePreview(type, stacks, state.loot_max);
     const currentStat = guildCurrentStat(type, stacks, state.loot_max);
 
-    return `<div class="prestige-item">
+    return `<div class="prestige-item${!prereqMet ? " guild-prereq-locked" : ""}">
       <div class="prestige-item-meta">
         <div class="prestige-item-name">${spr(meta.icon)} ${meta.name}${stackLabel}</div>
         <div class="prestige-item-desc">${meta.desc}</div>
-        ${currentStat ? `<div class="shop-current-stat">${currentStat}</div>` : ""}
-        ${preview ? `<div class="guild-preview">→ ${preview}</div>` : ""}
+        ${!prereqMet ? `<div class="guild-prereq-notice">Requires: ${prereqName}</div>` : ""}
+        ${prereqMet && currentStat ? `<div class="shop-current-stat">${currentStat}</div>` : ""}
+        ${prereqMet && preview ? `<div class="guild-preview">→ ${preview}</div>` : ""}
       </div>
       <button class="guild-buy-btn" data-action="buy-guild" data-type="${type}" ${disabled ? "disabled" : ""}>${atMax ? "Owned" : formatNumber(nextCost) + "g"}</button>
     </div>`;

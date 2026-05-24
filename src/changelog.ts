@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.19";
+export const VERSION = "v2.32.20";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,16 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.20",
+    date: "2026-05-24",
+    changes: [
+      "Balance: all Guild Hall costs doubled to slow down auto-gold progression",
+      "Balance: Recruit Paladin and Recruit Ranger now require Dungeon 2+",
+      "Balance: Constellation Chart now requires Dungeon 3+",
+      "Balance: Consecrate, Volley, and Entangle are locked until their class is recruited",
+    ],
+  },
   {
     version: "v2.32.19",
     date: "2026-05-24",

@@ -2544,6 +2544,8 @@ main {
 }
 .guild-buy-btn:hover:not(:disabled) { background: var(--accent2, #a78bfa); color: #1a1005; }
 .guild-buy-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.guild-prereq-locked { opacity: 0.55; }
+.guild-prereq-notice { font-size: 0.65rem; color: var(--danger); margin-top: 3px; font-style: italic; }
 
 /* ── Feats panel ── */
 #feats-panel { overflow-y: auto; }

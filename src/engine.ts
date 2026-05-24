@@ -153,21 +153,21 @@ export function prestigeUpgradeCost(type: string, currentStacks: number): number
 
 /** Gold cost for each stack of every Guild Hall upgrade. */
 export const GUILD_HALL_COSTS: Record<string, number[]> = {
-  companion_hall:      [5_000, 8_000, 12_000],
-  expanded_armory:     [1_000, 2_000, 3_000],
-  class_paladin:       [4_000],
-  class_ranger:        [4_000],
-  class_druid:         [6_000],
-  skill_battle_cry:    [2_500],
-  skill_shadow_strike: [2_500],
-  skill_arcane_surge:  [2_500],
-  skill_consecrate:    [5_000],
-  skill_volley:        [5_000],
-  skill_entangle:      [5_000],
-  auto_attack:            [3_000],
-  eternal_cycle:          [8_000],
-  rune_forge:             [5_000, 10_000, 20_000, 40_000],
-  constellation_access:   [10_000],
+  companion_hall:      [10_000, 16_000, 24_000],
+  expanded_armory:     [2_000,  4_000,  6_000],
+  class_paladin:       [8_000],
+  class_ranger:        [8_000],
+  class_druid:         [12_000],
+  skill_battle_cry:    [5_000],
+  skill_shadow_strike: [5_000],
+  skill_arcane_surge:  [5_000],
+  skill_consecrate:    [10_000],
+  skill_volley:        [10_000],
+  skill_entangle:      [10_000],
+  auto_attack:            [6_000],
+  eternal_cycle:          [16_000],
+  rune_forge:             [10_000, 20_000, 40_000, 80_000],
+  constellation_access:   [20_000],
 };
 
 /** All rune definitions: 6 types × 4 tiers (Lesser → Greater → Flawless → Ancient, each 2× the previous). */
@@ -200,10 +200,20 @@ export const RUNE_DEFS: Record<string, Rune> = {
 
 /** Minimum dungeonIndex required to purchase each Guild Hall upgrade. */
 export const GUILD_HALL_DUNGEON_REQ: Record<string, number> = {
-  skill_consecrate: 1,
-  skill_volley: 1,
-  class_druid: 2,
-  skill_entangle: 2,
+  class_paladin:        1,
+  class_ranger:         1,
+  skill_consecrate:     1,
+  skill_volley:         1,
+  class_druid:          2,
+  skill_entangle:       2,
+  constellation_access: 2,
+};
+
+/** Guild Hall upgrades that require another upgrade to be owned first. */
+export const GUILD_HALL_PREREQS: Record<string, string> = {
+  skill_consecrate: "class_paladin",
+  skill_volley:     "class_ranger",
+  skill_entangle:   "class_druid",
 };
 
 /** Cooldown (ms) and duration (kills) and class requirement for each active combat skill. */
@@ -1466,6 +1476,8 @@ export class GameState {
   buyGuildUpgrade(type: string): string {
     if (!(type in GUILD_HALL_COSTS)) return this.respond();
     if (this.dungeonIndex < (GUILD_HALL_DUNGEON_REQ[type] ?? 0)) return this.respond();
+    const prereq = GUILD_HALL_PREREQS[type];
+    if (prereq && !(this.guildUpgrades[prereq] ?? 0)) return this.respond();
     const costs = GUILD_HALL_COSTS[type];
     const owned = this.guildUpgrades[type] ?? 0;
     if (owned >= costs.length) return this.respond();

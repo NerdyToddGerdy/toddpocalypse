@@ -5,7 +5,7 @@ import {
   BLOODLUST_MULTIPLIER, EXPOSE_WEAKNESS_MULT, MANA_SURGE_INTERVAL, MANA_SURGE_MULTIPLIER,
   LUCKY_STRIKE_CHANCE, LUCKY_STRIKE_MULTIPLIER, EMPOWER_MULTIPLIER,
   VENTURE_UNLOCK_LEVEL, IDLE_GOLD_RATE, OFFLINE_GOLD_CAP_SECONDS,
-  GUILD_HALL_COSTS, SKILL_DEFS, COMBAT_HEAL_FRACTION,
+  GUILD_HALL_COSTS, GUILD_HALL_PREREQS, GUILD_HALL_DUNGEON_REQ, SKILL_DEFS, COMBAT_HEAL_FRACTION,
   THEME_UNLOCKS,
   ELITE_SPAWN_CHANCE, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT,
   BATTLE_CRY_MULT, SHADOW_STRIKE_MULT, ARCANE_SURGE_MULT, VOLLEY_MULT,
@@ -3089,6 +3089,7 @@ describe("guild hall", () => {
 
   it("guild_upgrades round-trips through toDict/fromDict", () => {
     const gs = withGuildGold();
+    gs.dungeonIndex = 1;
     gs.buyGuildUpgrade("expanded_armory");
     gs.buyGuildUpgrade("class_paladin");
     const restored = GameState.fromDict(gs.toDict());
@@ -3098,41 +3099,159 @@ describe("guild hall", () => {
 
   it("class_paladin shows in toDict guild_upgrades", () => {
     const gs = withGuildGold();
+    gs.dungeonIndex = 1;
     gs.buyGuildUpgrade("class_paladin");
     expect(gs.toDict().guild_upgrades["class_paladin"]).toBe(1);
   });
 
-  // ── revised guild hall prices ───────────────────────────────────
-  it("companion_hall tier 2 costs 8,000", () => {
-    expect(GUILD_HALL_COSTS["companion_hall"][1]).toBe(8_000);
+  // ── guild hall prices (×2 with auto-gold) ──────────────────────
+  it("companion_hall tier 2 costs 16,000", () => {
+    expect(GUILD_HALL_COSTS["companion_hall"][1]).toBe(16_000);
   });
 
-  it("class_paladin costs 4,000", () => {
-    expect(GUILD_HALL_COSTS["class_paladin"][0]).toBe(4_000);
+  it("class_paladin costs 8,000", () => {
+    expect(GUILD_HALL_COSTS["class_paladin"][0]).toBe(8_000);
   });
 
-  it("class_ranger costs 4,000", () => {
-    expect(GUILD_HALL_COSTS["class_ranger"][0]).toBe(4_000);
+  it("class_ranger costs 8,000", () => {
+    expect(GUILD_HALL_COSTS["class_ranger"][0]).toBe(8_000);
   });
 
-  it("skill_consecrate costs 5,000", () => {
-    expect(GUILD_HALL_COSTS["skill_consecrate"][0]).toBe(5_000);
+  it("skill_consecrate costs 10,000", () => {
+    expect(GUILD_HALL_COSTS["skill_consecrate"][0]).toBe(10_000);
   });
 
-  it("skill_volley costs 5,000", () => {
-    expect(GUILD_HALL_COSTS["skill_volley"][0]).toBe(5_000);
+  it("skill_volley costs 10,000", () => {
+    expect(GUILD_HALL_COSTS["skill_volley"][0]).toBe(10_000);
   });
 
-  it("rune_forge tier 1 costs 5,000", () => {
-    expect(GUILD_HALL_COSTS["rune_forge"][0]).toBe(5_000);
+  it("rune_forge tier 1 costs 10,000", () => {
+    expect(GUILD_HALL_COSTS["rune_forge"][0]).toBe(10_000);
   });
 
-  it("rune_forge tier 2 costs 10,000", () => {
-    expect(GUILD_HALL_COSTS["rune_forge"][1]).toBe(10_000);
+  it("rune_forge tier 2 costs 20,000", () => {
+    expect(GUILD_HALL_COSTS["rune_forge"][1]).toBe(20_000);
   });
 
-  it("rune_forge tier 3 costs 20,000", () => {
-    expect(GUILD_HALL_COSTS["rune_forge"][2]).toBe(20_000);
+  it("rune_forge tier 3 costs 40,000", () => {
+    expect(GUILD_HALL_COSTS["rune_forge"][2]).toBe(40_000);
+  });
+
+  // ── dungeon-index gates ─────────────────────────────────────────
+  it("class_paladin requires dungeonIndex >= 1", () => {
+    expect(GUILD_HALL_DUNGEON_REQ["class_paladin"]).toBe(1);
+  });
+
+  it("class_ranger requires dungeonIndex >= 1", () => {
+    expect(GUILD_HALL_DUNGEON_REQ["class_ranger"]).toBe(1);
+  });
+
+  it("constellation_access requires dungeonIndex >= 2", () => {
+    expect(GUILD_HALL_DUNGEON_REQ["constellation_access"]).toBe(2);
+  });
+
+  it("class_paladin cannot be bought in D1", () => {
+    const gs = withGuildGold();
+    gs.buyGuildUpgrade("class_paladin");
+    expect(gs.guildUpgrades["class_paladin"] ?? 0).toBe(0);
+  });
+
+  it("class_paladin can be bought in D2+", () => {
+    const gs = withGuildGold();
+    gs.highestLevel = VENTURE_UNLOCK_LEVEL;
+    gs.venture();
+    gs.gold = 100_000;
+    gs.buyGuildUpgrade("class_paladin");
+    expect(gs.guildUpgrades["class_paladin"]).toBe(1);
+  });
+
+  it("constellation_access cannot be bought in D2", () => {
+    const gs = withGuildGold();
+    gs.highestLevel = VENTURE_UNLOCK_LEVEL;
+    gs.venture();
+    gs.gold = 100_000;
+    gs.buyGuildUpgrade("constellation_access");
+    expect(gs.guildUpgrades["constellation_access"] ?? 0).toBe(0);
+  });
+
+  it("constellation_access can be bought in D3+", () => {
+    const gs = withGuildGold();
+    gs.highestLevel = VENTURE_UNLOCK_LEVEL;
+    gs.venture();
+    gs.highestLevel = ventureUnlockLevel(1);
+    gs.venture();
+    gs.gold = 100_000;
+    gs.buyGuildUpgrade("constellation_access");
+    expect(gs.guildUpgrades["constellation_access"]).toBe(1);
+  });
+
+  // ── class prereqs for skills ────────────────────────────────────
+  it("GUILD_HALL_PREREQS maps consecrate→paladin, volley→ranger, entangle→druid", () => {
+    expect(GUILD_HALL_PREREQS["skill_consecrate"]).toBe("class_paladin");
+    expect(GUILD_HALL_PREREQS["skill_volley"]).toBe("class_ranger");
+    expect(GUILD_HALL_PREREQS["skill_entangle"]).toBe("class_druid");
+  });
+
+  it("skill_consecrate is blocked without class_paladin", () => {
+    const gs = withGuildGold();
+    gs.highestLevel = VENTURE_UNLOCK_LEVEL;
+    gs.venture();
+    gs.gold = 100_000;
+    gs.buyGuildUpgrade("skill_consecrate");
+    expect(gs.guildUpgrades["skill_consecrate"] ?? 0).toBe(0);
+  });
+
+  it("skill_consecrate succeeds once class_paladin is owned", () => {
+    const gs = withGuildGold();
+    gs.highestLevel = VENTURE_UNLOCK_LEVEL;
+    gs.venture();
+    gs.gold = 100_000;
+    gs.buyGuildUpgrade("class_paladin");
+    gs.buyGuildUpgrade("skill_consecrate");
+    expect(gs.guildUpgrades["skill_consecrate"]).toBe(1);
+  });
+
+  it("skill_volley is blocked without class_ranger", () => {
+    const gs = withGuildGold();
+    gs.highestLevel = VENTURE_UNLOCK_LEVEL;
+    gs.venture();
+    gs.gold = 100_000;
+    gs.buyGuildUpgrade("skill_volley");
+    expect(gs.guildUpgrades["skill_volley"] ?? 0).toBe(0);
+  });
+
+  it("skill_volley succeeds once class_ranger is owned", () => {
+    const gs = withGuildGold();
+    gs.highestLevel = VENTURE_UNLOCK_LEVEL;
+    gs.venture();
+    gs.gold = 100_000;
+    gs.buyGuildUpgrade("class_ranger");
+    gs.buyGuildUpgrade("skill_volley");
+    expect(gs.guildUpgrades["skill_volley"]).toBe(1);
+  });
+
+  it("skill_entangle is blocked without class_druid", () => {
+    const gs = withGuildGold();
+    gs.highestLevel = VENTURE_UNLOCK_LEVEL;
+    gs.highestLevel = ventureUnlockLevel(0);
+    gs.venture();
+    gs.highestLevel = ventureUnlockLevel(1);
+    gs.venture();
+    gs.gold = 100_000;
+    gs.buyGuildUpgrade("skill_entangle");
+    expect(gs.guildUpgrades["skill_entangle"] ?? 0).toBe(0);
+  });
+
+  it("skill_entangle succeeds once class_druid is owned", () => {
+    const gs = withGuildGold();
+    gs.highestLevel = ventureUnlockLevel(0);
+    gs.venture();
+    gs.highestLevel = ventureUnlockLevel(1);
+    gs.venture();
+    gs.gold = 100_000;
+    gs.buyGuildUpgrade("class_druid");
+    gs.buyGuildUpgrade("skill_entangle");
+    expect(gs.guildUpgrades["skill_entangle"]).toBe(1);
   });
 
   it("skillCooldowns reset on prestige", () => {
@@ -3521,8 +3640,9 @@ describe("dungeon 2 content", () => {
     expect(gs.guildUpgrades["skill_consecrate"] ?? 0).toBe(0);
   });
 
-  it("buyGuildUpgrade allows skill_consecrate in dungeon 2+", () => {
+  it("buyGuildUpgrade allows skill_consecrate in dungeon 2+ when class_paladin owned", () => {
     const gs = withDungeon2Gold();
+    gs.buyGuildUpgrade("class_paladin");
     gs.buyGuildUpgrade("skill_consecrate");
     expect(gs.guildUpgrades["skill_consecrate"]).toBe(1);
   });
@@ -3535,8 +3655,9 @@ describe("dungeon 2 content", () => {
     expect(gs.guildUpgrades["skill_volley"] ?? 0).toBe(0);
   });
 
-  it("buyGuildUpgrade allows skill_volley in dungeon 2+", () => {
+  it("buyGuildUpgrade allows skill_volley in dungeon 2+ when class_ranger owned", () => {
     const gs = withDungeon2Gold();
+    gs.buyGuildUpgrade("class_ranger");
     gs.buyGuildUpgrade("skill_volley");
     expect(gs.guildUpgrades["skill_volley"]).toBe(1);
   });
@@ -4074,9 +4195,9 @@ describe("4-tier runes", () => {
     expect(RUNE_DEFS["striking_ancient"].value).toBe(RUNE_DEFS["striking_flawless"].value * 2);
   });
 
-  it("rune_forge has 4 tiers with tier 4 costing 40,000", () => {
+  it("rune_forge has 4 tiers with tier 4 costing 80,000", () => {
     expect(GUILD_HALL_COSTS["rune_forge"].length).toBe(4);
-    expect(GUILD_HALL_COSTS["rune_forge"][3]).toBe(40_000);
+    expect(GUILD_HALL_COSTS["rune_forge"][3]).toBe(80_000);
   });
 
   it("combineRunes at forge 2: 2× lesser → 1 greater", () => {
