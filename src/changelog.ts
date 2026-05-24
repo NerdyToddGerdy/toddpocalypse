@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.18";
+export const VERSION = "v2.32.19";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.19",
+    date: "2026-05-24",
+    changes: [
+      "Balance: boss HP and attack now scale exponentially per dungeon (×1.6 each venture) instead of linearly (+40%) — later dungeons are meaningfully harder",
+    ],
+  },
   {
     version: "v2.32.18",
     date: "2026-05-23",

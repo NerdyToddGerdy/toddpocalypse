@@ -69,6 +69,9 @@ export const GOLD_LEVEL_MULT = 0.01;
 /** Exponent for power-law enemy attack scaling — makes high-floor enemies hit disproportionately harder. */
 export const ENEMY_ATTACK_EXPONENT = 1.3;
 
+/** Exponential base for boss stat scaling per dungeon — boss HP and attack multiply by this each venture. */
+export const BOSS_DUNGEON_MULT_BASE = 1.6;
+
 /** Live state of an enemy currently being fought. */
 export interface Enemy {
   /** Display name shown in the enemy panel. */
@@ -138,9 +141,9 @@ export function generateEnemy(dungeonLevel: number, dungeonIndex = 0): Enemy {
 }
 
 /** Generates a scaled floor boss with higher HP and attack than regular enemies.
- *  Each dungeon beyond the first adds 25% to HP/attack and 15% to gold. */
+ *  Boss stats scale exponentially with dungeonIndex (×BOSS_DUNGEON_MULT_BASE per dungeon). */
 export function generateBoss(dungeonLevel: number, dungeonIndex = 0): Enemy {
-  const mult = 1 + dungeonIndex * 0.40;
+  const mult = Math.pow(BOSS_DUNGEON_MULT_BASE, dungeonIndex);
   const name = `The ${pick(BOSS_TITLES)} ${pick(ENEMY_NOUNS)} ${pick(BOSS_NOUNS)}`;
   const hp = Math.floor(100 * Math.pow(1.3, dungeonLevel) * mult);
   const xpReward = Math.max(5, dungeonLevel * 9 + 5);

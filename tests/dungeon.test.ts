@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateEnemy, generateBoss, generateEliteEnemy, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT, GOLD_LEVEL_MULT, ENEMY_ATTACK_EXPONENT, BOSS_NOUNS } from "../src/dungeon.js";
+import { generateEnemy, generateBoss, generateEliteEnemy, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT, GOLD_LEVEL_MULT, ENEMY_ATTACK_EXPONENT, BOSS_NOUNS, BOSS_DUNGEON_MULT_BASE } from "../src/dungeon.js";
 
 describe("GOLD_LEVEL_MULT", () => {
   it("is 0.01", () => {
@@ -199,6 +199,29 @@ describe("generateBoss", () => {
 
   it("dungeonIndex=0 is backward compatible", () => {
     expect(generateBoss(5, 0).max_hp).toBe(generateBoss(5).max_hp);
+  });
+
+  it("boss HP scales exponentially — ratio matches BOSS_DUNGEON_MULT_BASE^index", () => {
+    const base = generateBoss(10, 0).max_hp;
+    expect(generateBoss(10, 1).max_hp / base).toBeCloseTo(Math.pow(BOSS_DUNGEON_MULT_BASE, 1), 1);
+    expect(generateBoss(10, 2).max_hp / base).toBeCloseTo(Math.pow(BOSS_DUNGEON_MULT_BASE, 2), 1);
+    expect(generateBoss(10, 3).max_hp / base).toBeCloseTo(Math.pow(BOSS_DUNGEON_MULT_BASE, 3), 1);
+  });
+
+  it("boss attack_dps scales exponentially — ratio matches BOSS_DUNGEON_MULT_BASE^index", () => {
+    const base = generateBoss(10, 0).attack_dps;
+    expect(generateBoss(10, 1).attack_dps / base).toBeCloseTo(Math.pow(BOSS_DUNGEON_MULT_BASE, 1), 1);
+    expect(generateBoss(10, 2).attack_dps / base).toBeCloseTo(Math.pow(BOSS_DUNGEON_MULT_BASE, 2), 1);
+  });
+
+  it("boss scales faster than regular enemies across dungeons", () => {
+    const bossRatio = generateBoss(10, 3).max_hp / generateBoss(10, 0).max_hp;
+    const enemyRatio = generateEnemy(10, 3).max_hp / generateEnemy(10, 0).max_hp;
+    expect(bossRatio).toBeGreaterThan(enemyRatio);
+  });
+
+  it("BOSS_DUNGEON_MULT_BASE is exported and greater than 1", () => {
+    expect(BOSS_DUNGEON_MULT_BASE).toBeGreaterThan(1);
   });
 });
 
