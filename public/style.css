@@ -5248,3 +5248,47 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
     transition: border-color 0.1s, color 0.1s;
 }
 .cdoll-respec-btn:hover { border-color: #ef4444; color: #ef4444; }
+
+/* ── Pixel sprites (16x16.png) ───────────────────────────────────────────── */
+.spr {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background-image: url('16x16.png');
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  vertical-align: -3px;
+  flex-shrink: 0;
+}
+.spr-sword     { background-position:    0px  -720px; } /* r45 c0  crossed swords */
+.spr-shield    { background-position:  -64px  -848px; } /* r53 c4  orange shield  */
+.spr-skull     { background-position: -208px  -848px; } /* r53 c13 gray skull     */
+.spr-gem       { background-position:    0px  -160px; } /* r10 c0  blue gem       */
+.spr-trophy    { background-position:    0px   -64px; } /* r4  c0  gold trophy    */
+.spr-bag       { background-position: -208px  -144px; } /* r9  c13 money bag      */
+.spr-coin      { background-position:    0px  -128px; } /* r8  c0  coin           */
+.spr-clover    { background-position:  -16px  -112px; } /* r7  c1  green clover   */
+.spr-flame     { background-position:  -48px  -752px; } /* r47 c3  orange flame   */
+.spr-book      { background-position:    0px  -288px; } /* r18 c0  red book       */
+.spr-chest     { background-position: -128px     0px; } /* r0  c8  blue chest     */
+.spr-castle    { background-position:  -32px   -32px; } /* r2  c2  dungeon tower  */
+.spr-flag      { background-position: -144px   -32px; } /* r2  c9  green pennant  */
+.spr-redflag   { background-position: -176px   -32px; } /* r2  c11 red pennant    */
+.spr-crown     { background-position: -112px  -704px; } /* r44 c7  gold crown     */
+.spr-eye       { background-position: -224px  -704px; } /* r44 c14 red eye        */
+.spr-boot      { background-position: -192px -1840px; } /* r115 c12 dark boot     */
+.spr-robe      { background-position:    0px -2080px; } /* r130 c0  orange robe   */
+.spr-moon      { background-position: -112px     0px; } /* r0  c7  crescent moon  */
+.spr-sparkle   { background-position: -144px  -960px; } /* r60 c9  4-point star   */
+.spr-warning   { background-position:    0px  -672px; } /* r42 c0  skull+cross    */
+.spr-bow       { background-position:  -80px -1744px; } /* r109 c5 dark bow       */
+.spr-dagger    { background-position:  -16px   -80px; } /* r5  c1  dagger         */
+.spr-orb       { background-position:  -96px  -704px; } /* r44 c6  blue orb       */
+.spr-lightning { background-position:    0px -1024px; } /* r64 c0  lightning bolt */
+.spr-herb      { background-position:  -48px  -240px; } /* r15 c3  herb/plant     */
+.spr-blood     { background-position:  -80px  -736px; } /* r46 c5  blood drop     */
+.spr-scroll    { background-position: -128px   -96px; } /* r6  c8  scroll         */
+.spr-armor     { background-position:    0px   -96px; } /* r6  c0  pauldron       */
+.spr-heart     { background-position:  -32px  -656px; } /* r41 c2  red heart      */
+.spr-ring      { background-position:  -80px -1840px; } /* r115 c5 ring+gem       */
+.spr-helmet    { background-position:    0px -2000px; } /* r125 c0 orange hat     */

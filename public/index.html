@@ -32,12 +32,12 @@
       <input id="char-name-input" type="text" maxlength="20" placeholder="Hero" autocomplete="off" />
       <div id="class-label">Class</div>
       <div id="class-picker">
-        <button class="class-btn selected" data-class="fighter">⚔ Fighter</button>
-        <button class="class-btn" data-class="rogue">🗡 Rogue</button>
-        <button class="class-btn" data-class="mage">🔮 Mage</button>
-        <button class="class-btn locked-class" data-class="paladin" data-unlock="Retire 1 time" disabled title="Retire 1 time to unlock">🛡 Paladin</button>
-        <button class="class-btn locked-class" data-class="ranger" data-unlock="Retire 2 times" disabled title="Retire 2 times to unlock">🏹 Ranger</button>
-        <button class="class-btn locked-class" data-class="druid" data-unlock="Retire 3 times" disabled title="Retire 3 times to unlock">🌿 Druid</button>
+        <button class="class-btn selected" data-class="fighter"><span class="spr spr-sword" aria-hidden="true"></span> Fighter</button>
+        <button class="class-btn" data-class="rogue"><span class="spr spr-dagger" aria-hidden="true"></span> Rogue</button>
+        <button class="class-btn" data-class="mage"><span class="spr spr-orb" aria-hidden="true"></span> Mage</button>
+        <button class="class-btn locked-class" data-class="paladin" data-unlock="Retire 1 time" disabled title="Retire 1 time to unlock"><span class="spr spr-shield" aria-hidden="true"></span> Paladin</button>
+        <button class="class-btn locked-class" data-class="ranger" data-unlock="Retire 2 times" disabled title="Retire 2 times to unlock"><span class="spr spr-bow" aria-hidden="true"></span> Ranger</button>
+        <button class="class-btn locked-class" data-class="druid" data-unlock="Retire 3 times" disabled title="Retire 3 times to unlock"><span class="spr spr-herb" aria-hidden="true"></span> Druid</button>
       </div>
       <div id="class-desc"></div>
       <button id="start-btn">Begin Adventure</button>
@@ -48,7 +48,7 @@
 </div>
 
 <div id="session-conflict-banner" hidden>
-  <span>⚠ Game is open on another device — cloud saving paused here.</span>
+  <span><span class="spr spr-warning" aria-hidden="true"></span> Game is open on another device — cloud saving paused here.</span>
   <button id="claim-device-banner-btn" class="secondary-btn small-btn">Set This as Active</button>
 </div>
 
@@ -64,11 +64,11 @@
     <div>Kills: <span id="stat-kills">0</span></div>
     <div>Deaths: <span id="stat-deaths">0</span></div>
     <div id="stat-corruption" hidden title="">☠ Corruption: <span id="stat-corruption-dps">0</span>/s</div>
-    <div id="stat-party-hp-wrap">♥ <span id="stat-party-hp">0/0</span></div>
-    <div id="stat-party-dps-wrap">⚔ <span id="stat-party-dps">0</span>/s</div>
+    <div id="stat-party-hp-wrap"><span class="spr spr-heart" aria-hidden="true"></span> <span id="stat-party-hp">0/0</span></div>
+    <div id="stat-party-dps-wrap"><span class="spr spr-sword" aria-hidden="true"></span> <span id="stat-party-dps">0</span>/s</div>
     <div id="action-btns">
       <button id="prestige-btn" data-action="prestige" disabled>★ Return to Town</button>
-      <button id="venture-btn" data-action="venture" disabled>⚔ Venture</button>
+      <button id="venture-btn" data-action="venture" disabled><span class="spr spr-sword" aria-hidden="true"></span> Venture</button>
     </div>
   </div>
   <div id="enemy-sticky" aria-hidden="true">
@@ -82,9 +82,9 @@
     <div id="profile-picker-dropdown" hidden>
       <button class="profile-menu-item" data-action="open-customize-modal">🎨 Customize</button>
       <button class="profile-menu-item" data-action="open-settings-modal">⚙ Settings</button>
-      <button class="profile-menu-item" data-action="open-about-modal">📖 About</button>
-      <button class="profile-menu-item" data-action="open-hall-of-fame-modal">🏆 Hall of Fame</button>
-      <button class="profile-menu-item retire-btn" data-action="retire-hero" id="retire-hero-btn" disabled>💀 Retire Hero</button>
+      <button class="profile-menu-item" data-action="open-about-modal"><span class="spr spr-book" aria-hidden="true"></span> About</button>
+      <button class="profile-menu-item" data-action="open-hall-of-fame-modal"><span class="spr spr-trophy" aria-hidden="true"></span> Hall of Fame</button>
+      <button class="profile-menu-item retire-btn" data-action="retire-hero" id="retire-hero-btn" disabled><span class="spr spr-skull" aria-hidden="true"></span> Retire Hero</button>
       <div class="pdd-divider"></div>
       <div class="pdd-stats">
         <div class="pdd-stats-col">
@@ -130,7 +130,7 @@
 
   <!-- Mobile combat sub-tabs (Party / Equipment) — JS shows/hides this -->
   <div id="combat-subtabs">
-    <button class="combat-stab active" data-combat-stab="party">⚔ Party</button>
+    <button class="combat-stab active" data-combat-stab="party"><span class="spr spr-sword" aria-hidden="true"></span> Party</button>
     <button class="combat-stab" data-combat-stab="equipment">🎒 Equipment</button>
   </div>
 
@@ -144,7 +144,7 @@
   <div id="left-col">
 
     <div id="left-col-subtabs" hidden>
-      <button class="lcol-stab active" data-lcol-stab="party">⚔ Party</button>
+      <button class="lcol-stab active" data-lcol-stab="party"><span class="spr spr-sword" aria-hidden="true"></span> Party</button>
       <button class="lcol-stab" id="lcol-stab-stars" data-lcol-stab="stars">✦ Stars</button>
     </div>
 
@@ -177,7 +177,7 @@
             <span id="checkpoint-display"></span>
           </div>
           <div id="attack-row">
-            <button id="attack-btn" data-action="attack">⚔ Attack</button>
+            <button id="attack-btn" data-action="attack"><span class="spr spr-sword" aria-hidden="true"></span> Attack</button>
             <button id="auto-attack-btn" data-action="toggle-auto-attack" title="Toggle auto-attack (fires every second)">AUTO</button>
           </div>
           <button id="skill-btn" data-action="activate-skill" hidden></button>
@@ -187,11 +187,11 @@
 
       <section id="party-panel">
         <div id="party-panel-header">
-          <h2>Your Party <button id="party-gear-toggle" class="icon-btn" title="Toggle gear visibility">⚔</button></h2>
+          <h2>Your Party <button id="party-gear-toggle" class="icon-btn" title="Toggle gear visibility"><span class="spr spr-sword" aria-hidden="true"></span></button></h2>
           <div id="party-panel-tabs">
             <button class="ptab-btn active" data-ptab="party">Party</button>
-            <button class="ptab-btn" data-ptab="runes">🔮 Runes</button>
-            <button class="ptab-btn" id="ptab-artifacts-btn" data-ptab="artifacts" hidden>✨ Artifacts</button>
+            <button class="ptab-btn" data-ptab="runes"><span class="spr spr-orb" aria-hidden="true"></span> Runes</button>
+            <button class="ptab-btn" id="ptab-artifacts-btn" data-ptab="artifacts" hidden><span class="spr spr-sparkle" aria-hidden="true"></span> Artifacts</button>
           </div>
         </div>
         <div id="party-cards"></div>
@@ -225,8 +225,8 @@
     <section id="loot-panel">
       <nav id="loot-subtab-nav">
         <button class="loot-stab active" data-loot-stab="equipment">Equipment</button>
-        <button class="loot-stab" data-loot-stab="runes" id="loot-stab-runes" hidden>🔮 Runes <span id="loot-rune-count" class="loot-stab-count"></span><span id="loot-rune-dot" class="loot-stab-dot" hidden></span></button>
-        <button class="loot-stab" data-loot-stab="artifacts" id="loot-stab-artifacts" hidden>✨ Artifacts <span id="artifact-count" class="loot-stab-count"></span><span id="loot-artifact-dot" class="loot-stab-dot" hidden></span></button>
+        <button class="loot-stab" data-loot-stab="runes" id="loot-stab-runes" hidden><span class="spr spr-orb" aria-hidden="true"></span> Runes <span id="loot-rune-count" class="loot-stab-count"></span><span id="loot-rune-dot" class="loot-stab-dot" hidden></span></button>
+        <button class="loot-stab" data-loot-stab="artifacts" id="loot-stab-artifacts" hidden><span class="spr spr-sparkle" aria-hidden="true"></span> Artifacts <span id="artifact-count" class="loot-stab-count"></span><span id="loot-artifact-dot" class="loot-stab-dot" hidden></span></button>
       </nav>
 
       <div id="loot-equipment-sub">
@@ -284,7 +284,7 @@
     <section id="log-panel">
       <div id="log-panel-header">
         <h2>Combat Log</h2>
-        <button id="log-history-btn" title="Full log history">📜</button>
+        <button id="log-history-btn" title="Full log history"><span class="spr spr-scroll" aria-hidden="true"></span></button>
       </div>
       <div id="combat-log"></div>
     </section>
@@ -295,7 +295,7 @@
 
 <div id="mobile-party-hp-bar">
   <div id="mobile-party-hp-fill"></div>
-  <span id="mobile-party-hp-text">♥ 0/0</span>
+  <span id="mobile-party-hp-text"><span class="spr spr-heart" aria-hidden="true"></span> 0/0</span>
 </div>
 
 <footer>
@@ -327,12 +327,12 @@
   <div id="party-class-box">
     <h2>Choose Class for New Member</h2>
     <div id="party-class-picker">
-      <button class="class-btn selected" data-class="fighter">⚔ Fighter</button>
-      <button class="class-btn" data-class="rogue">🗡 Rogue</button>
-      <button class="class-btn" data-class="mage">🔮 Mage</button>
-      <button class="class-btn" data-class="paladin" id="party-class-paladin" hidden>🛡 Paladin</button>
-      <button class="class-btn" data-class="ranger" id="party-class-ranger" hidden>🏹 Ranger</button>
-      <button class="class-btn" data-class="druid" id="party-class-druid" hidden>🌿 Druid</button>
+      <button class="class-btn selected" data-class="fighter"><span class="spr spr-sword" aria-hidden="true"></span> Fighter</button>
+      <button class="class-btn" data-class="rogue"><span class="spr spr-dagger" aria-hidden="true"></span> Rogue</button>
+      <button class="class-btn" data-class="mage"><span class="spr spr-orb" aria-hidden="true"></span> Mage</button>
+      <button class="class-btn" data-class="paladin" id="party-class-paladin" hidden><span class="spr spr-shield" aria-hidden="true"></span> Paladin</button>
+      <button class="class-btn" data-class="ranger" id="party-class-ranger" hidden><span class="spr spr-bow" aria-hidden="true"></span> Ranger</button>
+      <button class="class-btn" data-class="druid" id="party-class-druid" hidden><span class="spr spr-herb" aria-hidden="true"></span> Druid</button>
     </div>
     <div id="party-class-desc"></div>
     <button id="party-class-confirm">Add Member</button>
@@ -352,7 +352,7 @@
 
 <div id="save-conflict-modal" aria-modal="true" role="dialog" aria-labelledby="save-conflict-title">
   <div id="save-conflict-box">
-    <h2 id="save-conflict-title">⚠ Save Conflict</h2>
+    <h2 id="save-conflict-title"><span class="spr spr-warning" aria-hidden="true"></span> Save Conflict</h2>
     <p>Your local save and cloud save are from different runs. Which would you like to keep?</p>
     <div id="save-conflict-options">
       <div class="save-conflict-card" id="conflict-local-card">
@@ -380,9 +380,9 @@
 </div>
 
 <nav id="mobile-tabs">
-  <button class="mobile-tab-btn active" data-tab="combat">⚔<span>Combat</span></button>
+  <button class="mobile-tab-btn active" data-tab="combat"><span class="spr spr-sword" aria-hidden="true"></span><span>Combat</span></button>
   <button class="mobile-tab-btn" data-tab="shop">🛒<span>Shop</span><span id="shop-tab-badge" class="tab-badge" hidden></span></button>
-  <button class="mobile-tab-btn" data-tab="guild">⚔<span>Guild</span><span id="guild-tab-badge" class="tab-badge" hidden></span></button>
+  <button class="mobile-tab-btn" data-tab="guild"><span class="spr spr-sword" aria-hidden="true"></span><span>Guild</span><span id="guild-tab-badge" class="tab-badge" hidden></span></button>
   <button class="mobile-tab-btn" id="mobile-settings-tab-btn">⚙<span>Settings</span></button>
 </nav>
 
@@ -469,7 +469,7 @@
 <div id="about-modal" aria-modal="true" role="dialog" aria-labelledby="about-modal-title">
   <div id="about-modal-box">
     <div id="about-modal-header">
-      <h2 id="about-modal-title">📖 About</h2>
+      <h2 id="about-modal-title"><span class="spr spr-book" aria-hidden="true"></span> About</h2>
       <button id="about-modal-close" aria-label="Close">✕</button>
     </div>
     <div id="about-modal-body">
@@ -529,7 +529,7 @@
 <div id="hall-of-fame-modal" aria-modal="true" role="dialog" aria-labelledby="hof-modal-title">
   <div id="hall-of-fame-box">
     <div id="hall-of-fame-header">
-      <h2 id="hof-modal-title">🏆 Hall of Fame</h2>
+      <h2 id="hof-modal-title"><span class="spr spr-trophy" aria-hidden="true"></span> Hall of Fame</h2>
       <button id="hall-of-fame-close" aria-label="Close">✕</button>
     </div>
     <div id="hall-of-fame-body">
@@ -542,7 +542,7 @@
 <div id="retire-confirm-modal" aria-modal="true" role="dialog" aria-labelledby="retire-confirm-title">
   <div id="retire-confirm-box">
     <div id="retire-confirm-header">
-      <h2 id="retire-confirm-title">💀 Retire Hero</h2>
+      <h2 id="retire-confirm-title"><span class="spr spr-skull" aria-hidden="true"></span> Retire Hero</h2>
       <button id="retire-confirm-close" aria-label="Close">✕</button>
     </div>
     <div id="retire-confirm-body">
