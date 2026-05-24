@@ -705,7 +705,7 @@ function renderParty(state: GameStateDict): void {
   <div class="char-header">
     <div class="char-header-left">
       <div class="char-name" data-char="${charJson}">${c.name}</div>
-      <div class="char-class">${c.character_class} <span class="char-level">Lv ${c.level}</span></div>${ci === 0 && state.earned_title ? `<div class="char-title">${state.earned_title}</div>` : ""}
+      <div class="char-class">${c.character_class} <span class="char-level">Lv ${c.level}</span></div>
       <div class="char-dps" data-dps="${dpsData}">${(c.dps * upgMult).toFixed(1)} DPS</div>
       <div class="char-rune-row">${runeRowHtml}</div>
       ${artifactSlots.some(Boolean) ? `<div class="char-artifact-row">${artifactBadgesHtml}</div>` : ""}

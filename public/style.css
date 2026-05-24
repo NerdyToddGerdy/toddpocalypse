@@ -2684,12 +2684,6 @@ main {
 }
 
 /* earned title on character card */
-.char-title {
-    font-size: 0.62rem;
-    color: var(--accent2);
-    font-style: italic;
-    margin-top: 1px;
-}
 
 /* ── Active skill button ── */
 #skill-btn {

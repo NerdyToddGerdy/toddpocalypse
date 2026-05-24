@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.17";
+export const VERSION = "v2.32.18";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.18",
+    date: "2026-05-23",
+    changes: [
+      "UI: remove earned title from hero card — it's already shown in the header avatar label",
+    ],
+  },
   {
     version: "v2.32.17",
     date: "2026-05-23",
