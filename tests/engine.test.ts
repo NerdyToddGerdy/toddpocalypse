@@ -2527,6 +2527,22 @@ describe("auto-upgrade prestige upgrade", () => {
     const totalLevels = Object.values(gs.upgrades[c.name]).reduce((s, v) => s + v, 0);
     expect(totalLevels).toBeGreaterThan(0);
   });
+
+  it("auto_upgrade reflects in serialized state after onEnemyDeath", () => {
+    const gs = withAutoUpgrade();
+    gs.gold = 1_050;
+    const c = gs.party.team[0];
+    // warm the cache with a respond() call before the kill
+    gs.respond();
+    gs.onEnemyDeath();
+    const state = JSON.parse(gs.respond());
+    const totalSerializedLevels = Object.values(
+      state.upgrades[c.name] as Record<string, { level: number }>
+    ).reduce((s, u) => s + u.level, 0);
+    const totalInternalLevels = Object.values(gs.upgrades[c.name]).reduce((s, v) => s + v, 0);
+    expect(totalSerializedLevels).toBe(totalInternalLevels);
+    expect(totalSerializedLevels).toBeGreaterThan(0);
+  });
 });
 
 describe("checkpoint system", () => {

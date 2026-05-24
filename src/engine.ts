@@ -2296,6 +2296,7 @@ export class GameState {
         const { char, type } = cheapest;
         this.gold -= cheapest.cost;
         this.upgrades[char.name][type] += 1;
+        this._upgradesCache = null;
         applyUpgradeStatEffect(char, type);
         this.addLog(`Auto Upgrade: ${char.name} ${type} → Lv${this.upgrades[char.name][type]}`);
         bought = true;

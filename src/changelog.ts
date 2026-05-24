@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.16";
+export const VERSION = "v2.32.17";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.17",
+    date: "2026-05-23",
+    changes: [
+      "Fix: Auto Upgrade now correctly reflects in serialized state — runAutoUpgrade was modifying internal upgrade levels without clearing the upgrades cache, so the UI stayed stale after each auto-buy",
+    ],
+  },
   {
     version: "v2.32.16",
     date: "2026-05-23",
