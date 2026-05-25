@@ -5447,7 +5447,7 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
 }
 
 .cdoll-svg-wrap {
-    width: 100%; max-width: 600px; margin: 0 auto;
+    width: 100%; margin: 0 auto;
     overflow: auto; display: block; border-radius: 8px;
     background: radial-gradient(ellipse at 50% 50%, rgba(30,20,8,0.7) 0%, rgba(14,14,20,0.95) 80%);
     border: 1px solid rgba(160,120,40,0.2);

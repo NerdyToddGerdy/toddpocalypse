@@ -1612,7 +1612,7 @@ function renderConstellationPanel(state: GameStateDict): void {
   el.innerHTML = `
     <div class="cdoll-shard-header">✦ ${shards} Soul Shard${shards !== 1 ? "s" : ""}</div>
     <div class="cdoll-svg-wrap">
-      <svg viewBox="0 0 600 560" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:600px">
+      <svg viewBox="0 0 600 560" xmlns="http://www.w3.org/2000/svg" style="width:100%">
         <g class="cdoll-edges">${svgLines}</g>
         <g class="cdoll-nodes">${svgNodes}</g>
       </svg>
