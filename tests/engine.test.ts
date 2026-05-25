@@ -22,6 +22,7 @@ import {
   formatNumber,
   BOSS_ENRAGE_TRIGGER,
   BOSS_ENRAGE_STEP,
+  BOSS_ENRAGE_TRIGGER_MIN,
   LEGACY_UNLOCKS,
   COMPANION_NAMES,
   BOSS_LIFESTEAL_MULT,
@@ -1284,6 +1285,46 @@ describe("boss enrage", () => {
     gs.bossEncounterTime = 25;
     const gs2 = GameState.fromDict(gs.toDict());
     expect(gs2.bossEncounterTime).toBeCloseTo(25);
+  });
+
+  it("BOSS_ENRAGE_TRIGGER_MIN is 5", () => {
+    expect(BOSS_ENRAGE_TRIGGER_MIN).toBe(5);
+  });
+
+  it("effective trigger at floor 1 is full 15s (no reduction)", () => {
+    const gs = make();
+    gs.dungeonLevel = 1;
+    gs.bossEncounterTime = BOSS_ENRAGE_TRIGGER - 0.1;
+    expect(gs.bossEnrageMult).toBe(1.0);
+    gs.bossEncounterTime = BOSS_ENRAGE_TRIGGER;
+    expect(gs.bossEnrageMult).toBeCloseTo(1.5);
+  });
+
+  it("effective trigger at floor 5 is 14s", () => {
+    const gs = make();
+    gs.dungeonLevel = 5;
+    gs.bossEncounterTime = 13.9;
+    expect(gs.bossEnrageMult).toBe(1.0);
+    gs.bossEncounterTime = 14;
+    expect(gs.bossEnrageMult).toBeCloseTo(1.5);
+  });
+
+  it("effective trigger at floor 50 is 5s (15 - 10)", () => {
+    const gs = make();
+    gs.dungeonLevel = 50;
+    gs.bossEncounterTime = 4.9;
+    expect(gs.bossEnrageMult).toBe(1.0);
+    gs.bossEncounterTime = 5;
+    expect(gs.bossEnrageMult).toBeCloseTo(1.5);
+  });
+
+  it("effective trigger never drops below BOSS_ENRAGE_TRIGGER_MIN at high floors", () => {
+    const gs = make();
+    gs.dungeonLevel = 200;
+    gs.bossEncounterTime = BOSS_ENRAGE_TRIGGER_MIN - 0.1;
+    expect(gs.bossEnrageMult).toBe(1.0);
+    gs.bossEncounterTime = BOSS_ENRAGE_TRIGGER_MIN;
+    expect(gs.bossEnrageMult).toBeCloseTo(1.5);
   });
 });
 

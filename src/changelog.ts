@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.44";
+export const VERSION = "v2.32.45";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.45",
+    date: "2026-05-25",
+    changes: [
+      "Boss enrage trigger now scales with floor depth: −1s per 5 floors (15s at floor 1 → 14s at floor 5 → 5s at floor 50+, minimum 5s)",
+    ],
+  },
   {
     version: "v2.32.44",
     date: "2026-05-25",

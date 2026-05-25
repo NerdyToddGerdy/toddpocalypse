@@ -227,8 +227,10 @@ export const CORRUPTION_HEAL_REDUCTION_PER_FLOOR = 0.06;
 /** Fraction by which enemy attack DPS is reduced while Entangle is active. */
 export const ENTANGLE_REDUCTION = 0.60;
 
-/** Seconds into a boss/elite fight before enrage triggers. */
+/** Seconds into a boss/elite fight before enrage triggers (at floor 1). */
 export const BOSS_ENRAGE_TRIGGER = 15;
+/** Minimum enrage trigger — reduced by 1s per 5 dungeon floors, but never below this. */
+export const BOSS_ENRAGE_TRIGGER_MIN = 5;
 /** Seconds between enrage multiplier steps after trigger. */
 export const BOSS_ENRAGE_STEP = 10;
 
@@ -1162,10 +1164,12 @@ export class GameState {
     return this.respond();
   }
 
-  /** Attack multiplier applied to boss/elite after BOSS_ENRAGE_TRIGGER seconds. */
+  /** Attack multiplier applied to boss/elite after the effective enrage trigger.
+   *  Trigger shrinks by 1s per 5 dungeon floors, floored at BOSS_ENRAGE_TRIGGER_MIN. */
   get bossEnrageMult(): number {
-    if (this.bossEncounterTime < BOSS_ENRAGE_TRIGGER) return 1.0;
-    const stacks = Math.floor((this.bossEncounterTime - BOSS_ENRAGE_TRIGGER) / BOSS_ENRAGE_STEP) + 1;
+    const trigger = Math.max(BOSS_ENRAGE_TRIGGER_MIN, BOSS_ENRAGE_TRIGGER - Math.floor(this.dungeonLevel / 5));
+    if (this.bossEncounterTime < trigger) return 1.0;
+    const stacks = Math.floor((this.bossEncounterTime - trigger) / BOSS_ENRAGE_STEP) + 1;
     return 1.5 ** stacks;
   }
 
