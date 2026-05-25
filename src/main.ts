@@ -1199,6 +1199,17 @@ function showCreationOverlayForRetirement(state: GameStateDict): void {
   updateClassDesc();
 }
 
+const COSMETIC_SOURCE: Map<string, string> = (() => {
+  const m = new Map<string, string>();
+  for (const def of ACHIEVEMENTS) {
+    const rewards = def.tiers ? def.tiers.map(t => t.reward).filter(Boolean) : def.reward ? [def.reward] : [];
+    for (const r of rewards) {
+      if (r && r.cosmetic) m.set(r.cosmetic, def.name);
+    }
+  }
+  return m;
+})();
+
 function renderCustomizeModal(state: GameStateDict): void {
   const earnedAvatars = new Set<string>(state.earned_avatars ?? ["default"]);
   const earnedBorders = new Set<string>(state.earned_borders ?? ["none"]);
@@ -1219,7 +1230,9 @@ function renderCustomizeModal(state: GameStateDict): void {
           ${AVATAR_DEFS.map(a => {
             const earned = earnedAvatars.has(a.id);
             const active = a.id === selectedAvatar;
-            return `<button class="profile-pick-btn ${earned ? "" : "locked"} ${active ? "active" : ""}" data-action="set-avatar" data-avatar-id="${a.id}" ${earned ? "" : "disabled"}>
+            const src = COSMETIC_SOURCE.get(a.id);
+            const tip = src ? (earned ? `From: ${src}` : `Unlock via: ${src}`) : "";
+            return `<button class="profile-pick-btn ${earned ? "" : "locked"} ${active ? "active" : ""}" data-action="set-avatar" data-avatar-id="${a.id}" ${earned ? "" : "disabled"}${tip ? ` title="${tip}"` : ""}>
               <span class="pick-icon">${spr(a.icon)}</span>
               <span class="pick-name">${a.name}</span>
             </button>`;
@@ -1230,7 +1243,9 @@ function renderCustomizeModal(state: GameStateDict): void {
           ${BORDER_DEFS.map(b => {
             const earned = earnedBorders.has(b.id);
             const active = b.id === selectedBorder;
-            return `<button class="profile-pick-btn ${b.cssClass} ${earned ? "" : "locked"} ${active ? "active" : ""}" data-action="set-border" data-border-id="${b.id}" ${earned ? "" : "disabled"}>
+            const src = COSMETIC_SOURCE.get(b.id);
+            const tip = src ? (earned ? `From: ${src}` : `Unlock via: ${src}`) : "";
+            return `<button class="profile-pick-btn ${b.cssClass} ${earned ? "" : "locked"} ${active ? "active" : ""}" data-action="set-border" data-border-id="${b.id}" ${earned ? "" : "disabled"}${tip ? ` title="${tip}"` : ""}>
               <div class="pick-border-preview ${b.cssClass}"></div>
               <span class="pick-name">${b.name}</span>
             </button>`;

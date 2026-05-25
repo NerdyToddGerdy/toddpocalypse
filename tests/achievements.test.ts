@@ -61,6 +61,41 @@ describe("ACHIEVEMENTS definition", () => {
   it("has depth_tiered achievement", () => {
     expect(ACHIEVEMENTS.find(a => a.id === "depth_tiered")).toBeTruthy();
   });
+
+  it("cosmeticSource reverse-lookup maps each cosmetic ID to exactly one feat", () => {
+    const source = new Map<string, string>();
+    const dupes: string[] = [];
+    for (const def of ACHIEVEMENTS) {
+      const rewards = def.tiers
+        ? def.tiers.map(t => t.reward).filter((r): r is NonNullable<typeof r> => Boolean(r))
+        : def.reward ? [def.reward] : [];
+      for (const r of rewards) {
+        if (r.cosmetic) {
+          if (source.has(r.cosmetic)) dupes.push(r.cosmetic);
+          else source.set(r.cosmetic, def.name);
+        }
+      }
+    }
+    expect(dupes).toEqual([]);
+  });
+
+  it("cosmeticSource correctly maps known cosmetic IDs to their feat names", () => {
+    const source = new Map<string, string>();
+    for (const def of ACHIEVEMENTS) {
+      const rewards = def.tiers
+        ? def.tiers.map(t => t.reward).filter((r): r is NonNullable<typeof r> => Boolean(r))
+        : def.reward ? [def.reward] : [];
+      for (const r of rewards) {
+        if (r.cosmetic) source.set(r.cosmetic, def.name);
+      }
+    }
+    expect(source.get("wolf")).toBe("Bestiary");
+    expect(source.get("dragon")).toBe("Slayer");
+    expect(source.get("void")).toBe("Untouchable");
+    expect(source.get("frost")).toBe("Spelunker");
+    expect(source.get("arcane")).toBe("Reborn");
+    expect(source.get("warlord")).toBe("Fully Loaded");
+  });
 });
 
 // ──────────────────────────────────────────
