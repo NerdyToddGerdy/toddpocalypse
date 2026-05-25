@@ -192,6 +192,10 @@ let guildKey: string | null = null;
 let skillKey: string | null = null;
 let companionSkillKey: string | null = null;
 let hoveredLootSlot: string | null = null;
+let gearSlotModalCharIdx = -1;
+let gearSlotModalSlot = "";
+let gearLootPickerCharIdx = -1;
+let gearLootPickerSlot = "";
 let lastDeathCount: number | null = null;
 let lastEnrageStacks = -1;
 const fullLog: string[] = []; // persistent combat log history (last 200 entries)
@@ -612,42 +616,34 @@ function renderParty(state: GameStateDict): void {
           .filter(({ item }) => item.slot === matchSlot);
       };
       const lockedSlots = new Set<string>(c.locked_slots ?? []);
-      const gearRows = Object.entries(c.equipment)
-        .map(([slot, item]) => {
-          const locked = lockedSlots.has(slot);
-          const lockBtn = `<button class="gear-lock-btn${locked ? " locked" : ""}" data-action="toggle-gear-lock" data-char="${ci}" data-slot="${slot}" title="${locked ? "Locked — click to unlock" : "Click to lock"}">${locked ? "🔒" : "🔓"}</button>`;
-          if (item) {
-            const qc = qualityClass(item.quality);
-            const itemJson = encodeURIComponent(JSON.stringify(item));
-            const isSetPiece = !!item.set_name;
-            return `<div class="gear-row filled${isSetPiece ? " set-piece" : ""}${locked ? " gear-locked" : ""}" data-slot="${slot}" data-item="${itemJson}">
-              <span class="gear-icon">${spr(SLOT_ICONS[slot])}</span>
-              <span class="gear-name ${qc}">${item.short_name ?? item.name}</span>
-              <span class="gear-bonus ${qc}">${formatStats(item.stats ?? { dps: item.damage })}</span>
-              ${lockBtn}
-              <button class="gear-unequip-btn" data-action="unequip-gear" data-char="${ci}" data-slot="${slot}" title="Unequip">✕</button>
-            </div>`;
-          }
-          const options = lootForSlot(slot);
-          if (options.length > 0) {
-            const optHtml = options.map(({ item: li, idx }) => {
-              const qc = qualityClass(li.quality);
-              return `<option value="${idx}" class="${qc}">${li.short_name ?? li.name} (${formatStats(li.stats ?? { dps: li.damage })})</option>`;
-            }).join("");
-            return `<div class="gear-row empty gear-row-equip${locked ? " gear-locked" : ""}" data-slot="${slot}">
-              <span class="gear-icon">${spr(SLOT_ICONS[slot])}</span>
-              <select class="gear-loot-select">${optHtml}</select>
-              <button class="gear-equip-from-slot-btn" data-action="equip-loot-on-char" data-char="${ci}" data-slot="${slot}">Equip</button>
-              ${lockBtn}
-            </div>`;
-          }
-          return `<div class="gear-row empty${locked ? " gear-locked" : ""}" data-slot="${slot}">
-            <span class="gear-icon">${spr(SLOT_ICONS[slot])}</span>
-            <span class="gear-slot-label">${slotLabel(slot)}</span>
-            ${lockBtn}
+      const gearGrid = Object.entries(c.equipment).map(([slot, item]) => {
+        const locked = lockedSlots.has(slot);
+        const lockBadge = locked ? `<span class="gear-pdoll-lock" title="Locked">🔒</span>` : "";
+        const short = GEAR_SLOT_SHORT[slot] ?? slot;
+        const icon = SLOT_ICONS[slot] ?? "◻";
+        if (item) {
+          const qc = qualityClass(item.quality);
+          const itemJson = encodeURIComponent(JSON.stringify(item));
+          return `<div class="gear-pdoll-cell" data-slot="${slot}">
+            <button class="gear-pdoll-slot filled ${qc}${locked ? " gear-locked" : ""}" data-action="gear-slot-click" data-char-idx="${ci}" data-slot="${slot}" data-item="${itemJson}">
+              <span class="gear-pdoll-icon">${spr(icon)}</span>
+              ${lockBadge}
+            </button>
+            <span class="gear-pdoll-label">${short}</span>
           </div>`;
-        })
-        .join("");
+        }
+        const options = lootForSlot(slot);
+        const hasLoot = options.length > 0;
+        const countBadge = hasLoot ? `<span class="gear-pdoll-count">${options.length}</span>` : "";
+        return `<div class="gear-pdoll-cell" data-slot="${slot}">
+          <button class="gear-pdoll-slot ${hasLoot ? "has-loot" : "empty"}${locked ? " gear-locked" : ""}" data-action="${hasLoot ? "gear-slot-click" : ""}" data-char-idx="${ci}" data-slot="${slot}" ${!hasLoot ? "disabled" : ""}>
+            <span class="gear-pdoll-icon">${spr(icon)}</span>
+            ${countBadge}
+            ${lockBadge}
+          </button>
+          <span class="gear-pdoll-label">${short}</span>
+        </div>`;
+      }).join("");
       const gearDps = Object.values(c.equipment).reduce((sum, item) =>
         sum + (item?.stats?.dps ?? 0), 0);
       const runeDps = Object.values(c.runes ?? {}).reduce((sum, rune) =>
@@ -736,7 +732,7 @@ function renderParty(state: GameStateDict): void {
       </div>
     </div>
   </div>
-  <div class="char-gear">${gearRows}</div>
+  <div class="pdoll-grid gear-pdoll-grid">${gearGrid}</div>
   ${setBonusHtml}
   ${abilitiesHtml ? `<div class="char-abilities">${abilitiesHtml}</div>` : ""}
 </div>`;
@@ -802,35 +798,97 @@ function renderParty(state: GameStateDict): void {
       const card = lootCards[ci];
       if (!card) return;
       const lockedSlots = new Set<string>(c.locked_slots ?? []);
-      card.querySelectorAll<HTMLElement>(".gear-row.empty").forEach(row => {
-        const slot = row.dataset.slot;
+      card.querySelectorAll<HTMLElement>(".gear-pdoll-cell").forEach(cell => {
+        const slot = cell.dataset.slot;
         if (!slot) return;
+        const btn = cell.querySelector<HTMLButtonElement>(".gear-pdoll-slot");
+        if (!btn || btn.classList.contains("filled")) return;
         const locked = lockedSlots.has(slot);
         const matchSlot = slot === "ring2" ? "ring1" : slot;
         const options = lootBySlot.get(matchSlot) ?? [];
-        const lockBtn = `<button class="gear-lock-btn${locked ? " locked" : ""}" data-action="toggle-gear-lock" data-char="${ci}" data-slot="${slot}" title="${locked ? "Locked — click to unlock" : "Click to lock"}">${locked ? "🔒" : "🔓"}</button>`;
-        let newRowHtml: string;
-        if (options.length > 0) {
-          const optHtml = options.map(({ item: li, idx }) => {
-            const qc = qualityClass(li.quality);
-            return `<option value="${idx}" class="${qc}">${li.short_name ?? li.name} (${formatStats(li.stats ?? { dps: li.damage })})</option>`;
-          }).join("");
-          newRowHtml = `<div class="gear-row empty gear-row-equip${locked ? " gear-locked" : ""}" data-slot="${slot}"><span class="gear-icon">${spr(SLOT_ICONS[slot])}</span><select class="gear-loot-select">${optHtml}</select><button class="gear-equip-from-slot-btn" data-action="equip-loot-on-char" data-char="${ci}" data-slot="${slot}">Equip</button>${lockBtn}</div>`;
+        const hasLoot = options.length > 0;
+        btn.className = `gear-pdoll-slot ${hasLoot ? "has-loot" : "empty"}${locked ? " gear-locked" : ""}`;
+        btn.disabled = !hasLoot;
+        btn.dataset.action = hasLoot ? "gear-slot-click" : "";
+        const countEl = btn.querySelector<HTMLElement>(".gear-pdoll-count");
+        if (hasLoot) {
+          if (countEl) countEl.textContent = String(options.length);
+          else btn.insertAdjacentHTML("beforeend", `<span class="gear-pdoll-count">${options.length}</span>`);
         } else {
-          newRowHtml = `<div class="gear-row empty${locked ? " gear-locked" : ""}" data-slot="${slot}"><span class="gear-icon">${spr(SLOT_ICONS[slot])}</span><span class="gear-slot-label">${slotLabel(slot)}</span>${lockBtn}</div>`;
+          countEl?.remove();
         }
-        const tmp = document.createElement("div");
-        tmp.innerHTML = newRowHtml;
-        row.replaceWith(tmp.firstElementChild!);
+        const lockEl = btn.querySelector<HTMLElement>(".gear-pdoll-lock");
+        if (locked && !lockEl) btn.insertAdjacentHTML("beforeend", `<span class="gear-pdoll-lock" title="Locked">🔒</span>`);
+        else if (!locked) lockEl?.remove();
       });
     });
   }
 }
 
 function applySlotHighlight(): void {
-  document.querySelectorAll<HTMLElement>(".gear-row").forEach(row => {
-    row.classList.toggle("slot-highlight", hoveredLootSlot !== null && row.dataset.slot === hoveredLootSlot);
+  document.querySelectorAll<HTMLElement>(".gear-pdoll-slot[data-slot]").forEach(btn => {
+    btn.classList.toggle("slot-highlight", hoveredLootSlot !== null && btn.dataset.slot === hoveredLootSlot);
   });
+}
+
+function openGearSlotModal(charIdx: number, slot: string, state: GameStateDict): void {
+  const item = (state.party[charIdx]?.equipment as Record<string, GearItemDict | null> | undefined)?.[slot];
+  if (!item) return;
+  gearSlotModalCharIdx = charIdx;
+  gearSlotModalSlot = slot;
+  const qc = qualityClass(item.quality);
+  const locked = (state.party[charIdx]?.locked_slots ?? []).includes(slot);
+  document.getElementById("gear-slot-modal-title")!.innerHTML =
+    `<span class="${qc}">${item.name}</span>`;
+  document.getElementById("gear-slot-modal-subtitle")!.textContent =
+    `${SLOT_LABELS[slot] ?? slot} · ${item.quality}`;
+  document.getElementById("gear-slot-modal-body")!.innerHTML = `
+    <div class="gear-sm-stats">${formatStats(item.stats ?? { dps: item.damage })}</div>
+    <div class="gear-sm-actions">
+      <button class="gear-sm-lock-btn" data-action="gear-slot-lock" data-char-idx="${charIdx}" data-slot="${slot}">
+        ${locked ? "🔒 Locked" : "🔓 Unlocked"}
+      </button>
+      <button class="gear-sm-unequip-btn" data-action="gear-slot-unequip" data-char-idx="${charIdx}" data-slot="${slot}">Remove</button>
+    </div>
+  `;
+  document.getElementById("gear-slot-modal")!.classList.add("open");
+}
+
+function closeGearSlotModal(): void {
+  gearSlotModalCharIdx = -1;
+  gearSlotModalSlot = "";
+  document.getElementById("gear-slot-modal")!.classList.remove("open");
+}
+
+function openGearLootPicker(charIdx: number, slot: string, state: GameStateDict): void {
+  gearLootPickerCharIdx = charIdx;
+  gearLootPickerSlot = slot;
+  document.getElementById("gear-loot-picker-title")!.textContent =
+    `${SLOT_LABELS[slot] ?? slot}`;
+  const matchSlot = slot === "ring2" ? "ring1" : slot;
+  const items = (state.loot_pool ?? [])
+    .map((item, idx) => ({ item, idx }))
+    .filter(({ item }) => item.slot === matchSlot);
+  const body = document.getElementById("gear-loot-picker-body")!;
+  body.innerHTML = items.length === 0
+    ? `<div class="prune-empty">No items available for this slot.</div>`
+    : items
+        .sort((a, b) => (QUAL as readonly string[]).indexOf(b.item.quality) - (QUAL as readonly string[]).indexOf(a.item.quality))
+        .map(({ item: li, idx }) => {
+          const qc = qualityClass(li.quality);
+          return `<button class="gear-loot-pick-item" data-action="gear-loot-pick-equip" data-char-idx="${charIdx}" data-slot="${slot}" data-inv-idx="${idx}">
+            <span class="gear-loot-pick-quality ${qc}">●</span>
+            <span class="gear-loot-pick-name ${qc}">${li.short_name ?? li.name}</span>
+            <span class="gear-loot-pick-stat">${formatStats(li.stats ?? { dps: li.damage })}</span>
+          </button>`;
+        }).join("");
+  document.getElementById("gear-loot-picker-modal")!.classList.add("open");
+}
+
+function closeGearLootPicker(): void {
+  gearLootPickerCharIdx = -1;
+  gearLootPickerSlot = "";
+  document.getElementById("gear-loot-picker-modal")!.classList.remove("open");
 }
 
 /** Renders the loot chest with equip/sell buttons and auto-seller quality checkboxes. */
@@ -1653,6 +1711,10 @@ const ALL_SLOTS = ["main_hand","off_hand","helmet","chest","gloves","legs","shoe
 const SLOT_LABELS: Record<string, string> = {
   main_hand: "Main Hand", off_hand: "Off Hand", helmet: "Helmet", chest: "Chest",
   gloves: "Gloves", legs: "Legs", shoes: "Shoes", ring1: "Ring 1", ring2: "Ring 2",
+};
+const GEAR_SLOT_SHORT: Record<string, string> = {
+  main_hand: "Main", off_hand: "Off", helmet: "Helm", chest: "Chest",
+  gloves: "Gloves", legs: "Legs", shoes: "Shoes", ring1: "Ring", ring2: "Ring 2",
 };
 const PDOLL_TIER_ICONS: Record<string, string> = { lesser: "◆", greater: "★", flawless: "✦", ancient: "✸" };
 const PDOLL_TIER_ORDER = ["lesser", "greater", "flawless", "ancient"];
@@ -3239,7 +3301,7 @@ function buildSkillTooltipHTML(a: AbilityCardData): string {
     <div class="tt-stat-row"><span class="tt-stat-label">${a.desc}</span></div>`;
 }
 
-const TOOLTIP_SELECTORS = ".gear-row.filled[data-item], .loot-item[data-item], .char-name[data-char], .hero-sprite[data-char], #party-panel h2[data-party], [data-active-skill], .char-dps[data-dps], .tt-rune-slot[data-rune], .pdoll-slot.equipped[data-rune], .char-artifact-badge[data-artifact], .set-bonus-badge[data-set], .ability-badge[data-skill]";
+const TOOLTIP_SELECTORS = ".gear-pdoll-slot.filled[data-item], .loot-item[data-item], .char-name[data-char], .hero-sprite[data-char], #party-panel h2[data-party], [data-active-skill], .char-dps[data-dps], .tt-rune-slot[data-rune], .pdoll-slot.equipped[data-rune], .char-artifact-badge[data-artifact], .set-bonus-badge[data-set], .ability-badge[data-skill]";
 
 function buildActiveSkillTooltipHTML(skillId: string, skillState?: { remaining: number; expiry: number; totalCooldown: number; isActive: boolean; onCooldown: boolean }): string {
   const name = SKILL_NAMES[skillId] ?? skillId;
@@ -4011,6 +4073,28 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     else if (action === "unequip-gear") call("unequipGear", parseInt(btn.dataset.char!, 10), btn.dataset.slot!);
     else if (action === "toggle-gear-lock") call("toggleGearLock", parseInt(btn.dataset.char!, 10), btn.dataset.slot!);
+    else if (action === "gear-slot-click") {
+      const charIdx = parseInt(btn.dataset.charIdx!, 10);
+      const slot = btn.dataset.slot!;
+      if (game) {
+        const st = JSON.parse(game.respond()) as GameStateDict;
+        const item = (st.party[charIdx]?.equipment as Record<string, GearItemDict | null> | undefined)?.[slot];
+        if (item) openGearSlotModal(charIdx, slot, st);
+        else openGearLootPicker(charIdx, slot, st);
+      }
+    }
+    else if (action === "gear-slot-unequip") {
+      call("unequipGear", parseInt(btn.dataset.charIdx!, 10), btn.dataset.slot!);
+      closeGearSlotModal();
+    }
+    else if (action === "gear-slot-lock") {
+      call("toggleGearLock", parseInt(btn.dataset.charIdx!, 10), btn.dataset.slot!);
+      closeGearSlotModal();
+    }
+    else if (action === "gear-loot-pick-equip") {
+      call("equipLootOnChar", parseInt(btn.dataset.charIdx!, 10), parseInt(btn.dataset.invIdx!, 10));
+      closeGearLootPicker();
+    }
     else if (action === "equip-from-stash") {
       const row = btn.closest(".stash-item")!;
       const sel = row.querySelector(".stash-char-select") as HTMLSelectElement | HTMLInputElement;
@@ -4318,6 +4402,15 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("artifact-detail-close")?.addEventListener("click", closeArtifactModal);
   document.getElementById("artifact-detail-modal")?.addEventListener("click", (e) => {
     if (e.target === $("artifact-detail-modal")) closeArtifactModal();
+  });
+
+  document.getElementById("gear-slot-modal-close")?.addEventListener("click", closeGearSlotModal);
+  document.getElementById("gear-slot-modal")?.addEventListener("click", (e) => {
+    if (e.target === document.getElementById("gear-slot-modal")) closeGearSlotModal();
+  });
+  document.getElementById("gear-loot-picker-close")?.addEventListener("click", closeGearLootPicker);
+  document.getElementById("gear-loot-picker-modal")?.addEventListener("click", (e) => {
+    if (e.target === document.getElementById("gear-loot-picker-modal")) closeGearLootPicker();
   });
 
   document.getElementById("asp-close")?.addEventListener("click", closeArtifactSlotPicker);

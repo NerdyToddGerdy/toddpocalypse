@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.36";
+export const VERSION = "v2.32.37";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,16 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.37",
+    date: "2026-05-25",
+    changes: [
+      "Character gear panel redesigned: 9 square icon buttons in a paper-doll grid layout (matching rune panel style) with quality-color borders and glow",
+      "Filled gear slots: click opens a detail modal with stats, lock toggle, and remove button",
+      "Empty gear slots with available loot: pulsing dashed border and loot count badge; click opens a loot picker modal sorted by quality",
+      "Gear hide toggle updated to hide the new grid layout",
+    ],
+  },
   {
     version: "v2.32.36",
     date: "2026-05-25",
