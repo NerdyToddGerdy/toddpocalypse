@@ -7,6 +7,8 @@ export interface ConstellationNodeDef {
   label: string;
   description: string;
   cost: 1 | 2 | 5;
+  /** Maximum investable level: 1 for keystones (binary unlock), 3 for all others. */
+  maxLevel: number;
   connections: string[];
   isStart?: true;
   x: number;
@@ -41,7 +43,8 @@ export interface ConstellationBonuses {
 // Each constellation: center→start→{minor1(θ-15°), minor2(θ), minor3(θ+15°)}→{notable1,notable2}→keystone
 // minor2 bridges both notables; no cross-constellation connections.
 
-export const CONSTELLATION_NODE_DEFS: Record<string, ConstellationNodeDef> = {
+type RawNodeDef = Omit<ConstellationNodeDef, "maxLevel">;
+const RAW_NODE_DEFS: Record<string, RawNodeDef> = {
 
   // ── CENTER ───────────────────────────────────────────────────────────────
   center: {
@@ -413,7 +416,12 @@ export const CONSTELLATION_NODE_DEFS: Record<string, ConstellationNodeDef> = {
   },
 };
 
-export function getConstellationBonuses(nodes: string[]): ConstellationBonuses {
+export const CONSTELLATION_NODE_DEFS: Record<string, ConstellationNodeDef> =
+  Object.fromEntries(Object.entries(RAW_NODE_DEFS).map(([k, v]) => [
+    k, { ...v, maxLevel: v.type === "keystone" ? 1 : 3 } as ConstellationNodeDef,
+  ]));
+
+export function getConstellationBonuses(nodeLevels: Map<string, number>): ConstellationBonuses {
   const b: ConstellationBonuses = {
     dpsMultiplier: 1.0,
     maxHpMultiplier: 1.0,
@@ -434,9 +442,9 @@ export function getConstellationBonuses(nodes: string[]): ConstellationBonuses {
     runicMasteryActive: false,
   };
 
-  for (const id of nodes) {
+  for (const [id, level] of nodeLevels) {
     const def = CONSTELLATION_NODE_DEFS[id];
-    if (!def) continue;
+    if (!def || level < 1) continue;
 
     if (def.type === "keystone") {
       switch (id) {
@@ -453,16 +461,16 @@ export function getConstellationBonuses(nodes: string[]): ConstellationBonuses {
 
     const pct = def.value / 100;
     switch (def.stat) {
-      case "dps":         b.dpsMultiplier       *= (1 + pct); break;
-      case "maxHp":       b.maxHpMultiplier      *= (1 + pct); break;
-      case "gold":        b.goldMultiplier        *= (1 + pct); break;
-      case "xp":          b.xpMultiplier          *= (1 + pct); break;
-      case "clickDps":    b.clickDpsMultiplier    *= (1 + pct); break;
-      case "haste":       b.hasteMultiplier       *= (1 - pct); break;
-      case "defense":     b.defenseBonus          += def.value; break;
-      case "critChance":  b.critChanceBonus       += pct;       break;
-      case "runeBonus":   b.runeBonusMultiplier   *= (1 + pct); break;
-      case "lootQuality": b.lootQualityBonus      += def.value; break;
+      case "dps":         b.dpsMultiplier       *= (1 + pct * level); break;
+      case "maxHp":       b.maxHpMultiplier      *= (1 + pct * level); break;
+      case "gold":        b.goldMultiplier        *= (1 + pct * level); break;
+      case "xp":          b.xpMultiplier          *= (1 + pct * level); break;
+      case "clickDps":    b.clickDpsMultiplier    *= (1 + pct * level); break;
+      case "haste":       b.hasteMultiplier       *= (1 - pct * level); break;
+      case "defense":     b.defenseBonus          += def.value * level; break;
+      case "critChance":  b.critChanceBonus       += pct * level;       break;
+      case "runeBonus":   b.runeBonusMultiplier   *= (1 + pct * level); break;
+      case "lootQuality": b.lootQualityBonus      += def.value * level; break;
     }
   }
 

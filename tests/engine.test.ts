@@ -5625,7 +5625,7 @@ describe("constellation persistence through retirement", () => {
     gs.dungeonIndex = 1;
     gs.guildUpgrades["constellation_access"] = 1;
     gs.constellationShards = 15;
-    gs.unlockedConstellationNodes.add("warrior_start");
+    gs.constellationNodeLevels.set("warrior_start", 1);
     gs.achievementsUnlocked.add("first_prestige");
     return gs;
   }
@@ -5645,7 +5645,7 @@ describe("constellation persistence through retirement", () => {
   it("preserves unlocked constellation nodes through retirement", () => {
     const gs = makeRetirableWithConstellation();
     gs.retireHero();
-    expect(gs.unlockedConstellationNodes.has("warrior_start")).toBe(true);
+    expect((gs.constellationNodeLevels.get("warrior_start") ?? 0) >= 1).toBe(true);
   });
 
   it("does not restore constellation_access if it was never purchased", () => {
@@ -5729,7 +5729,7 @@ describe("lifetimeBestKillStreak", () => {
 describe("first_light achievement", () => {
   it("unlocks on first constellation node", () => {
     const gs = make();
-    gs.unlockedConstellationNodes.add("str_1");
+    gs.constellationNodeLevels.set("str_1", 1);
     gs.checkAchievements();
     expect(gs.achievementsUnlocked.has("first_light")).toBe(true);
   });
@@ -5743,7 +5743,7 @@ describe("first_light achievement", () => {
   it("rewards 500 gold", () => {
     const gs = make();
     gs.gold = 0;
-    gs.unlockedConstellationNodes.add("str_1");
+    gs.constellationNodeLevels.set("str_1", 1);
     gs.checkAchievements();
     expect(gs.gold).toBe(500);
   });
@@ -5754,14 +5754,14 @@ describe("first_light achievement", () => {
 describe("stargazer_tiered achievement", () => {
   it("bronze fires at 10 constellation nodes", () => {
     const gs = make();
-    for (let i = 0; i < 10; i++) gs.unlockedConstellationNodes.add(`node_${i}`);
+    for (let i = 0; i < 10; i++) gs.constellationNodeLevels.set(`node_${i}`, 1);
     gs.checkAchievements();
     expect(gs.achievementsUnlocked.has("stargazer_tiered_bronze")).toBe(true);
   });
 
   it("silver fires at 30 nodes and awards star avatar", () => {
     const gs = make();
-    for (let i = 0; i < 30; i++) gs.unlockedConstellationNodes.add(`node_${i}`);
+    for (let i = 0; i < 30; i++) gs.constellationNodeLevels.set(`node_${i}`, 1);
     gs.checkAchievements();
     expect(gs.achievementsUnlocked.has("stargazer_tiered_silver")).toBe(true);
     expect(gs.earnedAvatars.has("star")).toBe(true);
@@ -5769,7 +5769,7 @@ describe("stargazer_tiered achievement", () => {
 
   it("gold fires at 70 nodes and awards title The Starborn", () => {
     const gs = make();
-    for (let i = 0; i < 70; i++) gs.unlockedConstellationNodes.add(`node_${i}`);
+    for (let i = 0; i < 70; i++) gs.constellationNodeLevels.set(`node_${i}`, 1);
     gs.checkAchievements();
     expect(gs.achievementsUnlocked.has("stargazer_tiered_gold")).toBe(true);
   });
@@ -5781,14 +5781,14 @@ describe("constellation_master achievement", () => {
   it("does not unlock with fewer than all nodes", () => {
     const gs = make();
     const total = Object.keys(CONSTELLATION_NODE_DEFS).length;
-    for (let i = 0; i < total - 1; i++) gs.unlockedConstellationNodes.add(`node_${i}`);
+    for (let i = 0; i < total - 1; i++) gs.constellationNodeLevels.set(`node_${i}`, 1);
     gs.checkAchievements();
     expect(gs.achievementsUnlocked.has("constellation_master")).toBe(false);
   });
 
   it("unlocks when all nodes are unlocked and awards title Celestial", () => {
     const gs = make();
-    for (const id of Object.keys(CONSTELLATION_NODE_DEFS)) gs.unlockedConstellationNodes.add(id);
+    for (const id of Object.keys(CONSTELLATION_NODE_DEFS)) gs.constellationNodeLevels.set(id, 1);
     gs.checkAchievements();
     expect(gs.achievementsUnlocked.has("constellation_master")).toBe(true);
   });

@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.48";
+export const VERSION = "v2.32.49";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,18 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.49",
+    date: "2026-05-25",
+    changes: [
+      "Constellation nodes now support 3 levels — each upgrade costs the node's shard cost again and multiplies the node's bonus by level",
+      "Keystones remain binary (maxLevel 1); all other nodes support up to level 3",
+      "Star map shows level badge on each invested node; modal shows current/max level and 'Upgrade to Lv N' button",
+      "Respec now refunds level × cost per node (minus 10-shard fee)",
+      "Backwards compat: old saves with constellation_nodes[] load each as level 1",
+      "Mobile upgrade tab scroll fix: padding-bottom tracks live enemy panel height via ResizeObserver so content is never hidden behind the fixed bottom UI",
+    ],
+  },
   {
     version: "v2.32.48",
     date: "2026-05-25",

@@ -528,7 +528,8 @@ export interface GameStateDict {
   legacy_titles?: string[];
   needs_hero_creation?: boolean;
   constellation_shards?: number;
-  constellation_nodes?: string[];
+  constellation_nodes?: string[];             // legacy format — levels default to 1 on load
+  constellation_node_levels?: Record<string, number>;
   party_version?: number;
 }
 
@@ -669,8 +670,8 @@ export class GameState {
   needsHeroCreation = false;
   /** Soul shards available to spend in the Constellation tree. */
   constellationShards = 0;
-  /** Set of unlocked constellation node IDs. */
-  unlockedConstellationNodes: Set<string> = new Set();
+  /** Levels invested in each constellation node (0 = not unlocked). */
+  constellationNodeLevels: Map<string, number> = new Map();
   /** Tracks whether Last Stand has fired this floor. */
   lastStandUsedThisFloor = false;
 
@@ -713,7 +714,7 @@ export class GameState {
 
   private get constellationBonuses(): ConstellationBonuses {
     if (!this._cbCache) {
-      this._cbCache = getConstellationBonuses([...this.unlockedConstellationNodes]);
+      this._cbCache = getConstellationBonuses(this.constellationNodeLevels);
     }
     return this._cbCache;
   }
@@ -1232,29 +1233,31 @@ export class GameState {
     return this.respond();
   }
 
-  /** Unlocks a constellation node if adjacent (or a start node) and shards are sufficient. */
+  /** Unlocks or upgrades a constellation node. First call = level 1, subsequent calls increment level up to maxLevel. */
   unlockConstellationNode(nodeId: string): string {
     const def = CONSTELLATION_NODE_DEFS[nodeId];
     if (!def) return this.respond();
-    if (this.unlockedConstellationNodes.has(nodeId)) return this.respond();
+    const currentLevel = this.constellationNodeLevels.get(nodeId) ?? 0;
+    if (currentLevel >= def.maxLevel) return this.respond();
     const isAccessible = def.isStart ||
-      def.connections.some(c => this.unlockedConstellationNodes.has(c));
+      def.connections.some(c => (this.constellationNodeLevels.get(c) ?? 0) >= 1);
     if (!isAccessible) return this.respond();
     if (this.constellationShards < def.cost) return this.respond();
     this.constellationShards -= def.cost;
-    this.unlockedConstellationNodes.add(nodeId);
+    this.constellationNodeLevels.set(nodeId, currentLevel + 1);
     this._cbCache = null;
     return this.respond();
   }
 
-  /** Resets all constellation nodes, refunding shards minus a 10-shard fee. */
+  /** Resets all constellation nodes, refunding shards (level × cost per node) minus a 10-shard fee. */
   respecConstellation(): string {
     if (this.constellationShards < 10) return this.respond();
-    const spent = [...this.unlockedConstellationNodes].reduce(
-      (sum, id) => sum + (CONSTELLATION_NODE_DEFS[id]?.cost ?? 0), 0
-    );
+    let spent = 0;
+    for (const [id, level] of this.constellationNodeLevels) {
+      spent += (CONSTELLATION_NODE_DEFS[id]?.cost ?? 0) * level;
+    }
     this.constellationShards += spent - 10;
-    this.unlockedConstellationNodes.clear();
+    this.constellationNodeLevels.clear();
     this._cbCache = null;
     return this.respond();
   }
@@ -1872,7 +1875,7 @@ export class GameState {
       legacy_titles: [...this.legacyTitles],
       needs_hero_creation: this.needsHeroCreation,
       constellation_shards: this.constellationShards,
-      constellation_nodes: [...this.unlockedConstellationNodes],
+      constellation_node_levels: Object.fromEntries(this.constellationNodeLevels),
       party_version: this.partyVersion,
     };
   }
@@ -2498,7 +2501,11 @@ export class GameState {
     gs.legacyTitles = new Set(d.legacy_titles ?? []);
     gs.needsHeroCreation = d.needs_hero_creation ?? false;
     gs.constellationShards = d.constellation_shards ?? 0;
-    gs.unlockedConstellationNodes = new Set(d.constellation_nodes ?? []);
+    if (d.constellation_node_levels) {
+      gs.constellationNodeLevels = new Map(Object.entries(d.constellation_node_levels as Record<string, number>));
+    } else if (d.constellation_nodes) {
+      gs.constellationNodeLevels = new Map((d.constellation_nodes as string[]).map(id => [id, 1]));
+    }
 
     // Backfill cosmetic rewards for saves predating the avatar/border reward system
     for (const def of ACHIEVEMENTS) {
@@ -2869,7 +2876,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     description: "Unlock your first Constellation node.",
     category: "guild", hidden: false,
     reward: { type: "gold", value: 500 },
-    getValue: gs => gs.unlockedConstellationNodes.size,
+    getValue: gs => gs.constellationNodeLevels.size,
   },
   {
     id: "stargazer_tiered", name: "Stargazer",
@@ -2880,14 +2887,14 @@ export const ACHIEVEMENTS: AchievementDef[] = [
       { label: "silver", threshold: 30, reward: { type: "avatar", cosmetic: "star" } },
       { label: "gold",   threshold: 70, reward: { type: "title", title: "The Starborn" } },
     ],
-    getValue: gs => gs.unlockedConstellationNodes.size,
+    getValue: gs => gs.constellationNodeLevels.size,
   },
   {
     id: "constellation_master", name: "Constellation Master",
     description: "Unlock every node in the Constellation tree.",
     category: "guild", hidden: false,
     reward: { type: "title", title: "Celestial" },
-    getValue: gs => gs.unlockedConstellationNodes.size >= Object.keys(CONSTELLATION_NODE_DEFS).length ? 1 : 0,
+    getValue: gs => gs.constellationNodeLevels.size >= Object.keys(CONSTELLATION_NODE_DEFS).length ? 1 : 0,
   },
   // ── Artifacts ────────────────────────────────────────────────────────────
   {

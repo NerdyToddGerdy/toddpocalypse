@@ -2196,7 +2196,7 @@ main {
         gap: 12px;
         padding: 12px;
         padding-left: 56px; /* 44px gauge + 12px gap */
-        padding-bottom: 245px; /* room for fixed enemy panel + party hp bar + tab bar */
+        padding-bottom: calc(96px + var(--enemy-panel-h, 149px)); /* tracks live enemy panel height */
         overflow-y: auto;
     }
 
@@ -2218,8 +2218,8 @@ main {
         width: 44px;
         flex-direction: column;
         align-items: center;
-        /* top padding tracks the live header height via JS ResizeObserver */
-        padding: var(--header-h, 148px) 4px 215px;
+        /* top/bottom padding tracks live header + enemy panel heights via JS ResizeObserver */
+        padding: var(--header-h, 148px) 4px calc(96px + var(--enemy-panel-h, 149px));
         gap: 4px;
         background: var(--surface);
         border-right: 1px solid var(--border);
@@ -5488,6 +5488,12 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
     font-size: 7px; fill: rgba(180,160,100,0.65);
     pointer-events: none; user-select: none;
 }
+.cdoll-node-level {
+    font-size: 7px; font-weight: 700;
+    fill: var(--accent2); paint-order: stroke fill;
+    stroke: rgba(10,8,20,0.9); stroke-width: 2px;
+    pointer-events: none; user-select: none;
+}
 
 /* Hover tooltip */
 #cdoll-tooltip {
@@ -5530,7 +5536,8 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
 #cdoll-modal-subtitle { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 3px; }
 #cdoll-modal-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; flex-shrink: 0; padding: 2px; }
 #cdoll-modal-body { padding: 14px 16px 18px; }
-.cdoll-modal-desc { font-size: 0.82rem; color: var(--text); line-height: 1.5; margin-bottom: 16px; }
+.cdoll-modal-desc { font-size: 0.82rem; color: var(--text); line-height: 1.5; margin-bottom: 10px; }
+.cdoll-modal-level { font-size: 0.78rem; color: var(--accent2); margin-bottom: 14px; letter-spacing: 0.04em; }
 .cdoll-unlock-btn {
     padding: 5px 14px; font-size: 0.78rem;
     background: var(--accent2); border: none; color: #000; border-radius: 5px; cursor: pointer;

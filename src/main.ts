@@ -1574,9 +1574,9 @@ let cdollModalNodeId: string | null = null;
 
 function renderConstellationPanel(state: GameStateDict): void {
   const unlocked = (state.guild_upgrades["constellation_access"] ?? 0) > 0;
-  const nodes: string[] = state.constellation_nodes ?? [];
+  const nodeLevels: Record<string, number> = state.constellation_node_levels ?? {};
   const shards = state.constellation_shards ?? 0;
-  const newKey = `${unlocked}|${shards}|${nodes.join(",")}`;
+  const newKey = `${unlocked}|${shards}|${JSON.stringify(nodeLevels)}`;
   if (newKey === constellationKey) return;
   constellationKey = newKey;
 
@@ -1588,7 +1588,6 @@ function renderConstellationPanel(state: GameStateDict): void {
     return;
   }
 
-  const nodeSet = new Set(nodes);
   const defs = CONSTELLATION_NODE_DEFS;
 
   // Build deduplicated edge list
@@ -1607,14 +1606,15 @@ function renderConstellationPanel(state: GameStateDict): void {
   const svgLines = edges.map(({ a, b }) => {
     const da = defs[a], db = defs[b];
     if (!da || !db) return "";
-    const bothOn = nodeSet.has(a) && nodeSet.has(b);
-    const oneOn  = nodeSet.has(a) || nodeSet.has(b);
-    const cls = bothOn ? "cdoll-edge both-unlocked" : oneOn ? "cdoll-edge one-unlocked" : "cdoll-edge locked";
+    const aOn = (nodeLevels[a] ?? 0) >= 1;
+    const bOn = (nodeLevels[b] ?? 0) >= 1;
+    const cls = aOn && bOn ? "cdoll-edge both-unlocked" : aOn || bOn ? "cdoll-edge one-unlocked" : "cdoll-edge locked";
     return `<line class="${cls}" x1="${da.x}" y1="${da.y}" x2="${db.x}" y2="${db.y}" />`;
   }).join("");
 
   const svgNodes = Object.values(defs).map(def => {
-    const on = nodeSet.has(def.id);
+    const level = nodeLevels[def.id] ?? 0;
+    const on = level >= 1;
     const r = def.type === "center" ? 16 : def.type === "keystone" ? 14 : def.type === "notable" ? 10 : 8;
     const cls = [
       "cdoll-node",
@@ -1623,17 +1623,22 @@ function renderConstellationPanel(state: GameStateDict): void {
       def.isStart ? "start" : "",
     ].filter(Boolean).join(" ");
     const label = def.label.length > 10 ? def.label.substring(0, 9) + "…" : def.label;
+    const levelBadge = on && def.maxLevel > 1
+      ? `<text x="${def.x + r - 3}" y="${def.y - r + 6}" text-anchor="middle" class="cdoll-node-level">${level}</text>`
+      : "";
     return `<g class="cdoll-node-group" data-node-id="${def.id}">
       <circle class="${cls}" cx="${def.x}" cy="${def.y}" r="${r}" />
+      ${levelBadge}
       <text x="${def.x}" y="${def.y + r + 9}" text-anchor="middle" class="cdoll-node-text">${label}</text>
     </g>`;
   }).join("");
 
-  const respecBtn = nodes.length > 0
+  const hasAny = Object.keys(nodeLevels).length > 0;
+  const respecBtn = hasAny
     ? `<button class="cdoll-respec-btn" data-action="respec-constellation">Respec (costs 10 ✦ shards, refunds the rest)</button>`
     : "";
 
-  el.dataset.nodes = JSON.stringify(nodes);
+  el.dataset.nodeLevels = JSON.stringify(nodeLevels);
   el.dataset.shards = String(shards);
   el.innerHTML = `
     <div class="cdoll-shard-header">✦ ${shards} Soul Shard${shards !== 1 ? "s" : ""}</div>
@@ -1652,24 +1657,28 @@ function openConstellationNodeModal(nodeId: string): void {
   const def = CONSTELLATION_NODE_DEFS[nodeId];
   if (!def) return;
   const el = document.getElementById("constellation-content");
-  const nodeSet = new Set(JSON.parse(el?.dataset.nodes ?? "[]") as string[]);
+  const nodeLevels: Record<string, number> = JSON.parse(el?.dataset.nodeLevels ?? "{}");
   const shards = parseInt(el?.dataset.shards ?? "0");
-  const on = nodeSet.has(nodeId);
-  const isAdjacentUnlocked = def.isStart || def.connections.some(c => nodeSet.has(c));
+  const currentLevel = nodeLevels[nodeId] ?? 0;
+  const atMax = currentLevel >= def.maxLevel;
+  const isAdjacentUnlocked = def.isStart || def.connections.some(c => (nodeLevels[c] ?? 0) >= 1);
   const canAfford = shards >= def.cost;
 
   document.getElementById("cdoll-modal-title")!.textContent = def.label;
   document.getElementById("cdoll-modal-subtitle")!.textContent =
     `${CONSTELLATION_NAMES[def.constellation]} · ${def.type}`;
 
-  const btnLabel = on ? "Unlocked ✓"
+  const levelInfo = def.maxLevel > 1 ? `<div class="cdoll-modal-level">Level ${currentLevel} / ${def.maxLevel}</div>` : "";
+  const btnLabel = atMax ? (def.maxLevel > 1 ? "Max Level ✓" : "Unlocked ✓")
     : !isAdjacentUnlocked ? "Unlock adjacent node first"
     : !canAfford ? `Need ${def.cost} ✦ shards`
-    : `Unlock (${def.cost} ✦ shard${def.cost !== 1 ? "s" : ""})`;
-  const disabled = on || !isAdjacentUnlocked || !canAfford ? "disabled" : "";
+    : currentLevel === 0 ? `Unlock (${def.cost} ✦ shard${def.cost !== 1 ? "s" : ""})`
+    : `Upgrade to Lv ${currentLevel + 1} (${def.cost} ✦ shard${def.cost !== 1 ? "s" : ""})`;
+  const disabled = atMax || !isAdjacentUnlocked || !canAfford ? "disabled" : "";
 
   document.getElementById("cdoll-modal-body")!.innerHTML = `
     <div class="cdoll-modal-desc">${def.description}</div>
+    ${levelInfo}
     <button class="cdoll-unlock-btn" data-action="unlock-node" data-node-id="${nodeId}" ${disabled}>${btnLabel}</button>
   `;
   document.getElementById("cdoll-node-modal")!.classList.add("open");
@@ -3936,6 +3945,14 @@ function initHeaderHeightVar(): void {
   new ResizeObserver(update).observe(hdr);
 }
 
+function initEnemyPanelHeightVar(): void {
+  const panel = document.getElementById("enemy-panel");
+  if (!panel) return;
+  const update = () => document.documentElement.style.setProperty("--enemy-panel-h", panel.offsetHeight + "px");
+  update();
+  new ResizeObserver(update).observe(panel);
+}
+
 function initEnemySticky(): void {
   const hdr = document.querySelector("header") as HTMLElement;
   const enemyPanel = document.getElementById("enemy-panel");
@@ -3956,6 +3973,7 @@ document.addEventListener("DOMContentLoaded", () => {
   preloadBossAssets();
   initTheme();
   initHeaderHeightVar();
+  initEnemyPanelHeightVar();
   initEnemySticky();
   initSaveBackup();
   initCombatSubTabs();
