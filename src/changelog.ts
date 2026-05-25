@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.46";
+export const VERSION = "v2.32.47";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.47",
+    date: "2026-05-25",
+    changes: [
+      "Enrage progress bar now uses the floor-scaled trigger and step values so it fills correctly and reaches 100% before enrage kicks in; also fixed 'TheEnrage' typo in countdown label",
+    ],
+  },
   {
     version: "v2.32.46",
     date: "2026-05-25",

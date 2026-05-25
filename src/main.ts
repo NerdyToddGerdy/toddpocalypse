@@ -236,7 +236,7 @@ function call<K extends keyof GameState>(method: K, ...args: any[]): void {
   }
 }
 
-import { KILLS_PER_LEVEL, killsForFloor, CORRUPTION_FLOOR, CORRUPTION_RATE_PER_FLOOR, CORRUPTION_HEAL_REDUCTION_PER_FLOOR, startingGoldForLevel, DPS_UPGRADE_EFFECT, CLICK_UPGRADE_EFFECT, BOSS_ENRAGE_TRIGGER, BOSS_ENRAGE_STEP } from "./engine.js";
+import { KILLS_PER_LEVEL, killsForFloor, CORRUPTION_FLOOR, CORRUPTION_RATE_PER_FLOOR, CORRUPTION_HEAL_REDUCTION_PER_FLOOR, startingGoldForLevel, DPS_UPGRADE_EFFECT, CLICK_UPGRADE_EFFECT, BOSS_ENRAGE_TRIGGER, BOSS_ENRAGE_STEP, BOSS_ENRAGE_TRIGGER_MIN, BOSS_ENRAGE_STEP_MIN } from "./engine.js";
 
 /** Full re-render of all UI panels from a GameStateDict snapshot. */
 function render(state: GameStateDict): void {
@@ -304,6 +304,10 @@ function render(state: GameStateDict): void {
     const wantsEnrage = enemy.is_boss || !!enemy.is_elite;
     enrageEl.classList.toggle("active", wantsEnrage);
     if (wantsEnrage) {
+      const reduction = Math.floor((state.dungeon_level ?? 1) / 5);
+      const effectiveTrigger = Math.max(BOSS_ENRAGE_TRIGGER_MIN, BOSS_ENRAGE_TRIGGER - reduction);
+      const effectiveStep    = Math.max(BOSS_ENRAGE_STEP_MIN,    BOSS_ENRAGE_STEP    - reduction);
+
       const isEnraged = enrageMult > 1;
       const stacks = isEnraged
         ? Math.round(Math.log(enrageMult) / Math.log(1.5))
@@ -311,8 +315,8 @@ function render(state: GameStateDict): void {
 
       // Fill percent within current cycle
       const fillPct = isEnraged
-        ? Math.min(100, ((enrageTime - BOSS_ENRAGE_TRIGGER) % BOSS_ENRAGE_STEP) / BOSS_ENRAGE_STEP * 100)
-        : Math.min(100, enrageTime / BOSS_ENRAGE_TRIGGER * 100);
+        ? Math.min(100, ((enrageTime - effectiveTrigger) % effectiveStep) / effectiveStep * 100)
+        : Math.min(100, enrageTime / effectiveTrigger * 100);
 
       const enrageBar = $("enemy-enrage-bar") as HTMLElement;
       const enrageLayers = $("enemy-enrage-layers") as HTMLElement;
@@ -353,7 +357,7 @@ function render(state: GameStateDict): void {
       enrageBar.style.width = fillPct + "%";
       $("enemy-enrage-label").innerHTML = isEnraged
         ? `${spr("⚡")} ENRAGED ${enrageMult.toFixed(2)}×`
-        : `Enrage in ${Math.ceil(BOSS_ENRAGE_TRIGGER - enrageTime)}s`;
+        : `Enrage in ${Math.ceil(effectiveTrigger - enrageTime)}s`;
       enrageEl.classList.toggle("enraged", isEnraged);
       portraitInner.classList.toggle("enraged", isEnraged);
     } else {
