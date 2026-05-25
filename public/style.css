@@ -404,6 +404,17 @@ header h1 {
     gap: 12px;
 }
 
+@media (max-width: 1280px) {
+    #settings-modal-box {
+        width: 100%;
+        height: 100%;
+        max-height: 100%;
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
+    }
+}
+
 /* ── Customize modal ── */
 #customize-modal, #about-modal {
     display: none;
@@ -2229,8 +2240,11 @@ main {
     .header-avatar-wrap { width: 2.2rem; height: 2.2rem; font-size: 1.6rem; }
     .header-avatar-label { display: none; }
     #header-avatar-btn { padding: 0; border-radius: 50%; border-color: transparent; }
-    #stat-party-hp-wrap { display: flex; }
     #stat-party-dps-wrap { display: flex; }
+    /* HP is shown in the bottom bar on mobile — hide the redundant header version */
+    #stat-party-hp-wrap { display: none; }
+    /* Settings has a dedicated nav tab on mobile — hide it from the profile dropdown */
+    .profile-menu-item[data-action="open-settings-modal"] { display: none; }
 
     /* Keep prestige+venture on one stable row so HP changes don't shift them */
     #action-btns {
