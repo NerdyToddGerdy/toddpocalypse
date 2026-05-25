@@ -2688,9 +2688,14 @@ main {
 /* earned title on character card */
 
 /* ── Active skill button ── */
-#skill-btn {
-    width: 100%;
+#skill-row {
+    display: flex;
+    gap: 4px;
     margin-top: 6px;
+    align-items: stretch;
+}
+#skill-btn {
+    flex: 1;
     padding: 8px 14px;
     font-size: 0.8rem;
     font-weight: 700;
@@ -2712,6 +2717,25 @@ main {
 @keyframes skill-pulse {
     from { box-shadow: 0 0 4px var(--accent2, #a78bfa); }
     to   { box-shadow: 0 0 14px var(--accent2, #a78bfa); }
+}
+#auto-skill-btn {
+    flex-shrink: 0;
+    padding: 8px 10px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    background: var(--surface);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+#auto-skill-btn:hover { border-color: var(--accent2, #a78bfa); color: var(--accent2, #a78bfa); }
+#auto-skill-btn.active {
+    background: var(--accent2, #a78bfa);
+    color: #1a1005;
+    border-color: var(--accent2, #a78bfa);
 }
 
 /* ── Companion skill buttons ── */

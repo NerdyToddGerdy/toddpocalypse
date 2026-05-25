@@ -2339,14 +2339,16 @@ const SKILL_DESCS: Record<string, string> = {
 /** Shows/hides the active skill button and updates its cooldown drain bar. */
 function renderSkillButton(state: GameStateDict): void {
   const skillId = state.skill_available;
-  const newKey = skillId + "|" + (skillId ? (state.skill_cooldowns[skillId] ?? 0) : 0) + "|" + (skillId ? (state.active_effects[skillId] ?? 0) : 0);
+  const newKey = skillId + "|" + (skillId ? (state.skill_cooldowns[skillId] ?? 0) : 0) + "|" + (skillId ? (state.active_effects[skillId] ?? 0) : 0) + "|" + (state.all_skills_unlocked ? "1" : "0") + "|" + (state.auto_skill_enabled ? "1" : "0");
   if (newKey === skillKey) return;
   skillKey = newKey;
 
   const btn = $("skill-btn") as HTMLButtonElement;
+  const autoBtn = document.getElementById("auto-skill-btn") as HTMLButtonElement;
 
   if (!skillId) {
     btn.hidden = true;
+    autoBtn.hidden = true;
     return;
   }
 
@@ -2362,6 +2364,9 @@ function renderSkillButton(state: GameStateDict): void {
   btn.dataset.skillState = encodeURIComponent(JSON.stringify({ remaining, expiry, totalCooldown, isActive, onCooldown }));
   btn.disabled = onCooldown;
   btn.className = isActive ? "active" : "";
+
+  autoBtn.hidden = !state.all_skills_unlocked;
+  autoBtn.className = state.auto_skill_enabled ? "active" : "";
 }
 
 /** Renders skill buttons for companion party members below the attack button. */
@@ -3906,6 +3911,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     else if (action === "activate-companion-skill") {
       if (btn.dataset.skill) call("activateSkill", btn.dataset.skill);
+    }
+    else if (action === "toggle-auto-skill") {
+      call("toggleAutoSkill");
     }
     else if (action === "venture") {
       if (confirm("Venture to a new dungeon? Your companions will stay behind and earn gold. You start fresh with just your class.")) {

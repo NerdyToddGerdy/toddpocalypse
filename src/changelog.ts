@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.21";
+export const VERSION = "v2.32.22";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.22",
+    date: "2026-05-25",
+    changes: [
+      "Feature: Auto Skill button — unlocks next to the skill button after all 6 skills are purchased; cycles through owned skills and fires one per kill, skipping any on cooldown",
+      "Manual skill activation still works normally while Auto Skill is on",
+    ],
+  },
   {
     version: "v2.32.21",
     date: "2026-05-25",

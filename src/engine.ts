@@ -488,6 +488,8 @@ export interface GameStateDict {
   achievement_progress_ts?: number;
   auto_prestige_enabled?: boolean;
   auto_prestige_threshold?: number;
+  auto_skill_enabled?: boolean;
+  all_skills_unlocked?: boolean;
   boss_enrage_time?: number;
   boss_enrage_mult?: number;
   retired_heroes?: RetiredHero[];
@@ -618,6 +620,10 @@ export class GameState {
   selectedBorder = "none";
   /** Whether auto-prestige fires automatically when prestige is available and threshold is met. */
   autoPrestigeEnabled = false;
+  /** Whether auto-skill cycles and fires one ready skill per enemy kill. */
+  autoSkillEnabled = false;
+  /** Index into the owned-skills list for the auto-skill cycle. */
+  private skillCycleIdx = 0;
   bossEncounterTime = 0;
   /** Minimum prestige_points_preview required to trigger auto-prestige. */
   autoPrestigeThreshold = 5;
@@ -1636,13 +1642,13 @@ export class GameState {
   }
 
   /** Activates a purchased combat skill for the lead character if off cooldown. Returns serialized JSON. */
-  activateSkill(skillId: string): string {
-    if (!((this.guildUpgrades[skillId] ?? 0) > 0)) return this.respond();
+  private doActivateSkill(skillId: string): boolean {
+    if (!((this.guildUpgrades[skillId] ?? 0) > 0)) return false;
     const def = SKILL_DEFS[skillId];
-    if (!def) return this.respond();
+    if (!def) return false;
     const caster = this.party.team.find(c => c.characterClass === def.class);
-    if (!caster) return this.respond();
-    if ((this.skillCooldowns[skillId] ?? 0) > 0) return this.respond();
+    if (!caster) return false;
+    if ((this.skillCooldowns[skillId] ?? 0) > 0) return false;
     this.skillCooldowns[skillId] = def.cooldownKills;
     if (def.durationKills > 0) this.activeEffects[skillId] = def.durationKills;
     this.lifetimeSkillActivations += 1;
@@ -1653,6 +1659,11 @@ export class GameState {
       }
       this.addLog(`Holy light surges — party healed 50% max HP!`);
     }
+    return true;
+  }
+
+  activateSkill(skillId: string): string {
+    this.doActivateSkill(skillId);
     return this.respond();
   }
 
@@ -1680,6 +1691,12 @@ export class GameState {
       }
     }
     return result;
+  }
+
+  /** Toggles the auto-skill cycling on or off. Returns serialized JSON. */
+  toggleAutoSkill(): string {
+    this.autoSkillEnabled = !this.autoSkillEnabled;
+    return this.respond();
   }
 
   /** Toggles auto-prestige and sets the minimum preview threshold. Returns serialized JSON. */
@@ -1811,6 +1828,8 @@ export class GameState {
       achievement_progress_ts: this._achCacheTime,
       auto_prestige_enabled: this.autoPrestigeEnabled,
       auto_prestige_threshold: this.autoPrestigeThreshold,
+      auto_skill_enabled: this.autoSkillEnabled,
+      all_skills_unlocked: Object.keys(SKILL_DEFS).every(id => (this.guildUpgrades[id] ?? 0) > 0),
       boss_enrage_time: this.bossEncounterTime,
       boss_enrage_mult: this.bossEnrageMult,
       retired_heroes: [...this.retiredHeroes],
@@ -1959,6 +1978,17 @@ export class GameState {
     for (const key of Object.keys(this.skillCooldowns)) {
       this.skillCooldowns[key] -= 1;
       if (this.skillCooldowns[key] <= 0) delete this.skillCooldowns[key];
+    }
+    if (this.autoSkillEnabled) {
+      const owned = Object.keys(SKILL_DEFS).filter(id => (this.guildUpgrades[id] ?? 0) > 0);
+      const n = owned.length;
+      for (let i = 0; i < n; i++) {
+        const idx = (this.skillCycleIdx + i) % n;
+        if (this.doActivateSkill(owned[idx])) {
+          this.skillCycleIdx = (idx + 1) % n;
+          break;
+        }
+      }
     }
     const name = this.enemy.name;
     this.lifetimeEnemyKills[name] = (this.lifetimeEnemyKills[name] ?? 0) + 1;
@@ -2425,6 +2455,7 @@ export class GameState {
     gs.selectedBorder = d.selected_border ?? "none";
     gs.autoPrestigeEnabled = d.auto_prestige_enabled ?? false;
     gs.autoPrestigeThreshold = d.auto_prestige_threshold ?? 5;
+    gs.autoSkillEnabled = d.auto_skill_enabled ?? false;
     gs.bossEncounterTime = d.boss_enrage_time ?? 0;
     gs.retiredHeroes = [...(d.retired_heroes ?? [])];
     gs.retirementCount = d.retirement_count ?? 0;
