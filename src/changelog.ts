@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.24";
+export const VERSION = "v2.32.25";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.25",
+    date: "2026-05-25",
+    changes: [
+      "Mobile: upgrade panel now shows a compact grid — stat names down, hero names across, one cost button per cell — instead of stacked per-character cards (fixes #43)",
+    ],
+  },
   {
     version: "v2.32.24",
     date: "2026-05-25",

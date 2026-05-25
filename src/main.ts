@@ -969,6 +969,8 @@ function renderUpgrades(state: GameStateDict): void {
   const structureKey = JSON.stringify(state.upgrades);
   if (structureKey !== upgradeKey) {
     upgradeKey = structureKey;
+
+    // ── Desktop cards ──────────────────────────────────────────────────────
     $("upgrade-cards").innerHTML = state.party
       .map((c) => {
         const ups = state.upgrades[c.name];
@@ -997,10 +999,39 @@ function renderUpgrades(state: GameStateDict): void {
         </div>`;
       })
       .join("");
+
+    // ── Mobile grid (stats down, heroes across) ───────────────────────────
+    const cols = state.party.length;
+    const statOrder = Object.keys(UPGRADE_LABELS);
+    const gridEl = document.getElementById("upgrade-grid")!;
+    gridEl.style.gridTemplateColumns = `auto repeat(${cols}, 1fr)`;
+
+    // Header row: empty corner + one name per character
+    const headerCells = state.party.map(c =>
+      `<div class="ug-char-header">${c.name.split(" ")[0]}</div>`
+    ).join("");
+
+    // Stat rows: label cell + one button per character
+    const statRows = statOrder.map(utype => {
+      const meta = UPGRADE_LABELS[utype];
+      const btnCells = state.party.map(c => {
+        const u = state.upgrades[c.name]?.[utype as keyof typeof state.upgrades[string]];
+        if (!u) return `<div class="ug-cell ug-empty"></div>`;
+        return `<button class="upgrade-btn ug-btn"
+            data-action="upgrade"
+            data-char="${c.name}"
+            data-type="${utype}"
+            data-cost="${u.cost}"
+            title="${meta.label} — ${c.name} (Lv ${u.level})">${formatNumber(u.cost)}g</button>`;
+      }).join("");
+      return `<div class="ug-stat-label">${spr(meta.icon)} ${meta.label}</div>${btnCells}`;
+    }).join("");
+
+    gridEl.innerHTML = `<div class="ug-corner"></div>${headerCells}${statRows}`;
   }
 
-  // Update only disabled state in-place so gold changes never destroy the DOM
-  $("upgrade-cards").querySelectorAll<HTMLButtonElement>(".upgrade-btn").forEach(btn => {
+  // Update disabled state for both layouts in one pass
+  $("upgrades-panel").querySelectorAll<HTMLButtonElement>(".upgrade-btn").forEach(btn => {
     btn.disabled = state.gold < parseInt(btn.dataset.cost!, 10);
   });
 }

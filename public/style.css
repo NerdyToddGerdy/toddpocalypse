@@ -1565,6 +1565,53 @@ main {
 .upgrade-btn:hover:not(:disabled) { background: var(--accent); color: #1a1005; }
 .upgrade-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
+/* ── Mobile upgrade grid (hidden on desktop) ── */
+#upgrade-grid { display: none; }
+
+@media (max-width: 1280px) {
+    #upgrade-cards { display: none; }
+    #upgrade-grid {
+        display: grid;
+        gap: 3px;
+        width: 100%;
+    }
+    .ug-corner { /* top-left empty cell */ }
+    .ug-char-header {
+        font-size: 0.62rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        text-align: center;
+        padding: 4px 2px 3px;
+        border-bottom: 1px solid var(--border);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .ug-stat-label {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.68rem;
+        color: var(--muted);
+        padding: 2px 4px 2px 0;
+        white-space: nowrap;
+    }
+    .ug-btn {
+        padding: 6px 2px;
+        font-size: 0.68rem;
+        font-weight: 700;
+        width: 100%;
+        border-radius: 4px;
+        text-align: center;
+    }
+    .ug-empty {
+        background: none;
+        border: none;
+    }
+}
+
 /* ── Combat log ── */
 #log-panel {
     background: var(--surface);
