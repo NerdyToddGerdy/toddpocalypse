@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.45";
+export const VERSION = "v2.32.46";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.46",
+    date: "2026-05-25",
+    changes: [
+      "Constellation tooltip fixed: switched to viewport-fixed positioning so it tracks the cursor correctly regardless of scroll",
+      "Rune/artifact char-header now fills full card width (flex: 1 on info column)",
+      "Boss enrage step (time between stacks) also scales down −1s per 5 floors, min 5s — matching the trigger reduction",
+    ],
+  },
   {
     version: "v2.32.45",
     date: "2026-05-25",

@@ -4326,6 +4326,7 @@ footer {
     display: flex;
     flex-direction: column;
     gap: 1px;
+    flex: 1;
     min-width: 0;
 }
 .char-mini-name {
@@ -5484,7 +5485,7 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
 
 /* Hover tooltip */
 #cdoll-tooltip {
-    position: absolute; z-index: 200; pointer-events: none;
+    position: fixed; z-index: 200; pointer-events: none;
     background: rgba(14,12,22,0.97);
     border: 1px solid rgba(160,120,40,0.45);
     border-radius: 8px; padding: 9px 12px;

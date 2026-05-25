@@ -231,8 +231,10 @@ export const ENTANGLE_REDUCTION = 0.60;
 export const BOSS_ENRAGE_TRIGGER = 15;
 /** Minimum enrage trigger — reduced by 1s per 5 dungeon floors, but never below this. */
 export const BOSS_ENRAGE_TRIGGER_MIN = 5;
-/** Seconds between enrage multiplier steps after trigger. */
+/** Seconds between enrage multiplier steps after trigger (at floor 1). */
 export const BOSS_ENRAGE_STEP = 10;
+/** Minimum enrage step — reduced by 1s per 5 dungeon floors, same schedule as trigger. */
+export const BOSS_ENRAGE_STEP_MIN = 5;
 
 export const BATTLE_CRY_MULT    = 2.0;
 export const SHADOW_STRIKE_MULT = 3.0;
@@ -1165,11 +1167,13 @@ export class GameState {
   }
 
   /** Attack multiplier applied to boss/elite after the effective enrage trigger.
-   *  Trigger shrinks by 1s per 5 dungeon floors, floored at BOSS_ENRAGE_TRIGGER_MIN. */
+   *  Both trigger and step shrink by 1s per 5 dungeon floors, each floored at 5s. */
   get bossEnrageMult(): number {
-    const trigger = Math.max(BOSS_ENRAGE_TRIGGER_MIN, BOSS_ENRAGE_TRIGGER - Math.floor(this.dungeonLevel / 5));
+    const reduction = Math.floor(this.dungeonLevel / 5);
+    const trigger = Math.max(BOSS_ENRAGE_TRIGGER_MIN, BOSS_ENRAGE_TRIGGER - reduction);
+    const step    = Math.max(BOSS_ENRAGE_STEP_MIN,    BOSS_ENRAGE_STEP    - reduction);
     if (this.bossEncounterTime < trigger) return 1.0;
-    const stacks = Math.floor((this.bossEncounterTime - trigger) / BOSS_ENRAGE_STEP) + 1;
+    const stacks = Math.floor((this.bossEncounterTime - trigger) / step) + 1;
     return 1.5 ** stacks;
   }
 

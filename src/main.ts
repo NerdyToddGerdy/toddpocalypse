@@ -1686,11 +1686,8 @@ function initConstellationPanel(): void {
       <div class="cdoll-tt-desc">${def.description}</div>
     `;
     tooltip.hidden = false;
-    const rect = panel.getBoundingClientRect();
-    const x = e.clientX - rect.left + 14;
-    const y = e.clientY - rect.top + 14;
-    tooltip.style.left = `${x}px`;
-    tooltip.style.top = `${y}px`;
+    tooltip.style.left = `${e.clientX + 14}px`;
+    tooltip.style.top = `${e.clientY + 14}px`;
   });
 
   panel.addEventListener("mouseleave", () => { tooltip.hidden = true; });

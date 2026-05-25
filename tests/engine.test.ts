@@ -23,6 +23,7 @@ import {
   BOSS_ENRAGE_TRIGGER,
   BOSS_ENRAGE_STEP,
   BOSS_ENRAGE_TRIGGER_MIN,
+  BOSS_ENRAGE_STEP_MIN,
   LEGACY_UNLOCKS,
   COMPANION_NAMES,
   BOSS_LIFESTEAL_MULT,
@@ -1325,6 +1326,39 @@ describe("boss enrage", () => {
     expect(gs.bossEnrageMult).toBe(1.0);
     gs.bossEncounterTime = BOSS_ENRAGE_TRIGGER_MIN;
     expect(gs.bossEnrageMult).toBeCloseTo(1.5);
+  });
+
+  it("effective step at floor 1 is full 10s", () => {
+    const gs = make();
+    gs.dungeonLevel = 1;
+    // At floor 1: trigger=15, step=10. Time=25 → (25-15)/10 = 1 step → 1.5^2 = 2.25
+    gs.bossEncounterTime = BOSS_ENRAGE_TRIGGER + BOSS_ENRAGE_STEP;
+    expect(gs.bossEnrageMult).toBeCloseTo(2.25);
+  });
+
+  it("effective step at floor 5 is 9s", () => {
+    const gs = make();
+    gs.dungeonLevel = 5;
+    // trigger=14, step=9. At t=23 → (23-14)/9=1 step → 1.5^2=2.25
+    gs.bossEncounterTime = 14 + 9;
+    expect(gs.bossEnrageMult).toBeCloseTo(2.25);
+    // At t=22 (< 1 full step) → only 1 stack → 1.5^1=1.5
+    gs.bossEncounterTime = 14 + 8.9;
+    expect(gs.bossEnrageMult).toBeCloseTo(1.5);
+  });
+
+  it("effective step never drops below BOSS_ENRAGE_TRIGGER_MIN", () => {
+    const gs = make();
+    gs.dungeonLevel = 200;
+    // trigger=5, step=5. At t=10 → (10-5)/5=1 → 1.5^2=2.25
+    gs.bossEncounterTime = 10;
+    expect(gs.bossEnrageMult).toBeCloseTo(2.25);
+    // At t=14.9 → (14.9-5)/5=1.98 → floor=1 → 1.5^2=2.25
+    gs.bossEncounterTime = 14.9;
+    expect(gs.bossEnrageMult).toBeCloseTo(2.25);
+    // At t=15 → (15-5)/5=2 → 1.5^3=3.375
+    gs.bossEncounterTime = 15;
+    expect(gs.bossEnrageMult).toBeCloseTo(3.375);
   });
 });
 
