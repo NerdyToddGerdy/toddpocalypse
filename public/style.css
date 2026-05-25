@@ -5475,6 +5475,8 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
 
 /* ── Gear pdoll squares ──────────────────────────────────────────────────── */
 .gear-pdoll-grid {
+    grid-column: 1 / -1;
+    grid-row: 2;
     padding: 6px 0 4px;
 }
 

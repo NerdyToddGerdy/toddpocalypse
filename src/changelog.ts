@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.37";
+export const VERSION = "v2.32.38";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.38",
+    date: "2026-05-25",
+    changes: [
+      "Gear pdoll grid now spans the full character card width, spacing squares evenly across the card",
+    ],
+  },
   {
     version: "v2.32.37",
     date: "2026-05-25",
