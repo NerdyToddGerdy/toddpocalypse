@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.38";
+export const VERSION = "v2.32.39";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.39",
+    date: "2026-05-25",
+    changes: [
+      "Bosses gain bonus HP based on party size (×√partySize): solo 1×, 2-member ×1.4, 4-member ×2.0",
+    ],
+  },
   {
     version: "v2.32.38",
     date: "2026-05-25",

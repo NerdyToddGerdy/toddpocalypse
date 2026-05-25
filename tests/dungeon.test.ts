@@ -223,6 +223,26 @@ describe("generateBoss", () => {
   it("BOSS_DUNGEON_MULT_BASE is exported and greater than 1", () => {
     expect(BOSS_DUNGEON_MULT_BASE).toBeGreaterThan(1);
   });
+
+  it("partySize=1 (default) produces the same HP as omitting partySize", () => {
+    expect(generateBoss(10, 0, 1).max_hp).toBe(generateBoss(10, 0).max_hp);
+  });
+
+  it("larger party size increases boss HP", () => {
+    const hp1 = generateBoss(10, 0, 1).max_hp;
+    const hp4 = generateBoss(10, 0, 4).max_hp;
+    expect(hp4).toBeGreaterThan(hp1);
+  });
+
+  it("boss HP scales by sqrt(partySize)", () => {
+    const hp1 = generateBoss(10, 0, 1).max_hp;
+    const hp4 = generateBoss(10, 0, 4).max_hp;
+    expect(hp4 / hp1).toBeCloseTo(Math.sqrt(4), 1);
+  });
+
+  it("partySize does not affect attack_dps (attack already scales in tick)", () => {
+    expect(generateBoss(10, 0, 1).attack_dps).toBe(generateBoss(10, 0, 4).attack_dps);
+  });
 });
 
 describe("BOSS_NOUNS", () => {

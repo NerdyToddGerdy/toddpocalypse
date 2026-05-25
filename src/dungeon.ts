@@ -141,11 +141,12 @@ export function generateEnemy(dungeonLevel: number, dungeonIndex = 0): Enemy {
 }
 
 /** Generates a scaled floor boss with higher HP and attack than regular enemies.
- *  Boss stats scale exponentially with dungeonIndex (×BOSS_DUNGEON_MULT_BASE per dungeon). */
-export function generateBoss(dungeonLevel: number, dungeonIndex = 0): Enemy {
+ *  Boss stats scale exponentially with dungeonIndex (×BOSS_DUNGEON_MULT_BASE per dungeon).
+ *  HP also scales by √partySize so larger parties face a tankier boss. */
+export function generateBoss(dungeonLevel: number, dungeonIndex = 0, partySize = 1): Enemy {
   const mult = Math.pow(BOSS_DUNGEON_MULT_BASE, dungeonIndex);
   const name = `The ${pick(BOSS_TITLES)} ${pick(ENEMY_NOUNS)} ${pick(BOSS_NOUNS)}`;
-  const hp = Math.floor(100 * Math.pow(1.3, dungeonLevel) * mult);
+  const hp = Math.floor(100 * Math.pow(1.3, dungeonLevel) * mult * Math.sqrt(partySize));
   const xpReward = Math.max(5, dungeonLevel * 9 + 5);
   const goldReward = Math.max(5, Math.floor(dungeonLevel * 15 * (1 + dungeonIndex * 0.15) * (1 + dungeonLevel * GOLD_LEVEL_MULT)));
   const attackDps = Math.round(Math.pow(dungeonLevel, ENEMY_ATTACK_EXPONENT) * 6.5 * mult * 10) / 10;
