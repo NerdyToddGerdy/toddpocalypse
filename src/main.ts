@@ -464,10 +464,11 @@ function updateTabVisibility(state: GameStateDict): void {
   if (!constellationUnlocked) switchLeftColSub("party");
 
   // Mobile tabs
-  const mobileGuild = document.querySelector<HTMLElement>(".mobile-tab-btn[data-tab='guild']");
-  if (mobileGuild) mobileGuild.hidden = !guildUnlocked;
+  const mobilePrestige = document.querySelector<HTMLElement>(".mobile-tab-btn[data-tab='prestige']");
+  const mobileGuild    = document.querySelector<HTMLElement>(".mobile-tab-btn[data-tab='guild']");
+  if (mobilePrestige) mobilePrestige.hidden = !prestigeUnlocked;
+  if (mobileGuild)    mobileGuild.hidden    = !guildUnlocked;
 
-  // Mobile shop panel visibility — hide until unlocked so the shop tab doesn't show empty sections
   $("prestige-panel").classList.toggle("prestige-locked", !prestigeUnlocked);
   $("guild-hall-panel").classList.toggle("guild-locked", !guildUnlocked);
 }
@@ -2497,7 +2498,9 @@ function updateShopBadge(state: GameStateDict): void {
     const dungeonReq = GUILD_HALL_DUNGEON_REQ[type] ?? 0;
     return owned < costs.length && state.dungeon_index >= dungeonReq && state.gold >= costs[owned];
   });
-  badge.hidden = !(canBuyUpgrade || canBuyPrestige || canBuyGuild);
+  badge.hidden = !canBuyPrestige;
+  const upgradeTabBadge = document.getElementById("upgrade-tab-badge");
+  if (upgradeTabBadge) upgradeTabBadge.hidden = !canBuyUpgrade;
   const stabPrestigeBadge = document.getElementById("stab-prestige-badge");
   if (stabPrestigeBadge) stabPrestigeBadge.hidden = !canBuyPrestige;
   const stabGuildBadge = document.getElementById("stab-guild-badge");
@@ -3039,10 +3042,11 @@ function slotLabel(slot: string): string {
 }
 
 const TAB_PANELS: Record<string, string[]> = {
-  combat:        ["enemy-panel", "party-panel", "constellation-panel", "loot-panel"],
-  shop:          ["upgrades-panel", "prestige-panel"],
-  guild:         ["guild-hall-panel"],
-  log:           ["log-panel"],
+  combat:   ["enemy-panel", "party-panel", "constellation-panel", "loot-panel"],
+  upgrade:  ["upgrades-panel"],
+  prestige: ["prestige-panel"],
+  guild:    ["guild-hall-panel"],
+  log:      ["log-panel"],
 };
 
 const SIDEBAR_TAB_PANELS: Record<string, string[]> = {
@@ -3055,7 +3059,6 @@ const SIDEBAR_TAB_PANELS: Record<string, string[]> = {
 };
 
 let applyCombatSubTab: (() => void) | null = null;
-let applyShopSubTab: (() => void) | null = null;
 
 function initCombatSubTabs(): void {
   const bar = document.getElementById("combat-subtabs")!;
@@ -3079,33 +3082,10 @@ function initCombatSubTabs(): void {
   switchSub(saved);
 }
 
-function initShopSubTabs(): void {
-  const bar = document.getElementById("shop-subtabs")!;
-  const mainEl = document.querySelector("main")!;
-  const saved = localStorage.getItem("shop-sub-tab") ?? "upgrades";
-
-  function switchSub(which: string): void {
-    bar.querySelectorAll<HTMLElement>(".shop-stab").forEach(b =>
-      b.classList.toggle("active", b.dataset.shopStab === which)
-    );
-    mainEl.dataset.shopSub = which;
-    localStorage.setItem("shop-sub-tab", which);
-  }
-
-  applyShopSubTab = () => switchSub(mainEl.dataset.shopSub ?? saved);
-
-  bar.querySelectorAll<HTMLElement>(".shop-stab").forEach(btn =>
-    btn.addEventListener("click", () => switchSub(btn.dataset.shopStab!))
-  );
-
-  switchSub(saved);
-}
-
 function initMobileTabs(): void {
   const allPanelIds = Object.values(TAB_PANELS).flat();
   const tabs = document.querySelectorAll<HTMLElement>(".mobile-tab-btn");
   const combatSubBar = document.getElementById("combat-subtabs")!;
-  const shopSubBar = document.getElementById("shop-subtabs")!;
 
   function showTab(tab: string): void {
     allPanelIds.forEach(id => document.getElementById(id)?.classList.remove("tab-visible"));
@@ -3113,9 +3093,7 @@ function initMobileTabs(): void {
     tabs.forEach(btn => btn.classList.toggle("active", btn.dataset.tab === tab));
     const isMobile = window.matchMedia("(max-width: 1280px)").matches;
     combatSubBar.style.display = isMobile && tab === "combat" ? "flex" : "none";
-    shopSubBar.style.display = isMobile && tab === "shop" ? "flex" : "none";
     if (tab === "combat") applyCombatSubTab?.();
-    if (tab === "shop") applyShopSubTab?.();
   }
 
   tabs.forEach(btn => btn.addEventListener("click", () => showTab(btn.dataset.tab!)));
@@ -3786,7 +3764,6 @@ document.addEventListener("DOMContentLoaded", () => {
   initEnemySticky();
   initSaveBackup();
   initCombatSubTabs();
-  initShopSubTabs();
   initMobileTabs();
   initRuneSlotPanel();
   initConstellationPanel();

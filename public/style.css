@@ -2166,10 +2166,9 @@ main {
 #mobile-tabs { display: none; }
 #mobile-party-hp-bar { display: none; }
 
-/* Sub-tab bars — only used on mobile; JS shows/hides via style.display */
-#combat-subtabs,
-#shop-subtabs {
-    display: none; /* hidden on desktop always */
+/* Combat sub-tab bar — only used on mobile; JS shows/hides via style.display */
+#combat-subtabs {
+    display: none;
 }
 
 @media (max-width: 1280px) {
@@ -2400,37 +2399,6 @@ main {
     main[data-combat-sub="party"] #loot-panel.tab-visible { display: none !important; }
     main[data-combat-sub="equipment"] #party-panel.tab-visible { display: none !important; }
 
-    /* Shop sub-tab bar */
-    #shop-subtabs {
-        position: sticky;
-        top: 0;
-        z-index: 40;
-        background: var(--surface);
-        border-bottom: 1px solid var(--border);
-        border-radius: 8px 8px 0 0;
-        margin-bottom: 8px;
-        flex-shrink: 0;
-    }
-    .shop-stab {
-        flex: 1;
-        padding: 9px 0;
-        background: none;
-        border: none;
-        border-bottom: 2px solid transparent;
-        color: var(--muted);
-        font-size: 0.82rem;
-        letter-spacing: 0.3px;
-        cursor: pointer;
-        transition: color 0.15s, border-color 0.15s;
-    }
-    .shop-stab.active {
-        color: var(--accent2);
-        border-bottom-color: var(--accent2);
-    }
-    /* Hide inactive panel based on shop sub-tab selection */
-    main[data-shop-sub="upgrades"] #prestige-panel.tab-visible { display: none !important; }
-    main[data-shop-sub="renown"] #upgrades-panel.tab-visible { display: none !important; }
-
     #mobile-tabs {
         display: flex;
         position: fixed;
@@ -2459,7 +2427,8 @@ main {
     }
 
     .mobile-tab-btn span:not(.tab-badge) {
-        display: none;
+        font-size: 0.6rem;
+        letter-spacing: 0.2px;
     }
 
     .mobile-tab-btn.active {

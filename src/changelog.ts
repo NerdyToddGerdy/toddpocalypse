@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.27";
+export const VERSION = "v2.32.28";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.28",
+    date: "2026-05-25",
+    changes: [
+      "Mobile: bottom nav bar now has 5 tabs — Combat, Upgrade, Prestige, Guild, Settings — with visible labels; Prestige and Guild tabs hidden until unlocked (closes #39)",
+      "Mobile: removed Upgrades/Renown sub-tabs from Shop; Upgrade and Prestige are now top-level tabs",
+    ],
+  },
   {
     version: "v2.32.27",
     date: "2026-05-25",

@@ -134,12 +134,6 @@
     <button class="combat-stab" data-combat-stab="equipment">🎒 Equipment</button>
   </div>
 
-  <!-- Mobile shop sub-tabs (Upgrades / Hall of Renown) — JS shows/hides this -->
-  <div id="shop-subtabs">
-    <button class="shop-stab active" data-shop-stab="upgrades">📈 Upgrades</button>
-    <button class="shop-stab" data-shop-stab="renown">★ Renown</button>
-  </div>
-
   <!-- Left column wrapper -->
   <div id="left-col">
 
@@ -386,9 +380,10 @@
 </div>
 
 <nav id="mobile-tabs">
-  <button class="mobile-tab-btn active" data-tab="combat"><span class="spr spr-sword" aria-hidden="true"></span><span>Combat</span></button>
-  <button class="mobile-tab-btn" data-tab="shop">🛒<span>Shop</span><span id="shop-tab-badge" class="tab-badge" hidden></span></button>
-  <button class="mobile-tab-btn" data-tab="guild"><span class="spr spr-sword" aria-hidden="true"></span><span>Guild</span><span id="guild-tab-badge" class="tab-badge" hidden></span></button>
+  <button class="mobile-tab-btn active" data-tab="combat">⚔<span>Combat</span></button>
+  <button class="mobile-tab-btn" data-tab="upgrade">📈<span>Upgrade</span><span id="upgrade-tab-badge" class="tab-badge" hidden></span></button>
+  <button class="mobile-tab-btn" data-tab="prestige">✦<span>Prestige</span><span id="shop-tab-badge" class="tab-badge" hidden></span></button>
+  <button class="mobile-tab-btn" data-tab="guild">🏰<span>Guild</span><span id="guild-tab-badge" class="tab-badge" hidden></span></button>
   <button class="mobile-tab-btn" id="mobile-settings-tab-btn">⚙<span>Settings</span></button>
 </nav>
 
