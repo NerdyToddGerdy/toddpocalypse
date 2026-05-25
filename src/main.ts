@@ -1017,12 +1017,13 @@ function renderUpgrades(state: GameStateDict): void {
       const btnCells = state.party.map(c => {
         const u = state.upgrades[c.name]?.[utype as keyof typeof state.upgrades[string]];
         if (!u) return `<div class="ug-cell ug-empty"></div>`;
+        const bonus = upgradeBonusLabel(utype, u.level);
         return `<button class="upgrade-btn ug-btn"
             data-action="upgrade"
             data-char="${c.name}"
             data-type="${utype}"
             data-cost="${u.cost}"
-            title="${meta.label} — ${c.name} (Lv ${u.level})">${formatNumber(u.cost)}g</button>`;
+            title="${meta.label} — ${c.name} (Lv ${u.level})">${formatNumber(u.cost)}g<span class="ug-btn-meta">Lv ${u.level}${bonus ? ` · ${bonus}` : ""}</span></button>`;
       }).join("");
       return `<div class="ug-stat-label">${spr(meta.icon)} ${meta.label}</div>${btnCells}`;
     }).join("");
