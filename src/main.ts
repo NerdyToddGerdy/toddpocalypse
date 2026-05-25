@@ -1738,12 +1738,23 @@ function runeStatSummary(c: CharDict): string {
 
 function charMiniHeader(c: CharDict): string {
   const heroImg = HERO_IMG[c.character_class] ?? HERO_IMG.fighter;
+  const hpPct = c.max_health > 0 ? Math.max(0, Math.round((c.health / c.max_health) * 100)) : 0;
+  const xpPct = c.xp_to_next > 0 ? Math.round((c.xp / c.xp_to_next) * 100) : 0;
+  const hpLow = hpPct <= 25;
   return `<div class="char-mini-header">
     <img class="char-mini-sprite" src="${heroImg}" alt="${c.character_class}">
     <div class="char-mini-info">
       <div class="char-mini-name">${c.name}</div>
       <div class="char-mini-class">${c.character_class} · <span class="char-level">Lv ${c.level}</span></div>
       <div class="char-mini-dps">${c.dps.toFixed(1)} DPS</div>
+      <div class="char-mini-bars">
+        <div class="char-mini-bar-wrap">
+          <div class="char-mini-bar hp-fill${hpLow ? " hp-bar-low" : ""}" style="width:${hpPct}%"></div>
+        </div>
+        <div class="char-mini-bar-wrap">
+          <div class="char-mini-bar xp-fill" style="width:${xpPct}%"></div>
+        </div>
+      </div>
     </div>
   </div>`;
 }

@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.42";
+export const VERSION = "v2.32.43";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.43",
+    date: "2026-05-25",
+    changes: [
+      "Rune and artifact char-headers now include thin HP and XP bars below the DPS line",
+    ],
+  },
   {
     version: "v2.32.42",
     date: "2026-05-25",

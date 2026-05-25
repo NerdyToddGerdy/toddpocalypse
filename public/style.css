@@ -4346,6 +4346,32 @@ footer {
     color: var(--accent);
     font-weight: 600;
 }
+.char-mini-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 4px;
+}
+.char-mini-bar-wrap {
+    height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+}
+.char-mini-bar {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+.char-mini-bar.hp-fill {
+    background: linear-gradient(90deg, var(--hp-green), #86efac);
+}
+.char-mini-bar.hp-fill.hp-bar-low {
+    background: linear-gradient(90deg, #ef4444, #f87171);
+}
+.char-mini-bar.xp-fill {
+    background: linear-gradient(90deg, var(--xp-blue), #60a5fa);
+}
 
 .prune-slots {
     display: flex;
