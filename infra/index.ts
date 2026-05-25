@@ -89,6 +89,7 @@ new aws.iam.RolePolicyAttachment("lambda-dynamo-attach", {
 
 // ── Lambda: GET /save ────────────────────────────────────────────────────────
 const getSaveFn = new aws.lambda.Function("toddpocalypse-getSave", {
+    reservedConcurrentExecutions: 5,
     name: "toddpocalypse-getSave",
     runtime: aws.lambda.Runtime.NodeJS20dX,
     role: lambdaRole.arn,
@@ -132,6 +133,7 @@ exports.handler = async (event) => {
 
 // ── Lambda: PUT /save ────────────────────────────────────────────────────────
 const putSaveFn = new aws.lambda.Function("toddpocalypse-putSave", {
+    reservedConcurrentExecutions: 5,
     name: "toddpocalypse-putSave",
     runtime: aws.lambda.Runtime.NodeJS20dX,
     role: lambdaRole.arn,
@@ -249,6 +251,10 @@ const stage = new aws.apigatewayv2.Stage("default-stage", {
     apiId: api.id,
     name: "$default",
     autoDeploy: true,
+    defaultRouteSettings: {
+        throttlingBurstLimit: 20,
+        throttlingRateLimit: 10,
+    },
 });
 
 new aws.lambda.Permission("getSave-apigw", {
