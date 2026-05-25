@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.26";
+export const VERSION = "v2.32.27";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.27",
+    date: "2026-05-25",
+    changes: [
+      "Feats panel: feats for locked features (Guild Hall, Constellations, Runes, Artifacts, Skills, Party slots) are hidden until the related feature is unlocked",
+    ],
+  },
   {
     version: "v2.32.26",
     date: "2026-05-25",

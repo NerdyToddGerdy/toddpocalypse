@@ -2564,6 +2564,50 @@ let featsKey = "";
 let featsFilterKey = "";
 let featsFilter: "all" | "in_progress" | "completed" = "all";
 
+// Feats that should remain hidden until their related feature is unlocked.
+// Omitted IDs are always visible.
+const FEAT_VISIBILITY: Record<string, (s: GameStateDict) => boolean> = (() => {
+  const hasGuildHall  = (s: GameStateDict) => (s.prestige_upgrades?.["guild_hall_access"] ?? 0) > 0;
+  const hasConstell   = (s: GameStateDict) => (s.guild_upgrades?.["constellation_access"] ?? 0) > 0;
+  const hasRuneForge  = (s: GameStateDict) => (s.guild_upgrades?.["rune_forge"] ?? 0) > 0;
+  const hasAnySkill   = (s: GameStateDict) => Object.keys(s.guild_upgrades ?? {}).some(k => k.startsWith("skill_") && (s.guild_upgrades![k] ?? 0) > 0);
+  const hasPartySlot2 = (s: GameStateDict) => (s.prestige_upgrades?.["party_slot_2"] ?? 0) > 0;
+  const hasPartySlot6 = (s: GameStateDict) => (s.prestige_upgrades?.["party_slot_6"] ?? 0) > 0;
+  return {
+    // Guild Hall
+    guild_max:             hasGuildHall,
+    guild_upgrades_tiered: hasGuildHall,
+    // Party expansion
+    not_alone:             hasPartySlot2,
+    band_of_heroes:        hasPartySlot2,
+    full_roster:           hasPartySlot6,
+    // Skills
+    battle_ready:          hasAnySkill,
+    arsenal:               hasAnySkill,
+    tactician_tiered:      hasAnySkill,
+    // Runes
+    arcane_brand:          hasRuneForge,
+    forge_master:          hasRuneForge,
+    fully_attuned:         hasRuneForge,
+    ancient_power:         hasRuneForge,
+    gem_collector:         hasRuneForge,
+    rune_trader:           hasRuneForge,
+    // Artifacts (crafted via rune forge)
+    relic_finder:          hasRuneForge,
+    archaeologist_tiered:  hasRuneForge,
+    artifact_max_level:    hasRuneForge,
+    // Constellations
+    first_light:           hasConstell,
+    stargazer_tiered:      hasConstell,
+    constellation_master:  hasConstell,
+  };
+})();
+
+function isFeatVisible(def: typeof ACHIEVEMENTS[0], state: GameStateDict): boolean {
+  const check = FEAT_VISIBILITY[def.id];
+  return !check || check(state);
+}
+
 function renderFeats(state: GameStateDict): void {
   // Filter tabs live in a separate stable element so re-renders of feat content don't destroy them
   if (featsFilter !== featsFilterKey) {
@@ -2576,7 +2620,10 @@ function renderFeats(state: GameStateDict): void {
   }
 
   const unlockedCount = state.achievements_unlocked?.length ?? 0;
-  const newKey = `${unlockedCount}|${featsFilter}|${state.achievement_progress_ts ?? 0}`;
+  const pu = state.prestige_upgrades ?? {};
+  const gu = state.guild_upgrades ?? {};
+  const visKey = `${pu["guild_hall_access"] ?? 0}_${pu["party_slot_2"] ?? 0}_${pu["party_slot_6"] ?? 0}_${gu["constellation_access"] ?? 0}_${gu["rune_forge"] ?? 0}_${Object.keys(gu).some(k => k.startsWith("skill_") && (gu[k] ?? 0) > 0) ? 1 : 0}`;
+  const newKey = `${unlockedCount}|${featsFilter}|${state.achievement_progress_ts ?? 0}|${visKey}`;
   if (newKey === featsKey) return;
   featsKey = newKey;
 
@@ -2586,7 +2633,9 @@ function renderFeats(state: GameStateDict): void {
   const categories = ["combat", "explorer", "collector", "wealth", "prestige", "guild", "runes"];
   const byCategory: Record<string, typeof ACHIEVEMENTS> = {};
   for (const cat of categories) byCategory[cat] = [];
-  for (const def of ACHIEVEMENTS) byCategory[def.category]?.push(def);
+  for (const def of ACHIEVEMENTS) {
+    if (isFeatVisible(def, state)) byCategory[def.category]?.push(def);
+  }
 
   function featRewardChip(r: { type: string; value?: number; title?: string; cosmetic?: string }, tierLabel?: string): string {
     let text = "";
