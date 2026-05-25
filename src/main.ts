@@ -1736,6 +1736,18 @@ function runeStatSummary(c: CharDict): string {
   return chips || `<span class="pdoll-stats-empty">No runes socketed</span>`;
 }
 
+function charMiniHeader(c: CharDict): string {
+  const heroImg = HERO_IMG[c.character_class] ?? HERO_IMG.fighter;
+  return `<div class="char-mini-header">
+    <img class="char-mini-sprite" src="${heroImg}" alt="${c.character_class}">
+    <div class="char-mini-info">
+      <div class="char-mini-name">${c.name}</div>
+      <div class="char-mini-class">${c.character_class} · <span class="char-level">Lv ${c.level}</span></div>
+      <div class="char-mini-dps">${c.dps.toFixed(1)} DPS</div>
+    </div>
+  </div>`;
+}
+
 function renderPartyRunePanel(runeInv: Rune[], party: CharDict[], runeForge: number): void {
   lastRuneInv = runeInv;
   const el = $("party-rune-panel");
@@ -1780,9 +1792,9 @@ function renderPartyRunePanel(runeInv: Rune[], party: CharDict[], runeForge: num
     }).join("");
 
     return `<div class="prune-char-block">
-      <div class="pdoll-stats-bar">${runeStatSummary(c)}</div>
-      <div class="prune-char-name">${c.name} — ${c.character_class}</div>
+      ${charMiniHeader(c)}
       <div class="pdoll-grid">${slots}</div>
+      <div class="pdoll-stats-bar">${runeStatSummary(c)}</div>
     </div>`;
   }).join("");
 
@@ -2129,7 +2141,7 @@ function renderArtifactPanel(state: GameStateDict): void {
         </div>`;
       }).join("");
       return `<div class="artifact-char-block">
-        <div class="prune-char-name">${c.name} — ${c.character_class}</div>
+        ${charMiniHeader(c)}
         <div class="art-pdoll-row">${slotBtns}</div>
       </div>`;
     }).join("");
