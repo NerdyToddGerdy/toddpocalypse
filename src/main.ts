@@ -2250,12 +2250,13 @@ function renderArtifactModalBody(state: GameStateDict): void {
   let actionsHtml = "";
   if (isEquipped) {
     actionsHtml = `
-      <div class="amodal-section amodal-sell-section">
-        <button class="amodal-unequip-btn" data-action="modal-unequip-artifact" data-char-idx="${artifactModalCharIdx}" data-slot-idx="${artifactModalSlotIdx}">
-          Unequip → return to inventory
+      <div class="amodal-section amodal-equipped-actions">
+        <button class="amodal-switch-btn" data-action="modal-switch-artifact" data-char-idx="${artifactModalCharIdx}" data-slot-idx="${artifactModalSlotIdx}">
+          ↔ Switch
         </button>
+        <button class="amodal-remove-btn" data-action="modal-unequip-artifact" data-char-idx="${artifactModalCharIdx}" data-slot-idx="${artifactModalSlotIdx}" title="Remove — return to inventory">🗑</button>
         <button class="artifact-sell-btn amodal-sell-btn" data-action="modal-sell-equipped-artifact" data-char-idx="${artifactModalCharIdx}" data-slot-idx="${artifactModalSlotIdx}">
-          Sell for ${formatNumber(def.sellValue * (inst.level + 1))}g
+          Sell ${formatNumber(def.sellValue * (inst.level + 1))}g
         </button>
       </div>`;
   } else {
@@ -4124,6 +4125,12 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (action === "unlock-node") {
       const nodeId = btn.dataset.nodeId;
       if (nodeId) { call("unlockConstellationNode", nodeId); closeConstellationNodeModal(); }
+    }
+    else if (action === "modal-switch-artifact") {
+      const charIdx = parseInt(btn.dataset.charIdx!, 10);
+      const slotIdx = parseInt(btn.dataset.slotIdx!, 10);
+      closeArtifactModal();
+      if (game) openArtifactSlotPicker(charIdx, slotIdx, JSON.parse(game.respond()) as GameStateDict);
     }
     else if (action === "modal-unequip-artifact") {
       call("unequipArtifact", parseInt(btn.dataset.charIdx!, 10), parseInt(btn.dataset.slotIdx!, 10));

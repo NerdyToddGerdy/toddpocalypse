@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.35";
+export const VERSION = "v2.32.36";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.36",
+    date: "2026-05-25",
+    changes: [
+      "Artifact detail modal (equipped): replaced Unequip button with '↔ Switch' (opens slot picker to swap) and a 🗑 trash icon button to remove back to inventory",
+    ],
+  },
   {
     version: "v2.32.35",
     date: "2026-05-25",

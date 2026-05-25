@@ -5117,19 +5117,36 @@ footer {
     border-radius: 5px;
     padding: 6px 10px;
 }
-.amodal-unequip-btn {
-    display: block;
-    width: 100%;
-    padding: 8px 12px;
-    background: rgba(255,255,255,0.06);
-    color: var(--text);
+.amodal-equipped-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.amodal-switch-btn {
+    flex: 1;
+    padding: 7px 12px;
+    background: rgba(139,92,246,0.15);
+    color: #a78bfa;
+    border: 1px solid rgba(139,92,246,0.4);
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.1s, border-color 0.1s;
+}
+.amodal-switch-btn:hover { background: rgba(139,92,246,0.28); border-color: #a78bfa; }
+.amodal-remove-btn {
+    padding: 7px 10px;
+    background: none;
+    color: var(--muted);
     border: 1px solid var(--border);
     border-radius: 6px;
-    font-size: 0.85rem;
+    font-size: 1rem;
     cursor: pointer;
-    text-align: center;
+    transition: color 0.1s, border-color 0.1s;
+    flex-shrink: 0;
 }
-.amodal-unequip-btn:hover { background: rgba(255,255,255,0.1); }
+.amodal-remove-btn:hover { color: #ef4444; border-color: rgba(239,68,68,0.5); }
 
 /* ── Player Profile Widget ─────────────────────────────────────────────── */
 .player-profile {
