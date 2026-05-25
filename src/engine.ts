@@ -478,6 +478,7 @@ export interface GameStateDict {
   gear_stash: GearItemDict[];
   artifact_inventory?: ArtifactInstance[];
   kill_streak?: number;
+  lifetime_best_kill_streak?: number;
   earned_avatars?: string[];
   earned_borders?: string[];
   selected_avatar?: string;
@@ -603,6 +604,8 @@ export class GameState {
   artifactInventory: ArtifactInstance[] = [];
   /** Consecutive kills without a party wipe (used by Berserker's Eye / Titan's Eye). */
   killStreak = 0;
+  /** Highest kill streak ever reached in a single run (never resets). */
+  lifetimeBestKillStreak = 0;
   /** Total manual clicks across all runs (never resets). */
   lifetimeClicks = 0;
   /** Set of avatar IDs the player has earned via achievements. */
@@ -1791,6 +1794,7 @@ export class GameState {
       gear_stash: (this._stashCache !== null && this._stashCache.length === this.gearStash.length ? this._stashCache : (this._stashCache = this.gearStash.map(i => i.toDict()))),
       artifact_inventory: (this._artifactInvCache !== null && this._artifactInvCache.length === this.artifactInventory.length ? this._artifactInvCache : (this._artifactInvCache = this.artifactInventory.map(a => ({ id: a.id as ArtifactEffectId, level: a.level, fuel: a.fuel })))),
       kill_streak: this.killStreak,
+      lifetime_best_kill_streak: this.lifetimeBestKillStreak,
       earned_avatars: [...this.earnedAvatars],
       earned_borders: [...this.earnedBorders],
       selected_avatar: this.selectedAvatar,
@@ -1992,6 +1996,7 @@ export class GameState {
     }
 
     this.killStreak += 1;
+    if (this.killStreak > this.lifetimeBestKillStreak) this.lifetimeBestKillStreak = this.killStreak;
     if (this.party.team.some((c, i) => c.level > levelsBeforeXp[i])) this.partyVersion++;
 
     // Druid wild_growth: heals all living members 2% maxHP on each kill
@@ -2412,6 +2417,7 @@ export class GameState {
         : { id: item.id as ArtifactEffectId, level: item.level ?? 0, fuel: item.fuel ?? 0 };
     });
     gs.killStreak = d.kill_streak ?? 0;
+    gs.lifetimeBestKillStreak = d.lifetime_best_kill_streak ?? 0;
     gs.lifetimeClicks = d.lifetime_clicks ?? 0;
     gs.earnedAvatars = new Set(d.earned_avatars ?? ["default"]);
     gs.earnedBorders = new Set(d.earned_borders ?? ["none"]);
@@ -2790,5 +2796,95 @@ export const ACHIEVEMENTS: AchievementDef[] = [
       { label: "gold",   threshold: 10_000, reward: { type: "border", cosmetic: "arcane" } },
     ],
     getValue: gs => gs.lifetimeClicks,
+  },
+  // ── Constellations ────────────────────────────────────────────────────────
+  {
+    id: "first_light", name: "First Light",
+    description: "Unlock your first Constellation node.",
+    category: "guild", hidden: false,
+    reward: { type: "gold", value: 500 },
+    getValue: gs => gs.unlockedConstellationNodes.size,
+  },
+  {
+    id: "stargazer_tiered", name: "Stargazer",
+    description: "Illuminate the Constellation tree.",
+    category: "guild", hidden: false,
+    tiers: [
+      { label: "bronze", threshold: 10, reward: { type: "gold", value: 1_000 } },
+      { label: "silver", threshold: 30, reward: { type: "avatar", cosmetic: "star" } },
+      { label: "gold",   threshold: 70, reward: { type: "title", title: "The Starborn" } },
+    ],
+    getValue: gs => gs.unlockedConstellationNodes.size,
+  },
+  {
+    id: "constellation_master", name: "Constellation Master",
+    description: "Unlock every node in the Constellation tree.",
+    category: "guild", hidden: false,
+    reward: { type: "title", title: "Celestial" },
+    getValue: gs => gs.unlockedConstellationNodes.size >= Object.keys(CONSTELLATION_NODE_DEFS).length ? 1 : 0,
+  },
+  // ── Artifacts ────────────────────────────────────────────────────────────
+  {
+    id: "relic_finder", name: "Relic Finder",
+    description: "Equip an artifact to a hero for the first time.",
+    category: "collector", hidden: false,
+    reward: { type: "gold", value: 250 },
+    getValue: gs => gs.party.team.some(c => c.artifactSlots.some(s => s !== null)) ? 1 : 0,
+  },
+  {
+    id: "archaeologist_tiered", name: "Archaeologist",
+    description: "Collect a variety of distinct artifacts.",
+    category: "collector", hidden: false,
+    tiers: [
+      { label: "bronze", threshold: 3,                       reward: { type: "gold", value: 500 } },
+      { label: "silver", threshold: 6,                       reward: { type: "avatar", cosmetic: "warlord" } },
+      { label: "gold",   threshold: ARTIFACT_DROP_POOL.length, reward: { type: "title", title: "The Collector" } },
+    ],
+    getValue: gs => new Set([
+      ...gs.artifactInventory.map(a => a.id),
+      ...gs.party.team.flatMap(c => c.artifactSlots.filter((s): s is ArtifactInstance => s !== null).map(s => s.id)),
+    ]).size,
+  },
+  {
+    id: "artifact_max_level", name: "Ancient Relic",
+    description: "???",
+    category: "collector", hidden: true,
+    reward: { type: "border", cosmetic: "ancient" },
+    getValue: gs => [
+      ...gs.artifactInventory,
+      ...gs.party.team.flatMap(c => c.artifactSlots.filter((s): s is ArtifactInstance => s !== null)),
+    ].some(a => a.level >= 5) ? 1 : 0,
+  },
+  // ── Kill Streak ───────────────────────────────────────────────────────────
+  {
+    id: "on_a_roll_tiered", name: "On a Roll",
+    description: "Build an unstoppable kill streak.",
+    category: "combat", hidden: false,
+    tiers: [
+      { label: "bronze", threshold: 25,  reward: { type: "avatar", cosmetic: "skull" } },
+      { label: "silver", threshold: 100, reward: { type: "border", cosmetic: "blood" } },
+      { label: "gold",   threshold: 500, reward: { type: "title", title: "The Relentless" } },
+    ],
+    getValue: gs => gs.lifetimeBestKillStreak,
+  },
+  // ── Party ─────────────────────────────────────────────────────────────────
+  {
+    id: "full_roster", name: "Full Roster",
+    description: "Field a full 6-member party.",
+    category: "guild", hidden: false,
+    reward: { type: "title", title: "The Warlord" },
+    getValue: gs => gs.party.team.length >= 6 ? 1 : 0,
+  },
+  // ── Skills ───────────────────────────────────────────────────────────────
+  {
+    id: "tactician_tiered", name: "Tactician",
+    description: "Master the art of skill activation.",
+    category: "guild", hidden: false,
+    tiers: [
+      { label: "bronze", threshold: 10,    reward: { type: "gold", value: 500 } },
+      { label: "silver", threshold: 100,   reward: { type: "border", cosmetic: "arcane" } },
+      { label: "gold",   threshold: 1_000, reward: { type: "title", title: "Spellblade" } },
+    ],
+    getValue: gs => gs.lifetimeSkillActivations,
   },
 ];

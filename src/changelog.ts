@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.20";
+export const VERSION = "v2.32.21";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.21",
+    date: "2026-05-25",
+    changes: [
+      "Feature: 15 new feats — Constellations (First Light, Stargazer, Constellation Master), Artifacts (Relic Finder, Archaeologist, Ancient Relic), Kill Streak (On a Roll), Party (Full Roster), Skills (Tactician)",
+      "Feature: lifetimeBestKillStreak tracking — highest kill streak ever reached persists across runs",
+    ],
+  },
   {
     version: "v2.32.20",
     date: "2026-05-24",

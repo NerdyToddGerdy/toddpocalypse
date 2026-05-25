@@ -18,6 +18,7 @@ import {
   ARTIFACT_DEFS, ARTIFACT_DROP_POOL,
   AVATAR_DEFS, BORDER_DEFS,
   ACHIEVEMENTS,
+  CONSTELLATION_NODE_DEFS,
   formatNumber,
   BOSS_ENRAGE_TRIGGER,
   BOSS_ENRAGE_STEP,
@@ -5605,5 +5606,314 @@ describe("legacy title integration", () => {
     gs.earnedTitle = "nobody";
     gs.setEarnedTitle("NotARealTitle");
     expect(gs.earnedTitle).toBe("nobody");
+  });
+});
+
+// ─── lifetimeBestKillStreak ───────────────────────────────────────────────
+
+describe("lifetimeBestKillStreak", () => {
+  it("starts at 0", () => {
+    const gs = make();
+    expect(gs.lifetimeBestKillStreak).toBe(0);
+  });
+
+  it("increments to match killStreak on each kill", () => {
+    const gs = make();
+    for (let i = 0; i < 5; i++) gs.onEnemyDeath();
+    expect(gs.lifetimeBestKillStreak).toBe(5);
+  });
+
+  it("does not decrease when killStreak resets", () => {
+    const gs = make();
+    for (let i = 0; i < 10; i++) gs.onEnemyDeath();
+    gs.killStreak = 0;
+    for (let i = 0; i < 3; i++) gs.onEnemyDeath();
+    expect(gs.lifetimeBestKillStreak).toBe(10);
+  });
+
+  it("persists through serialize/deserialize round-trip", () => {
+    const gs = make();
+    gs.lifetimeBestKillStreak = 77;
+    const d = gs.toDict();
+    expect(d.lifetime_best_kill_streak).toBe(77);
+    const gs2 = GameState.fromDict(d);
+    expect(gs2.lifetimeBestKillStreak).toBe(77);
+  });
+
+  it("defaults to 0 when key absent from legacy save", () => {
+    const gs = make();
+    const d = gs.toDict();
+    delete (d as any).lifetime_best_kill_streak;
+    const gs2 = GameState.fromDict(d);
+    expect(gs2.lifetimeBestKillStreak).toBe(0);
+  });
+});
+
+// ─── first_light achievement ──────────────────────────────────────────────
+
+describe("first_light achievement", () => {
+  it("unlocks on first constellation node", () => {
+    const gs = make();
+    gs.unlockedConstellationNodes.add("str_1");
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("first_light")).toBe(true);
+  });
+
+  it("does not unlock before any nodes are unlocked", () => {
+    const gs = make();
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("first_light")).toBe(false);
+  });
+
+  it("rewards 500 gold", () => {
+    const gs = make();
+    gs.gold = 0;
+    gs.unlockedConstellationNodes.add("str_1");
+    gs.checkAchievements();
+    expect(gs.gold).toBe(500);
+  });
+});
+
+// ─── stargazer_tiered achievement ────────────────────────────────────────
+
+describe("stargazer_tiered achievement", () => {
+  it("bronze fires at 10 constellation nodes", () => {
+    const gs = make();
+    for (let i = 0; i < 10; i++) gs.unlockedConstellationNodes.add(`node_${i}`);
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("stargazer_tiered_bronze")).toBe(true);
+  });
+
+  it("silver fires at 30 nodes and awards star avatar", () => {
+    const gs = make();
+    for (let i = 0; i < 30; i++) gs.unlockedConstellationNodes.add(`node_${i}`);
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("stargazer_tiered_silver")).toBe(true);
+    expect(gs.earnedAvatars.has("star")).toBe(true);
+  });
+
+  it("gold fires at 70 nodes and awards title The Starborn", () => {
+    const gs = make();
+    for (let i = 0; i < 70; i++) gs.unlockedConstellationNodes.add(`node_${i}`);
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("stargazer_tiered_gold")).toBe(true);
+  });
+});
+
+// ─── constellation_master achievement ────────────────────────────────────
+
+describe("constellation_master achievement", () => {
+  it("does not unlock with fewer than all nodes", () => {
+    const gs = make();
+    const total = Object.keys(CONSTELLATION_NODE_DEFS).length;
+    for (let i = 0; i < total - 1; i++) gs.unlockedConstellationNodes.add(`node_${i}`);
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("constellation_master")).toBe(false);
+  });
+
+  it("unlocks when all nodes are unlocked and awards title Celestial", () => {
+    const gs = make();
+    for (const id of Object.keys(CONSTELLATION_NODE_DEFS)) gs.unlockedConstellationNodes.add(id);
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("constellation_master")).toBe(true);
+  });
+});
+
+// ─── relic_finder achievement ─────────────────────────────────────────────
+
+describe("relic_finder achievement", () => {
+  it("does not unlock without any artifact equipped", () => {
+    const gs = make();
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("relic_finder")).toBe(false);
+  });
+
+  it("unlocks when an artifact is slotted on a character", () => {
+    const gs = make();
+    gs.party.team[0].artifactSlots[0] = { id: "bloodstone", level: 0, fuel: 0 };
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("relic_finder")).toBe(true);
+  });
+
+  it("rewards 250 gold", () => {
+    const gs = make();
+    gs.gold = 0;
+    gs.party.team[0].artifactSlots[0] = { id: "bloodstone", level: 0, fuel: 0 };
+    gs.checkAchievements();
+    expect(gs.gold).toBe(250);
+  });
+});
+
+// ─── archaeologist_tiered achievement ────────────────────────────────────
+
+describe("archaeologist_tiered achievement", () => {
+  it("bronze fires at 3 distinct artifact types", () => {
+    const gs = make();
+    gs.artifactInventory = [
+      { id: "bloodstone", level: 0, fuel: 0 },
+      { id: "greed_idol", level: 0, fuel: 0 },
+      { id: "soulbrand", level: 0, fuel: 0 },
+    ];
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("archaeologist_tiered_bronze")).toBe(true);
+  });
+
+  it("silver fires at 6 distinct artifact types", () => {
+    const gs = make();
+    gs.artifactInventory = [
+      { id: "bloodstone", level: 0, fuel: 0 },
+      { id: "greed_idol", level: 0, fuel: 0 },
+      { id: "soulbrand", level: 0, fuel: 0 },
+      { id: "berserkers_eye", level: 0, fuel: 0 },
+      { id: "wardens_core", level: 0, fuel: 0 },
+      { id: "executioners_mark", level: 0, fuel: 0 },
+    ];
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("archaeologist_tiered_silver")).toBe(true);
+  });
+
+  it("counts artifacts equipped on characters toward distinct types", () => {
+    const gs = make();
+    gs.party.team[0].artifactSlots[0] = { id: "phantom_compass", level: 0, fuel: 0 };
+    gs.artifactInventory = [
+      { id: "bloodstone", level: 0, fuel: 0 },
+      { id: "greed_idol", level: 0, fuel: 0 },
+      { id: "soulbrand", level: 0, fuel: 0 },
+    ];
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("archaeologist_tiered_bronze")).toBe(true);
+  });
+
+  it("gold fires at all 9 distinct artifact types and awards title The Collector", () => {
+    const gs = make();
+    const all9: typeof gs.artifactInventory = ARTIFACT_DROP_POOL.map(id => ({ id, level: 0, fuel: 0 }));
+    gs.artifactInventory = all9;
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("archaeologist_tiered_gold")).toBe(true);
+  });
+
+  it("duplicates do not inflate the distinct count", () => {
+    const gs = make();
+    gs.artifactInventory = [
+      { id: "bloodstone", level: 0, fuel: 0 },
+      { id: "bloodstone", level: 1, fuel: 0 },
+    ];
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("archaeologist_tiered_bronze")).toBe(false);
+  });
+});
+
+// ─── artifact_max_level achievement ──────────────────────────────────────
+
+describe("artifact_max_level achievement (hidden)", () => {
+  it("does not unlock without a max-level artifact", () => {
+    const gs = make();
+    gs.artifactInventory = [{ id: "bloodstone", level: 4, fuel: 0 }];
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("artifact_max_level")).toBe(false);
+  });
+
+  it("unlocks when an artifact in inventory reaches level 5", () => {
+    const gs = make();
+    gs.artifactInventory = [{ id: "bloodstone", level: 5, fuel: 0 }];
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("artifact_max_level")).toBe(true);
+  });
+
+  it("unlocks when an artifact equipped on a character reaches level 5", () => {
+    const gs = make();
+    gs.party.team[0].artifactSlots[0] = { id: "greed_idol", level: 5, fuel: 0 };
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("artifact_max_level")).toBe(true);
+  });
+
+  it("is hidden", () => {
+    const def = ACHIEVEMENTS.find(a => a.id === "artifact_max_level")!;
+    expect(def.hidden).toBe(true);
+  });
+});
+
+// ─── on_a_roll_tiered achievement ────────────────────────────────────────
+
+describe("on_a_roll_tiered achievement", () => {
+  it("bronze fires at 25 best kill streak and awards skull avatar", () => {
+    const gs = make();
+    gs.lifetimeBestKillStreak = 25;
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("on_a_roll_tiered_bronze")).toBe(true);
+    expect(gs.earnedAvatars.has("skull")).toBe(true);
+  });
+
+  it("silver fires at 100 best kill streak and awards blood border", () => {
+    const gs = make();
+    gs.lifetimeBestKillStreak = 100;
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("on_a_roll_tiered_silver")).toBe(true);
+    expect(gs.earnedBorders.has("blood")).toBe(true);
+  });
+
+  it("gold fires at 500 best kill streak", () => {
+    const gs = make();
+    gs.lifetimeBestKillStreak = 500;
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("on_a_roll_tiered_gold")).toBe(true);
+  });
+
+  it("does not fire below bronze threshold", () => {
+    const gs = make();
+    gs.lifetimeBestKillStreak = 24;
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("on_a_roll_tiered_bronze")).toBe(false);
+  });
+});
+
+// ─── full_roster achievement ──────────────────────────────────────────────
+
+describe("full_roster achievement", () => {
+  it("does not unlock with 5 party members", () => {
+    const gs = make();
+    while (gs.party.team.length < 5) gs.party.team.push(new Character("ally", "fighter"));
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("full_roster")).toBe(false);
+  });
+
+  it("unlocks with exactly 6 party members", () => {
+    const gs = make();
+    while (gs.party.team.length < 6) gs.party.team.push(new Character("ally", "fighter"));
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("full_roster")).toBe(true);
+  });
+});
+
+// ─── tactician_tiered achievement ────────────────────────────────────────
+
+describe("tactician_tiered achievement", () => {
+  it("bronze fires at 10 skill activations", () => {
+    const gs = make();
+    gs.lifetimeSkillActivations = 10;
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("tactician_tiered_bronze")).toBe(true);
+  });
+
+  it("silver fires at 100 activations and awards arcane border", () => {
+    const gs = make();
+    gs.lifetimeSkillActivations = 100;
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("tactician_tiered_silver")).toBe(true);
+    expect(gs.earnedBorders.has("arcane")).toBe(true);
+  });
+
+  it("gold fires at 1000 activations", () => {
+    const gs = make();
+    gs.lifetimeSkillActivations = 1000;
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("tactician_tiered_gold")).toBe(true);
+  });
+
+  it("does not fire below bronze threshold", () => {
+    const gs = make();
+    gs.lifetimeSkillActivations = 9;
+    gs.checkAchievements();
+    expect(gs.achievementsUnlocked.has("tactician_tiered_bronze")).toBe(false);
   });
 });
