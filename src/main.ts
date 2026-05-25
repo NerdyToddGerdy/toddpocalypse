@@ -1832,7 +1832,7 @@ function renderLootRuneInventory(runeInv: Rune[], party: CharDict[], runeForge: 
         const statLabel = RUNE_STAT_LABELS[rune.statKey] ?? rune.statKey;
         const slotOpts = buildSlotOptions(party[0]);
         const sellVal = SELL_VALUES[rune.tier] ?? 10;
-        return `<div class="rune-item" data-rune-idx="${i}">
+        return `<div class="rune-item ${rune.tier}" data-rune-idx="${i}">
           <div class="rune-item-top">
             <span class="rune-tier-badge ${rune.tier}">${TIER_ICONS[rune.tier] ?? "◆"}</span>
             <span class="rune-icon">${spr(runeIcon)}</span>

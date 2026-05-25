@@ -4135,10 +4135,14 @@ footer {
     padding: 1px 4px;
     flex-shrink: 0;
 }
-.rune-tier-badge.lesser   { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+.rune-tier-badge.lesser   { background: #252525; color: #9ca3af; border: 1px solid #4b5563; }
 .rune-tier-badge.greater  { background: #3b1d6e; color: #d8b4fe; border: 1px solid #6d28d9; }
 .rune-tier-badge.flawless { background: #0c4a6e; color: #7dd3fc; border: 1px solid #0ea5e9; }
 .rune-tier-badge.ancient  { background: #78350f; color: #fcd34d; border: 1px solid #f59e0b; }
+.rune-item.lesser   { border-left: 3px solid #4b5563; }
+.rune-item.greater  { border-left: 3px solid #8b5cf6; }
+.rune-item.flawless { border-left: 3px solid #0ea5e9; }
+.rune-item.ancient  { border-left: 3px solid #f59e0b; }
 .rune-icon { font-size: 1rem; flex-shrink: 0; }
 .rune-name {
     flex: 1;
