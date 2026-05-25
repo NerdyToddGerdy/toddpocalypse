@@ -2550,88 +2550,138 @@ main {
 /* ── Feats panel ── */
 #feats-panel { overflow-y: auto; }
 
-#feats-panel h2 {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--muted);
-    margin-bottom: 10px;
-}
-
-.feat-category { margin-bottom: 14px; }
-.feat-category-title {
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--muted);
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 3px;
-    margin-bottom: 6px;
-}
-
-.feat-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    padding: 5px 0;
-    border-bottom: 1px solid var(--border);
-}
-.feat-row:last-child { border-bottom: none; }
-
-.feat-icon {
-    font-size: 1.1rem;
-    min-width: 22px;
-    text-align: center;
-    margin-top: 1px;
-}
-.feat-icon.locked { opacity: 0.35; filter: grayscale(1); }
-
-.feat-info { flex: 1; min-width: 0; }
-.feat-name {
-    font-size: 0.8rem;
-    font-weight: 700;
+/* ── Filter tabs ── */
+.feats-filter-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.feats-filter-btn {
+    padding: 4px 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.78rem;
     color: var(--text);
 }
-.feat-name.locked-hidden { color: var(--muted); font-style: italic; }
-.feat-desc { font-size: 0.68rem; color: var(--muted); margin-top: 1px; }
-.feat-reward { font-size: 0.65rem; color: var(--accent2); margin-top: 2px; font-style: italic; }
+.feats-filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
 
-.feat-tiers {
-    display: flex;
-    gap: 3px;
-    margin-top: 4px;
-    align-items: center;
-}
-.feat-tier-pip {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    border: 1.5px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.55rem;
-    font-weight: 700;
+/* ── Category ── */
+.feat-category { margin-bottom: 18px; }
+.feat-category-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
     color: var(--muted);
-    background: var(--bg);
+    padding-bottom: 5px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
-.feat-tier-pip.bronze-done { background: #cd7f32; border-color: #cd7f32; color: #1a1005; }
-.feat-tier-pip.silver-done { background: #c0c0c0; border-color: #c0c0c0; color: #1a1005; }
-.feat-tier-pip.gold-done   { background: #ffd700; border-color: #ffd700; color: #1a1005; }
+.feat-cat-count { font-weight: 400; color: var(--muted); margin-left: auto; font-size: 0.65rem; }
+.feat-cat-count.complete { color: var(--accent2, #4ade80); font-weight: 700; }
 
+/* ── Cards ── */
+.feat-card {
+    background: var(--card);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border);
+    padding: 9px 10px;
+    margin-bottom: 6px;
+}
+.feat-card--active { border-left-color: var(--accent2, #a78bfa); }
+.feat-card--done   { border-left-color: var(--accent, #4ade80); opacity: 0.65; }
+.feat-card--locked { }
+
+.feat-card-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2px;
+}
+.feat-name {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text);
+    flex: 1;
+}
+.feat-name--hidden { color: var(--muted); font-style: italic; }
+.feat-done-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--accent, #4ade80);
+    background: color-mix(in srgb, var(--accent, #4ade80) 15%, transparent);
+    border: 1px solid var(--accent, #4ade80);
+    border-radius: 10px;
+    padding: 1px 6px;
+    flex-shrink: 0;
+}
+.feat-desc { font-size: 0.68rem; color: var(--muted); line-height: 1.35; }
+
+/* ── Reward chips ── */
+.feat-rewards { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.feat-reward-chip {
+    font-size: 0.62rem;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--accent2, #a78bfa) 12%, transparent);
+    color: var(--accent2, #a78bfa);
+    border: 1px solid color-mix(in srgb, var(--accent2, #a78bfa) 35%, transparent);
+}
+.feat-reward-chip.reward-bronze { background: color-mix(in srgb, #cd7f32 15%, transparent); color: #cd7f32; border-color: color-mix(in srgb, #cd7f32 40%, transparent); }
+.feat-reward-chip.reward-silver { background: color-mix(in srgb, #c0c0c0 15%, transparent); color: #c0c0c0; border-color: color-mix(in srgb, #c0c0c0 40%, transparent); }
+.feat-reward-chip.reward-gold   { background: color-mix(in srgb, #ffd700 15%, transparent); color: #c8a800; border-color: color-mix(in srgb, #ffd700 40%, transparent); }
+
+/* ── Tier pips ── */
+.feat-tiers { display: flex; gap: 5px; margin-top: 7px; }
+.feat-tier-pip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    padding: 3px 8px;
+    border-radius: 5px;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    min-width: 36px;
+    cursor: default;
+}
+.feat-tier-letter { font-size: 0.6rem; font-weight: 700; color: var(--muted); line-height: 1; }
+.feat-tier-thresh { font-size: 0.58rem; color: var(--muted); line-height: 1; }
+.feat-tier-pip.bronze-done { background: color-mix(in srgb, #cd7f32 20%, transparent); border-color: #cd7f32; }
+.feat-tier-pip.bronze-done .feat-tier-letter,
+.feat-tier-pip.bronze-done .feat-tier-thresh { color: #cd7f32; }
+.feat-tier-pip.silver-done { background: color-mix(in srgb, #c0c0c0 20%, transparent); border-color: #c0c0c0; }
+.feat-tier-pip.silver-done .feat-tier-letter,
+.feat-tier-pip.silver-done .feat-tier-thresh { color: #c0c0c0; }
+.feat-tier-pip.gold-done { background: color-mix(in srgb, #ffd700 20%, transparent); border-color: #c8a800; }
+.feat-tier-pip.gold-done .feat-tier-letter,
+.feat-tier-pip.gold-done .feat-tier-thresh { color: #c8a800; }
+
+/* ── Progress ── */
+.feat-progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 6px;
+}
 .feat-progress-bar {
-    height: 3px;
+    flex: 1;
+    height: 5px;
     background: var(--border);
-    border-radius: 2px;
-    margin-top: 4px;
+    border-radius: 3px;
     overflow: hidden;
 }
 .feat-progress-fill {
     height: 100%;
-    background: var(--accent);
-    border-radius: 2px;
+    background: var(--accent2, #a78bfa);
+    border-radius: 3px;
     transition: width 0.4s ease;
 }
+.feat-progress-text { font-size: 0.6rem; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+
+.feat-empty { color: var(--muted); font-size: 0.8rem; text-align: center; padding: 24px 0; }
 
 /* ── Achievement toast notifications ── */
 #achievement-toast-container {
@@ -5079,14 +5129,6 @@ footer {
   border-radius: 50%;
 }
 
-/* ── Feats Panel Revamp ────────────────────────────────────────────────── */
-.feats-filter-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
-.feats-filter-btn { padding: 4px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-size: 0.78rem; color: var(--text); }
-.feats-filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
-.feat-cat-count { font-weight: 400; color: var(--muted); margin-left: 6px; font-size: 0.68rem; }
-.feat-cat-count.complete { color: var(--accent2, #4ade80); }
-.feat-row.feat-done { opacity: 0.5; }
-.feat-empty { color: var(--muted); font-size: 0.8rem; text-align: center; padding: 20px 0; }
 
 /* ── Retire button in avatar dropdown ─────────────────────────────────────── */
 .retire-btn { color: var(--danger, #ef4444) !important; }

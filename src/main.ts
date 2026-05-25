@@ -2556,18 +2556,20 @@ function renderFeats(state: GameStateDict): void {
   for (const cat of categories) byCategory[cat] = [];
   for (const def of ACHIEVEMENTS) byCategory[def.category]?.push(def);
 
-  function featRewardLabel(r: { type: string; value?: number; title?: string; cosmetic?: string }, prefix: string): string {
-    if (r.type === "gold") return prefix + `+${formatNumber(r.value ?? 0)}g`;
-    if (r.type === "title") return prefix + `"${r.title}"`;
-    if (r.type === "avatar") {
+  function featRewardChip(r: { type: string; value?: number; title?: string; cosmetic?: string }, tierLabel?: string): string {
+    let text = "";
+    if (r.type === "gold") text = `+${formatNumber(r.value ?? 0)}g`;
+    else if (r.type === "title") text = `"${r.title}"`;
+    else if (r.type === "avatar") {
       const a = AVATAR_DEFS.find(x => x.id === r.cosmetic);
-      return prefix + `${a?.icon ?? ""} ${a?.name ?? r.cosmetic} avatar`;
-    }
-    if (r.type === "border") {
+      text = `${a?.icon ?? ""} ${a?.name ?? r.cosmetic}`;
+    } else if (r.type === "border") {
       const b = BORDER_DEFS.find(x => x.id === r.cosmetic);
-      return prefix + `${b?.name ?? r.cosmetic} border`;
+      text = `${b?.name ?? r.cosmetic} border`;
     }
-    return "";
+    if (!text) return "";
+    const cls = tierLabel ? ` reward-${tierLabel}` : "";
+    return `<span class="feat-reward-chip${cls}">${tierLabel ? tierLabel[0].toUpperCase() + ": " : ""}${text}</span>`;
   }
 
   function featStatus(def: typeof ACHIEVEMENTS[0]): "done" | "active" | "locked" {
@@ -2582,7 +2584,6 @@ function renderFeats(state: GameStateDict): void {
       return (progress[def.id] ?? 0) > 0 ? "active" : "locked";
     }
   }
-
 
   const categorySections = categories.map(cat => {
     const allDefs = byCategory[cat];
@@ -2608,23 +2609,25 @@ function renderFeats(state: GameStateDict): void {
     const countCls = allDone ? " complete" : "";
     const header = `<div class="feat-category-title">${spr(CATEGORY_ICONS[cat])} ${CATEGORY_LABELS[cat]}<span class="feat-cat-count${countCls}">${doneCount}/${allDefs.length}</span></div>`;
 
-    const rows = visible.map(def => {
+    const cards = visible.map(def => {
       const status = featStatus(def);
       const isDone = status === "done";
       const isHidden = def.hidden && !isDone && !def.tiers?.some(t => unlocked.has(`${def.id}_${t.label}`));
 
       const name = isHidden ? "???" : def.name;
-      const desc = isHidden ? "Unlock to reveal." : def.description;
-      const iconCls = isDone ? "" : " locked";
+      const desc = isHidden ? "Complete a hidden challenge to reveal this feat." : def.description;
 
       let tierHtml = "";
-      let progressBarHtml = "";
+      let progressHtml = "";
       if (def.tiers && !isHidden) {
-        const labels = { bronze: "B", silver: "S", gold: "G" };
         const pips = def.tiers.map(t => {
           const done = unlocked.has(`${def.id}_${t.label}`);
           const cls = done ? ` ${t.label}-done` : "";
-          return `<span class="feat-tier-pip${cls}" title="${t.label}: ${formatNumber(t.threshold)}">${labels[t.label]}</span>`;
+          const rewardTip = t.reward ? " — " + (t.reward.type === "gold" ? `+${formatNumber(t.reward.value ?? 0)}g` : t.reward.type === "title" ? `"${t.reward.title}"` : t.reward.cosmetic ?? "") : "";
+          return `<span class="feat-tier-pip${cls}" title="${t.label[0].toUpperCase() + t.label.slice(1)}: ${formatNumber(t.threshold)}${rewardTip}">
+            <span class="feat-tier-letter">${t.label[0].toUpperCase()}</span>
+            <span class="feat-tier-thresh">${formatNumber(t.threshold)}</span>
+          </span>`;
         }).join("");
         tierHtml = `<div class="feat-tiers">${pips}</div>`;
 
@@ -2635,33 +2638,40 @@ function renderFeats(state: GameStateDict): void {
           const pct = prevThreshold > 0
             ? Math.min(100, ((current - prevThreshold) / (nextTier.threshold - prevThreshold)) * 100)
             : Math.min(100, (current / nextTier.threshold) * 100);
-          progressBarHtml = `<div class="feat-progress-bar"><div class="feat-progress-fill" style="width:${pct}%"></div></div>`;
+          progressHtml = `<div class="feat-progress-wrap">
+            <div class="feat-progress-bar"><div class="feat-progress-fill" style="width:${pct.toFixed(1)}%"></div></div>
+            <span class="feat-progress-text">${formatNumber(current)} / ${formatNumber(nextTier.threshold)}</span>
+          </div>`;
+        }
+      } else if (!def.tiers && !isHidden && !isDone) {
+        const current = progress[def.id] ?? 0;
+        if (current > 0) {
+          progressHtml = `<div class="feat-progress-wrap">
+            <div class="feat-progress-bar"><div class="feat-progress-fill" style="width:100%"></div></div>
+            <span class="feat-progress-text">${formatNumber(current)}</span>
+          </div>`;
         }
       }
 
       let rewardHtml = "";
       if (!isHidden) {
-        const rewards = def.tiers
-          ? def.tiers.filter(t => t.reward).map(t => featRewardLabel(t.reward!, `${t.label}: `))
-          : def.reward ? [featRewardLabel(def.reward, "")] : [];
-        if (rewards.filter(Boolean).length) {
-          rewardHtml = `<div class="feat-reward">${rewards.filter(Boolean).join(" · ")}</div>`;
-        }
+        const chips = def.tiers
+          ? def.tiers.filter(t => t.reward).map(t => featRewardChip(t.reward!, t.label)).filter(Boolean).join("")
+          : def.reward ? featRewardChip(def.reward) : "";
+        if (chips) rewardHtml = `<div class="feat-rewards">${chips}</div>`;
       }
 
-      const nameCls = isHidden ? " locked-hidden" : "";
-      const doneCls = isDone ? " feat-done" : "";
-      return `<div class="feat-row${doneCls}">
-        <div class="feat-icon${iconCls}">${isDone ? "✅" : (isHidden ? "❓" : "🔲")}</div>
-        <div class="feat-info">
-          <div class="feat-name${nameCls}">${name}</div>
-          <div class="feat-desc">${desc}</div>
-          ${rewardHtml}${tierHtml}${progressBarHtml}
+      return `<div class="feat-card feat-card--${status}">
+        <div class="feat-card-header">
+          <span class="feat-name${isHidden ? " feat-name--hidden" : ""}">${name}</span>
+          ${isDone ? '<span class="feat-done-badge">✓</span>' : ""}
         </div>
+        <div class="feat-desc">${desc}</div>
+        ${rewardHtml}${tierHtml}${progressHtml}
       </div>`;
     }).join("");
 
-    return `<div class="feat-category">${header}${rows}</div>`;
+    return `<div class="feat-category">${header}${cards}</div>`;
   }).filter(Boolean).join("");
 
   const noResults = `<div class="feat-empty">No feats match this filter.</div>`;
