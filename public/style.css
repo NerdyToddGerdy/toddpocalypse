@@ -4866,9 +4866,8 @@ footer {
 
 .art-pdoll-row {
     display: flex;
-    gap: 14px;
     padding: 6px 0 2px;
-    justify-content: flex-start;
+    justify-content: space-evenly;
 }
 
 .art-slot-cell {
