@@ -1486,6 +1486,7 @@ const CONSTELLATION_NAMES: Record<number, string> = {
 };
 
 let constellationKey = "";
+let cdollModalNodeId: string | null = null;
 
 function renderConstellationPanel(state: GameStateDict): void {
   const unlocked = (state.guild_upgrades["constellation_access"] ?? 0) > 0;
@@ -1558,53 +1559,87 @@ function renderConstellationPanel(state: GameStateDict): void {
         <g class="cdoll-nodes">${svgNodes}</g>
       </svg>
     </div>
-    <div id="cdoll-detail" class="cdoll-detail" hidden></div>
     ${respecBtn}
   `;
+}
+
+function openConstellationNodeModal(nodeId: string): void {
+  cdollModalNodeId = nodeId;
+  const def = CONSTELLATION_NODE_DEFS[nodeId];
+  if (!def) return;
+  const el = document.getElementById("constellation-content");
+  const nodeSet = new Set(JSON.parse(el?.dataset.nodes ?? "[]") as string[]);
+  const shards = parseInt(el?.dataset.shards ?? "0");
+  const on = nodeSet.has(nodeId);
+  const isAdjacentUnlocked = def.isStart || def.connections.some(c => nodeSet.has(c));
+  const canAfford = shards >= def.cost;
+
+  document.getElementById("cdoll-modal-title")!.textContent = def.label;
+  document.getElementById("cdoll-modal-subtitle")!.textContent =
+    `${CONSTELLATION_NAMES[def.constellation]} · ${def.type}`;
+
+  const btnLabel = on ? "Unlocked ✓"
+    : !isAdjacentUnlocked ? "Unlock adjacent node first"
+    : !canAfford ? `Need ${def.cost} ✦ shards`
+    : `Unlock (${def.cost} ✦ shard${def.cost !== 1 ? "s" : ""})`;
+  const disabled = on || !isAdjacentUnlocked || !canAfford ? "disabled" : "";
+
+  document.getElementById("cdoll-modal-body")!.innerHTML = `
+    <div class="cdoll-modal-desc">${def.description}</div>
+    <button class="cdoll-unlock-btn" data-action="unlock-node" data-node-id="${nodeId}" ${disabled}>${btnLabel}</button>
+  `;
+  document.getElementById("cdoll-node-modal")!.classList.add("open");
+}
+
+function closeConstellationNodeModal(): void {
+  cdollModalNodeId = null;
+  document.getElementById("cdoll-node-modal")!.classList.remove("open");
 }
 
 function initConstellationPanel(): void {
   const panel = document.getElementById("constellation-panel");
   if (!panel) return;
+  const tooltip = document.getElementById("cdoll-tooltip")!;
 
   panel.addEventListener("click", (e) => {
     const target = e.target as HTMLElement;
     const nodeGroup = target.closest<HTMLElement>(".cdoll-node-group");
     if (nodeGroup?.dataset.nodeId) {
-      const nodeId = nodeGroup.dataset.nodeId;
-      const def = CONSTELLATION_NODE_DEFS[nodeId];
-      if (!def) return;
-      const detail = document.getElementById("cdoll-detail");
-      if (!detail) return;
-      const nodeSet = new Set(JSON.parse(document.getElementById("constellation-content")?.dataset.nodes ?? "[]") as string[]);
-      const shards = parseInt(document.getElementById("constellation-content")?.dataset.shards ?? "0");
-      const on = nodeSet.has(nodeId);
-      const isAdjacentUnlocked = def.isStart || def.connections.some(c => nodeSet.has(c));
-      const canAfford = shards >= def.cost;
-      const btnLabel = on ? "Unlocked ✓"
-        : !isAdjacentUnlocked ? "Unlock adjacent node first"
-        : !canAfford ? `Need ${def.cost} ✦ shards`
-        : `Unlock (${def.cost} ✦ shard${def.cost !== 1 ? "s" : ""})`;
-      const disabled = on || !isAdjacentUnlocked || !canAfford ? "disabled" : "";
-      detail.innerHTML = `
-        <div class="cdoll-detail-header">
-          <span class="cdoll-detail-name">${def.label}</span>
-          <span class="cdoll-detail-cost">${CONSTELLATION_NAMES[def.constellation]} · ${def.type}</span>
-        </div>
-        <div class="cdoll-detail-desc">${def.description}</div>
-        <button class="cdoll-unlock-btn" data-action="unlock-node" data-node-id="${nodeId}" ${disabled}>${btnLabel}</button>
-      `;
-      detail.hidden = false;
+      openConstellationNodeModal(nodeGroup.dataset.nodeId);
       return;
     }
-
     const action = (target.closest("[data-action]") as HTMLElement)?.dataset.action;
-    if (action === "unlock-node") {
-      const nodeId = (target.closest("[data-node-id]") as HTMLElement)?.dataset.nodeId;
-      if (nodeId) call("unlockConstellationNode", nodeId);
-    } else if (action === "respec-constellation") {
+    if (action === "respec-constellation") {
       call("respecConstellation");
     }
+  });
+
+  panel.addEventListener("mousemove", (e) => {
+    const nodeGroup = (e.target as HTMLElement).closest<HTMLElement>(".cdoll-node-group");
+    if (!nodeGroup?.dataset.nodeId) { tooltip.hidden = true; return; }
+    const def = CONSTELLATION_NODE_DEFS[nodeGroup.dataset.nodeId];
+    if (!def) { tooltip.hidden = true; return; }
+    const nodeSet = new Set(JSON.parse(document.getElementById("constellation-content")?.dataset.nodes ?? "[]") as string[]);
+    const on = nodeSet.has(def.id);
+    const statusBadge = on ? `<span class="cdoll-tt-badge unlocked">Unlocked</span>` : `<span class="cdoll-tt-badge locked">${def.cost} ✦</span>`;
+    tooltip.innerHTML = `
+      <div class="cdoll-tt-name">${def.label} ${statusBadge}</div>
+      <div class="cdoll-tt-sub">${CONSTELLATION_NAMES[def.constellation]} · ${def.type}</div>
+      <div class="cdoll-tt-desc">${def.description}</div>
+    `;
+    tooltip.hidden = false;
+    const rect = panel.getBoundingClientRect();
+    const x = e.clientX - rect.left + 14;
+    const y = e.clientY - rect.top + 14;
+    tooltip.style.left = `${x}px`;
+    tooltip.style.top = `${y}px`;
+  });
+
+  panel.addEventListener("mouseleave", () => { tooltip.hidden = true; });
+
+  document.getElementById("cdoll-modal-close")?.addEventListener("click", closeConstellationNodeModal);
+  document.getElementById("cdoll-node-modal")?.addEventListener("click", (e) => {
+    if (e.target === document.getElementById("cdoll-node-modal")) closeConstellationNodeModal();
   });
 }
 
@@ -4085,6 +4120,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     else if (action === "close-artifact-slot-picker") {
       closeArtifactSlotPicker();
+    }
+    else if (action === "unlock-node") {
+      const nodeId = btn.dataset.nodeId;
+      if (nodeId) { call("unlockConstellationNode", nodeId); closeConstellationNodeModal(); }
     }
     else if (action === "modal-unequip-artifact") {
       call("unequipArtifact", parseInt(btn.dataset.charIdx!, 10), parseInt(btn.dataset.slotIdx!, 10));

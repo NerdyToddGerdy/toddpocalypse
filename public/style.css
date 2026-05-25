@@ -5352,7 +5352,7 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
 }
 
 /* ── Constellation Panel ─────────────────────────────────────────────────── */
-#constellation-panel { width: 100%; padding: 12px 14px; }
+#constellation-panel { width: 100%; padding: 12px 14px; position: relative; }
 #constellation-panel h2 { color: var(--accent2); margin: 0 0 10px; font-size: 0.95rem; letter-spacing: 0.08em; }
 
 .cdoll-shard-header {
@@ -5375,8 +5375,9 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
 .cdoll-edge.locked        { stroke: rgba(50,50,70,0.55); stroke-width: 1; }
 
 /* SVG nodes */
-.cdoll-node { cursor: pointer; transition: filter 0.12s; }
-.cdoll-node-group:hover .cdoll-node { filter: brightness(1.4); }
+.cdoll-node { cursor: pointer; transition: filter 0.15s, transform 0.15s; transform-box: fill-box; transform-origin: center; }
+.cdoll-node-group:hover .cdoll-node { filter: brightness(1.5) drop-shadow(0 0 6px rgba(200,160,60,0.7)); transform: scale(1.18); }
+.cdoll-node-group:active .cdoll-node { transform: scale(0.94); }
 .cdoll-node.center.unlocked  { fill: #7c3aed; stroke: #c4b5fd; stroke-width: 3;
   filter: drop-shadow(0 0 10px rgba(167,139,250,0.7)); }
 .cdoll-node.center.locked    { fill: rgba(30,20,50,0.95); stroke: rgba(167,139,250,0.4); stroke-width: 2; stroke-dasharray: 4 2; }
@@ -5396,17 +5397,48 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
     pointer-events: none; user-select: none;
 }
 
-/* Detail card */
-.cdoll-detail {
-    background: radial-gradient(ellipse 120% 80% at 50% 0%, rgba(60,40,10,0.45) 0%, var(--surface2) 60%);
-    border: 1px solid rgba(160,120,40,0.35);
-    border-radius: 8px; padding: 10px 12px; margin-top: 10px;
-    animation: pdoll-slide-in 0.12s ease-out;
+/* Hover tooltip */
+#cdoll-tooltip {
+    position: absolute; z-index: 200; pointer-events: none;
+    background: rgba(14,12,22,0.97);
+    border: 1px solid rgba(160,120,40,0.45);
+    border-radius: 8px; padding: 9px 12px;
+    max-width: 220px; min-width: 140px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.55);
+    animation: cdoll-tt-in 0.08s ease-out;
 }
-.cdoll-detail-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
-.cdoll-detail-name { font-size: 0.85rem; font-weight: 700; color: var(--accent2); }
-.cdoll-detail-cost { font-size: 0.7rem; color: var(--muted); }
-.cdoll-detail-desc { font-size: 0.77rem; color: var(--text); margin-bottom: 10px; }
+@keyframes cdoll-tt-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+.cdoll-tt-name { font-size: 0.82rem; font-weight: 700; color: var(--accent2); margin-bottom: 3px; display: flex; align-items: center; gap: 6px; }
+.cdoll-tt-sub { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.cdoll-tt-desc { font-size: 0.74rem; color: var(--text); line-height: 1.4; }
+.cdoll-tt-badge { font-size: 0.6rem; padding: 1px 5px; border-radius: 3px; font-weight: 600; }
+.cdoll-tt-badge.unlocked { background: rgba(200,160,60,0.2); color: var(--accent2); border: 1px solid rgba(200,160,60,0.4); }
+.cdoll-tt-badge.locked { background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
+
+/* Node detail modal */
+#cdoll-node-modal {
+    display: none; position: fixed; inset: 0; z-index: 300;
+    background: rgba(14,14,20,0.85); align-items: center; justify-content: center;
+}
+#cdoll-node-modal.open { display: flex; }
+#cdoll-node-modal-box {
+    background: radial-gradient(ellipse 120% 60% at 50% 0%, rgba(50,35,8,0.95) 0%, var(--surface) 55%);
+    border: 1px solid rgba(160,120,40,0.4);
+    border-radius: 12px;
+    width: min(380px, 92vw);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,220,100,0.06);
+    overflow: hidden;
+}
+#cdoll-modal-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: 16px 16px 10px; border-bottom: 1px solid rgba(160,120,40,0.2);
+    gap: 12px;
+}
+#cdoll-modal-title { margin: 0; font-size: 1rem; color: var(--accent2); letter-spacing: 0.06em; }
+#cdoll-modal-subtitle { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 3px; }
+#cdoll-modal-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; flex-shrink: 0; padding: 2px; }
+#cdoll-modal-body { padding: 14px 16px 18px; }
+.cdoll-modal-desc { font-size: 0.82rem; color: var(--text); line-height: 1.5; margin-bottom: 16px; }
 .cdoll-unlock-btn {
     padding: 5px 14px; font-size: 0.78rem;
     background: var(--accent2); border: none; color: #000; border-radius: 5px; cursor: pointer;

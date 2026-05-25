@@ -155,6 +155,20 @@ describe("CONSTELLATION_NODE_DEFS integrity", () => {
     }
   });
 
+  it("every node has a non-empty label and description for modal display", () => {
+    for (const [id, def] of Object.entries(CONSTELLATION_NODE_DEFS)) {
+      expect(def.label.length, `${id} missing label`).toBeGreaterThan(0);
+      expect(def.description.length, `${id} missing description`).toBeGreaterThan(0);
+    }
+  });
+
+  it("every node has a valid type for modal badge display", () => {
+    const valid = new Set(["center", "start", "minor", "notable", "keystone"]);
+    for (const [id, def] of Object.entries(CONSTELLATION_NODE_DEFS)) {
+      expect(valid.has(def.type), `${id} has unknown type: ${def.type}`).toBe(true);
+    }
+  });
+
   it("all node costs are 1, 2, or 5", () => {
     for (const def of Object.values(CONSTELLATION_NODE_DEFS)) {
       expect([1, 2, 5]).toContain(def.cost);

@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.34";
+export const VERSION = "v2.32.35";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.35",
+    date: "2026-05-25",
+    changes: [
+      "Constellation: hover over any node shows a tooltip with name, path, description, and shard cost/unlocked badge",
+      "Constellation: clicking a node now opens a modal instead of an inline card below the SVG",
+      "Constellation: nodes scale up with a golden glow on hover",
+    ],
+  },
   {
     version: "v2.32.34",
     date: "2026-05-25",
