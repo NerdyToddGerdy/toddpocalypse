@@ -2005,7 +2005,7 @@ export class GameState {
       this.skillCooldowns[key] -= 1;
       if (this.skillCooldowns[key] <= 0) delete this.skillCooldowns[key];
     }
-    if (this.autoSkillEnabled) {
+    if (this.autoSkillEnabled && Object.keys(this.activeEffects).length === 0) {
       const owned = Object.keys(SKILL_DEFS).filter(id => (this.guildUpgrades[id] ?? 0) > 0);
       const n = owned.length;
       for (let i = 0; i < n; i++) {

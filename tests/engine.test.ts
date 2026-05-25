@@ -6009,16 +6009,40 @@ describe("auto-skill firing", () => {
     expect(gs.lifetimeSkillActivations).toBe(before);
   });
 
-  it("cycles to the next skill after firing one", () => {
+  it("does not auto-fire while any skill has an active effect", () => {
     const gs = makeAllSkillsGs();
     gs.autoSkillEnabled = true;
-    // Kill 1: fires skill at index 0
+    gs.activeEffects["skill_battle_cry"] = 5;
+    const before = gs.lifetimeSkillActivations;
     gs.onEnemyDeath();
-    const firstFired = Object.keys(gs.skillCooldowns)[0];
-    // Kill 2: first skill is on cooldown — should fire a different one
+    expect(gs.lifetimeSkillActivations).toBe(before);
+  });
+
+  it("resumes auto-firing once all active effects expire", () => {
+    const gs = makeAllSkillsGs();
+    gs.autoSkillEnabled = true;
+    gs.activeEffects["skill_battle_cry"] = 2;
+    const before = gs.lifetimeSkillActivations;
+    // Kill 1: decrements to 1 → still active → blocked
     gs.onEnemyDeath();
-    const secondFired = Object.keys(gs.skillCooldowns).find(k => k !== firstFired);
-    expect(secondFired).toBeDefined();
+    expect(gs.lifetimeSkillActivations).toBe(before);
+    // Kill 2: decrements to 0 → effect cleared → auto-skill fires on this same kill
+    gs.onEnemyDeath();
+    expect(gs.lifetimeSkillActivations).toBe(before + 1);
+  });
+
+  it("cycles to the next skill after an instant (zero-duration) skill", () => {
+    // consecrate has durationKills=0 so it never blocks the next auto-cast
+    const gs = makeAllSkillsGs();
+    gs.autoSkillEnabled = true;
+    (gs as any).skillCycleIdx = Object.keys(SKILL_DEFS).indexOf("skill_consecrate");
+    // Kill 1: fires consecrate (no duration → no activeEffects entry)
+    gs.onEnemyDeath();
+    expect(gs.skillCooldowns["skill_consecrate"]).toBeGreaterThan(0);
+    const before = gs.lifetimeSkillActivations;
+    // Kill 2: consecrate has no active effect, so another skill may fire
+    gs.onEnemyDeath();
+    expect(gs.lifetimeSkillActivations).toBe(before + 1);
   });
 
   it("manual skill activation still works while auto-skill is on", () => {
