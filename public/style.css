@@ -3043,6 +3043,16 @@ footer {
 
 #version-btn:hover { color: var(--muted); }
 
+#privacy-link {
+    color: var(--border);
+    font-size: 0.7rem;
+    text-decoration: none;
+    letter-spacing: 1px;
+    padding: 4px 8px;
+    transition: color 0.15s;
+}
+#privacy-link:hover { color: var(--muted); }
+
 #stats-btn {
     background: none;
     border: none;
