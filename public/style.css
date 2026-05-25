@@ -3053,6 +3053,13 @@ footer {
 }
 #privacy-link:hover { color: var(--muted); }
 
+#copyright {
+    color: var(--border);
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    padding: 4px 8px;
+}
+
 #stats-btn {
     background: none;
     border: none;
