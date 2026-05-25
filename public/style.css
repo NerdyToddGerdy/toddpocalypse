@@ -5600,16 +5600,29 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
     cursor: pointer;
 }
 
-.gear-pdoll-slot.filled.q-fine      { border-color: var(--q-fine);      box-shadow: 0 0 6px rgba(34,197,94,0.4); }
-.gear-pdoll-slot.filled.q-superior  { border-color: var(--q-superior);  box-shadow: 0 0 6px rgba(59,130,246,0.4); }
-.gear-pdoll-slot.filled.q-rare      { border-color: var(--q-rare);      box-shadow: 0 0 8px rgba(168,85,247,0.5); }
-.gear-pdoll-slot.filled.q-epic      { border-color: var(--q-epic);      box-shadow: 0 0 8px rgba(249,115,22,0.5); }
-.gear-pdoll-slot.filled.q-legendary { border-color: var(--q-legendary); box-shadow: 0 0 10px rgba(245,158,11,0.6); }
-.gear-pdoll-slot.filled.q-mythic    { border-color: var(--q-mythic);    box-shadow: 0 0 10px rgba(232,121,249,0.6); }
-.gear-pdoll-slot.filled.q-ancient   { border-color: var(--q-ancient);   box-shadow: 0 0 10px rgba(52,211,153,0.55); }
-.gear-pdoll-slot.filled.q-celestial { border-color: var(--q-celestial); box-shadow: 0 0 10px rgba(103,232,249,0.55); }
-.gear-pdoll-slot.filled.q-void      { border-color: var(--q-void);      box-shadow: 0 0 10px rgba(192,132,252,0.6); }
-.gear-pdoll-slot.filled.q-divine    { border-color: #fff;               box-shadow: 0 0 12px rgba(255,255,255,0.7); }
+.gear-pdoll-slot.filled.q-fine      { border-color: var(--q-fine);      background: rgba(34,197,94,0.07);   box-shadow: 0 0 6px rgba(34,197,94,0.4); }
+.gear-pdoll-slot.filled.q-superior  { border-color: var(--q-superior);  background: rgba(59,130,246,0.07);  box-shadow: 0 0 6px rgba(59,130,246,0.4); }
+.gear-pdoll-slot.filled.q-rare      { border-color: var(--q-rare);      background: rgba(168,85,247,0.08);  box-shadow: 0 0 8px rgba(168,85,247,0.5); }
+.gear-pdoll-slot.filled.q-epic      { border-color: var(--q-epic);      background: rgba(249,115,22,0.08);  box-shadow: 0 0 8px rgba(249,115,22,0.5); }
+.gear-pdoll-slot.filled.q-legendary { border-color: var(--q-legendary); background: rgba(245,158,11,0.09);  box-shadow: 0 0 10px rgba(245,158,11,0.6); }
+.gear-pdoll-slot.filled.q-mythic    { border-color: var(--q-mythic);    background: rgba(232,121,249,0.09); box-shadow: 0 0 10px rgba(232,121,249,0.6); }
+.gear-pdoll-slot.filled.q-ancient   { border-color: var(--q-ancient);   background: rgba(52,211,153,0.08);  box-shadow: 0 0 10px rgba(52,211,153,0.55); }
+.gear-pdoll-slot.filled.q-celestial { border-color: var(--q-celestial); background: rgba(103,232,249,0.08); box-shadow: 0 0 10px rgba(103,232,249,0.55); }
+.gear-pdoll-slot.filled.q-void      { border-color: var(--q-void);      background: rgba(192,132,252,0.08); box-shadow: 0 0 10px rgba(192,132,252,0.6); }
+.gear-pdoll-slot.filled.q-divine    { border-color: #fff;               background: rgba(255,255,255,0.07); box-shadow: 0 0 12px rgba(255,255,255,0.7); }
+
+/* Set piece: second border as outline in the set's accent color */
+.gear-pdoll-slot.set-piece {
+    outline: 2px solid var(--set-color, transparent);
+    outline-offset: -1px;
+}
+
+/* Highlight all set pieces in the same set when hovering one of them */
+.gear-pdoll-slot.set-piece.set-hl {
+    outline-width: 2.5px;
+    filter: brightness(1.3);
+    transition: filter 0.1s, outline-width 0.1s;
+}
 
 .gear-pdoll-slot:hover:not(.empty):not(:disabled) { filter: brightness(1.2); transform: scale(1.05); }
 .gear-pdoll-slot:active:not(:disabled)            { transform: scale(0.88); }

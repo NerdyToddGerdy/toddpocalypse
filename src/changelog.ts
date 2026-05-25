@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.49";
+export const VERSION = "v2.32.50";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,16 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.50",
+    date: "2026-05-25",
+    changes: [
+      "Equipment pdoll squares now have a tinted background matching their quality color",
+      "Set-piece items get a colored outline border using the set's accent color (Shadowbane=purple, Iron Bulwark=cyan, Plunderer's Kit=gold, Warlord's Grasp=red)",
+      "Hovering any equipped set piece highlights all other pieces from the same set across the party",
+      "Set badges in loot/stash panels are colored in the set's accent color and trigger the same highlight on hover",
+    ],
+  },
   {
     version: "v2.32.49",
     date: "2026-05-25",

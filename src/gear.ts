@@ -268,6 +268,8 @@ export interface SetDef {
   id: string;
   /** Display name shown in UI. */
   name: string;
+  /** Accent color for set borders and highlights (hex). */
+  color: string;
   /** The three slots that make up this set. */
   slots: Slot[];
   /** Stat bonus applied when 2 pieces are equipped. */
@@ -283,6 +285,7 @@ export const SET_DEFS: SetDef[] = [
   {
     id: "shadowbane",
     name: "Shadowbane",
+    color: "#c77dff",
     slots: ["helmet", "gloves", "shoes"],
     bonus2pc: { critChance: 0.15 },
     bonus3pc: { haste: 0.15 },
@@ -290,6 +293,7 @@ export const SET_DEFS: SetDef[] = [
   {
     id: "iron_bulwark",
     name: "Iron Bulwark",
+    color: "#48cae4",
     slots: ["chest", "legs", "off_hand"],
     bonus2pc: { maxHp: 100 },
     bonus3pc: { defense: 0.15 },
@@ -297,6 +301,7 @@ export const SET_DEFS: SetDef[] = [
   {
     id: "plunderers_kit",
     name: "Plunderer's Kit",
+    color: "#ffd166",
     slots: ["main_hand", "ring1", "ring2"],
     bonus2pc: { goldBonus: 0.20 },
     bonus3pc: { goldBonus: 0.10 },
@@ -305,6 +310,7 @@ export const SET_DEFS: SetDef[] = [
   {
     id: "warlords_grasp",
     name: "Warlord's Grasp",
+    color: "#ef233c",
     slots: ["main_hand", "chest", "helmet"],
     bonus2pc: { haste: 0.10 },
     bonus3pc: {},

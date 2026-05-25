@@ -60,6 +60,9 @@ const UPGRADE_LABELS: Record<string, { icon: string; label: string }> = {
   defense: { icon: "🛡", label: "Defense" },
 };
 
+/** Maps set display name → SetDef for quick lookup. */
+const SET_BY_NAME = new Map(SET_DEFS.map(s => [s.name, s]));
+
 /** Maps emoji characters to their sprite-sheet class names in 16x16.png. */
 const EMOJI_SPR: Record<string, string> = {
   "⚔": "sword",  "⚔️": "sword",
@@ -634,8 +637,10 @@ function renderParty(state: GameStateDict): void {
         if (item) {
           const qc = qualityClass(item.quality);
           const itemJson = encodeURIComponent(JSON.stringify(item));
+          const setDef = item.set_name ? SET_BY_NAME.get(item.set_name) : undefined;
+          const setAttr = setDef ? ` data-set-id="${setDef.id}" style="--set-color:${setDef.color}"` : "";
           return `<div class="gear-pdoll-cell" data-slot="${slot}">
-            <button class="gear-pdoll-slot filled ${qc}${locked ? " gear-locked" : ""}" data-action="gear-slot-click" data-char-idx="${ci}" data-slot="${slot}" data-item="${itemJson}">
+            <button class="gear-pdoll-slot filled ${qc}${locked ? " gear-locked" : ""}${setDef ? " set-piece" : ""}" data-action="gear-slot-click" data-char-idx="${ci}" data-slot="${slot}" data-item="${itemJson}"${setAttr}>
               <span class="gear-pdoll-icon">${spr(icon)}</span>
               ${lockBadge}
             </button>
@@ -954,6 +959,7 @@ function renderLoot(state: GameStateDict): void {
           const qc = qualityClass(item.quality);
           const itemJson = encodeURIComponent(JSON.stringify(item));
           const setName = item.set_name;
+          const setDef2 = setName ? SET_BY_NAME.get(setName) : undefined;
           const displayName = setName ? `${setName} ${item.slot_display}` : (item.short_name ?? item.name);
           return `
 <div class="loot-item${setName ? " set-piece" : ""}" data-slot="${item.slot}" data-item="${itemJson}">
@@ -961,7 +967,7 @@ function renderLoot(state: GameStateDict): void {
     <span class="loot-name ${qc}">${displayName}</span>
     <span class="loot-slot-badge">${item.slot_display}</span>
   </div>
-  ${setName ? `<div class="set-badge">${setName}</div>` : ""}
+  ${setDef2 ? `<div class="set-badge" data-set-id="${setDef2.id}" style="border-color:${setDef2.color};color:${setDef2.color}">${setName}</div>` : ""}
   <div class="loot-body">
     <div class="loot-dmg ${triCls || qc}">${formatLootStats(tri, item.stats ?? { dps: item.damage })}</div>
     <div class="loot-btns">
@@ -1015,6 +1021,7 @@ function renderStash(state: GameStateDict): void {
     const qc = qualityClass(item.quality);
     const statsText = formatLootStats("", item.stats ?? {});
     const setName = item.set_name;
+    const setDef3 = setName ? SET_BY_NAME.get(setName) : undefined;
     const displayName = setName ? `${setName} ${item.slot_display}` : (item.short_name ?? item.name);
     const charSel = multiChar
       ? `<select class="stash-char-select">${charOptions}</select>`
@@ -1024,7 +1031,7 @@ function renderStash(state: GameStateDict): void {
     <span class="stash-item-name ${qc}">${displayName}</span>
     <span class="stash-item-slot">${item.slot_display}</span>
   </div>
-  ${setName ? `<div class="set-badge">${setName}</div>` : ""}
+  ${setDef3 ? `<div class="set-badge" data-set-id="${setDef3.id}" style="border-color:${setDef3.color};color:${setDef3.color}">${setName}</div>` : ""}
   ${statsText ? `<div class="stash-item-stats">${statsText}</div>` : ""}
   <div class="stash-item-btns">
     ${charSel}
@@ -3969,6 +3976,33 @@ function initEnemySticky(): void {
   update();
 }
 
+function initSetPieceHighlight(): void {
+  let activeSetId: string | null = null;
+
+  const setHighlight = (setId: string | null) => {
+    if (setId === activeSetId) return;
+    if (activeSetId) {
+      document.querySelectorAll<HTMLElement>(`.gear-pdoll-slot[data-set-id="${activeSetId}"]`)
+        .forEach(el => el.classList.remove("set-hl"));
+    }
+    activeSetId = setId;
+    if (setId) {
+      document.querySelectorAll<HTMLElement>(`.gear-pdoll-slot[data-set-id="${setId}"]`)
+        .forEach(el => el.classList.add("set-hl"));
+    }
+  };
+
+  document.addEventListener("mouseover", (e) => {
+    const slot = (e.target as HTMLElement).closest<HTMLElement>(".gear-pdoll-slot[data-set-id]");
+    if (slot) { setHighlight(slot.dataset.setId!); return; }
+    const badge = (e.target as HTMLElement).closest<HTMLElement>(".set-badge[data-set-id]");
+    if (badge) { setHighlight(badge.dataset.setId!); return; }
+    setHighlight(null);
+  });
+
+  document.addEventListener("mouseleave", () => setHighlight(null), true);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   preloadBossAssets();
   initTheme();
@@ -3987,6 +4021,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initMobileItemCard();
   initPartyGearToggle();
   initPartyPanelTabs();
+  initSetPieceHighlight();
 
   document.getElementById("theme-picker")?.addEventListener("click", (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLElement>(".theme-btn");

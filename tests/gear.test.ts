@@ -17,6 +17,24 @@ import {
   buildSetBonusHTML,
 } from "../src/gear.js";
 
+describe("gear pdoll grid data contract", () => {
+  it("SLOTS has exactly 9 entries for the 3×5 paper-doll grid", () => {
+    expect(SLOTS.length).toBe(9);
+  });
+
+  it("SLOTS contains all expected slot names", () => {
+    const expected = ["main_hand","off_hand","helmet","chest","gloves","legs","shoes","ring1","ring2"];
+    expect([...SLOTS].sort()).toEqual([...expected].sort());
+  });
+
+  it("qualityClass returns a non-empty string for every quality tier", () => {
+    const tiers = ["broken","worn","common","uncommon","rare","epic","legendary","set","divine"];
+    for (const t of tiers) {
+      expect(qualityClass(t).length).toBeGreaterThan(0);
+    }
+  });
+});
+
 describe("autoSellThreshold", () => {
   it("returns 0 at level 1 (broken only)", () => {
     expect(autoSellThreshold(1)).toBe(0);
@@ -509,6 +527,12 @@ describe("SET_DEFS", () => {
   it("all set ids are unique", () => {
     const ids = SET_DEFS.map(s => s.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("every set has a color field (hex string starting with #)", () => {
+    for (const s of SET_DEFS) {
+      expect(s.color, `${s.id} missing color`).toMatch(/^#[0-9a-fA-F]{3,8}$/);
+    }
   });
 
   it("all slot lists reference valid SLOTS entries", () => {
