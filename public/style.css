@@ -4269,7 +4269,8 @@ footer {
 }
 
 /* ── Party rune panel ── */
-#party-rune-panel {
+#party-rune-panel,
+#party-artifact-panel {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
@@ -4861,7 +4862,6 @@ footer {
     padding: 12px 14px 14px;
     position: relative;
     box-shadow: inset 0 1px 0 rgba(167,139,250,0.06), 0 2px 12px rgba(0,0,0,0.35);
-    margin-bottom: 10px;
 }
 
 .art-pdoll-row {
@@ -5313,7 +5313,7 @@ footer {
 .retire-unlock-none { color: var(--muted); font-size: 0.8rem; text-align: center; padding: 8px 0; border-color: var(--border); background: none; }
 
 @media (max-width: 1280px) {
-    #party-rune-panel { grid-template-columns: 1fr; }
+    #party-rune-panel, #party-artifact-panel { grid-template-columns: 1fr; }
 }
 
 /* ── Left-col sub-tabs (Party / Stars toggle) ────────────────────────────── */

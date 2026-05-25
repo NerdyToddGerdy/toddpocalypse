@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.32";
+export const VERSION = "v2.32.33";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.33",
+    date: "2026-05-25",
+    changes: [
+      "Party Artifacts tab: character cards now display 2 per row, matching the rune panel layout",
+    ],
+  },
   {
     version: "v2.32.32",
     date: "2026-05-25",
