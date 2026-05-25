@@ -1621,6 +1621,12 @@ main {
         background: none;
         border: none;
     }
+    .ug-empty-header {
+        /* placeholder column when chunk has fewer than 3 chars */
+    }
+    .ug-group-divider {
+        height: 10px;
+    }
 }
 
 /* ── Combat log ── */

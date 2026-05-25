@@ -132,6 +132,12 @@ function upgradeBonusLabel(utype: string, level: number): string {
   }
 }
 
+/** Like upgradeBonusLabel but strips the trailing stat name — used in the mobile grid where the name is already on the left. */
+function upgradeBonusValue(utype: string, level: number): string {
+  const full = upgradeBonusLabel(utype, level);
+  return full ? full.replace(/\s+\S+$/, "") : "";
+}
+
 const SAVE_KEY = "toddpocalypse-save";
 const THEME_KEY = "toddpocalypse-theme";
 const THEMES = ["grimdark", "arcane", "tavern", "inferno", "void-rift", "bloodmoon", "frost-crypt", "necropolis"] as const;
@@ -1065,35 +1071,51 @@ function renderUpgrades(state: GameStateDict): void {
       })
       .join("");
 
-    // ── Mobile grid (stats down, heroes across) ───────────────────────────
-    const cols = state.party.length;
+    // ── Mobile grid (stats down, heroes across, max 3 per group) ────────────
+    const CHUNK = 3;
     const statOrder = Object.keys(UPGRADE_LABELS);
     const gridEl = document.getElementById("upgrade-grid")!;
-    gridEl.style.gridTemplateColumns = `auto repeat(${cols}, 1fr)`;
+    gridEl.style.gridTemplateColumns = `auto repeat(${CHUNK}, 1fr)`;
 
-    // Header row: empty corner + one name per character
-    const headerCells = state.party.map(c =>
-      `<div class="ug-char-header">${c.name.split(" ")[0]}</div>`
-    ).join("");
+    let gridHtml = "";
+    for (let start = 0; start < state.party.length; start += CHUNK) {
+      const chunk = state.party.slice(start, start + CHUNK);
 
-    // Stat rows: label cell + one button per character
-    const statRows = statOrder.map(utype => {
-      const meta = UPGRADE_LABELS[utype];
-      const btnCells = state.party.map(c => {
-        const u = state.upgrades[c.name]?.[utype as keyof typeof state.upgrades[string]];
-        if (!u) return `<div class="ug-cell ug-empty"></div>`;
-        const bonus = upgradeBonusLabel(utype, u.level);
-        return `<button class="upgrade-btn ug-btn"
-            data-action="upgrade"
-            data-char="${c.name}"
-            data-type="${utype}"
-            data-cost="${u.cost}"
-            title="${meta.label} — ${c.name} (Lv ${u.level})">${formatNumber(u.cost)}g<span class="ug-btn-meta">Lv ${u.level}${bonus ? ` · ${bonus}` : ""}</span></button>`;
-      }).join("");
-      return `<div class="ug-stat-label">${spr(meta.icon)} ${meta.label}</div>${btnCells}`;
-    }).join("");
+      // Header row
+      gridHtml += `<div class="ug-corner"></div>`;
+      for (let i = 0; i < CHUNK; i++) {
+        const c = chunk[i];
+        gridHtml += c
+          ? `<div class="ug-char-header">${c.name.split(" ")[0]}</div>`
+          : `<div class="ug-char-header ug-empty-header"></div>`;
+      }
 
-    gridEl.innerHTML = `<div class="ug-corner"></div>${headerCells}${statRows}`;
+      // Stat rows
+      for (const utype of statOrder) {
+        const meta = UPGRADE_LABELS[utype];
+        gridHtml += `<div class="ug-stat-label">${spr(meta.icon)} ${meta.label}</div>`;
+        for (let i = 0; i < CHUNK; i++) {
+          const c = chunk[i];
+          if (!c) { gridHtml += `<div class="ug-cell ug-empty"></div>`; continue; }
+          const u = state.upgrades[c.name]?.[utype as keyof typeof state.upgrades[string]];
+          if (!u) { gridHtml += `<div class="ug-cell ug-empty"></div>`; continue; }
+          const bonusVal = upgradeBonusValue(utype, u.level);
+          gridHtml += `<button class="upgrade-btn ug-btn"
+              data-action="upgrade"
+              data-char="${c.name}"
+              data-type="${utype}"
+              data-cost="${u.cost}"
+              title="${meta.label} — ${c.name} (Lv ${u.level})">${formatNumber(u.cost)}g${bonusVal ? `<span class="ug-btn-meta">${bonusVal}</span>` : ""}</button>`;
+        }
+      }
+
+      // Divider between groups (if more chars follow)
+      if (start + CHUNK < state.party.length) {
+        gridHtml += `<div class="ug-group-divider" style="grid-column:1/-1"></div>`;
+      }
+    }
+
+    gridEl.innerHTML = gridHtml;
   }
 
   // Update disabled state for both layouts in one pass

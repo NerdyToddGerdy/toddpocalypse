@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.47";
+export const VERSION = "v2.32.48";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.48",
+    date: "2026-05-25",
+    changes: [
+      "Mobile upgrade grid: stat name removed from buttons (shown only on the left label); buttons now show cost + numeric bonus only (e.g. '+20%')",
+      "Mobile upgrade grid: splits into groups of 3 characters with stat labels repeated per group, so 4-player parties display cleanly",
+    ],
+  },
   {
     version: "v2.32.47",
     date: "2026-05-25",
