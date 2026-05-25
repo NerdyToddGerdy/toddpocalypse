@@ -331,18 +331,44 @@ export const AVATAR_DEFS: { id: string; icon: string; name: string }[] = [
   { id: "warlord",  icon: "🔱",  name: "Warlord"         },
   { id: "merchant", icon: "💰",  name: "Merchant"        },
   { id: "hunter",   icon: "🏹",  name: "Hunter"          },
+  { id: "wolf",     icon: "🐺",  name: "Wolf"            },
+  { id: "flame",    icon: "🔥",  name: "Pyromancer"      },
+  { id: "hawk",     icon: "🦅",  name: "Hawk Eye"        },
+  { id: "explorer", icon: "🗺️", name: "Explorer"        },
+  { id: "compass",  icon: "🧭",  name: "Archaeologist"   },
+  { id: "medal",    icon: "🎖️", name: "Decorated"       },
+  { id: "coin",     icon: "🪙",  name: "Coin Lord"       },
+  { id: "wizard",   icon: "🧙",  name: "Spellbinder"     },
+  { id: "crystal",  icon: "💠",  name: "Gemcutter"       },
+  { id: "scales",   icon: "⚖️", name: "Arbiter"         },
 ];
 
 /** Player avatar border styles — unlockable via achievements. */
 export const BORDER_DEFS: { id: string; cssClass: string; name: string }[] = [
-  { id: "none",    cssClass: "border-none",    name: "None"    },
-  { id: "iron",    cssClass: "border-iron",    name: "Iron"    },
-  { id: "silver",  cssClass: "border-silver",  name: "Silver"  },
-  { id: "gold",    cssClass: "border-gold",    name: "Gold"    },
-  { id: "blood",   cssClass: "border-blood",   name: "Blood"   },
-  { id: "arcane",  cssClass: "border-arcane",  name: "Arcane"  },
-  { id: "ancient", cssClass: "border-ancient", name: "Ancient" },
-  { id: "void",    cssClass: "border-void",    name: "Void"    },
+  { id: "none",      cssClass: "border-none",      name: "None"      },
+  { id: "iron",      cssClass: "border-iron",      name: "Iron"      },
+  { id: "silver",    cssClass: "border-silver",    name: "Silver"    },
+  { id: "gold",      cssClass: "border-gold",      name: "Gold"      },
+  { id: "blood",     cssClass: "border-blood",     name: "Blood"     },
+  { id: "arcane",    cssClass: "border-arcane",    name: "Arcane"    },
+  { id: "ancient",   cssClass: "border-ancient",   name: "Ancient"   },
+  { id: "void",      cssClass: "border-void",      name: "Void"      },
+  { id: "crimson",   cssClass: "border-crimson",   name: "Crimson"   },
+  { id: "ember",     cssClass: "border-ember",     name: "Ember"     },
+  { id: "bronze",    cssClass: "border-bronze",    name: "Bronze"    },
+  { id: "shadow",    cssClass: "border-shadow",    name: "Shadow"    },
+  { id: "emerald",   cssClass: "border-emerald",   name: "Emerald"   },
+  { id: "frost",     cssClass: "border-frost",     name: "Frost"     },
+  { id: "twilight",  cssClass: "border-twilight",  name: "Twilight"  },
+  { id: "relic",     cssClass: "border-relic",     name: "Relic"     },
+  { id: "celestial", cssClass: "border-celestial", name: "Celestial" },
+  { id: "obsidian",  cssClass: "border-obsidian",  name: "Obsidian"  },
+  { id: "platinum",  cssClass: "border-platinum",  name: "Platinum"  },
+  { id: "sovereign", cssClass: "border-sovereign", name: "Sovereign" },
+  { id: "mystic",    cssClass: "border-mystic",    name: "Mystic"    },
+  { id: "storm",     cssClass: "border-storm",     name: "Storm"     },
+  { id: "runic",     cssClass: "border-runic",     name: "Runic"     },
+  { id: "spellfire", cssClass: "border-spellfire", name: "Spellfire" },
 ];
 
 /** Snapshot of a retired hero, stored permanently in the Hall of Fame. */
@@ -2547,7 +2573,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     id: "kill_all_types", name: "Bestiary",
     description: "Kill every type of enemy.",
     category: "combat", hidden: false,
-    reward: { type: "avatar", cosmetic: "dragon" },
+    reward: { type: "avatar", cosmetic: "wolf" },
     getValue: gs => new Set(Object.keys(gs.lifetimeEnemyKills).map(n => n.split(" ").pop()!)).size >= ENEMY_NOUNS.length ? 1 : 0,
   },
   {
@@ -2571,8 +2597,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: "explorer", hidden: false,
     tiers: [
       { label: "bronze", threshold: 10, reward: { type: "gold", value: 250 } },
-      { label: "silver", threshold: 25, reward: { type: "border", cosmetic: "silver" } },
-      { label: "gold",   threshold: 50, reward: { type: "border", cosmetic: "void" } },
+      { label: "silver", threshold: 25, reward: { type: "border", cosmetic: "frost" } },
+      { label: "gold",   threshold: 50, reward: { type: "border", cosmetic: "twilight" } },
     ],
     getValue: gs => gs.lifetimeBestLevel,
   },
@@ -2629,7 +2655,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     tiers: [
       { label: "bronze", threshold: 50,  reward: { type: "gold", value: 250 } },
       { label: "silver", threshold: 200, reward: { type: "gold", value: 500 } },
-      { label: "gold",   threshold: 500, reward: { type: "avatar", cosmetic: "gem" } },
+      { label: "gold",   threshold: 500, reward: { type: "avatar", cosmetic: "explorer" } },
     ],
     getValue: gs => gs.lifetimeLoot,
   },
@@ -2652,7 +2678,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     tiers: [
       { label: "bronze", threshold: 10_000,    reward: { type: "gold", value: 500 } },
       { label: "silver", threshold: 100_000,   reward: { type: "avatar", cosmetic: "merchant" } },
-      { label: "gold",   threshold: 1_000_000, reward: { type: "border", cosmetic: "gold" } },
+      { label: "gold",   threshold: 1_000_000, reward: { type: "border", cosmetic: "platinum" } },
     ],
     getValue: gs => gs.lifetimeGold,
   },
@@ -2660,7 +2686,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     id: "sell_divine", name: "Letting Go",
     description: "???",
     category: "wealth", hidden: true,
-    reward: { type: "avatar", cosmetic: "merchant" },
+    reward: { type: "avatar", cosmetic: "coin" },
     getValue: gs => gs.lifetimeDivineSold,
   },
   // ── Prestige ──────────────────────────────────────────────────────────────
@@ -2676,8 +2702,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     description: "Rise from the ashes again and again.",
     category: "prestige", hidden: false,
     tiers: [
-      { label: "bronze", threshold: 5,  reward: { type: "border", cosmetic: "arcane" } },
-      { label: "silver", threshold: 10, reward: { type: "border", cosmetic: "ancient" } },
+      { label: "bronze", threshold: 5,  reward: { type: "border", cosmetic: "mystic" } },
+      { label: "silver", threshold: 10, reward: { type: "border", cosmetic: "celestial" } },
       { label: "gold",   threshold: 25, reward: { type: "title", title: "The Eternal" } },
     ],
     getValue: gs => gs.totalPrestiges,
@@ -2686,7 +2712,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     id: "prestige_shop_full", name: "The Complete Package",
     description: "Purchase every item in the Hall of Renown.",
     category: "prestige", hidden: false,
-    reward: { type: "border", cosmetic: "ancient" },
+    reward: { type: "border", cosmetic: "obsidian" },
     getValue: gs => Object.keys(PRESTIGE_SHOP_COSTS).every(k => (gs.prestigeUpgrades[k] ?? 0) > 0) ? 1 : 0,
   },
   // ── Guild ─────────────────────────────────────────────────────────────────
@@ -2709,8 +2735,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: "guild", hidden: false,
     tiers: [
       { label: "bronze", threshold: 3,                reward: { type: "gold", value: 500 } },
-      { label: "silver", threshold: 6,                reward: { type: "avatar", cosmetic: "warlord" } },
-      { label: "gold",   threshold: GUILD_MAX_STACKS, reward: { type: "border", cosmetic: "gold" } },
+      { label: "silver", threshold: 6,                reward: { type: "avatar", cosmetic: "medal" } },
+      { label: "gold",   threshold: GUILD_MAX_STACKS, reward: { type: "border", cosmetic: "sovereign" } },
     ],
     getValue: gs => Object.values(gs.guildUpgrades).reduce((s: number, v) => s + (v as number), 0),
   },
@@ -2738,7 +2764,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     id: "arsenal", name: "Arsenal",
     description: "Unlock all active skills.",
     category: "guild", hidden: false,
-    reward: { type: "avatar", cosmetic: "merchant" },
+    reward: { type: "avatar", cosmetic: "wizard" },
     getValue: gs => Object.keys(SKILL_DEFS).filter(id => (gs.guildUpgrades[id] ?? 0) > 0).length >= Object.keys(SKILL_DEFS).length ? 1 : 0,
   },
   // ── Runes ─────────────────────────────────────────────────────────────────
@@ -2765,7 +2791,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     id: "ancient_power", name: "Ancient Power",
     description: "???",
     category: "runes", hidden: true,
-    reward: { type: "border", cosmetic: "arcane" },
+    reward: { type: "border", cosmetic: "runic" },
     getValue: gs =>
       gs.runeInventory.some(r => r.tier === "ancient") ||
       gs.party.team.some(c => Object.values(c.runes ?? {}).some(r => r?.tier === "ancient")) ? 1 : 0,
@@ -2777,7 +2803,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     tiers: [
       { label: "bronze", threshold: 5,  reward: { type: "gold", value: 250 } },
       { label: "silver", threshold: 15, reward: { type: "gold", value: 500 } },
-      { label: "gold",   threshold: 30, reward: { type: "avatar", cosmetic: "rune" } },
+      { label: "gold",   threshold: 30, reward: { type: "avatar", cosmetic: "crystal" } },
     ],
     getValue: gs => gs.runeInventory.length,
   },
@@ -2788,7 +2814,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     tiers: [
       { label: "bronze", threshold: 10,  reward: { type: "gold", value: 250 } },
       { label: "silver", threshold: 50,  reward: { type: "gold", value: 500 } },
-      { label: "gold",   threshold: 200, reward: { type: "avatar", cosmetic: "merchant" } },
+      { label: "gold",   threshold: 200, reward: { type: "avatar", cosmetic: "scales" } },
     ],
     getValue: gs => gs.lifetimeRunesSold,
   },
@@ -2799,8 +2825,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: "combat", hidden: false,
     tiers: [
       { label: "bronze", threshold: 10,  reward: { type: "gold", value: 250 } },
-      { label: "silver", threshold: 50,  reward: { type: "border", cosmetic: "blood" } },
-      { label: "gold",   threshold: 200, reward: { type: "avatar", cosmetic: "dragon" } },
+      { label: "silver", threshold: 50,  reward: { type: "border", cosmetic: "crimson" } },
+      { label: "gold",   threshold: 200, reward: { type: "avatar", cosmetic: "flame" } },
     ],
     getValue: gs => gs.lifetimeEliteKills,
   },
@@ -2811,8 +2837,8 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: "wealth", hidden: false,
     tiers: [
       { label: "bronze", threshold: 50,    reward: { type: "gold", value: 500 } },
-      { label: "silver", threshold: 250,   reward: { type: "border", cosmetic: "iron" } },
-      { label: "gold",   threshold: 1_000, reward: { type: "border", cosmetic: "silver" } },
+      { label: "silver", threshold: 250,   reward: { type: "border", cosmetic: "shadow" } },
+      { label: "gold",   threshold: 1_000, reward: { type: "border", cosmetic: "emerald" } },
     ],
     getValue: gs => gs.lifetimeUpgradesBought,
   },
@@ -2822,9 +2848,9 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     description: "Click to deal bonus damage.",
     category: "combat", hidden: false,
     tiers: [
-      { label: "bronze", threshold: 100,    reward: { type: "border", cosmetic: "iron" } },
-      { label: "silver", threshold: 1_000,  reward: { type: "avatar", cosmetic: "hunter" } },
-      { label: "gold",   threshold: 10_000, reward: { type: "border", cosmetic: "arcane" } },
+      { label: "bronze", threshold: 100,    reward: { type: "border", cosmetic: "bronze" } },
+      { label: "silver", threshold: 1_000,  reward: { type: "avatar", cosmetic: "hawk" } },
+      { label: "gold",   threshold: 10_000, reward: { type: "border", cosmetic: "storm" } },
     ],
     getValue: gs => gs.lifetimeClicks,
   },
@@ -2868,7 +2894,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: "collector", hidden: false,
     tiers: [
       { label: "bronze", threshold: 3,                       reward: { type: "gold", value: 500 } },
-      { label: "silver", threshold: 6,                       reward: { type: "avatar", cosmetic: "warlord" } },
+      { label: "silver", threshold: 6,                       reward: { type: "avatar", cosmetic: "compass" } },
       { label: "gold",   threshold: ARTIFACT_DROP_POOL.length, reward: { type: "title", title: "The Collector" } },
     ],
     getValue: gs => new Set([
@@ -2880,7 +2906,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     id: "artifact_max_level", name: "Ancient Relic",
     description: "???",
     category: "collector", hidden: true,
-    reward: { type: "border", cosmetic: "ancient" },
+    reward: { type: "border", cosmetic: "relic" },
     getValue: gs => [
       ...gs.artifactInventory,
       ...gs.party.team.flatMap(c => c.artifactSlots.filter((s): s is ArtifactInstance => s !== null)),
@@ -2893,7 +2919,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: "combat", hidden: false,
     tiers: [
       { label: "bronze", threshold: 25,  reward: { type: "avatar", cosmetic: "skull" } },
-      { label: "silver", threshold: 100, reward: { type: "border", cosmetic: "blood" } },
+      { label: "silver", threshold: 100, reward: { type: "border", cosmetic: "ember" } },
       { label: "gold",   threshold: 500, reward: { type: "title", title: "The Relentless" } },
     ],
     getValue: gs => gs.lifetimeBestKillStreak,
@@ -2913,7 +2939,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     category: "guild", hidden: false,
     tiers: [
       { label: "bronze", threshold: 10,    reward: { type: "gold", value: 500 } },
-      { label: "silver", threshold: 100,   reward: { type: "border", cosmetic: "arcane" } },
+      { label: "silver", threshold: 100,   reward: { type: "border", cosmetic: "spellfire" } },
       { label: "gold",   threshold: 1_000, reward: { type: "title", title: "Spellblade" } },
     ],
     getValue: gs => gs.lifetimeSkillActivations,

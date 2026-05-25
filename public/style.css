@@ -5153,6 +5153,28 @@ footer {
 @keyframes arcane-pulse { 0%,100% { box-shadow: 0 0 12px #8b5cf6aa; } 50% { box-shadow: 0 0 20px #8b5cf6ff; } }
 @keyframes void-pulse   { 0%,100% { box-shadow: 0 0 14px #6366f188; } 50% { box-shadow: 0 0 22px #6366f1cc; } }
 
+.border-crimson   { border: 3px solid #be123c; box-shadow: 0 0 10px #be123c88; }
+.border-ember     { border: 3px solid #ea580c; box-shadow: 0 0 10px #ea580c88; }
+.border-bronze    { border: 3px solid #c27c3e; box-shadow: 0 0 8px #c27c3e66; }
+.border-shadow    { border: 3px solid #374151; box-shadow: 0 0 8px #4b556388, inset 0 0 6px rgba(0,0,0,0.5); }
+.border-emerald   { border: 3px solid #10b981; box-shadow: 0 0 10px #10b98188; }
+.border-frost     { border: 3px solid #38bdf8; box-shadow: 0 0 10px #38bdf888; }
+.border-twilight  { border: 3px solid #6366f1; box-shadow: 0 0 12px #6366f1aa; animation: twilight-pulse 2.5s ease-in-out infinite; }
+.border-relic     { border: 3px solid #d97706; box-shadow: 0 0 10px #d9770688, inset 0 0 6px #d9770622; }
+.border-celestial { border: 3px solid #818cf8; box-shadow: 0 0 14px #818cf8bb; animation: celestial-pulse 3s ease-in-out infinite; }
+.border-obsidian  { border: 3px solid #312e81; box-shadow: 0 0 14px #4338caaa, inset 0 0 8px #1e1b4b66; }
+.border-platinum  { border: 3px solid #cbd5e1; box-shadow: 0 0 12px #cbd5e1aa; }
+.border-sovereign { border: 3px solid #0891b2; box-shadow: 0 0 10px #0891b288; }
+.border-mystic    { border: 3px solid #7c3aed; box-shadow: 0 0 10px #7c3aed88; }
+.border-storm     { border: 3px solid #fbbf24; box-shadow: 0 0 12px #fbbf24aa; animation: storm-pulse 1.5s ease-in-out infinite; }
+.border-runic     { border: 3px solid #06b6d4; box-shadow: 0 0 12px #06b6d4aa; animation: runic-pulse 2s ease-in-out infinite; }
+.border-spellfire { border: 3px solid #ec4899; box-shadow: 0 0 12px #ec489988; }
+
+@keyframes twilight-pulse  { 0%,100% { box-shadow: 0 0 12px #6366f1aa; } 50% { box-shadow: 0 0 20px #6366f1ff; } }
+@keyframes celestial-pulse { 0%,100% { box-shadow: 0 0 14px #818cf8bb; } 50% { box-shadow: 0 0 22px #818cf8ff; } }
+@keyframes storm-pulse     { 0%,100% { box-shadow: 0 0 12px #fbbf24aa; } 50% { box-shadow: 0 0 20px #fbbf24ff; } }
+@keyframes runic-pulse     { 0%,100% { box-shadow: 0 0 12px #06b6d4aa; } 50% { box-shadow: 0 0 20px #06b6d4ff; } }
+
 /* ── Profile Picker ────────────────────────────────────────────────────── */
 .profile-picker { margin-bottom: 10px; }
 .profile-picker-tabs { display: flex; gap: 6px; margin-bottom: 8px; }

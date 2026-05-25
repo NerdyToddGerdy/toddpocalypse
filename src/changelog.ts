@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.29";
+export const VERSION = "v2.32.30";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.30",
+    date: "2026-05-25",
+    changes: [
+      "Feats: all 26 duplicate rewards replaced — added 10 new avatar cosmetics (Wolf, Pyromancer, Hawk Eye, Explorer, Archaeologist, Decorated, Coin Lord, Spellbinder, Gemcutter, Arbiter) and 16 new border styles (Crimson, Ember, Bronze, Shadow, Emerald, Frost, Twilight, Relic, Celestial, Obsidian, Platinum, Sovereign, Mystic, Storm, Runic, Spellfire); every feat now grants a unique reward",
+    ],
+  },
   {
     version: "v2.32.29",
     date: "2026-05-25",

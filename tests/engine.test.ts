@@ -5201,7 +5201,7 @@ describe("achievement rewards: avatar and border", () => {
       gs.lifetimeEnemyKills[`Test ${noun}`] = 1;
     }
     gs.checkAchievements();
-    expect(gs.earnedAvatars.has("dragon")).toBe(true);
+    expect(gs.earnedAvatars.has("wolf")).toBe(true);
   });
 
   it("border reward adds to earnedBorders", () => {
@@ -5302,7 +5302,7 @@ describe("fromDict cosmetic backfill", () => {
     dict.earned_avatars = ["default"];
     dict.earned_borders = ["none"];
     const gs2 = GameState.fromDict(dict);
-    expect(gs2.earnedBorders.has("silver")).toBe(true);
+    expect(gs2.earnedBorders.has("frost")).toBe(true);
   });
 
   it("does not discard already-earned cosmetics on backfill", () => {
@@ -5312,7 +5312,7 @@ describe("fromDict cosmetic backfill", () => {
     dict.earned_avatars = ["default"];
     dict.earned_borders = ["none", "gold"]; // already earned gold
     const gs2 = GameState.fromDict(dict);
-    expect(gs2.earnedBorders.has("silver")).toBe(true);
+    expect(gs2.earnedBorders.has("frost")).toBe(true);
     expect(gs2.earnedBorders.has("gold")).toBe(true);
   });
 });
@@ -5844,12 +5844,12 @@ describe("on_a_roll_tiered achievement", () => {
     expect(gs.earnedAvatars.has("skull")).toBe(true);
   });
 
-  it("silver fires at 100 best kill streak and awards blood border", () => {
+  it("silver fires at 100 best kill streak and awards ember border", () => {
     const gs = make();
     gs.lifetimeBestKillStreak = 100;
     gs.checkAchievements();
     expect(gs.achievementsUnlocked.has("on_a_roll_tiered_silver")).toBe(true);
-    expect(gs.earnedBorders.has("blood")).toBe(true);
+    expect(gs.earnedBorders.has("ember")).toBe(true);
   });
 
   it("gold fires at 500 best kill streak", () => {
@@ -5895,12 +5895,12 @@ describe("tactician_tiered achievement", () => {
     expect(gs.achievementsUnlocked.has("tactician_tiered_bronze")).toBe(true);
   });
 
-  it("silver fires at 100 activations and awards arcane border", () => {
+  it("silver fires at 100 activations and awards spellfire border", () => {
     const gs = make();
     gs.lifetimeSkillActivations = 100;
     gs.checkAchievements();
     expect(gs.achievementsUnlocked.has("tactician_tiered_silver")).toBe(true);
-    expect(gs.earnedBorders.has("arcane")).toBe(true);
+    expect(gs.earnedBorders.has("spellfire")).toBe(true);
   });
 
   it("gold fires at 1000 activations", () => {
@@ -5915,5 +5915,136 @@ describe("tactician_tiered achievement", () => {
     gs.lifetimeSkillActivations = 9;
     gs.checkAchievements();
     expect(gs.achievementsUnlocked.has("tactician_tiered_bronze")).toBe(false);
+  });
+});
+
+// ─── auto-skill ───────────────────────────────────────────────────────────
+
+function makeAllSkillsGs(): GameState {
+  const gs = make();
+  for (const id of Object.keys(SKILL_DEFS)) gs.guildUpgrades[id] = 1;
+  // Add one party member per class so each skill has a caster
+  const classes = [...new Set(Object.values(SKILL_DEFS).map(d => d.class))];
+  for (const cls of classes) {
+    if (!gs.party.team.some(c => c.characterClass === cls)) {
+      gs.party.team.push(new Character("Ally", cls));
+    }
+  }
+  return gs;
+}
+
+describe("auto-skill toggle", () => {
+  it("autoSkillEnabled starts false", () => {
+    expect(make().autoSkillEnabled).toBe(false);
+  });
+
+  it("toggleAutoSkill flips the flag", () => {
+    const gs = make();
+    gs.toggleAutoSkill();
+    expect(gs.autoSkillEnabled).toBe(true);
+    gs.toggleAutoSkill();
+    expect(gs.autoSkillEnabled).toBe(false);
+  });
+
+  it("persists through serialize/deserialize", () => {
+    const gs = make();
+    gs.autoSkillEnabled = true;
+    const gs2 = GameState.fromDict(gs.toDict());
+    expect(gs2.autoSkillEnabled).toBe(true);
+  });
+
+  it("defaults to false from legacy save", () => {
+    const gs = make();
+    const d = gs.toDict();
+    delete (d as any).auto_skill_enabled;
+    expect(GameState.fromDict(d).autoSkillEnabled).toBe(false);
+  });
+});
+
+describe("auto-skill firing", () => {
+  it("fires one skill on kill when enabled", () => {
+    const gs = makeAllSkillsGs();
+    gs.autoSkillEnabled = true;
+    const before = gs.lifetimeSkillActivations;
+    gs.onEnemyDeath();
+    expect(gs.lifetimeSkillActivations).toBe(before + 1);
+  });
+
+  it("does not fire when disabled", () => {
+    const gs = makeAllSkillsGs();
+    gs.autoSkillEnabled = false;
+    const before = gs.lifetimeSkillActivations;
+    gs.onEnemyDeath();
+    expect(gs.lifetimeSkillActivations).toBe(before);
+  });
+
+  it("fires at most one skill per kill", () => {
+    const gs = makeAllSkillsGs();
+    gs.autoSkillEnabled = true;
+    const before = gs.lifetimeSkillActivations;
+    gs.onEnemyDeath();
+    expect(gs.lifetimeSkillActivations).toBe(before + 1);
+  });
+
+  it("skips skills on cooldown and fires the next available one", () => {
+    const gs = makeAllSkillsGs();
+    gs.autoSkillEnabled = true;
+    const skillList = Object.keys(SKILL_DEFS);
+    // Put first skill on cooldown
+    gs.skillCooldowns[skillList[0]] = 5;
+    const before = gs.lifetimeSkillActivations;
+    gs.onEnemyDeath();
+    // Should still fire something (the next ready skill)
+    expect(gs.lifetimeSkillActivations).toBe(before + 1);
+    // First skill should still be on cooldown (not activated)
+    expect(gs.skillCooldowns[skillList[0]]).toBeGreaterThan(0);
+  });
+
+  it("does not fire when all skills are on cooldown", () => {
+    const gs = makeAllSkillsGs();
+    gs.autoSkillEnabled = true;
+    for (const id of Object.keys(SKILL_DEFS)) gs.skillCooldowns[id] = 10;
+    const before = gs.lifetimeSkillActivations;
+    gs.onEnemyDeath();
+    expect(gs.lifetimeSkillActivations).toBe(before);
+  });
+
+  it("cycles to the next skill after firing one", () => {
+    const gs = makeAllSkillsGs();
+    gs.autoSkillEnabled = true;
+    // Kill 1: fires skill at index 0
+    gs.onEnemyDeath();
+    const firstFired = Object.keys(gs.skillCooldowns)[0];
+    // Kill 2: first skill is on cooldown — should fire a different one
+    gs.onEnemyDeath();
+    const secondFired = Object.keys(gs.skillCooldowns).find(k => k !== firstFired);
+    expect(secondFired).toBeDefined();
+  });
+
+  it("manual skill activation still works while auto-skill is on", () => {
+    const gs = makeAllSkillsGs();
+    gs.autoSkillEnabled = true;
+    const skillId = Object.keys(SKILL_DEFS)[0];
+    const before = gs.lifetimeSkillActivations;
+    gs.activateSkill(skillId);
+    expect(gs.lifetimeSkillActivations).toBe(before + 1);
+  });
+});
+
+describe("all_skills_unlocked in toDict", () => {
+  it("is false when no skills are purchased", () => {
+    expect(make().toDict().all_skills_unlocked).toBe(false);
+  });
+
+  it("is false when only some skills are purchased", () => {
+    const gs = make();
+    gs.guildUpgrades["skill_battle_cry"] = 1;
+    expect(gs.toDict().all_skills_unlocked).toBe(false);
+  });
+
+  it("is true when all skills are purchased", () => {
+    const gs = make();
+    for (const id of Object.keys(SKILL_DEFS)) gs.guildUpgrades[id] = 1;
+    expect(gs.toDict().all_skills_unlocked).toBe(true);
   });
 });
