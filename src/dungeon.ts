@@ -72,6 +72,11 @@ export const ENEMY_ATTACK_EXPONENT = 1.3;
 /** Exponential base for boss stat scaling per dungeon — boss HP and attack multiply by this each venture. */
 export const BOSS_DUNGEON_MULT_BASE = 1.6;
 
+/** HP multiplier for the floor-before-checkpoint gate boss. */
+export const GATE_BOSS_HP_MULT = 1.5;
+/** Attack multiplier for the floor-before-checkpoint gate boss. */
+export const GATE_BOSS_ATTACK_MULT = 1.25;
+
 /** Live state of an enemy currently being fought. */
 export interface Enemy {
   /** Display name shown in the enemy panel. */
@@ -142,14 +147,19 @@ export function generateEnemy(dungeonLevel: number, dungeonIndex = 0): Enemy {
 
 /** Generates a scaled floor boss with higher HP and attack than regular enemies.
  *  Boss stats scale exponentially with dungeonIndex (×BOSS_DUNGEON_MULT_BASE per dungeon).
- *  HP also scales by √partySize so larger parties face a tankier boss. */
-export function generateBoss(dungeonLevel: number, dungeonIndex = 0, partySize = 1): Enemy {
+ *  HP also scales by √partySize so larger parties face a tankier boss.
+ *  Gate bosses (the floor before a checkpoint) gain extra HP and attack. */
+export function generateBoss(dungeonLevel: number, dungeonIndex = 0, partySize = 1, isGateBoss = false): Enemy {
   const mult = Math.pow(BOSS_DUNGEON_MULT_BASE, dungeonIndex);
-  const name = `The ${pick(BOSS_TITLES)} ${pick(ENEMY_NOUNS)} ${pick(BOSS_NOUNS)}`;
-  const hp = Math.floor(100 * Math.pow(1.3, dungeonLevel) * mult * Math.sqrt(partySize));
+  const gateMult = isGateBoss ? GATE_BOSS_HP_MULT : 1;
+  const gateAttackMult = isGateBoss ? GATE_BOSS_ATTACK_MULT : 1;
+  const name = isGateBoss
+    ? `The ${pick(BOSS_TITLES)} ${pick(ENEMY_NOUNS)} ${pick(BOSS_NOUNS)} Guardian`
+    : `The ${pick(BOSS_TITLES)} ${pick(ENEMY_NOUNS)} ${pick(BOSS_NOUNS)}`;
+  const hp = Math.floor(100 * Math.pow(1.3, dungeonLevel) * mult * Math.sqrt(partySize) * gateMult);
   const xpReward = Math.max(5, dungeonLevel * 9 + 5);
   const goldReward = Math.max(5, Math.floor(dungeonLevel * 15 * (1 + dungeonIndex * 0.15) * (1 + dungeonLevel * GOLD_LEVEL_MULT)));
-  const attackDps = Math.round(Math.pow(dungeonLevel, ENEMY_ATTACK_EXPONENT) * 6.5 * mult * 10) / 10;
+  const attackDps = Math.round(Math.pow(dungeonLevel, ENEMY_ATTACK_EXPONENT) * 6.5 * mult * gateAttackMult * 10) / 10;
   return {
     name,
     level: dungeonLevel,

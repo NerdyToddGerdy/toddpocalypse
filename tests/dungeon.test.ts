@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateEnemy, generateBoss, generateEliteEnemy, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT, GOLD_LEVEL_MULT, ENEMY_ATTACK_EXPONENT, BOSS_NOUNS, BOSS_DUNGEON_MULT_BASE } from "../src/dungeon.js";
+import { generateEnemy, generateBoss, generateEliteEnemy, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT, GOLD_LEVEL_MULT, ENEMY_ATTACK_EXPONENT, BOSS_NOUNS, BOSS_DUNGEON_MULT_BASE, GATE_BOSS_HP_MULT, GATE_BOSS_ATTACK_MULT } from "../src/dungeon.js";
 
 describe("GOLD_LEVEL_MULT", () => {
   it("is 0.01", () => {
@@ -242,6 +242,46 @@ describe("generateBoss", () => {
 
   it("partySize does not affect attack_dps (attack already scales in tick)", () => {
     expect(generateBoss(10, 0, 1).attack_dps).toBe(generateBoss(10, 0, 4).attack_dps);
+  });
+
+  it("GATE_BOSS_HP_MULT and GATE_BOSS_ATTACK_MULT are exported and greater than 1", () => {
+    expect(GATE_BOSS_HP_MULT).toBeGreaterThan(1);
+    expect(GATE_BOSS_ATTACK_MULT).toBeGreaterThan(1);
+  });
+
+  it("gate boss has more HP than a regular boss at the same level", () => {
+    const normal = generateBoss(9, 0, 1, false).max_hp;
+    const gate   = generateBoss(9, 0, 1, true).max_hp;
+    expect(gate).toBeGreaterThan(normal);
+  });
+
+  it("gate boss HP ratio matches GATE_BOSS_HP_MULT", () => {
+    const normal = generateBoss(9, 0, 1, false).max_hp;
+    const gate   = generateBoss(9, 0, 1, true).max_hp;
+    expect(gate / normal).toBeCloseTo(GATE_BOSS_HP_MULT, 1);
+  });
+
+  it("gate boss has higher attack_dps than a regular boss", () => {
+    const normal = generateBoss(9, 0, 1, false).attack_dps;
+    const gate   = generateBoss(9, 0, 1, true).attack_dps;
+    expect(gate).toBeGreaterThan(normal);
+  });
+
+  it("gate boss attack ratio matches GATE_BOSS_ATTACK_MULT", () => {
+    const normal = generateBoss(9, 0, 1, false).attack_dps;
+    const gate   = generateBoss(9, 0, 1, true).attack_dps;
+    expect(gate / normal).toBeCloseTo(GATE_BOSS_ATTACK_MULT, 1);
+  });
+
+  it("isGateBoss=false (default) produces same stats as omitting the flag", () => {
+    expect(generateBoss(9, 0, 1, false).max_hp).toBe(generateBoss(9, 0, 1).max_hp);
+    expect(generateBoss(9, 0, 1, false).attack_dps).toBe(generateBoss(9, 0, 1).attack_dps);
+  });
+
+  it("gate boss stacks with partySize scaling", () => {
+    const solo   = generateBoss(9, 0, 1, true).max_hp;
+    const party4 = generateBoss(9, 0, 4, true).max_hp;
+    expect(party4).toBeGreaterThan(solo);
   });
 });
 

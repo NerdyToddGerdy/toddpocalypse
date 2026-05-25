@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.39";
+export const VERSION = "v2.32.40";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.40",
+    date: "2026-05-25",
+    changes: [
+      "Gate bosses (floors 4, 9, 14… — the floor before each checkpoint) have 1.5× HP and 1.25× attack; their names include 'Guardian'",
+    ],
+  },
   {
     version: "v2.32.39",
     date: "2026-05-25",

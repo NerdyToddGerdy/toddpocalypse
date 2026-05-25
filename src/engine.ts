@@ -2167,7 +2167,8 @@ export class GameState {
       if (this.floorKills >= killsForFloor(this.dungeonLevel)) {
         this.floorKills = 0;
         this.addLog(`Floor ${this.dungeonLevel} cleared! Boss incoming!`);
-        this.enemy = generateBoss(this.dungeonLevel, this.dungeonIndex, this.party.team.length);
+        const isGateBoss = this.dungeonLevel % 5 === 4;
+        this.enemy = generateBoss(this.dungeonLevel, this.dungeonIndex, this.party.team.length, isGateBoss);
       } else {
         this.enemy = this.spawnNextEnemy();
       }
