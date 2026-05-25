@@ -179,6 +179,8 @@ let artifactModalTargetIdx: number = -1;  // inv index; -1 = viewing an equipped
 let artifactModalCharIdx: number = -1;    // char index when viewing equipped
 let artifactModalSlotIdx: number = -1;    // slot index when viewing equipped
 let artifactModalFuelSelected: Set<number> = new Set();
+let aspCharIdx = -1;
+let aspSlotIdx = -1;
 let upgradeKey: string | null = null;
 let partyStructKey: string | null = null;
 let partyLootKey: string | null = null;
@@ -2001,42 +2003,37 @@ function renderArtifactPanel(state: GameStateDict): void {
 
   invEl.innerHTML = itemsHtml;
 
-  // Party panel equipped artifacts
+  // Party panel equipped artifacts — 3 square slot boxes per character
   const partyArtEl = document.getElementById("party-artifact-panel");
   if (partyArtEl) {
-    const artifactOptions = artifactInv.length === 0
-      ? `<option value="">— no artifacts —</option>`
-      : artifactInv.map((inst, i) => {
-          const def = ARTIFACT_DEFS[inst.id];
-          const lvlLabel = inst.level > 0 ? ` +${inst.level}` : "";
-          return `<option value="${i}">${def?.icon ?? "✨"} ${def?.name ?? inst.id}${lvlLabel}</option>`;
-        }).join("");
     const hasArtifacts = artifactInv.length > 0;
-
     const charBlocks = party.map((c, charIdx) => {
       const slots: (ArtifactInstance | null)[] = c.artifact_slots ?? [null, null, null];
-      const slotRows = slots.map((inst, slotIdx) => {
+      const slotBtns = slots.map((inst, slotIdx) => {
         if (inst) {
           const def = ARTIFACT_DEFS[inst.id];
-          return `<div class="artifact-slot filled" data-action="open-equipped-artifact-modal" data-char-idx="${charIdx}" data-slot-idx="${slotIdx}" role="button" tabindex="0">
-            <span class="artifact-slot-icon">${spr(def?.icon ?? "✨")}</span>
-            <span class="artifact-slot-name">${def?.name ?? inst.id}${inst.level > 0 ? ` <span class="artifact-level-badge">+${inst.level}</span>` : ""}</span>
-            <span class="artifact-slot-desc">${def?.desc ?? ""}</span>
-            <button class="artifact-unequip-btn" data-action="unequip-artifact" data-char-idx="${charIdx}" data-slot-idx="${slotIdx}" title="Unequip">✕</button>
+          const lvlBadge = inst.level > 0 ? `<span class="art-slot-level">+${inst.level}</span>` : "";
+          return `<div class="art-slot-cell">
+            <button class="art-pdoll-slot filled" data-action="open-equipped-artifact-modal"
+              data-char-idx="${charIdx}" data-slot-idx="${slotIdx}"
+              title="${def?.name ?? inst.id}">
+              ${lvlBadge}
+              <span class="art-slot-icon">${spr(def?.icon ?? "✨")}</span>
+            </button>
           </div>`;
         }
-        return `<div class="artifact-slot empty">
-          ${hasArtifacts
-            ? `<div class="artifact-brand-row">
-                 <select class="artifact-inv-select">${artifactOptions}</select>
-                 <button class="artifact-slot-equip-btn" data-action="equip-artifact-slot" data-char-idx="${charIdx}" data-slot-idx="${slotIdx}">Equip</button>
-               </div>`
-            : `<span class="artifact-slot-empty-label">empty</span>`}
+        return `<div class="art-slot-cell">
+          <button class="art-pdoll-slot empty" data-action="open-art-slot-picker"
+            data-char-idx="${charIdx}" data-slot-idx="${slotIdx}"
+            ${!hasArtifacts ? "disabled" : ""}
+            title="${hasArtifacts ? "Equip artifact" : "No artifacts in inventory"}">
+            <span class="art-slot-icon">✦</span>
+          </button>
         </div>`;
       }).join("");
       return `<div class="artifact-char-block">
-        <div class="artifact-char-name">${c.name}</div>
-        <div class="artifact-char-slots">${slotRows}</div>
+        <div class="prune-char-name">${c.name} — ${c.character_class}</div>
+        <div class="art-pdoll-row">${slotBtns}</div>
       </div>`;
     }).join("");
     partyArtEl.innerHTML = charBlocks;
@@ -2063,6 +2060,45 @@ function closeArtifactModal(): void {
   artifactModalSlotIdx = -1;
   artifactModalFuelSelected = new Set();
   $("artifact-detail-modal").classList.remove("open");
+}
+
+function openArtifactSlotPicker(charIdx: number, slotIdx: number, state: GameStateDict): void {
+  aspCharIdx = charIdx;
+  aspSlotIdx = slotIdx;
+  const charName = state.party[charIdx]?.name ?? `Hero ${charIdx + 1}`;
+  document.getElementById("asp-title")!.textContent = `${charName} — Slot ${slotIdx + 1}`;
+  const body = document.getElementById("asp-body")!;
+  const inv: ArtifactInstance[] = state.artifact_inventory ?? [];
+  if (inv.length === 0) {
+    body.innerHTML = `<div class="prune-empty">No artifacts in inventory.</div>`;
+  } else {
+    body.innerHTML = inv
+      .map((inst, i) => ({ ...inst, invIdx: i }))
+      .sort((a, b) => {
+        const na = ARTIFACT_DEFS[a.id]?.name ?? a.id;
+        const nb = ARTIFACT_DEFS[b.id]?.name ?? b.id;
+        return na.localeCompare(nb) || b.level - a.level;
+      })
+      .map(inst => {
+        const def = ARTIFACT_DEFS[inst.id];
+        const lvlBadge = inst.level > 0 ? ` <span class="artifact-level-badge">+${inst.level}</span>` : "";
+        const statLabel = def ? artifactStatLabel(inst.id, inst.level) : "";
+        return `<button class="asp-artifact-item" data-action="asp-equip" data-inv-idx="${inst.invIdx}">
+          <span class="asp-artifact-icon">${spr(def?.icon ?? "✨")}</span>
+          <div class="asp-artifact-info">
+            <span class="asp-artifact-name">${def?.name ?? inst.id}${lvlBadge}</span>
+            <span class="asp-artifact-stat">${statLabel}</span>
+          </div>
+        </button>`;
+      }).join("");
+  }
+  document.getElementById("artifact-slot-pick-modal")!.classList.add("open");
+}
+
+function closeArtifactSlotPicker(): void {
+  aspCharIdx = -1;
+  aspSlotIdx = -1;
+  document.getElementById("artifact-slot-pick-modal")!.classList.remove("open");
 }
 
 function openEquippedArtifactModal(charIdx: number, slotIdx: number, state: GameStateDict): void {
@@ -4037,6 +4073,19 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (action === "open-equipped-artifact-modal") {
       if (game) openEquippedArtifactModal(parseInt(btn.dataset.charIdx!, 10), parseInt(btn.dataset.slotIdx!, 10), JSON.parse(game.respond()) as GameStateDict);
     }
+    else if (action === "open-art-slot-picker") {
+      if (game) openArtifactSlotPicker(parseInt(btn.dataset.charIdx!, 10), parseInt(btn.dataset.slotIdx!, 10), JSON.parse(game.respond()) as GameStateDict);
+    }
+    else if (action === "asp-equip") {
+      const invIdx = parseInt(btn.dataset.invIdx!, 10);
+      if (game && aspCharIdx >= 0) {
+        call("equipArtifact", aspCharIdx, aspSlotIdx, invIdx);
+        closeArtifactSlotPicker();
+      }
+    }
+    else if (action === "close-artifact-slot-picker") {
+      closeArtifactSlotPicker();
+    }
     else if (action === "modal-unequip-artifact") {
       call("unequipArtifact", parseInt(btn.dataset.charIdx!, 10), parseInt(btn.dataset.slotIdx!, 10));
       closeArtifactModal();
@@ -4069,15 +4118,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const [charIdx, slotIdx] = sel.value.split(":").map(Number);
         call("equipArtifact", charIdx, slotIdx, invIdx);
         closeArtifactModal();
-      }
-    }
-    else if (action === "equip-artifact-slot") {
-      const charIdx = parseInt(btn.dataset.charIdx!, 10);
-      const slotIdx = parseInt(btn.dataset.slotIdx!, 10);
-      const slot = btn.closest(".artifact-slot")!;
-      const sel = slot.querySelector(".artifact-inv-select") as HTMLSelectElement;
-      if (sel && sel.value !== "") {
-        call("equipArtifact", charIdx, slotIdx, parseInt(sel.value, 10));
       }
     }
     else if (action === "unequip-artifact") {
@@ -4232,6 +4272,11 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("artifact-detail-close")?.addEventListener("click", closeArtifactModal);
   document.getElementById("artifact-detail-modal")?.addEventListener("click", (e) => {
     if (e.target === $("artifact-detail-modal")) closeArtifactModal();
+  });
+
+  document.getElementById("asp-close")?.addEventListener("click", closeArtifactSlotPicker);
+  document.getElementById("artifact-slot-pick-modal")?.addEventListener("click", (e) => {
+    if (e.target === document.getElementById("artifact-slot-pick-modal")) closeArtifactSlotPicker();
   });
 
   // Keyboard shortcuts

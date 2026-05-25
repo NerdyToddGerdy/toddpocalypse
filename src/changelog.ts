@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.31";
+export const VERSION = "v2.32.32";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.32",
+    date: "2026-05-25",
+    changes: [
+      "Party Artifacts tab: replaced text-list slots with 3 square icon boxes per character matching the rune panel style; level badge (+N) shown in the top-right corner of each filled slot",
+      "Artifact slot picker modal: clicking an empty artifact slot now opens an artifact picker (like the rune socket picker) instead of an inline dropdown",
+    ],
+  },
   {
     version: "v2.32.31",
     date: "2026-05-25",

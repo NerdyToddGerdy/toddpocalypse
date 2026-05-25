@@ -8,6 +8,36 @@ import { Character } from "../src/character.js";
 
 const a = (id: string, level = 0): ArtifactInstance => ({ id: id as any, level, fuel: 0 });
 
+// ─── Party artifact panel data contract ─────────────────────────────────────
+
+describe("party artifact panel slot boxes", () => {
+  it("each character exposes exactly 3 artifact_slots entries in toDict", () => {
+    const gs = new GameState();
+    const d = gs.toDict();
+    for (const char of d.party) {
+      expect((char.artifact_slots ?? []).length).toBe(3);
+    }
+  });
+
+  it("equipped artifact level appears in artifact_slots for badge display", () => {
+    const gs = new GameState();
+    gs.artifactInventory.push(a("bloodstone", 2));
+    gs.equipArtifact(0, 1, 0);
+    const d = gs.toDict();
+    expect(d.party[0].artifact_slots?.[1]).toEqual({ id: "bloodstone", level: 2, fuel: 0 });
+  });
+
+  it("empty slot shows null in artifact_slots", () => {
+    const gs = new GameState();
+    const d = gs.toDict();
+    for (const char of d.party) {
+      for (const slot of (char.artifact_slots ?? [])) {
+        expect(slot).toBeNull();
+      }
+    }
+  });
+});
+
 // ─── Artifact definitions ────────────────────────────────────────────────────
 
 describe("ARTIFACT_DEFS", () => {
