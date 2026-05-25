@@ -97,6 +97,11 @@ const getSaveFn = new aws.lambda.Function("toddpocalypse-getSave", {
         "index.js": new pulumi.asset.StringAsset(`
 const { DynamoDBClient, GetItemCommand } = require("@aws-sdk/client-dynamodb");
 const client = new DynamoDBClient({});
+const ALLOWED = new Set((process.env.ALLOWED_ORIGINS || "").split(","));
+function corsOrigin(event) {
+    const o = (event.headers && (event.headers.origin || event.headers.Origin)) || "";
+    return ALLOWED.has(o) ? o : [...ALLOWED][0];
+}
 
 exports.handler = async (event) => {
     const userId = event.requestContext?.authorizer?.jwt?.claims?.sub;
@@ -110,7 +115,7 @@ exports.handler = async (event) => {
             statusCode: 200,
             headers: {
                 "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Origin": corsOrigin(event),
             },
             body: result.Item?.data?.S ?? null,
         };
@@ -121,7 +126,7 @@ exports.handler = async (event) => {
 };
         `),
     }),
-    environment: { variables: { TABLE_NAME: saveTable.name } },
+    environment: { variables: { TABLE_NAME: saveTable.name, ALLOWED_ORIGINS: gameOrigins.join(",") } },
     timeout: 10,
 });
 
@@ -136,6 +141,11 @@ const putSaveFn = new aws.lambda.Function("toddpocalypse-putSave", {
 const { DynamoDBClient, PutItemCommand } = require("@aws-sdk/client-dynamodb");
 const client = new DynamoDBClient({});
 const SESSION_TTL_MS = 90_000;
+const ALLOWED = new Set((process.env.ALLOWED_ORIGINS || "").split(","));
+function corsOrigin(event) {
+    const o = (event.headers && (event.headers.origin || event.headers.Origin)) || "";
+    return ALLOWED.has(o) ? o : [...ALLOWED][0];
+}
 
 exports.handler = async (event) => {
     const userId = event.requestContext?.authorizer?.jwt?.claims?.sub;
@@ -167,12 +177,12 @@ exports.handler = async (event) => {
         await client.send(new PutItemCommand(putParams));
         return {
             statusCode: 200,
-            headers: { "Access-Control-Allow-Origin": "*" },
+            headers: { "Access-Control-Allow-Origin": corsOrigin(event) },
             body: "OK",
         };
     } catch (e) {
         if (e.name === "ConditionalCheckFailedException") {
-            return { statusCode: 409, headers: { "Access-Control-Allow-Origin": "*" }, body: "Session conflict" };
+            return { statusCode: 409, headers: { "Access-Control-Allow-Origin": corsOrigin(event) }, body: "Session conflict" };
         }
         console.error(e);
         return { statusCode: 500, body: "Internal error" };
@@ -180,7 +190,7 @@ exports.handler = async (event) => {
 };
         `),
     }),
-    environment: { variables: { TABLE_NAME: saveTable.name } },
+    environment: { variables: { TABLE_NAME: saveTable.name, ALLOWED_ORIGINS: gameOrigins.join(",") } },
     timeout: 10,
 });
 
@@ -189,7 +199,7 @@ const api = new aws.apigatewayv2.Api("toddpocalypse-api", {
     name: "toddpocalypse-api",
     protocolType: "HTTP",
     corsConfiguration: {
-        allowOrigins: ["*"],
+        allowOrigins: gameOrigins,
         allowMethods: ["GET", "PUT", "OPTIONS"],
         allowHeaders: ["Authorization", "Content-Type", "X-Session-Id", "X-Force-Session"],
     },
