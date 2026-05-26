@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.52";
+export const VERSION = "v2.32.53";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.53",
+    date: "2026-05-25",
+    changes: [
+      "Equipment sub-tab now shows a notification dot when the loot bag is full; Loot sidebar tab badge reflects this alongside the Runes/Artifacts dots",
+    ],
+  },
   {
     version: "v2.32.52",
     date: "2026-05-25",

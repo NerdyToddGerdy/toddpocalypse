@@ -947,6 +947,9 @@ function renderLoot(state: GameStateDict): void {
     if (equipAllBtn) equipAllBtn.disabled = loot.length === 0;
     const sellAllBtn = document.querySelector<HTMLButtonElement>(".sell-all-btn");
     if (sellAllBtn) sellAllBtn.disabled = loot.length === 0;
+    const equipDotEl = document.getElementById("loot-equip-dot");
+    if (equipDotEl) equipDotEl.hidden = loot.length < state.loot_max;
+    syncLootTabBadge();
 
     const sortedLoot = [...loot].sort((a, b) =>
       (QUAL as readonly string[]).indexOf(b.quality) - (QUAL as readonly string[]).indexOf(a.quality)
@@ -2688,9 +2691,10 @@ function updateLifetimeStats(state: GameStateDict): void {
 function syncLootTabBadge(): void {
   const badge = document.getElementById("stab-loot-badge");
   if (!badge) return;
+  const equipDot = document.getElementById("loot-equip-dot");
   const runeDot = document.getElementById("loot-rune-dot");
   const artifactDot = document.getElementById("loot-artifact-dot");
-  const anyActive = (runeDot && !runeDot.hidden) || (artifactDot && !artifactDot.hidden);
+  const anyActive = (equipDot && !equipDot.hidden) || (runeDot && !runeDot.hidden) || (artifactDot && !artifactDot.hidden);
   badge.hidden = !anyActive;
 }
 
