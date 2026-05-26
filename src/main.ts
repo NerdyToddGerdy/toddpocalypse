@@ -1569,7 +1569,7 @@ function renderGuildHall(state: GameStateDict): void {
 
   $("guild-hall-items").innerHTML = upgradesHtml;
   renderPartyRunePanel(runeInv, state.party, runeForge);
-  renderLootRuneInventory(runeInv, state.party, runeForge, hasCombineAll);
+  renderLootRuneInventory(runeInv, runeForge, hasCombineAll);
 }
 
 // ── Constellation Panel ─────────────────────────────────────────────────────
@@ -1972,15 +1972,7 @@ function initRuneSlotPanel(): void {
   });
 }
 
-function buildSlotOptions(char: CharDict): string {
-  return ALL_SLOTS.map(s => {
-    const existing = char.runes?.[s];
-    const label = SLOT_LABELS[s] + (existing ? ` (${existing.tier})` : "");
-    return `<option value="${s}">${label}</option>`;
-  }).join("");
-}
-
-function renderLootRuneInventory(runeInv: Rune[], party: CharDict[], runeForge: number, hasCombineAll = false): void {
+function renderLootRuneInventory(runeInv: Rune[], runeForge: number, hasCombineAll = false): void {
   const runesTabBtn = document.getElementById("loot-stab-runes");
   if (runesTabBtn) runesTabBtn.hidden = runeForge < 1;
   const runeCountEl = document.getElementById("loot-rune-count");
@@ -1988,10 +1980,6 @@ function renderLootRuneInventory(runeInv: Rune[], party: CharDict[], runeForge: 
   const el = $("loot-rune-inventory");
   // Dot is set after combinePairs + ancientCount are computed — see below
   if (runeForge < 1) { el.innerHTML = ""; return; }
-
-  const charOptions = party.map((c, i) =>
-    `<option value="${i}">${c.name}</option>`
-  ).join("");
 
   const TIER_ICONS: Record<string, string> = { lesser: "◆", greater: "★", flawless: "✦", ancient: "✸" };
   const SELL_VALUES: Record<string, number> = { lesser: 10, greater: 30, flawless: 90, ancient: 250 };
@@ -2009,7 +1997,6 @@ function renderLootRuneInventory(runeInv: Rune[], party: CharDict[], runeForge: 
         const i = runeInv.indexOf(rune);
         const runeIcon = RUNE_ICONS[rune.type] ?? "🔮";
         const statLabel = RUNE_STAT_LABELS[rune.statKey] ?? rune.statKey;
-        const slotOpts = buildSlotOptions(party[0]);
         const sellVal = SELL_VALUES[rune.tier] ?? 10;
         return `<div class="rune-item ${rune.tier}" data-rune-idx="${i}">
           <div class="rune-item-top">
@@ -2017,14 +2004,9 @@ function renderLootRuneInventory(runeInv: Rune[], party: CharDict[], runeForge: 
             <span class="rune-icon">${spr(runeIcon)}</span>
             <span class="rune-name">${rune.name}</span>
           </div>
-          <div class="rune-item-selects">
-            <select class="rune-char-select">${charOptions}</select>
-            <select class="rune-slot-select">${slotOpts}</select>
-          </div>
           <div class="rune-item-bottom">
             <span class="rune-stat">+${rune.value} ${statLabel}</span>
             <div class="rune-item-btns">
-              <button class="rune-brand-btn" data-action="brand-rune" data-rune-id="${rune.id}" data-rune-idx="${i}">Brand</button>
               <button class="rune-sell-btn" data-action="sell-rune" data-rune-idx="${i}">${formatNumber(sellVal)}g</button>
             </div>
           </div>
@@ -2080,17 +2062,6 @@ function renderLootRuneInventory(runeInv: Rune[], party: CharDict[], runeForge: 
     <div class="rune-inv-items">${items}</div>
   </div>`;
 
-  // Update slot options when character selection changes
-  el.querySelectorAll<HTMLSelectElement>(".rune-char-select").forEach(charSel => {
-    charSel.addEventListener("change", () => {
-      const charIdx = parseInt(charSel.value, 10);
-      const slotSel = charSel.closest(".rune-item")!.querySelector<HTMLSelectElement>(".rune-slot-select")!;
-      const prev = slotSel.value;
-      slotSel.innerHTML = buildSlotOptions(party[charIdx]);
-      // restore previous selection if still valid
-      if ([...slotSel.options].some(o => o.value === prev)) slotSel.value = prev;
-    });
-  });
 }
 
 function renderArtifactPanel(state: GameStateDict): void {
@@ -4276,13 +4247,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     else if (action === "toggle-auto-sell") {
       call("toggleAutoSellQuality", btn.dataset.quality!);
-    }
-    else if (action === "brand-rune") {
-      const runeId = btn.dataset.runeId!;
-      const row = btn.closest(".rune-item")!;
-      const charIdx = parseInt((row.querySelector(".rune-char-select") as HTMLSelectElement).value, 10);
-      const slot = (row.querySelector(".rune-slot-select") as HTMLSelectElement).value;
-      call("brandRune", charIdx, slot, runeId);
     }
     else if (action === "combine-runes") {
       const row = btn.closest(".rune-combine-section")!;
