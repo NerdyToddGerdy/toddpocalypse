@@ -2107,11 +2107,11 @@ function renderArtifactPanel(state: GameStateDict): void {
   const countEl = document.getElementById("artifact-count");
   if (countEl) countEl.textContent = artifactInv.length > 0 ? `(${artifactInv.length})` : "";
 
-  // Notification dot: show when any artifact can be leveled up
-  const levelUpPossible = artifactInv.some((inst, i) => {
-    const cost = inst.level + 1;
-    const fuel = artifactInv.filter((o, j) => j !== i && o.id === inst.id).length;
-    return fuel >= cost;
+  // Notification dot: show when any EQUIPPED artifact has enough inventory duplicates to level up
+  const equippedArtifacts = party.flatMap(c => (c.artifact_slots ?? []).filter((s): s is ArtifactInstance => s !== null));
+  const levelUpPossible = equippedArtifacts.some(inst => {
+    const fuel = artifactInv.filter(o => o.id === inst.id).length;
+    return fuel >= inst.level + 1;
   });
   const artifactDotEl = document.getElementById("loot-artifact-dot");
   if (artifactDotEl) artifactDotEl.hidden = !levelUpPossible;

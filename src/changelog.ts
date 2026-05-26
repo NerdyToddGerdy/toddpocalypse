@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.50";
+export const VERSION = "v2.32.51";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.51",
+    date: "2026-05-25",
+    changes: [
+      "Artifact notification dot now lights up only when an equipped artifact has enough inventory duplicates to be leveled up (was incorrectly triggering on inventory-only duplicates)",
+    ],
+  },
   {
     version: "v2.32.50",
     date: "2026-05-25",
