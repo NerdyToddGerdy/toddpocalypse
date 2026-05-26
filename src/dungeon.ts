@@ -70,7 +70,7 @@ export const GOLD_LEVEL_MULT = 0.01;
 export const ENEMY_ATTACK_EXPONENT = 1.3;
 
 /** Exponential base for boss stat scaling per dungeon — boss HP and attack multiply by this each venture. */
-export const BOSS_DUNGEON_MULT_BASE = 1.6;
+export const BOSS_DUNGEON_MULT_BASE = 1.75;
 
 /** HP multiplier for the floor-before-checkpoint gate boss. */
 export const GATE_BOSS_HP_MULT = 1.5;

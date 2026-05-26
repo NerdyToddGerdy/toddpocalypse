@@ -220,8 +220,8 @@ describe("generateBoss", () => {
     expect(bossRatio).toBeGreaterThan(enemyRatio);
   });
 
-  it("BOSS_DUNGEON_MULT_BASE is exported and greater than 1", () => {
-    expect(BOSS_DUNGEON_MULT_BASE).toBeGreaterThan(1);
+  it("BOSS_DUNGEON_MULT_BASE is 1.75", () => {
+    expect(BOSS_DUNGEON_MULT_BASE).toBe(1.75);
   });
 
   it("partySize=1 (default) produces the same HP as omitting partySize", () => {

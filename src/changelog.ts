@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.53";
+export const VERSION = "v2.32.54";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.54",
+    date: "2026-05-25",
+    changes: [
+      "Boss per-dungeon scaling increased: BOSS_DUNGEON_MULT_BASE 1.6 → 1.75 (bosses are now ~9% harder per dungeon at d2, compounding steeply)",
+    ],
+  },
   {
     version: "v2.32.53",
     date: "2026-05-25",
