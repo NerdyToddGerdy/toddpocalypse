@@ -2057,6 +2057,7 @@ function renderLootRuneInventory(runeInv: Rune[], party: CharDict[], runeForge: 
   const runeHasAction = canForge || combinePairs.length > 0;
   const runeDotEl = document.getElementById("loot-rune-dot");
   if (runeDotEl) runeDotEl.hidden = !runeHasAction;
+  syncLootTabBadge();
 
   const forgeArtifactHtml = ancientCount > 0
     ? `<div class="rune-forge-artifact-row">
@@ -2115,6 +2116,7 @@ function renderArtifactPanel(state: GameStateDict): void {
   });
   const artifactDotEl = document.getElementById("loot-artifact-dot");
   if (artifactDotEl) artifactDotEl.hidden = !levelUpPossible;
+  syncLootTabBadge();
 
   // Build character + slot options for equip dropdowns
   const charSlotOptions = party.map((c, ci) => {
@@ -2680,6 +2682,16 @@ function updateLifetimeStats(state: GameStateDict): void {
   enemyKillsEl.innerHTML = entries
     .map(([adj, count]) => `<div class="stat-row"><span class="stat-label">${adj}</span><span>${count}</span></div>`)
     .join("");
+}
+
+/** Lights up the Loot sidebar tab badge if any loot sub-tab dot is active. */
+function syncLootTabBadge(): void {
+  const badge = document.getElementById("stab-loot-badge");
+  if (!badge) return;
+  const runeDot = document.getElementById("loot-rune-dot");
+  const artifactDot = document.getElementById("loot-artifact-dot");
+  const anyActive = (runeDot && !runeDot.hidden) || (artifactDot && !artifactDot.hidden);
+  badge.hidden = !anyActive;
 }
 
 /** Shows notification badges on sidebar/mobile tabs when a Prestige or Guild item is affordable. */
