@@ -244,9 +244,9 @@ describe("generateBoss", () => {
     expect(generateBoss(10, 0, 1).attack_dps).toBe(generateBoss(10, 0, 4).attack_dps);
   });
 
-  it("GATE_BOSS_HP_MULT and GATE_BOSS_ATTACK_MULT are exported and greater than 1", () => {
-    expect(GATE_BOSS_HP_MULT).toBeGreaterThan(1);
-    expect(GATE_BOSS_ATTACK_MULT).toBeGreaterThan(1);
+  it("GATE_BOSS_HP_MULT is 2.0 and GATE_BOSS_ATTACK_MULT is 1.5", () => {
+    expect(GATE_BOSS_HP_MULT).toBe(2.0);
+    expect(GATE_BOSS_ATTACK_MULT).toBe(1.5);
   });
 
   it("gate boss has more HP than a regular boss at the same level", () => {

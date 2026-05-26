@@ -73,9 +73,9 @@ export const ENEMY_ATTACK_EXPONENT = 1.3;
 export const BOSS_DUNGEON_MULT_BASE = 1.75;
 
 /** HP multiplier for the floor-before-checkpoint gate boss. */
-export const GATE_BOSS_HP_MULT = 1.5;
+export const GATE_BOSS_HP_MULT = 2.0;
 /** Attack multiplier for the floor-before-checkpoint gate boss. */
-export const GATE_BOSS_ATTACK_MULT = 1.25;
+export const GATE_BOSS_ATTACK_MULT = 1.5;
 
 /** Live state of an enemy currently being fought. */
 export interface Enemy {
