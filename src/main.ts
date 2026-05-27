@@ -64,6 +64,7 @@ import {
   storeToken
 } from "./cloud.js";
 
+// RecordImages for the hero character and their companions
 const HERO_IMG: Record<string, string> = {
   fighter: "hero_fighter.png",
   rogue:   "hero_rogue.png",
@@ -73,6 +74,7 @@ const HERO_IMG: Record<string, string> = {
   druid:   "hero_fighter.png",
 };
 
+// Record: Descriptions for the Heroes
 const CLASS_DESCS: Record<string, string> = {
   fighter: "Highest idle DPS. Each level-up multiplies damage by 1.2×.",
   rogue: "Gains +0.3 click damage every level. Rewards active play.",
@@ -82,6 +84,7 @@ const CLASS_DESCS: Record<string, string> = {
   druid: "Nature warden. Party lifesteal at Lv5, +40% passive DPS at Lv10, party heal per kill at Lv20.",
 };
 
+// Record: Metadata for the Guild Hall
 const GUILD_HALL_META: Record<string, { icon: string; name: string; desc: string; dungeonReq?: number }> = {
   companion_hall:      { icon: "🏰", name: "Companion Hall",   desc: "Unlock Party Slot IV (stack 1), Slot V (stack 2), and Slot VI (stack 3) in the Hall of Renown." },
   expanded_armory:     { icon: "🗄", name: "Expanded Armory",  desc: "+2 loot chest capacity per stack (max 14)." },
@@ -100,6 +103,9 @@ const GUILD_HALL_META: Record<string, { icon: string; name: string; desc: string
   constellation_access: { icon: "✦", name: "Constellation Chart", desc: "Unlock the Constellations passive tree. Invest soul shards to permanently empower your party. Shards are earned by venturing to new dungeons.", dungeonReq: 2 },
 };
 
+/**
+ * Icons used for gear slots
+ */
 const SLOT_ICONS: Record<string, string> = {
   main_hand: "🗡",
   off_hand: "🛡",
@@ -112,6 +118,9 @@ const SLOT_ICONS: Record<string, string> = {
   ring2: "💍",
 };
 
+/**
+ * Labels for the upgrade stats
+ */
 const UPGRADE_LABELS: Record<string, { icon: string; label: string }> = {
   dps: { icon: "⚔", label: "DPS" },
   xp: { icon: "✨", label: "XP Rate" },
@@ -159,19 +168,20 @@ const EMOJI_SPR: Record<string, string> = {
   "⛑": "helmet",
 };
 
-function getSprite(emoji: string): string {
-  /**
+/**
    * Returns an inline 16×16 pixel sprite span for a mapped emoji, or the raw emoji as fallback.
    *
    * @param emoji - the name of the emoji
    * @returns The inline 16x16 pixel sprite span for a mapped emoji, or the raw emoji as fallback
-   */
+*/
+function getSprite(emoji: string): string {
   const name = EMOJI_SPR[emoji];
   return name ? `<span class="spr spr-${name}" aria-hidden="true"></span>` : emoji;
 }
 
 /** Colors for each enrage stack level (index 0 = charging/not enraged, 1+ = stack N). */
 const ENRAGE_COLORS = ["#f59e0b", "#ef4444", "#dc2626", "#b91c1c", "#991b1b", "#7f1d1d"];
+
 /** Bar fill gradient per enrage stack (current in-progress fill). */
 const ENRAGE_BAR_GRADIENTS = [
   "linear-gradient(90deg, #b45309, #f59e0b)",
@@ -181,14 +191,22 @@ const ENRAGE_BAR_GRADIENTS = [
   "linear-gradient(90deg, #991b1b, #b91c1c)",
   "linear-gradient(90deg, #7f1d1d, #991b1b)",
 ];
+
 function enrageColor(stack: number): string {
   return ENRAGE_COLORS[Math.min(stack, ENRAGE_COLORS.length - 1)];
 }
+
 function enrageBarGradient(stack: number): string {
   return ENRAGE_BAR_GRADIENTS[Math.min(stack, ENRAGE_BAR_GRADIENTS.length - 1)];
 }
 
-function upgradeBonusLabel(utype: string, level: number): string {
+/**
+ * get the labels for the upgrade section.
+ * @param utype - The upgrade type identifier (for example, "dps" or "xp").
+ * @param level - the numeric upgrade level
+ * @returns a string of the calculated effect's percentage.
+ */
+function getUpgradeBonusLabel(utype: string, level: number): string {
   if (level === 0) return "";
   switch (utype) {
     case "dps":     return `+${(level * DPS_UPGRADE_EFFECT * 100).toFixed(0)}% DPS`;
@@ -200,18 +218,29 @@ function upgradeBonusLabel(utype: string, level: number): string {
   }
 }
 
-/** Like upgradeBonusLabel but strips the trailing stat name — used in the mobile grid where the name is already on the left. */
-function upgradeBonusValue(utype: string, level: number): string {
-  const full = upgradeBonusLabel(utype, level);
+/**
+ * Like {@link getUpgradeBonusLabel} but strips the trailing stat name — used in the mobile grid where the name is already on the left.
+ *
+ * @param utype - string - The upgrade type identifier (for example, "dps" or "xp")
+ * @param level - number - the numeric upgrade level
+ * @returns - string - string without the stat name for the mobile version
+ */
+function getMobileUpgradeValue(utype: string, level: number): string {
+  const full = getUpgradeBonusLabel(utype, level);
   return full ? full.replace(/\s+\S+$/, "") : "";
 }
 
 const SAVE_KEY = "toddpocalypse-save";
 const THEME_KEY = "toddpocalypse-theme";
 const THEMES = ["grimdark", "arcane", "tavern", "inferno", "void-rift", "bloodmoon", "frost-crypt", "necropolis"] as const;
+
+/** The type for the theme.*/
 type Theme = typeof THEMES[number];
 
-/** Sets the active visual theme on the root element, persists it, and updates picker button states. */
+/**
+ *  Sets the active visual theme on the root element, persists it, and updates picker button states.
+ * @param theme - {@link Theme}
+ */
 function applyTheme(theme: Theme): void {
   document.documentElement.dataset.theme = theme;
   localStorage.setItem(THEME_KEY, theme);
@@ -220,13 +249,19 @@ function applyTheme(theme: Theme): void {
   });
 }
 
-const BOSS_BORDER_PREFIXES = [
+/**
+ * the available border adjectives for the bosses
+ */
+const BOSS_BORDER_PREFIXES: string[] = [
   "abyssal","ancient","cursed","decrepit","dread","eternal","forsaken","foul",
   "frightening","hideous","infernal","monstrous","ravager","rotting","savage",
   "shadow","shadowy","terrible","titan","twisted","undying","venomous","vile",
   "warlord","wretched",
 ];
 
+/**
+ * Pull the images for the boss borders based off the {@link BOSS_BORDER_PREFIXES} string[]
+ */
 function preloadBossAssets(): void {
   for (const prefix of BOSS_BORDER_PREFIXES) {
     const img = new Image();
@@ -266,10 +301,6 @@ let guildKey: string | null = null;
 let skillKey: string | null = null;
 let companionSkillKey: string | null = null;
 let hoveredLootSlot: string | null = null;
-let gearSlotModalCharIdx: number;
-let gearSlotModalSlot: string;
-let gearLootPickerCharIdx: number;
-let gearLootPickerSlot: string;
 let lastDeathCount: number | null = null;
 let lastEnrageStacks = -1;
 const fullLog: string[] = []; // persistent combat log history (last 200 entries)
@@ -913,8 +944,6 @@ function applySlotHighlight(): void {
 function openGearSlotModal(charIdx: number, slot: string, state: GameStateDict): void {
   const item = (state.party[charIdx]?.equipment as Record<string, GearItemDict | null> | undefined)?.[slot];
   if (!item) return;
-  gearSlotModalCharIdx = charIdx;
-  gearSlotModalSlot = slot;
   const qc = qualityClass(item.quality);
   const locked = (state.party[charIdx]?.locked_slots ?? []).includes(slot);
   document.getElementById("gear-slot-modal-title")!.innerHTML =
@@ -934,14 +963,10 @@ function openGearSlotModal(charIdx: number, slot: string, state: GameStateDict):
 }
 
 function closeGearSlotModal(): void {
-  gearSlotModalCharIdx = -1;
-  gearSlotModalSlot = "";
   document.getElementById("gear-slot-modal")!.classList.remove("open");
 }
 
 function openGearLootPicker(charIdx: number, slot: string, state: GameStateDict): void {
-  gearLootPickerCharIdx = charIdx;
-  gearLootPickerSlot = slot;
   document.getElementById("gear-loot-picker-title")!.textContent =
     `${SLOT_LABELS[slot] ?? slot}`;
   const matchSlot = slot === "ring2" ? "ring1" : slot;
@@ -965,8 +990,6 @@ function openGearLootPicker(charIdx: number, slot: string, state: GameStateDict)
 }
 
 function closeGearLootPicker(): void {
-  gearLootPickerCharIdx = -1;
-  gearLootPickerSlot = "";
   document.getElementById("gear-loot-picker-modal")!.classList.remove("open");
 }
 
@@ -1121,7 +1144,7 @@ function renderUpgrades(state: GameStateDict): void {
         const rows = Object.entries(ups)
           .map(([utype, u]) => {
             const meta = UPGRADE_LABELS[utype];
-            const bonus = upgradeBonusLabel(utype, u.level);
+            const bonus = getUpgradeBonusLabel(utype, u.level);
             return `<div class="upgrade-row">
               <span class="upgrade-icon">${getSprite(meta.icon)}</span>
               <span class="upgrade-label">${meta.label}</span>
@@ -1172,7 +1195,7 @@ function renderUpgrades(state: GameStateDict): void {
           if (!c) { gridHtml += `<div class="ug-cell ug-empty"></div>`; continue; }
           const u = state.upgrades[c.name]?.[utype as keyof typeof state.upgrades[string]];
           if (!u) { gridHtml += `<div class="ug-cell ug-empty"></div>`; continue; }
-          const bonusVal = upgradeBonusValue(utype, u.level);
+          const bonusVal = getMobileUpgradeValue(utype, u.level);
           gridHtml += `<button class="upgrade-btn ug-btn"
               data-action="upgrade"
               data-char="${c.name}"
@@ -1643,8 +1666,6 @@ const CONSTELLATION_NAMES: Record<number, string> = {
 };
 
 let constellationKey = "";
-let cdollModalNodeId: string | null = null;
-
 function renderConstellationPanel(state: GameStateDict): void {
   const unlocked = (state.guild_upgrades["constellation_access"] ?? 0) > 0;
   const nodeLevels: Record<string, number> = state.constellation_node_levels ?? {};
@@ -1726,7 +1747,6 @@ function renderConstellationPanel(state: GameStateDict): void {
 }
 
 function openConstellationNodeModal(nodeId: string): void {
-  cdollModalNodeId = nodeId;
   const def = CONSTELLATION_NODE_DEFS[nodeId];
   if (!def) return;
   const el = document.getElementById("constellation-content");
@@ -1758,7 +1778,6 @@ function openConstellationNodeModal(nodeId: string): void {
 }
 
 function closeConstellationNodeModal(): void {
-  cdollModalNodeId = null;
   document.getElementById("cdoll-node-modal")!.classList.remove("open");
 }
 
@@ -1827,7 +1846,6 @@ const PDOLL_TIER_ORDER = ["lesser", "greater", "flawless", "ancient"];
 let lastRuneInv: Rune[] = [];
 let rrCharIdx = -1;
 let rrSlot = "";
-let rrSelectedId = "";
 
 function runeStatSummary(c: CharDict): string {
   const totals: Record<string, number> = {};
@@ -1918,7 +1936,6 @@ function renderPartyRunePanel(runeInv: Rune[], party: CharDict[], runeForge: num
 function openRuneReplaceModal(charIdx: number, slot: string): void {
   rrCharIdx = charIdx;
   rrSlot = slot;
-  rrSelectedId = "";
   const modal = document.getElementById("rune-replace-modal")!;
   const title = document.getElementById("rune-replace-title")!;
   const body = document.getElementById("rune-replace-body")!;
@@ -1947,7 +1964,6 @@ function openRuneReplaceModal(charIdx: number, slot: string): void {
 function closeRuneReplaceModal(): void {
   rrCharIdx = -1;
   rrSlot = "";
-  rrSelectedId = "";
   document.getElementById("rune-replace-modal")!.classList.remove("open");
 }
 

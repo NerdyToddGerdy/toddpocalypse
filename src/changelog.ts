@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.59";
+export const VERSION = "v2.32.60";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.60",
+    date: "2026-05-26",
+    changes: [
+      "Remove write-only modal state variables (gearSlotModal, gearLootPicker, cdollModalNodeId, rrSelectedId) — actions use data-* attributes",
+    ],
+  },
   {
     version: "v2.32.59",
     date: "2026-05-26",
