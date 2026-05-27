@@ -1,8 +1,68 @@
-import { GameState, type GameStateDict, type ArtifactInstance, VENTURE_UNLOCK_LEVEL, ventureUnlockLevel, PRESTIGE_UNLOCK_LEVEL, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, GUILD_HALL_PREREQS, SKILL_DEFS, prestigeUpgradeCost, THEME_UNLOCKS, ACHIEVEMENTS, RUNE_DEFS, type AchievementUnlock, ARTIFACT_DEFS, artifactFuelValue, artifactStatLabel, AVATAR_DEFS, BORDER_DEFS, formatNumber, LEGACY_UNLOCKS, type RetiredHero, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT, DEFENSE_UPGRADE_EFFECT, CONSTELLATION_NODE_DEFS } from "./engine.js";
-import { qualityClass, autoSellThreshold, QUAL, qualityWeights, QUALITY_CLASSES, gearPower, SET_DEFS, buildSetBonusHTML, type GearStats, type GearItemDict } from "./gear.js";
-import { VERSION, CHANGELOG } from "./changelog.js";
-import { CLASS_ABILITIES, type Rune } from "./character.js";
-import { parseAuthHash, getStoredToken, storeToken, clearToken, getLoginUrl, cloudLoad, cloudSave, cloudClaimSession, resetSessionId, getOrCreateSessionId } from "./cloud.js";
+import {
+  ACHIEVEMENTS,
+  type AchievementUnlock,
+  ARTIFACT_DEFS,
+  artifactFuelValue,
+  type ArtifactInstance,
+  artifactStatLabel,
+  AVATAR_DEFS,
+  BORDER_DEFS,
+  BOSS_ENRAGE_STEP,
+  BOSS_ENRAGE_STEP_MIN,
+  BOSS_ENRAGE_TRIGGER,
+  BOSS_ENRAGE_TRIGGER_MIN,
+  CLICK_UPGRADE_EFFECT,
+  CONSTELLATION_NODE_DEFS,
+  CORRUPTION_FLOOR,
+  CORRUPTION_HEAL_REDUCTION_PER_FLOOR,
+  CORRUPTION_RATE_PER_FLOOR,
+  DEFENSE_UPGRADE_EFFECT,
+  DPS_UPGRADE_EFFECT,
+  formatNumber,
+  GameState,
+  type GameStateDict,
+  GUILD_HALL_COSTS,
+  GUILD_HALL_DUNGEON_REQ,
+  GUILD_HALL_PREREQS,
+  HP_UPGRADE_EFFECT,
+  killsForFloor,
+  LEGACY_UNLOCKS,
+  PRESTIGE_UNLOCK_LEVEL,
+  prestigeUpgradeCost,
+  type RetiredHero,
+  RUNE_DEFS,
+  SKILL_DEFS,
+  startingGoldForLevel,
+  THEME_UNLOCKS,
+  UPGRADE_EFFECTS,
+  ventureUnlockLevel
+} from "./engine.js";
+import {
+  autoSellThreshold,
+  buildSetBonusHTML,
+  type GearItemDict,
+  gearPower,
+  type GearStats,
+  QUAL,
+  QUALITY_CLASSES,
+  qualityClass,
+  qualityWeights,
+  SET_DEFS
+} from "./gear.js";
+import {CHANGELOG, VERSION} from "./changelog.js";
+import {CLASS_ABILITIES, type Rune} from "./character.js";
+import {
+  clearToken,
+  cloudClaimSession,
+  cloudLoad,
+  cloudSave,
+  getLoginUrl,
+  getOrCreateSessionId,
+  getStoredToken,
+  parseAuthHash,
+  resetSessionId,
+  storeToken
+} from "./cloud.js";
 
 const HERO_IMG: Record<string, string> = {
   fighter: "hero_fighter.png",
@@ -99,8 +159,13 @@ const EMOJI_SPR: Record<string, string> = {
   "⛑": "helmet",
 };
 
-/** Returns an inline 16×16 pixel sprite span for a mapped emoji, or the raw emoji as fallback. */
-function spr(emoji: string): string {
+function getSprite(emoji: string): string {
+  /**
+   * Returns an inline 16×16 pixel sprite span for a mapped emoji, or the raw emoji as fallback.
+   *
+   * @param emoji - the name of the emoji
+   * @returns The inline 16x16 pixel sprite span for a mapped emoji, or the raw emoji as fallback
+   */
   const name = EMOJI_SPR[emoji];
   return name ? `<span class="spr spr-${name}" aria-hidden="true"></span>` : emoji;
 }
@@ -201,10 +266,10 @@ let guildKey: string | null = null;
 let skillKey: string | null = null;
 let companionSkillKey: string | null = null;
 let hoveredLootSlot: string | null = null;
-let gearSlotModalCharIdx = -1;
-let gearSlotModalSlot = "";
-let gearLootPickerCharIdx = -1;
-let gearLootPickerSlot = "";
+let gearSlotModalCharIdx: number;
+let gearSlotModalSlot: string;
+let gearLootPickerCharIdx: number;
+let gearLootPickerSlot: string;
 let lastDeathCount: number | null = null;
 let lastEnrageStacks = -1;
 const fullLog: string[] = []; // persistent combat log history (last 200 entries)
@@ -238,14 +303,13 @@ function call<K extends keyof GameState>(method: K, ...args: any[]): void {
     if (method !== "tick" || now - lastTickSaveTime >= TICK_SAVE_INTERVAL_MS) {
       lastTickSaveTime = now;
       saveGame();
+      // TODO: Fix Promise returned from saveGame is ignored
     }
   } catch (e: any) {
-    appendLog(spr("⚠") + " " + (e?.message ?? String(e)));
+    appendLog(getSprite("⚠") + " " + (e?.message ?? String(e)));
     console.error(method, e);
   }
 }
-
-import { KILLS_PER_LEVEL, killsForFloor, CORRUPTION_FLOOR, CORRUPTION_RATE_PER_FLOOR, CORRUPTION_HEAL_REDUCTION_PER_FLOOR, startingGoldForLevel, DPS_UPGRADE_EFFECT, CLICK_UPGRADE_EFFECT, BOSS_ENRAGE_TRIGGER, BOSS_ENRAGE_STEP, BOSS_ENRAGE_TRIGGER_MIN, BOSS_ENRAGE_STEP_MIN } from "./engine.js";
 
 /** Full re-render of all UI panels from a GameStateDict snapshot. */
 function render(state: GameStateDict): void {
@@ -266,7 +330,7 @@ function render(state: GameStateDict): void {
   if (stickyNameEl) stickyNameEl.textContent = `${enemy.name} · Lv ${enemy.level}`;
   const enemyPanel = document.getElementById("enemy-panel")!;
   enemyPanel.classList.toggle("elite-enemy", !!enemy.is_elite);
-  enemyPanel.classList.toggle("boss-enemy", !!enemy.is_boss);
+  enemyPanel.classList.toggle("boss-enemy", enemy.is_boss);
   const portraitWrap = document.getElementById("monster-portrait-wrap")!;
   const portraitInner = document.getElementById("portrait-inner")!;
   const wantsPortrait = enemy.is_boss || !!enemy.is_elite;
@@ -365,7 +429,7 @@ function render(state: GameStateDict): void {
 
       enrageBar.style.width = fillPct + "%";
       $("enemy-enrage-label").innerHTML = isEnraged
-        ? `${spr("⚡")} ENRAGED ${enrageMult.toFixed(2)}×`
+        ? `${getSprite("⚡")} ENRAGED ${enrageMult.toFixed(2)}×`
         : `Enrage in ${Math.ceil(effectiveTrigger - enrageTime)}s`;
       enrageEl.classList.toggle("enraged", isEnraged);
       portraitInner.classList.toggle("enraged", isEnraged);
@@ -420,7 +484,7 @@ function render(state: GameStateDict): void {
 
   const hpPct = totalMaxHp > 0 ? totalHp / totalMaxHp : 1;
   (document.getElementById("mobile-party-hp-fill") as HTMLElement).style.width = `${hpPct * 100}%`;
-  (document.getElementById("mobile-party-hp-text") as HTMLElement).innerHTML = `${spr("♥")} ${totalHp}/${totalMaxHp}`;
+  (document.getElementById("mobile-party-hp-text") as HTMLElement).innerHTML = `${getSprite("♥")} ${totalHp}/${totalMaxHp}`;
   document.getElementById("mobile-party-hp-bar")!.classList.toggle("hp-low", hpPct < 0.3);
 
   const idleEl = $("stat-idle-gold");
@@ -494,7 +558,7 @@ function updateTabVisibility(state: GameStateDict): void {
 
 /** Renders the kill-progress pips, boss indicator text, and checkpoint label below the enemy panel. */
 function renderFloorProgress(state: GameStateDict): void {
-  const isBoss = state.enemy.is_boss;
+  const isBoss : boolean = state.enemy.is_boss;
   const left = state.monsters_left;
   const total = killsForFloor(state.dungeon_level);
   const done = total - left;
@@ -504,9 +568,10 @@ function renderFloorProgress(state: GameStateDict): void {
   if (newKey === floorProgressKey) return;
   floorProgressKey = newKey;
 
+  let monsterLeftText: HTMLElement = $("monsters-left-text");
+  monsterLeftText.textContent = "";
+  monsterLeftText.className = "";
 
-  $("monsters-left-text").textContent = "";
-  $("monsters-left-text").className = "";
 
   const row = $("floor-pip-row");
   row.innerHTML = Array.from({ length: total }, (_, i) =>
@@ -516,7 +581,7 @@ function renderFloorProgress(state: GameStateDict): void {
 
   const cp = $("checkpoint-display");
   if (state.checkpoint_level > 1) {
-    cp.innerHTML = `${spr("⚑")} Checkpoint: Floor ${state.checkpoint_level}`;
+    cp.innerHTML = `${getSprite("⚑")} Checkpoint: Floor ${state.checkpoint_level}`;
     cp.className = "checkpoint-active";
   } else {
     cp.textContent = "";
@@ -570,7 +635,7 @@ function renderDepthGauge(state: GameStateDict): void {
   for (let floor = 5; floor <= maxDisplay; floor += 5) {
     const top = toPercent(floor);
     const isCp = floor === checkpoint && checkpoint > 1;
-    const label = isCp ? `${spr("⚑")}${floor}` : `${floor}`;
+    const label = isCp ? `${getSprite("⚑")}${floor}` : `${floor}`;
     const cls = isCp ? "depth-tick checkpoint-tick" : "depth-tick";
     ticks.push(`<div class="${cls}" style="top:${top}px"><span class="depth-tick-label">${label}</span></div>`);
   }
@@ -579,7 +644,7 @@ function renderDepthGauge(state: GameStateDict): void {
   const deathContainer = $("depth-deaths-container");
   deathContainer.innerHTML = Object.entries(deathFloors).map(([floor, count]) => {
     const top = toPercent(Number(floor));
-    const label = count > 1 ? `${spr("💀")}×${count}` : spr("💀");
+    const label = count > 1 ? `${getSprite("💀")}×${count}` : getSprite("💀");
     return `<div class="depth-death-marker" style="top:${top}px"><span class="depth-death-label">${label}</span></div>`;
   }).join("");
 }
@@ -641,7 +706,7 @@ function renderParty(state: GameStateDict): void {
           const setAttr = setDef ? ` data-set-id="${setDef.id}" style="--set-color:${setDef.color}"` : "";
           return `<div class="gear-pdoll-cell" data-slot="${slot}">
             <button class="gear-pdoll-slot filled ${qc}${locked ? " gear-locked" : ""}${setDef ? " set-piece" : ""}" data-action="gear-slot-click" data-char-idx="${ci}" data-slot="${slot}" data-item="${itemJson}"${setAttr}>
-              <span class="gear-pdoll-icon">${spr(icon)}</span>
+              <span class="gear-pdoll-icon">${getSprite(icon)}</span>
               ${lockBadge}
             </button>
             <span class="gear-pdoll-label">${short}</span>
@@ -652,7 +717,7 @@ function renderParty(state: GameStateDict): void {
         const countBadge = hasLoot ? `<span class="gear-pdoll-count">${options.length}</span>` : "";
         return `<div class="gear-pdoll-cell" data-slot="${slot}">
           <button class="gear-pdoll-slot ${hasLoot ? "has-loot" : "empty"}${locked ? " gear-locked" : ""}" data-action="${hasLoot ? "gear-slot-click" : ""}" data-char-idx="${ci}" data-slot="${slot}" ${!hasLoot ? "disabled" : ""}>
-            <span class="gear-pdoll-icon">${spr(icon)}</span>
+            <span class="gear-pdoll-icon">${getSprite(icon)}</span>
             ${countBadge}
             ${lockBadge}
           </button>
@@ -672,8 +737,8 @@ function renderParty(state: GameStateDict): void {
         const unlocked = c.abilities.includes(a.id);
         const skillJson = encodeURIComponent(JSON.stringify({ icon: a.icon, name: a.name, desc: a.desc, level: a.level, unlocked }));
         return unlocked
-          ? `<span class="ability-badge unlocked" tabindex="0" data-tip="${a.desc}" data-skill="${skillJson}">${spr(a.icon)} ${a.name}</span>`
-          : `<span class="ability-badge locked" tabindex="0" data-tip="Lv${a.level}: ${a.desc}" data-skill="${skillJson}">${spr(a.icon)} Lv${a.level}</span>`;
+          ? `<span class="ability-badge unlocked" tabindex="0" data-tip="${a.desc}" data-skill="${skillJson}">${getSprite(a.icon)} ${a.name}</span>`
+          : `<span class="ability-badge locked" tabindex="0" data-tip="Lv${a.level}: ${a.desc}" data-skill="${skillJson}">${getSprite(a.icon)} Lv${a.level}</span>`;
       }).join("");
       const charJson = encodeURIComponent(JSON.stringify({ ...c, effective_dps: c.dps * upgMult }));
       const heroImg = HERO_IMG[c.character_class] ?? HERO_IMG.fighter;
@@ -690,7 +755,7 @@ function renderParty(state: GameStateDict): void {
         const def = ARTIFACT_DEFS[inst.id];
         const statLabel = def ? artifactStatLabel(def.id, inst.level) : "";
         const artifactJson = encodeURIComponent(JSON.stringify({ id: inst.id, level: inst.level, name: def?.name ?? inst.id, icon: def?.icon ?? "✨", stat: statLabel }));
-        return `<span class="char-artifact-badge filled${inst.level > 0 ? " upgraded" : ""}" data-artifact="${artifactJson}">${spr(def?.icon ?? "✨")}${inst.level > 0 ? `<sup>+${inst.level}</sup>` : ""}</span>`;
+        return `<span class="char-artifact-badge filled${inst.level > 0 ? " upgraded" : ""}" data-artifact="${artifactJson}">${getSprite(def?.icon ?? "✨")}${inst.level > 0 ? `<sup>+${inst.level}</sup>` : ""}</span>`;
       }).join("");
 
       const hpPct = Math.max(0, Math.round((c.health / c.max_health) * 100));
@@ -928,12 +993,11 @@ function renderLoot(state: GameStateDict): void {
     const togglesKey = `${autoEquipOwned}|${state.auto_equip_enabled}|${autoSellOwned}|${state.auto_sell_enabled}|${autoUpgradeOwned}|${state.auto_upgrade_enabled}`;
     if (togglesSection.dataset.key !== togglesKey) {
       togglesSection.dataset.key = togglesKey;
-      const btns = [
-        autoEquipOwned   ? `<button class="auto-toggle-btn${state.auto_equip_enabled   ? " on" : ""}" data-action="toggle-auto-action" data-type="auto_equip">Auto Equip: ${state.auto_equip_enabled ? "ON" : "OFF"}</button>` : "",
-        autoSellOwned    ? `<button class="auto-toggle-btn${state.auto_sell_enabled    ? " on" : ""}" data-action="toggle-auto-action" data-type="auto_sell">Auto Sell: ${state.auto_sell_enabled ? "ON" : "OFF"}</button>` : "",
+      togglesSection.innerHTML = [
+        autoEquipOwned ? `<button class="auto-toggle-btn${state.auto_equip_enabled ? " on" : ""}" data-action="toggle-auto-action" data-type="auto_equip">Auto Equip: ${state.auto_equip_enabled ? "ON" : "OFF"}</button>` : "",
+        autoSellOwned ? `<button class="auto-toggle-btn${state.auto_sell_enabled ? " on" : ""}" data-action="toggle-auto-action" data-type="auto_sell">Auto Sell: ${state.auto_sell_enabled ? "ON" : "OFF"}</button>` : "",
         autoUpgradeOwned ? `<button class="auto-toggle-btn${state.auto_upgrade_enabled ? " on" : ""}" data-action="toggle-auto-action" data-type="auto_upgrade">Auto Upgrade: ${state.auto_upgrade_enabled ? "ON" : "OFF"}</button>` : "",
       ].filter(Boolean).join("");
-      togglesSection.innerHTML = btns;
     }
   }
 
@@ -1060,7 +1124,7 @@ function renderUpgrades(state: GameStateDict): void {
             const meta = UPGRADE_LABELS[utype];
             const bonus = upgradeBonusLabel(utype, u.level);
             return `<div class="upgrade-row">
-              <span class="upgrade-icon">${spr(meta.icon)}</span>
+              <span class="upgrade-icon">${getSprite(meta.icon)}</span>
               <span class="upgrade-label">${meta.label}</span>
               <div class="upgrade-level">
                 <span>Lv ${u.level}</span>
@@ -1103,7 +1167,7 @@ function renderUpgrades(state: GameStateDict): void {
       // Stat rows
       for (const utype of statOrder) {
         const meta = UPGRADE_LABELS[utype];
-        gridHtml += `<div class="ug-stat-label">${spr(meta.icon)} ${meta.label}</div>`;
+        gridHtml += `<div class="ug-stat-label">${getSprite(meta.icon)} ${meta.label}</div>`;
         for (let i = 0; i < CHUNK; i++) {
           const c = chunk[i];
           if (!c) { gridHtml += `<div class="ug-cell ug-empty"></div>`; continue; }
@@ -1192,7 +1256,7 @@ function renderProfileWidget(state: GameStateDict): void {
 
   $("header-avatar-btn").innerHTML = `
     <div class="header-avatar-wrap ${borderDef.cssClass}">
-      <span class="header-avatar-icon">${spr(avatarDef.icon)}</span>
+      <span class="header-avatar-icon">${getSprite(avatarDef.icon)}</span>
     </div>
     <span class="header-avatar-label">${selectedTitle}</span>`;
 
@@ -1329,7 +1393,7 @@ function renderCustomizeModal(state: GameStateDict): void {
             const src = COSMETIC_SOURCE.get(a.id);
             const tip = src ? (earned ? `From: ${src}` : `Unlock via: ${src}`) : "";
             return `<button class="profile-pick-btn ${earned ? "" : "locked"} ${active ? "active" : ""}" data-action="set-avatar" data-avatar-id="${a.id}" ${earned ? "" : "disabled"}${tip ? ` title="${tip}"` : ""}>
-              <span class="pick-icon">${spr(a.icon)}</span>
+              <span class="pick-icon">${getSprite(a.icon)}</span>
               <span class="pick-name">${a.name}</span>
             </button>`;
           }).join("")}
@@ -1428,7 +1492,7 @@ function renderPrestigeShop(state: GameStateDict): void {
         cost: atMax ? Infinity : cost,
         html: `<div class="prestige-item">
       <div class="prestige-item-meta">
-        <div class="prestige-item-name">${spr(meta.icon)} ${meta.name}${ownedLabel}</div>
+        <div class="prestige-item-name">${getSprite(meta.icon)} ${meta.name}${ownedLabel}</div>
         <div class="prestige-item-desc">${meta.desc}</div>
         ${currentStat ? `<div class="shop-current-stat">${currentStat}</div>` : ""}
       </div>
@@ -1467,10 +1531,10 @@ function updateVentureButton(state: GameStateDict): void {
   btn.hidden = false;
   if (state.venture_available) {
     btn.disabled = false;
-    btn.innerHTML = `${spr("⚔")} Venture Forth`;
+    btn.innerHTML = `${getSprite("⚔")} Venture Forth`;
   } else {
     btn.disabled = true;
-    btn.innerHTML = `${spr("⚔")} Venture (need lv${ventureUnlockLevel(state.dungeon_index)})`;
+    btn.innerHTML = `${getSprite("⚔")} Venture (need lv${ventureUnlockLevel(state.dungeon_index)})`;
   }
 }
 
@@ -1553,7 +1617,7 @@ function renderGuildHall(state: GameStateDict): void {
 
     return `<div class="prestige-item${!prereqMet ? " guild-prereq-locked" : ""}">
       <div class="prestige-item-meta">
-        <div class="prestige-item-name">${spr(meta.icon)} ${meta.name}${stackLabel}</div>
+        <div class="prestige-item-name">${getSprite(meta.icon)} ${meta.name}${stackLabel}</div>
         <div class="prestige-item-desc">${meta.desc}</div>
         ${!prereqMet ? `<div class="guild-prereq-notice">Requires: ${prereqName}</div>` : ""}
         ${prereqMet && currentStat ? `<div class="shop-current-stat">${currentStat}</div>` : ""}
@@ -1816,7 +1880,7 @@ function renderPartyRunePanel(runeInv: Rune[], party: CharDict[], runeForge: num
     gloves: "Gloves", legs: "Legs", shoes: "Shoes", ring1: "Ring 1", ring2: "Ring 2",
   };
 
-  const charBlocks = party.map((c, charIdx) => {
+  el.innerHTML = party.map((c, charIdx) => {
     const slots = ALL_SLOTS.map(slot => {
       const rune = c.runes?.[slot];
       const slotIcon = SLOT_ICONS[slot] ?? "◻";
@@ -1825,21 +1889,21 @@ function renderPartyRunePanel(runeInv: Rune[], party: CharDict[], runeForge: num
       if (rune) {
         const runeIcon = RUNE_ICONS[rune.type] ?? "🔮";
         const statLabel = RUNE_STAT_LABELS[rune.statKey] ?? rune.statKey;
-        const runeData = encodeURIComponent(JSON.stringify({ ...rune, slotLabel: label }));
+        const runeData = encodeURIComponent(JSON.stringify({...rune, slotLabel: label}));
         return `<div class="pdoll-slot-cell" data-slot="${slot}">
           <button class="pdoll-slot equipped ${rune.tier}"
             data-slot="${slot}" data-char-idx="${charIdx}"
             data-rune-name="${PDOLL_TIER_ICONS[rune.tier] ?? "◆"} ${runeIcon} ${rune.name}"
             data-rune-stat="+${rune.value} ${statLabel}"
             data-rune="${runeData}"
-            aria-expanded="false">${spr(runeIcon)}</button>
+            aria-expanded="false">${getSprite(runeIcon)}</button>
           <span class="pdoll-slot-label">${shortLabel}</span>
         </div>`;
       }
       return `<div class="pdoll-slot-cell" data-slot="${slot}">
         <button class="pdoll-slot empty"
           data-slot="${slot}" data-char-idx="${charIdx}"
-          aria-expanded="false">${spr(slotIcon)}</button>
+          aria-expanded="false">${getSprite(slotIcon)}</button>
         <span class="pdoll-slot-label">${shortLabel}</span>
       </div>`;
     }).join("");
@@ -1850,8 +1914,6 @@ function renderPartyRunePanel(runeInv: Rune[], party: CharDict[], runeForge: num
       <div class="pdoll-stats-bar">${runeStatSummary(c)}</div>
     </div>`;
   }).join("");
-
-  el.innerHTML = charBlocks;
 }
 
 function openRuneReplaceModal(charIdx: number, slot: string): void {
@@ -1875,7 +1937,7 @@ function openRuneReplaceModal(charIdx: number, slot: string): void {
         const statLabel = RUNE_STAT_LABELS[r.statKey] ?? r.statKey;
         return `<button class="rr-rune-item" data-rune-id="${r.id}">
           <span class="rr-tier-badge rune-tier-badge ${r.tier}">${PDOLL_TIER_ICONS[r.tier] ?? "◆"}</span>
-          <span>${spr(icon)} ${r.name}</span>
+          <span>${getSprite(icon)} ${r.name}</span>
           <span class="rr-rune-stat">+${r.value} ${statLabel}</span>
         </button>`;
       }).join("");
@@ -2001,7 +2063,7 @@ function renderLootRuneInventory(runeInv: Rune[], runeForge: number, hasCombineA
         return `<div class="rune-item ${rune.tier}" data-rune-idx="${i}">
           <div class="rune-item-top">
             <span class="rune-tier-badge ${rune.tier}">${TIER_ICONS[rune.tier] ?? "◆"}</span>
-            <span class="rune-icon">${spr(runeIcon)}</span>
+            <span class="rune-icon">${getSprite(runeIcon)}</span>
             <span class="rune-name">${rune.name}</span>
           </div>
           <div class="rune-item-bottom">
@@ -2046,7 +2108,7 @@ function renderLootRuneInventory(runeInv: Rune[], runeForge: number, hasCombineA
 
   const forgeArtifactHtml = ancientCount > 0
     ? `<div class="rune-forge-artifact-row">
-         <span class="rune-forge-artifact-label">${spr("✨")} Forge Artifact</span>
+         <span class="rune-forge-artifact-label">${getSprite("✨")} Forge Artifact</span>
          <span class="rune-forge-artifact-cost">${ancientCount} / 10 Ancient runes</span>
          <button class="rune-forge-artifact-btn" data-action="forge-artifact-from-runes"${canForge ? "" : " disabled"}>Forge</button>
        </div>`
@@ -2054,7 +2116,7 @@ function renderLootRuneInventory(runeInv: Rune[], runeForge: number, hasCombineA
 
   el.innerHTML = `<div class="rune-inv-section">
     <div class="rune-inv-title">
-      <span>${spr("🔮")} Runes (${runeInv.length})</span>
+      <span>${getSprite("🔮")} Runes (${runeInv.length})</span>
       ${runeInv.length > 0 ? `<button class="rune-sell-all-btn" data-action="sell-all-runes">Sell All (${formatNumber(sellAllVal)}g)</button>` : ""}
     </div>
     ${forgeArtifactHtml}
@@ -2092,22 +2154,8 @@ function renderArtifactPanel(state: GameStateDict): void {
   if (artifactDotEl) artifactDotEl.hidden = !levelUpPossible;
   syncLootTabBadge();
 
-  // Build character + slot options for equip dropdowns
-  const charSlotOptions = party.map((c, ci) => {
-    const slots: (ArtifactInstance | null)[] = c.artifact_slots ?? [null, null, null];
-    return slots.map((s, si) =>
-      s ? "" : `<option value="${ci}:${si}">${c.name} — slot ${si + 1}</option>`
-    ).join("");
-  }).join("");
-  const hasOpenSlot = charSlotOptions.includes("<option");
-
   const invEl = document.getElementById("artifact-inventory");
   if (!invEl) return;
-
-  function instLabel(inst: ArtifactInstance): string {
-    const def = ARTIFACT_DEFS[inst.id];
-    return `${spr(def?.icon ?? "✨")} ${def?.name ?? inst.id}${inst.level > 0 ? ` <span class="artifact-level-badge">+${inst.level}</span>` : ""}`;
-  }
 
   const sortedArtifactIndices = artifactInv.map((_, i) => i).sort((a, b) => {
     const defA = ARTIFACT_DEFS[artifactInv[a].id];
@@ -2117,9 +2165,9 @@ function renderArtifactPanel(state: GameStateDict): void {
     return artifactInv[b].level - artifactInv[a].level; // higher level first within same name
   });
 
-  const itemsHtml = artifactInv.length === 0
-    ? `<div class="artifact-empty">No artifacts in inventory.</div>`
-    : sortedArtifactIndices.map(i => {
+  invEl.innerHTML = artifactInv.length === 0
+      ? `<div class="artifact-empty">No artifacts in inventory.</div>`
+      : sortedArtifactIndices.map(i => {
         const inst = artifactInv[i];
         const def = ARTIFACT_DEFS[inst.id];
         if (!def) return "";
@@ -2127,7 +2175,7 @@ function renderArtifactPanel(state: GameStateDict): void {
         const fuelCount = artifactInv.filter((o, j) => j !== i && o.id === inst.id).length;
         const canLevel = fuelCount >= inst.level + 1;
         return `<div class="artifact-inv-row${canLevel ? " artifact-inv-row--levelup" : ""}" data-action="open-artifact-modal" data-inv-idx="${i}" role="button" tabindex="0">
-          <span class="artifact-inv-icon">${spr(def.icon)}</span>
+          <span class="artifact-inv-icon">${getSprite(def.icon)}</span>
           <div class="artifact-inv-info">
             <div class="artifact-inv-name">${def.name}${inst.level > 0 ? ` <span class="artifact-level-badge">+${inst.level}</span>` : ""}</div>
             <div class="artifact-inv-desc">${def.desc}</div>
@@ -2136,13 +2184,11 @@ function renderArtifactPanel(state: GameStateDict): void {
         </div>`;
       }).join("");
 
-  invEl.innerHTML = itemsHtml;
-
   // Party panel equipped artifacts — 3 square slot boxes per character
   const partyArtEl = document.getElementById("party-artifact-panel");
   if (partyArtEl) {
     const hasArtifacts = artifactInv.length > 0;
-    const charBlocks = party.map((c, charIdx) => {
+    partyArtEl.innerHTML = party.map((c, charIdx) => {
       const slots: (ArtifactInstance | null)[] = c.artifact_slots ?? [null, null, null];
       const slotBtns = slots.map((inst, slotIdx) => {
         if (inst) {
@@ -2153,7 +2199,7 @@ function renderArtifactPanel(state: GameStateDict): void {
               data-char-idx="${charIdx}" data-slot-idx="${slotIdx}"
               title="${def?.name ?? inst.id}">
               ${lvlBadge}
-              <span class="art-slot-icon">${spr(def?.icon ?? "✨")}</span>
+              <span class="art-slot-icon">${getSprite(def?.icon ?? "✨")}</span>
             </button>
           </div>`;
         }
@@ -2171,7 +2217,6 @@ function renderArtifactPanel(state: GameStateDict): void {
         <div class="art-pdoll-row">${slotBtns}</div>
       </div>`;
     }).join("");
-    partyArtEl.innerHTML = charBlocks;
   }
 
   if (artifactModalArtId) renderArtifactModalBody(state);
@@ -2219,7 +2264,7 @@ function openArtifactSlotPicker(charIdx: number, slotIdx: number, state: GameSta
         const lvlBadge = inst.level > 0 ? ` <span class="artifact-level-badge">+${inst.level}</span>` : "";
         const statLabel = def ? artifactStatLabel(inst.id, inst.level) : "";
         return `<button class="asp-artifact-item" data-action="asp-equip" data-inv-idx="${inst.invIdx}">
-          <span class="asp-artifact-icon">${spr(def?.icon ?? "✨")}</span>
+          <span class="asp-artifact-icon">${getSprite(def?.icon ?? "✨")}</span>
           <div class="asp-artifact-info">
             <span class="asp-artifact-name">${def?.name ?? inst.id}${lvlBadge}</span>
             <span class="asp-artifact-stat">${statLabel}</span>
@@ -2319,7 +2364,7 @@ function renderArtifactModalBody(state: GameStateDict): void {
         const units = artifactFuelValue(c.level);
         return `<label class="amodal-fuel-item">
           <input type="checkbox" class="amodal-fuel-check" data-fuel-idx="${c.invIdx}"${checked}>
-          <span class="amodal-fuel-label">${spr(def.icon)} ${def.name}${lvlLabel}</span>
+          <span class="amodal-fuel-label">${getSprite(def.icon)} ${def.name}${lvlLabel}</span>
           <span class="amodal-fuel-unit">+${units} fuel</span>
         </label>`;
       }).join("");
@@ -2347,7 +2392,7 @@ function renderArtifactModalBody(state: GameStateDict): void {
       </button>
     </div>`;
 
-  let actionsHtml = "";
+  let actionsHtml: string;
   if (isEquipped) {
     actionsHtml = `
       <div class="amodal-section amodal-equipped-actions">
@@ -2390,7 +2435,7 @@ function renderArtifactModalBody(state: GameStateDict): void {
 
   el.innerHTML = `
     <div class="amodal-hero-row">
-      <span class="amodal-icon">${spr(def.icon)}</span>
+      <span class="amodal-icon">${getSprite(def.icon)}</span>
       <div>
         <div class="amodal-name">${def.name}${levelBadge}</div>
         <div class="amodal-copies">${subTitle}</div>
@@ -2712,7 +2757,7 @@ function renderDropChart(dungeonLevel: number): void {
   $("drop-chart-floor").textContent = String(dungeonLevel);
   const weights = qualityWeights(dungeonLevel);
   const total = weights.reduce((s, w) => s + w, 0);
-  const rows = [...QUAL].reverse().map((q, ri) => {
+  $("drop-chart-body").innerHTML = [...QUAL].reverse().map((q, ri) => {
     const i = QUAL.length - 1 - ri;
     const w = weights[i];
     const locked = w === 0;
@@ -2727,7 +2772,6 @@ function renderDropChart(dungeonLevel: number): void {
         <span class="drop-chart-pct">${locked ? "locked" : pct < 0.05 ? "<0.1%" : pct.toFixed(1) + "%"}</span>
       </div>`;
   }).join("");
-  $("drop-chart-body").innerHTML = rows;
 }
 
 /** Renders the combat log panel from the state snapshot. */
@@ -2889,7 +2933,7 @@ function renderFeats(state: GameStateDict): void {
 
     const allDone = doneCount === allDefs.length;
     const countCls = allDone ? " complete" : "";
-    const header = `<div class="feat-category-title">${spr(CATEGORY_ICONS[cat])} ${CATEGORY_LABELS[cat]}<span class="feat-cat-count${countCls}">${doneCount}/${allDefs.length}</span></div>`;
+    const header = `<div class="feat-category-title">${getSprite(CATEGORY_ICONS[cat])} ${CATEGORY_LABELS[cat]}<span class="feat-cat-count${countCls}">${doneCount}/${allDefs.length}</span></div>`;
 
     const cards = visible.map(def => {
       const status = featStatus(def);
@@ -3080,7 +3124,7 @@ function buildRuneTooltipHTML(rune: Rune & { slotLabel: string }): string {
   const tierLabel = TIER_LABELS[rune.tier] ?? rune.tier;
   const tierCls = TIER_CLS[rune.tier] ?? "tt-rarity quality-common";
   return `
-    <span class="tt-name">${spr(icon)} ${rune.name}</span>
+    <span class="tt-name">${getSprite(icon)} ${rune.name}</span>
     <div class="${tierCls}">${tierLabel}</div>
     <div class="tt-subtitle">${rune.slotLabel}</div>
     <div class="tt-divider"></div>
@@ -3157,7 +3201,7 @@ function buildCharTooltipHTML(c: CharDictWithEffectiveDps): string {
   }).join("");
   const runeBadges = `<div class="tt-divider"></div><div class="tt-rune-row">${runeSquares}</div>`;
   const abilityBadges = unlocked.length
-    ? `<div class="tt-divider"></div><div class="tt-abilities">${unlocked.map(a => `<span class="tt-ability">${spr(a.icon)} ${a.name}</span>`).join("")}</div>`
+    ? `<div class="tt-divider"></div><div class="tt-abilities">${unlocked.map(a => `<span class="tt-ability">${getSprite(a.icon)} ${a.name}</span>`).join("")}</div>`
     : "";
   const heroImg = HERO_IMG[c.character_class] ?? HERO_IMG.fighter;
   return `
@@ -3233,10 +3277,6 @@ function lootTier(
   if (itemPower > max) return ["▲", "ind-up"];
   if (min > 0 && itemPower < min) return ["▼", "ind-down"];
   return ["", ""];
-}
-
-function slotLabel(slot: string): string {
-  return slot.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 const TAB_PANELS: Record<string, string[]> = {
@@ -3344,7 +3384,7 @@ function buildSkillTooltipHTML(a: AbilityCardData): string {
   const statusClass = a.unlocked ? "rarity-rare" : "rarity-common";
   const statusText  = a.unlocked ? "Unlocked" : `Requires Level ${a.level}`;
   return `
-    <div class="tt-name">${spr(a.icon)} ${a.name}</div>
+    <div class="tt-name">${getSprite(a.icon)} ${a.name}</div>
     <div class="tt-rarity ${statusClass}">${statusText}</div>
     <div class="tt-divider"></div>
     <div class="tt-stat-row"><span class="tt-stat-label">${a.desc}</span></div>`;
@@ -3355,11 +3395,12 @@ const TOOLTIP_SELECTORS = ".gear-pdoll-slot.filled[data-item], .loot-item[data-i
 function buildActiveSkillTooltipHTML(skillId: string, skillState?: { remaining: number; expiry: number; totalCooldown: number; isActive: boolean; onCooldown: boolean }): string {
   const name = SKILL_NAMES[skillId] ?? skillId;
   const desc = SKILL_DESCS[skillId] ?? "";
-  const cooldownKills = skillState?.totalCooldown ?? SKILL_DEFS[skillId]?.cooldownKills ?? 30;
-  let statusLine = "";
+  let cooldownKills: number;
+  cooldownKills = skillState?.totalCooldown ?? SKILL_DEFS[skillId]?.cooldownKills ?? 30;
+  let statusLine: string;
   if (skillState?.isActive) {
     const left = skillState.expiry;
-    statusLine = `<div class="skill-tooltip-status skill-status-active">${spr("⚡")} Active — ${left} kill${left !== 1 ? "s" : ""} remaining</div>`;
+    statusLine = `<div class="skill-tooltip-status skill-status-active">${getSprite("⚡")} Active — ${left} kill${left !== 1 ? "s" : ""} remaining</div>`;
   } else if (skillState?.onCooldown) {
     const left = skillState.remaining;
     statusLine = `<div class="skill-tooltip-status skill-status-cooldown">⏳ Cooldown — ${left} / ${cooldownKills} kills</div>`;
@@ -3387,7 +3428,7 @@ function buildDpsTooltipHTML(d: { total: number; base: number; gear: number; run
 function buildArtifactTooltipHTML(a: { id: string; level: number; name: string; icon: string; stat: string }): string {
   const lvlLabel = a.level > 0 ? ` +${a.level}` : "";
   return `
-    <span class="tt-name">${spr(a.icon)} ${a.name}${lvlLabel}</span>
+    <span class="tt-name">${getSprite(a.icon)} ${a.name}${lvlLabel}</span>
     <div class="tt-divider"></div>
     <div class="tt-stats"><div class="tt-stat-row"><span class="tt-stat-label">${a.stat || "No effect"}</span></div></div>
   `;
@@ -3809,7 +3850,7 @@ function updateAutoAttackButton(): void {
   const unlocked = isAutoAttackUnlocked();
   btn.disabled = !unlocked;
   btn.title = unlocked ? "Toggle auto-attack (fires every second)" : "Unlock Auto-Attack in the Guild Hall";
-  btn.innerHTML = autoAttackEnabled && unlocked ? `${spr("⚔")} AUTO ON` : `${spr("⚔")} AUTO`;
+  btn.innerHTML = autoAttackEnabled && unlocked ? `${getSprite("⚔")} AUTO ON` : `${getSprite("⚔")} AUTO`;
   btn.classList.toggle("active", autoAttackEnabled && unlocked);
   if (!unlocked && autoAttackEnabled) {
     autoAttackEnabled = false;
@@ -4019,15 +4060,17 @@ document.addEventListener("DOMContentLoaded", () => {
       if (game) render(game.toDict());
     }
   });
+  let lootItems = $("loot-items")
+  const retireConfirmModal = $("retire-confirm-modal");
 
-  $("loot-items").addEventListener("mouseover", (e) => {
+  lootItems.addEventListener("mouseover", (e) => {
     const item = (e.target as HTMLElement).closest<HTMLElement>(".loot-item");
     const slot = item?.dataset.slot ?? null;
     if (slot === hoveredLootSlot) return;
     hoveredLootSlot = slot;
     applySlotHighlight();
   });
-  $("loot-items").addEventListener("mouseleave", () => {
+  lootItems.addEventListener("mouseleave", () => {
     if (hoveredLootSlot === null) return;
     hoveredLootSlot = null;
     applySlotHighlight();
@@ -4037,10 +4080,11 @@ document.addEventListener("DOMContentLoaded", () => {
   $("stats-btn").addEventListener("click", openStats);
   $("stats-close").addEventListener("click", () => { $("stats-modal").classList.remove("open"); });
   $("stats-modal").addEventListener("click", (e) => {
-    if (e.target === $("stats-modal")) $("stats-modal").classList.remove("open");
+    let statsModal: HTMLElement = $("stats-modal")
+    if (e.target === statsModal) statsModal.classList.remove("open");
   });
-
-  $("version-btn").textContent = VERSION;
+  let versionBtn: HTMLElement = $("version-btn")
+  versionBtn.textContent = VERSION;
 
   $("changelog-body").innerHTML = CHANGELOG.map(entry => `
     <div class="cl-entry">
@@ -4053,13 +4097,14 @@ document.addEventListener("DOMContentLoaded", () => {
   `).join("");
 
   const openChangelog = () => { $("changelog-modal").classList.add("open"); };
-  $("version-btn").addEventListener("click", openChangelog);
+  versionBtn.addEventListener("click", openChangelog);
   $("mobile-changelog-btn").addEventListener("click", openChangelog);
+  let changelogModal = $("changelog-modal")
   $("changelog-close").addEventListener("click", () => {
-    $("changelog-modal").classList.remove("open");
+    changelogModal.classList.remove("open");
   });
-  $("changelog-modal").addEventListener("click", (e) => {
-    if (e.target === $("changelog-modal")) $("changelog-modal").classList.remove("open");
+  changelogModal.addEventListener("click", (e) => {
+    if (e.target === changelogModal) changelogModal.classList.remove("open");
   });
 
   $("hard-reset-btn").addEventListener("click", () => {
@@ -4089,16 +4134,17 @@ document.addEventListener("DOMContentLoaded", () => {
     window.location.reload();
   });
 
+  let dropChartModal = $("drop-chart-modal");
   $("drop-chart-btn").addEventListener("click", () => {
     const level = game ? game.dungeonLevel : 1;
     renderDropChart(level);
-    $("drop-chart-modal").classList.add("open");
+    dropChartModal.classList.add("open");
   });
   $("drop-chart-close").addEventListener("click", () => {
-    $("drop-chart-modal").classList.remove("open");
+    dropChartModal.classList.remove("open");
   });
-  $("drop-chart-modal").addEventListener("click", (e) => {
-    if (e.target === $("drop-chart-modal")) $("drop-chart-modal").classList.remove("open");
+  dropChartModal.addEventListener("click", (e) => {
+    if (e.target === dropChartModal) dropChartModal.classList.remove("open");
   });
 
   // Wire up cloud auth UI — two sign-in buttons share the same id (creation overlay + settings)
@@ -4109,9 +4155,18 @@ document.addEventListener("DOMContentLoaded", () => {
     clearToken();
     updateAuthUI();
   });
-  document.getElementById("pull-save-btn")?.addEventListener("click", () => { pullCloudSave(); });
-  document.getElementById("claim-device-btn")?.addEventListener("click", () => { setActiveDevice(); });
-  document.getElementById("claim-device-banner-btn")?.addEventListener("click", () => { setActiveDevice(); });
+  document.getElementById("pull-save-btn")?.addEventListener("click", () => {
+    // TODO: Promise returned from setActiveDevice is ignored
+    pullCloudSave();
+  });
+  document.getElementById("claim-device-btn")?.addEventListener("click", () => {
+    // TODO: Promise returned from setActiveDevice is ignored
+    setActiveDevice();
+  });
+  document.getElementById("claim-device-banner-btn")?.addEventListener("click", () => {
+    // TODO: Promise returned from setActiveDevice is ignored
+    setActiveDevice();
+  });
 
   // Auth → cloud load → local load → new game
   initAuth().then(cloudSaved => {
@@ -4144,6 +4199,8 @@ document.addEventListener("DOMContentLoaded", () => {
   ($("char-name-input") as HTMLInputElement).addEventListener("keydown", (e) => {
     if (e.key === "Enter") ($("start-btn") as HTMLButtonElement).click();
   });
+
+  const hallOfFameModal: HTMLElement = $("hall-of-fame-modal");
 
   document.addEventListener("click", (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLElement>("[data-action]");
@@ -4385,7 +4442,8 @@ document.addEventListener("DOMContentLoaded", () => {
         renderProfileWidget(state);
         renderHallOfFame(state.retired_heroes ?? []);
       }
-      $("hall-of-fame-modal").classList.add("open");
+
+      hallOfFameModal.classList.add("open");
     }
     else if (action === "retire-hero") {
       if (!game) return;
@@ -4394,7 +4452,7 @@ document.addEventListener("DOMContentLoaded", () => {
       profileWidgetKey = "";
       renderProfileWidget(state);
       renderRetireConfirm(state);
-      $("retire-confirm-modal").classList.add("open");
+      retireConfirmModal.classList.add("open");
     }
     else if (action === "profile-tab") {
       profilePickerTab = (btn.dataset.tab as "avatar" | "border" | "title") ?? "avatar";
@@ -4411,31 +4469,36 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Settings modal
-  function openSettings(): void { $("settings-modal").classList.add("open"); }
-  function closeSettings(): void { $("settings-modal").classList.remove("open"); }
+  let settingsModal = $("settings-modal")
+  function openSettings(): void { settingsModal.classList.add("open"); }
+  function closeSettings(): void { settingsModal.classList.remove("open"); }
   $("settings-modal-close").addEventListener("click", closeSettings);
-  $("settings-modal").addEventListener("click", (e) => { if (e.target === $("settings-modal")) closeSettings(); });
+  settingsModal.addEventListener("click", (e) => { if (e.target === settingsModal) closeSettings(); });
   document.getElementById("mobile-settings-tab-btn")?.addEventListener("click", openSettings);
 
   // Customize modal
-  $("customize-modal-close").addEventListener("click", () => $("customize-modal").classList.remove("open"));
-  $("customize-modal").addEventListener("click", (e) => { if (e.target === $("customize-modal")) $("customize-modal").classList.remove("open"); });
+  let customizeModal: HTMLElement = $("customize-modal");
+  $("customize-modal-close").addEventListener("click", () => customizeModal.classList.remove("open"));
+  customizeModal.addEventListener("click", (e) => { if (e.target === customizeModal) customizeModal.classList.remove("open"); });
 
   // About modal
-  $("about-modal-close").addEventListener("click", () => $("about-modal").classList.remove("open"));
-  $("about-modal").addEventListener("click", (e) => { if (e.target === $("about-modal")) $("about-modal").classList.remove("open"); });
+  let aboutModal: HTMLElement = $("about-modal");
+  $("about-modal-close").addEventListener("click", () => aboutModal.classList.remove("open"));
+  aboutModal.addEventListener("click", (e) => { if (e.target === aboutModal) aboutModal.classList.remove("open"); });
 
   // Hall of Fame modal
-  $("hall-of-fame-close").addEventListener("click", () => $("hall-of-fame-modal").classList.remove("open"));
-  $("hall-of-fame-modal").addEventListener("click", (e) => { if (e.target === $("hall-of-fame-modal")) $("hall-of-fame-modal").classList.remove("open"); });
+
+  $("hall-of-fame-close").addEventListener("click", () => hallOfFameModal.classList.remove("open"));
+  hallOfFameModal.addEventListener("click", (e) => { if (e.target === hallOfFameModal) hallOfFameModal.classList.remove("open"); });
 
   // Retire confirmation modal
-  $("retire-confirm-close").addEventListener("click", () => $("retire-confirm-modal").classList.remove("open"));
-  $("retire-confirm-cancel").addEventListener("click", () => $("retire-confirm-modal").classList.remove("open"));
-  $("retire-confirm-modal").addEventListener("click", (e) => { if (e.target === $("retire-confirm-modal")) $("retire-confirm-modal").classList.remove("open"); });
+
+  $("retire-confirm-close").addEventListener("click", () => retireConfirmModal.classList.remove("open"));
+  $("retire-confirm-cancel").addEventListener("click", () => retireConfirmModal.classList.remove("open"));
+  retireConfirmModal.addEventListener("click", (e) => { if (e.target === retireConfirmModal) retireConfirmModal.classList.remove("open"); });
   $("retire-confirm-yes").addEventListener("click", () => {
     if (!game) return;
-    $("retire-confirm-modal").classList.remove("open");
+    retireConfirmModal.classList.remove("open");
     const json = game.retireHero();
     const state = JSON.parse(json) as GameStateDict;
     localStorage.setItem(SAVE_KEY, json);
@@ -4445,16 +4508,17 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Combat log history modal
+  const logHistoryModal:HTMLElement = $("log-history-modal");
   document.getElementById("log-history-btn")?.addEventListener("click", () => {
     const body = $("log-history-body");
     body.innerHTML = [...fullLog].reverse().map(l => `<div class="log-line">${l}</div>`).join("") || `<div class="log-line" style="color:var(--muted)">No history yet.</div>`;
-    $("log-history-modal").classList.add("open");
+    logHistoryModal.classList.add("open");
   });
   document.getElementById("log-history-close")?.addEventListener("click", () => {
-    $("log-history-modal").classList.remove("open");
+    logHistoryModal.classList.remove("open");
   });
   document.getElementById("log-history-modal")?.addEventListener("click", (e) => {
-    if (e.target === $("log-history-modal")) $("log-history-modal").classList.remove("open");
+    if (e.target === logHistoryModal) logHistoryModal.classList.remove("open");
   });
 
   // Close profile picker when clicking outside the header avatar area.
