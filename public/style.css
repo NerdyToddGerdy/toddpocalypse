@@ -75,13 +75,13 @@ button, select { touch-action: manipulation; }
 h1, h2, .stab-btn, .mobile-tab-btn span, #attack-btn, #skill-btn, .companion-skill-btn,
 .class-btn, .prestige-buy-btn, .guild-buy-btn, button[data-action="prestige"],
 button[data-action="venture"], #hard-reset-btn, #hard-reset-yes {
-    font-family: var(--font-display);
+    font-family: var(--font-display), sans-serif;
 }
 
 body {
     background: var(--bg);
     color: var(--text);
-    font-family: var(--font-body);
+    font-family: var(--font-body), sans-serif;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -3770,7 +3770,7 @@ footer {
     color: var(--muted);
     cursor: pointer;
     font-size: 0.82rem;
-    font-family: var(--font-display);
+    font-family: var(--font-display), sans-serif;
     transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 .theme-btn:hover { color: var(--text); border-color: var(--accent); }
@@ -3792,7 +3792,7 @@ footer {
     border-radius: 6px;
     padding: 12px 14px;
     box-shadow: 0 4px 24px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(200,162,39,0.08);
-    font-family: var(--font-body);
+    font-family: var(--font-body), sans-serif;
     opacity: 0;
     transform: translateY(4px);
     transition: opacity 0.1s ease, transform 0.1s ease;
@@ -3916,7 +3916,7 @@ footer {
 
 .skill-tooltip {}
 .skill-tooltip-name {
-    font-family: var(--font-display);
+    font-family: var(--font-display), sans-serif;
     font-size: 0.85rem;
     color: var(--accent);
     margin-bottom: 4px;
