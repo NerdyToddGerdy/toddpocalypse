@@ -302,8 +302,7 @@ function call<K extends keyof GameState>(method: K, ...args: any[]): void {
     const now = Date.now();
     if (method !== "tick" || now - lastTickSaveTime >= TICK_SAVE_INTERVAL_MS) {
       lastTickSaveTime = now;
-      saveGame();
-      // TODO: Fix Promise returned from saveGame is ignored
+      saveGame().catch(e => console.error("saveGame:", e));
     }
   } catch (e: any) {
     appendLog(getSprite("⚠") + " " + (e?.message ?? String(e)));
@@ -4156,16 +4155,13 @@ document.addEventListener("DOMContentLoaded", () => {
     updateAuthUI();
   });
   document.getElementById("pull-save-btn")?.addEventListener("click", () => {
-    // TODO: Promise returned from setActiveDevice is ignored
-    pullCloudSave();
+    pullCloudSave().catch(e => console.error("pullCloudSave:", e));
   });
   document.getElementById("claim-device-btn")?.addEventListener("click", () => {
-    // TODO: Promise returned from setActiveDevice is ignored
-    setActiveDevice();
+    setActiveDevice().catch(e => console.error("setActiveDevice:", e));
   });
   document.getElementById("claim-device-banner-btn")?.addEventListener("click", () => {
-    // TODO: Promise returned from setActiveDevice is ignored
-    setActiveDevice();
+    setActiveDevice().catch(e => console.error("setActiveDevice:", e));
   });
 
   // Auth → cloud load → local load → new game
