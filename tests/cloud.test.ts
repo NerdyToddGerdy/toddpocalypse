@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { parseAuthHash, isTokenExpired, clearSessionId, resetSessionId, cloudClaimSession } from "../src/cloud.js";
+import {
+  parseAuthHash, isTokenExpired, clearSessionId, resetSessionId, cloudClaimSession,
+  getStoredToken, storeToken, clearToken, getLoginUrl, cloudLoad, cloudSave,
+  COGNITO_CLIENT_ID,
+} from "../src/cloud.js";
 
 // Minimal localStorage stub for Node test environment
 const store: Record<string, string> = {};
@@ -79,6 +83,154 @@ describe("resetSessionId", () => {
   it("returns an ID different from the old one", () => {
     const id = resetSessionId();
     expect(id).not.toBe("old-session-id");
+  });
+});
+
+describe("token storage", () => {
+  const TOKEN_KEY = "toddpocalypse-token";
+  const EXPIRY_KEY = "toddpocalypse-token-expiry";
+
+  afterEach(() => {
+    delete store[TOKEN_KEY];
+    delete store[EXPIRY_KEY];
+  });
+
+  it("storeToken / getStoredToken round-trips an unexpired token", () => {
+    storeToken("tok-abc", Date.now() + 60_000);
+    expect(getStoredToken()).toBe("tok-abc");
+  });
+
+  it("getStoredToken returns null when no token is stored", () => {
+    expect(getStoredToken()).toBeNull();
+  });
+
+  it("getStoredToken returns null when expiry is missing", () => {
+    store[TOKEN_KEY] = "tok-abc";
+    expect(getStoredToken()).toBeNull();
+  });
+
+  it("getStoredToken returns null for an expired token and clears both keys", () => {
+    storeToken("tok-abc", Date.now() - 1000);
+    expect(getStoredToken()).toBeNull();
+    expect(store[TOKEN_KEY]).toBeUndefined();
+    expect(store[EXPIRY_KEY]).toBeUndefined();
+  });
+
+  it("clearToken removes token and expiry", () => {
+    storeToken("tok-abc", Date.now() + 60_000);
+    clearToken();
+    expect(store[TOKEN_KEY]).toBeUndefined();
+    expect(store[EXPIRY_KEY]).toBeUndefined();
+  });
+});
+
+describe("getLoginUrl", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.stubGlobal("localStorage", localStorageMock);
+    vi.stubGlobal("crypto", { randomUUID: () => "new-uuid-1234" });
+  });
+
+  it("uses the localhost redirect when running locally", () => {
+    vi.stubGlobal("window", { location: { hostname: "localhost" } });
+    expect(getLoginUrl()).toContain(encodeURIComponent("http://localhost:8080"));
+  });
+
+  it("uses the GitHub Pages redirect on other hosts", () => {
+    vi.stubGlobal("window", { location: { hostname: "nerdytoddgerdy.github.io" } });
+    expect(getLoginUrl()).toContain(encodeURIComponent("https://nerdytoddgerdy.github.io/toddpocalypse"));
+  });
+
+  it("includes client_id and implicit-grant response_type", () => {
+    vi.stubGlobal("window", { location: { hostname: "localhost" } });
+    const url = getLoginUrl();
+    expect(url).toContain(`client_id=${COGNITO_CLIENT_ID}`);
+    expect(url).toContain("response_type=token");
+  });
+});
+
+describe("cloudLoad", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.stubGlobal("localStorage", localStorageMock);
+    vi.stubGlobal("crypto", { randomUUID: () => "new-uuid-1234" });
+  });
+
+  it("returns the save payload on success", async () => {
+    fetchSpy.mockResolvedValue({ ok: true, text: async () => '{"gold":5}' });
+    expect(await cloudLoad("tok")).toBe('{"gold":5}');
+  });
+
+  it("sends the bearer token", async () => {
+    fetchSpy.mockResolvedValue({ ok: true, text: async () => "x" });
+    await cloudLoad("tok");
+    const [, init] = fetchSpy.mock.calls[0];
+    expect((init as RequestInit & { headers: Record<string, string> }).headers.Authorization).toBe("Bearer tok");
+  });
+
+  it("returns null for an empty body", async () => {
+    fetchSpy.mockResolvedValue({ ok: true, text: async () => "" });
+    expect(await cloudLoad("tok")).toBeNull();
+  });
+
+  it("returns null on HTTP failure", async () => {
+    fetchSpy.mockResolvedValue({ ok: false, status: 500 });
+    expect(await cloudLoad("tok")).toBeNull();
+  });
+
+  it("returns null on network failure", async () => {
+    fetchSpy.mockRejectedValue(new Error("network"));
+    expect(await cloudLoad("tok")).toBeNull();
+  });
+});
+
+describe("cloudSave", () => {
+  let fetchSpy: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    store["toddpocalypse-session"] = "my-session";
+    fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.stubGlobal("localStorage", localStorageMock);
+    vi.stubGlobal("crypto", { randomUUID: () => "new-uuid-1234" });
+  });
+
+  it("returns ok on success", async () => {
+    fetchSpy.mockResolvedValue({ ok: true, status: 200 });
+    expect(await cloudSave("tok", "data")).toBe("ok");
+  });
+
+  it("returns conflict on 409", async () => {
+    fetchSpy.mockResolvedValue({ ok: false, status: 409 });
+    expect(await cloudSave("tok", "data")).toBe("conflict");
+  });
+
+  it("returns error on HTTP failure", async () => {
+    fetchSpy.mockResolvedValue({ ok: false, status: 500 });
+    expect(await cloudSave("tok", "data")).toBe("error");
+  });
+
+  it("returns error on network failure", async () => {
+    fetchSpy.mockRejectedValue(new Error("network"));
+    expect(await cloudSave("tok", "data")).toBe("error");
+  });
+
+  it("never forces past the session lock", async () => {
+    fetchSpy.mockResolvedValue({ ok: true, status: 200 });
+    await cloudSave("tok", "data");
+    const [url] = fetchSpy.mock.calls[0];
+    expect(url).not.toContain("force=true");
   });
 });
 
