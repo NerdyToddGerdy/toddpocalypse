@@ -2853,6 +2853,25 @@ describe("guild hall", () => {
     return gs;
   }
 
+  // ── guildLevel ───────────────────────────────────────────────────
+  it("guildLevel returns 0 for an unowned upgrade", () => {
+    const gs = make();
+    expect(gs.guildLevel("expanded_armory")).toBe(0);
+  });
+
+  it("guildLevel returns the owned stack count after purchases", () => {
+    const gs = withGuildGold();
+    gs.buyGuildUpgrade("expanded_armory");
+    expect(gs.guildLevel("expanded_armory")).toBe(1);
+    gs.buyGuildUpgrade("expanded_armory");
+    expect(gs.guildLevel("expanded_armory")).toBe(2);
+  });
+
+  it("guildLevel returns 0 for an unknown key", () => {
+    const gs = make();
+    expect(gs.guildLevel("no_such_upgrade")).toBe(0);
+  });
+
   // ── buyGuildUpgrade ──────────────────────────────────────────────
   it("buyGuildUpgrade deducts gold", () => {
     const gs = withGuildGold();

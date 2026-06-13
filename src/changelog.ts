@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.61";
+export const VERSION = "v2.32.62";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.62",
+    date: "2026-06-12",
+    changes: [
+      "Add GameState.guildLevel() helper, replacing 20+ scattered `guildUpgrades[key] ?? 0` lookups",
+    ],
+  },
   {
     version: "v2.32.61",
     date: "2026-06-12",

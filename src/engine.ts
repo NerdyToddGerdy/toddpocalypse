@@ -690,7 +690,7 @@ export class GameState {
   partyVersion = 0;
 
   /** Current loot chest capacity, expanding with Expanded Armory guild upgrades. */
-  get lootMax(): number { return 8 + 2 * (this.guildUpgrades["expanded_armory"] ?? 0); }
+  get lootMax(): number { return 8 + 2 * this.guildLevel("expanded_armory"); }
   /** Maximum stash capacity based on the stash prestige upgrade level (0 if not unlocked). */
   get stashMax(): number {
     const level = this.prestigeUpgrades["stash"] ?? 0;
@@ -1384,7 +1384,7 @@ export class GameState {
     }
 
     // Preserve account-wide constellation access across retirement
-    const savedConstellationAccess = this.guildUpgrades["constellation_access"] ?? 0;
+    const savedConstellationAccess = this.guildLevel("constellation_access");
 
     // Hard reset — wipe everything except permanents
     this.kills = 0;
@@ -1454,15 +1454,15 @@ export class GameState {
     if (type === "party_slot_3" && !(this.prestigeUpgrades["party_slot_2"] > 0)) return this.respond();
     if (type === "party_slot_4") {
       if (!(this.prestigeUpgrades["party_slot_3"] > 0)) return this.respond();
-      if (!((this.guildUpgrades["companion_hall"] ?? 0) >= 1)) return this.respond();
+      if (!(this.guildLevel("companion_hall") >= 1)) return this.respond();
     }
     if (type === "party_slot_5") {
       if (!(this.prestigeUpgrades["party_slot_4"] > 0)) return this.respond();
-      if (!((this.guildUpgrades["companion_hall"] ?? 0) >= 2)) return this.respond();
+      if (!(this.guildLevel("companion_hall") >= 2)) return this.respond();
     }
     if (type === "party_slot_6") {
       if (!(this.prestigeUpgrades["party_slot_5"] > 0)) return this.respond();
-      if (!((this.guildUpgrades["companion_hall"] ?? 0) >= 3)) return this.respond();
+      if (!(this.guildLevel("companion_hall") >= 3)) return this.respond();
     }
     const oneTime = ["guild_hall_access", "auto_seller", "auto_equip", "auto_upgrade", "smart_seller", "party_slot_2", "party_slot_3", "party_slot_4", "party_slot_5", "party_slot_6"];
     if (oneTime.includes(type) && (this.prestigeUpgrades[type] ?? 0) >= 1) return this.respond();
@@ -1518,14 +1518,19 @@ export class GameState {
     return this.respond();
   }
 
+  /** Returns the owned stack count of a Guild Hall upgrade (0 if unowned). */
+  guildLevel(type: string): number {
+    return this.guildUpgrades[type] ?? 0;
+  }
+
   /** Purchases the next stack of a Guild Hall upgrade, deducting gold. Returns serialized JSON. */
   buyGuildUpgrade(type: string): string {
     if (!(type in GUILD_HALL_COSTS)) return this.respond();
     if (this.dungeonIndex < (GUILD_HALL_DUNGEON_REQ[type] ?? 0)) return this.respond();
     const prereq = GUILD_HALL_PREREQS[type];
-    if (prereq && !(this.guildUpgrades[prereq] ?? 0)) return this.respond();
+    if (prereq && !this.guildLevel(prereq)) return this.respond();
     const costs = GUILD_HALL_COSTS[type];
-    const owned = this.guildUpgrades[type] ?? 0;
+    const owned = this.guildLevel(type);
     if (owned >= costs.length) return this.respond();
     const cost = costs[owned];
     if (this.gold < cost) {
@@ -1542,14 +1547,14 @@ export class GameState {
   /** Sockets a rune from the inventory into a character's gear slot. Requires Rune Forge ≥ 1.
    *  Tier 1: old rune is destroyed. Tier 2+: old rune is returned to inventory. Returns serialized JSON. */
   brandRune(charIdx: number, slot: Slot, runeId: string): string {
-    if ((this.guildUpgrades["rune_forge"] ?? 0) < 1) return this.respond();
+    if (this.guildLevel("rune_forge") < 1) return this.respond();
     const inventoryIdx = this.runeInventory.findIndex(r => r.id === runeId);
     if (inventoryIdx === -1) return this.respond();
     const char = this.party.team[charIdx];
     if (!char) return this.respond();
     const rune = this.runeInventory.splice(inventoryIdx, 1)[0];
     const old = char.applyRune(slot, rune);
-    if (old && (this.guildUpgrades["rune_forge"] ?? 0) >= 2) {
+    if (old && this.guildLevel("rune_forge") >= 2) {
       this.runeInventory.push(old);
     }
     this.partyVersion++;
@@ -1568,7 +1573,7 @@ export class GameState {
 
   /** Combines two lesser runes of the same type into a greater rune. Requires Rune Forge Tier 3. Returns serialized JSON. */
   combineRunes(runeId1: string, runeId2: string): string {
-    const forge = this.guildUpgrades["rune_forge"] ?? 0;
+    const forge = this.guildLevel("rune_forge");
     if (forge < 2) return this.respond();
     const def1 = RUNE_DEFS[runeId1];
     const def2 = RUNE_DEFS[runeId2];
@@ -1598,7 +1603,7 @@ export class GameState {
    *  Requires prestige upgrade combine_all_runes and rune_forge ≥ 2. */
   combineAllRunes(): string {
     if (!(this.prestigeUpgrades["combine_all_runes"] ?? 0)) return this.respond();
-    const forge = this.guildUpgrades["rune_forge"] ?? 0;
+    const forge = this.guildLevel("rune_forge");
     if (forge < 2) return this.respond();
     const tiersAllowed = ["lesser"];
     if (forge >= 3) tiersAllowed.push("greater");
@@ -1680,7 +1685,7 @@ export class GameState {
 
   /** Activates a purchased combat skill for the lead character if off cooldown. Returns serialized JSON. */
   private doActivateSkill(skillId: string): boolean {
-    if (!((this.guildUpgrades[skillId] ?? 0) > 0)) return false;
+    if (!(this.guildLevel(skillId) > 0)) return false;
     const def = SKILL_DEFS[skillId];
     if (!def) return false;
     const caster = this.party.team.find(c => c.characterClass === def.class);
@@ -1709,7 +1714,7 @@ export class GameState {
     if (this.party.team.length === 0) return null;
     const leadClass = this.party.team[0].characterClass;
     for (const [skillId, def] of Object.entries(SKILL_DEFS)) {
-      if ((this.guildUpgrades[skillId] ?? 0) > 0 && def.class === leadClass) return skillId;
+      if (this.guildLevel(skillId) > 0 && def.class === leadClass) return skillId;
     }
     return null;
   }
@@ -1721,7 +1726,7 @@ export class GameState {
     const result: string[] = [];
     for (const companion of this.party.team.slice(1)) {
       for (const [skillId, def] of Object.entries(SKILL_DEFS)) {
-        if ((this.guildUpgrades[skillId] ?? 0) > 0 && def.class === companion.characterClass && !seen.has(skillId)) {
+        if (this.guildLevel(skillId) > 0 && def.class === companion.characterClass && !seen.has(skillId)) {
           seen.add(skillId);
           result.push(skillId);
         }
@@ -1866,7 +1871,7 @@ export class GameState {
       auto_prestige_enabled: this.autoPrestigeEnabled,
       auto_prestige_threshold: this.autoPrestigeThreshold,
       auto_skill_enabled: this.autoSkillEnabled,
-      all_skills_unlocked: Object.keys(SKILL_DEFS).every(id => (this.guildUpgrades[id] ?? 0) > 0),
+      all_skills_unlocked: Object.keys(SKILL_DEFS).every(id => this.guildLevel(id) > 0),
       boss_enrage_time: this.bossEncounterTime,
       boss_enrage_mult: this.bossEnrageMult,
       retired_heroes: [...this.retiredHeroes],
@@ -2017,7 +2022,7 @@ export class GameState {
       if (this.skillCooldowns[key] <= 0) delete this.skillCooldowns[key];
     }
     if (this.autoSkillEnabled && Object.keys(this.activeEffects).length === 0) {
-      const owned = Object.keys(SKILL_DEFS).filter(id => (this.guildUpgrades[id] ?? 0) > 0);
+      const owned = Object.keys(SKILL_DEFS).filter(id => this.guildLevel(id) > 0);
       const n = owned.length;
       for (let i = 0; i < n; i++) {
         const idx = (this.skillCycleIdx + i) % n;
@@ -2111,7 +2116,7 @@ export class GameState {
         else if (QUAL.indexOf(drop.quality as typeof QUAL[number]) >= QUAL.indexOf("legendary")) this.lifetimeLegendary = 1;
         this.addLog(`Dropped: ${drop.getName()}!`);
       }
-      if ((this.guildUpgrades["rune_forge"] ?? 0) >= 1 && Math.random() < 0.20) {
+      if (this.guildLevel("rune_forge") >= 1 && Math.random() < 0.20) {
         this.dropRandomLesserRune("Boss");
       }
       // Artifact drop: dungeon 3+ (dungeonIndex >= 2), 10% chance
@@ -2153,7 +2158,7 @@ export class GameState {
         else if (QUAL.indexOf(drop.quality as typeof QUAL[number]) >= QUAL.indexOf("legendary")) this.lifetimeLegendary = 1;
         this.addLog(`Dropped: ${drop.getName()}!`);
       }
-      if (this.enemy.isElite && (this.guildUpgrades["rune_forge"] ?? 0) >= 1 && Math.random() < 0.10) {
+      if (this.enemy.isElite && this.guildLevel("rune_forge") >= 1 && Math.random() < 0.10) {
         this.dropRandomLesserRune("Elite");
       }
       if (this.enemy.isElite && Math.random() < 0.15 && this.lootPool.length < this.lootMax) {
@@ -2353,7 +2358,7 @@ export class GameState {
   private nextGuildHallCost(): number {
     let cheapest = Infinity;
     for (const [type, costs] of Object.entries(GUILD_HALL_COSTS)) {
-      const owned = this.guildUpgrades[type] ?? 0;
+      const owned = this.guildLevel(type);
       if (owned < costs.length && this.dungeonIndex >= (GUILD_HALL_DUNGEON_REQ[type] ?? 0)) {
         cheapest = Math.min(cheapest, costs[owned]);
       }
@@ -2743,7 +2748,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     description: "Max every Guild Hall upgrade.",
     category: "guild", hidden: false,
     reward: { type: "title", title: "Guild Master" },
-    getValue: gs => Object.keys(GUILD_HALL_COSTS).every(k => (gs.guildUpgrades[k] ?? 0) >= GUILD_HALL_COSTS[k].length) ? 1 : 0,
+    getValue: gs => Object.keys(GUILD_HALL_COSTS).every(k => gs.guildLevel(k) >= GUILD_HALL_COSTS[k].length) ? 1 : 0,
   },
   {
     id: "guild_upgrades_tiered", name: "Patron",
@@ -2781,7 +2786,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     description: "Unlock all active skills.",
     category: "guild", hidden: false,
     reward: { type: "avatar", cosmetic: "wizard" },
-    getValue: gs => Object.keys(SKILL_DEFS).filter(id => (gs.guildUpgrades[id] ?? 0) > 0).length >= Object.keys(SKILL_DEFS).length ? 1 : 0,
+    getValue: gs => Object.keys(SKILL_DEFS).filter(id => gs.guildLevel(id) > 0).length >= Object.keys(SKILL_DEFS).length ? 1 : 0,
   },
   // ── Runes ─────────────────────────────────────────────────────────────────
   {
