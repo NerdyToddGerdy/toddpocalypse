@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.62";
+export const VERSION = "v2.32.63";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.63",
+    date: "2026-06-12",
+    changes: [
+      "Add Quality union type + isQuality guard in gear.ts; remove `as never` casts in rollStats",
+      "fromDict now falls back to common quality for corrupt saves instead of producing NaN costs",
+    ],
+  },
   {
     version: "v2.32.62",
     date: "2026-06-12",

@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import {
   COST_BY_QUALITY,
+  isQuality,
+  type Quality,
   DAMAGE_BY_QUALITY,
   GearItem,
   QUAL,
@@ -216,16 +218,16 @@ describe("qualityWeights", () => {
 
 describe("GearItem", () => {
   it("damage matches quality table at level 1 (no scaling)", () => {
-    for (const [quality, expected] of Object.entries(DAMAGE_BY_QUALITY)) {
+    for (const quality of QUAL) {
       const item = new GearItem("main_hand", "sword", quality, "valor", 1);
-      expect(item.damage).toBe(expected);
+      expect(item.damage).toBe(DAMAGE_BY_QUALITY[quality]);
     }
   });
 
   it("cost matches quality table at level 1 (no scaling)", () => {
-    for (const [quality, expected] of Object.entries(COST_BY_QUALITY)) {
+    for (const quality of QUAL) {
       const item = new GearItem("main_hand", "sword", quality, "valor", 1);
-      expect(item.cost).toBe(expected);
+      expect(item.cost).toBe(COST_BY_QUALITY[quality]);
     }
   });
 
@@ -440,6 +442,31 @@ describe("backward compatibility — fromDict with legacy damage field", () => {
     expect(restored.stats).toEqual(original.stats);
     expect(restored.slot).toBe(original.slot);
     expect(restored.quality).toBe(original.quality);
+  });
+});
+
+describe("Quality union type", () => {
+  it("isQuality accepts every QUAL tier", () => {
+    for (const q of QUAL) expect(isQuality(q)).toBe(true);
+  });
+
+  it("isQuality rejects unknown strings", () => {
+    expect(isQuality("bogus")).toBe(false);
+    expect(isQuality("")).toBe(false);
+    expect(isQuality("Common")).toBe(false);
+  });
+
+  it("GearItem constructor quality parameter is the Quality union", () => {
+    expectTypeOf<ConstructorParameters<typeof GearItem>[2]>().toEqualTypeOf<Quality>();
+  });
+
+  it("fromDict falls back to common for an unknown quality, keeping cost finite", () => {
+    const dict = new GearItem("main_hand", "sword", "rare", "valor", { dps: 10 }, 1).toDict();
+    const corrupt = { ...dict, quality: "bogus" };
+    const restored = GearItem.fromDict(corrupt);
+    expect(restored.quality).toBe("common");
+    expect(Number.isFinite(restored.cost)).toBe(true);
+    expect(restored.cost).toBeGreaterThan(0);
   });
 });
 

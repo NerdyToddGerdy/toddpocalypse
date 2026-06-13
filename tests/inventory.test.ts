@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { Inventory } from "../src/inventory.js";
-import { GearItem, SLOTS, type Slot } from "../src/gear.js";
+import { GearItem, SLOTS, type Slot, type Quality } from "../src/gear.js";
 
-function makeItem(slot: Slot = "main_hand", quality = "common"): GearItem {
+function makeItem(slot: Slot = "main_hand", quality: Quality = "common"): GearItem {
   return new GearItem(slot, "sword", quality, "valor");
 }
 

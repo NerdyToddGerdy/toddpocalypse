@@ -61,6 +61,14 @@ export const QUAL = [
   "divine",
 ] as const;
 
+/** Union of valid quality tier names. */
+export type Quality = (typeof QUAL)[number];
+
+/** Type guard for quality tier strings (e.g. when reading saves). */
+export function isQuality(s: string): s is Quality {
+  return (QUAL as readonly string[]).includes(s);
+}
+
 /** Adjectives keyed by primary stat — used in "itemType of adjective" naming. */
 export const STAT_ADJECTIVES: Record<keyof GearStats, string[]> = {
   dps:        ["destruction", "fury", "carnage", "ruin", "slaughter"],
@@ -78,7 +86,7 @@ export const STAT_ADJECTIVES: Record<keyof GearStats, string[]> = {
 export const DROP_WEIGHTS = [30, 22, 16, 12, 8, 5, 4, 2, 1, 0.5, 0.3, 0.15, 0.08, 0.04, 0.02];
 
 /** Base damage value for each quality tier before depth scaling (retained for cost reference). */
-export const DAMAGE_BY_QUALITY: Record<string, number> = {
+export const DAMAGE_BY_QUALITY: Record<Quality, number> = {
   broken: 1,
   worn: 2,
   crude: 4,
@@ -97,7 +105,7 @@ export const DAMAGE_BY_QUALITY: Record<string, number> = {
 };
 
 /** Base gold cost for each quality tier before depth scaling. */
-export const COST_BY_QUALITY: Record<string, number> = {
+export const COST_BY_QUALITY: Record<Quality, number> = {
   broken: 3,
   worn: 8,
   crude: 18,
@@ -131,7 +139,7 @@ export function qualityWeights(dungeonLevel: number): number[] {
 }
 
 /** CSS class name for each quality tier, used by the loot renderer. */
-export const QUALITY_CLASSES: Record<string, string> = {
+export const QUALITY_CLASSES: Record<Quality, string> = {
   broken:    "q-broken",
   worn:      "q-worn",
   crude:     "q-crude",
@@ -151,7 +159,7 @@ export const QUALITY_CLASSES: Record<string, string> = {
 
 /** Returns the CSS class for a quality string, defaulting to q-common for unknown values. */
 export function qualityClass(quality: string): string {
-  return QUALITY_CLASSES[quality] ?? "q-common";
+  return isQuality(quality) ? QUALITY_CLASSES[quality] : "q-common";
 }
 
 /** Damage and cost multiplier derived from dungeon depth: +25% per 5 floors. */
@@ -226,12 +234,12 @@ function getRollCount(qualityIdx: number): number {
 
 /** Rolls 1–3 stat bonuses for a gear item based on slot, quality, and dungeon level.
  *  Returns the stats and the primary (first-rolled) stat key. */
-function rollStats(slot: Slot, quality: string, dungeonLevel: number): { stats: GearStats; primaryStat: keyof GearStats } {
-  const qIdx = QUAL.indexOf(quality as typeof QUAL[number]);
+function rollStats(slot: Slot, quality: Quality, dungeonLevel: number): { stats: GearStats; primaryStat: keyof GearStats } {
+  const qIdx = QUAL.indexOf(quality);
   const rollCount = getRollCount(qIdx < 0 ? 4 : qIdx);
   const pool = { ...SLOT_STAT_WEIGHTS[slot] } as Record<keyof GearStats, number>;
   const scale = gearLevelScale(dungeonLevel);
-  const result: GearStats = {};
+  const result: Partial<Record<keyof GearStats, number>> = {};
   let primaryStat: keyof GearStats = "dps";
 
   for (let i = 0; i < rollCount; i++) {
@@ -241,9 +249,7 @@ function rollStats(slot: Slot, quality: string, dungeonLevel: number): { stats: 
     if (i === 0) primaryStat = stat;
     delete pool[stat];
     const base = qIdx >= 0 ? STAT_SCALE[stat][qIdx] : (STAT_SCALE[stat][4]);
-    result[stat] = NUMERIC_STATS.has(stat)
-      ? Math.ceil(base * scale) as never
-      : base as never;
+    result[stat] = NUMERIC_STATS.has(stat) ? Math.ceil(base * scale) : base;
   }
   return { stats: result, primaryStat };
 }
@@ -346,7 +352,7 @@ export class GearItem {
   /** Specific item type name (e.g. "sword", "hood"). */
   readonly itemType: string;
   /** Quality tier name (e.g. "rare"). */
-  readonly quality: string;
+  readonly quality: Quality;
   /** Flavor adjective in the item name. */
   readonly adjective: string;
   /** All stat bonuses this item grants when equipped. */
@@ -368,7 +374,7 @@ export class GearItem {
   constructor(
     slot: Slot,
     itemType: string,
-    quality: string,
+    quality: Quality,
     adjective: string,
     statsOrLevel: GearStats | number = 1,
     dungeonLevel?: number,
@@ -423,7 +429,8 @@ export class GearItem {
   /** Reconstructs a GearItem from its serialized form, migrating old saves that have damage but no stats. */
   static fromDict(d: GearItemDict & { damage?: number; stats?: GearStats }): GearItem {
     const stats: GearStats = d.stats ?? (d.damage !== undefined ? { dps: d.damage } : {});
-    return new GearItem(d.slot, d.item_type, d.quality, d.adjective, stats, d.dungeon_level ?? 1, d.set_name);
+    const quality = isQuality(d.quality) ? d.quality : "common";
+    return new GearItem(d.slot, d.item_type, quality, d.adjective, stats, d.dungeon_level ?? 1, d.set_name);
   }
 }
 

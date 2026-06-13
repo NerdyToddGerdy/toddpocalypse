@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { Character, switchClass, HP_PER_LEVEL, CLASS_ABILITIES } from "../src/character.js";
-import { GearItem, SLOTS } from "../src/gear.js";
+import { GearItem, SLOTS, type Quality } from "../src/gear.js";
 
 function makeChar(cls = "fighter") {
   return new Character("Hero", cls, 1);
 }
 
-function makeItem(slot: any = "main_hand", quality = "common") {
+function makeItem(slot: any = "main_hand", quality: Quality = "common") {
   return new GearItem(slot, "sword", quality, "valor");
 }
 
