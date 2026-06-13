@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.63";
+export const VERSION = "v2.32.64";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.64",
+    date: "2026-06-12",
+    changes: [
+      "Type-safe call() dispatcher: new GameAction type restricts dispatch to JSON-returning GameState methods with checked argument types",
+      "Validate slot and auto-action strings from data-* attributes before dispatching",
+    ],
+  },
   {
     version: "v2.32.63",
     date: "2026-06-12",

@@ -19,6 +19,7 @@ import {
   DEFENSE_UPGRADE_EFFECT,
   DPS_UPGRADE_EFFECT,
   formatNumber,
+  type GameAction,
   GameState,
   type GameStateDict,
   GUILD_HALL_COSTS,
@@ -47,7 +48,9 @@ import {
   QUALITY_CLASSES,
   qualityClass,
   qualityWeights,
-  SET_DEFS
+  SET_DEFS,
+  SLOTS,
+  type Slot
 } from "./gear.js";
 import {CHANGELOG, VERSION} from "./changelog.js";
 import {CLASS_ABILITIES, type Rune} from "./character.js";
@@ -324,19 +327,23 @@ function $(id: string): HTMLElement {
 
 /** Invokes a GameState method, re-renders with the returned JSON, and auto-saves.
  *  Tick calls are throttled to one save per TICK_SAVE_INTERVAL_MS; all other actions save immediately. */
-function call<K extends keyof GameState>(method: K, ...args: any[]): void {
+/** Type guard for equipment slot strings read from data-* attributes. */
+function isSlot(s: string): s is Slot {
+  return (SLOTS as readonly string[]).includes(s);
+}
+
+function call<K extends GameAction>(method: K, ...args: Parameters<GameState[K]>): void {
   if (!game) return;
   try {
-    const fn = game[method] as unknown as (...a: any[]) => string;
-    fn.apply(game, args);
+    (game[method] as (...a: Parameters<GameState[K]>) => string).apply(game, args);
     render(game.getState());
     const now = Date.now();
     if (method !== "tick" || now - lastTickSaveTime >= TICK_SAVE_INTERVAL_MS) {
       lastTickSaveTime = now;
       saveGame().catch(e => console.error("saveGame:", e));
     }
-  } catch (e: any) {
-    appendLog(getSprite("⚠") + " " + (e?.message ?? String(e)));
+  } catch (e: unknown) {
+    appendLog(getSprite("⚠") + " " + (e instanceof Error ? e.message : String(e)));
     console.error(method, e);
   }
 }
@@ -1845,7 +1852,7 @@ const PDOLL_TIER_ORDER = ["lesser", "greater", "flawless", "ancient"];
 
 let lastRuneInv: Rune[] = [];
 let rrCharIdx = -1;
-let rrSlot = "";
+let rrSlot: Slot | "" = "";
 
 function runeStatSummary(c: CharDict): string {
   const totals: Record<string, number> = {};
@@ -1933,7 +1940,7 @@ function renderPartyRunePanel(runeInv: Rune[], party: CharDict[], runeForge: num
   }).join("");
 }
 
-function openRuneReplaceModal(charIdx: number, slot: string): void {
+function openRuneReplaceModal(charIdx: number, slot: Slot): void {
   rrCharIdx = charIdx;
   rrSlot = slot;
   const modal = document.getElementById("rune-replace-modal")!;
@@ -2007,7 +2014,8 @@ function initRuneSlotPanel(): void {
     const slotBtn = target.closest<HTMLElement>(".pdoll-slot");
     if (!slotBtn) return;
     if (slotBtn.classList.contains("empty")) {
-      openRuneReplaceModal(parseInt(slotBtn.dataset.charIdx!, 10), slotBtn.dataset.slot!);
+      const slot = slotBtn.dataset.slot!;
+      if (isSlot(slot)) openRuneReplaceModal(parseInt(slotBtn.dataset.charIdx!, 10), slot);
     } else {
       openRuneSlotDetailModal(slotBtn);
     }
@@ -2023,6 +2031,7 @@ function initRuneSlotPanel(): void {
     const action = actionBtn.dataset.action;
     const charIdx = parseInt(actionBtn.dataset.charIdx!, 10);
     const slot = actionBtn.dataset.slot!;
+    if (!isSlot(slot)) return;
     if (action === "pdoll-remove") {
       call("unbrandRune", charIdx, slot);
       closeRuneSlotDetailModal();
@@ -2042,7 +2051,7 @@ function initRuneSlotPanel(): void {
     const item = (e.target as HTMLElement).closest<HTMLElement>(".rr-rune-item");
     if (!item) return;
     const runeId = item.dataset.runeId!;
-    if (runeId && rrCharIdx >= 0) {
+    if (runeId && rrCharIdx >= 0 && rrSlot) {
       call("brandRune", rrCharIdx, rrSlot, runeId);
       closeRuneReplaceModal();
     }
@@ -4219,7 +4228,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!btn || !game) return;
     const action = btn.dataset.action;
     const idx = btn.dataset.idx ? parseInt(btn.dataset.idx, 10) : -1;
-    if (action === "toggle-auto-action") call("toggleAutoAction", btn.dataset.type!);
+    if (action === "toggle-auto-action") {
+      const autoType = btn.dataset.type!;
+      if (autoType === "auto_equip" || autoType === "auto_sell" || autoType === "auto_upgrade") {
+        call("toggleAutoAction", autoType);
+      }
+    }
     else if (action === "equip") call("equipLoot", idx);
     else if (action === "equip-loot-on-char") {
       const row = btn.closest(".gear-row-equip")!;

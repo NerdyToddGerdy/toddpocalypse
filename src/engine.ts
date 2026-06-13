@@ -2556,6 +2556,12 @@ export class GameState {
   }
 }
 
+/** Names of GameState methods that perform an action and return serialized JSON.
+ *  main.ts's call() dispatcher only accepts these, with argument types checked. */
+export type GameAction = {
+  [K in keyof GameState]: GameState[K] extends (...args: never[]) => string ? K : never
+}[keyof GameState];
+
 // ─── Total max stacks across all guild upgrades (used for Patron gold tier) ───
 const GUILD_MAX_STACKS = Object.values(GUILD_HALL_COSTS).reduce((s, costs) => s + costs.length, 0);
 

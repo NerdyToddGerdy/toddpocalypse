@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 import {
   GameState, KILLS_PER_LEVEL, LOOT_MAX, UPGRADE_BASES, UPGRADE_EFFECTS, HP_UPGRADE_EFFECT, DEFENSE_UPGRADE_EFFECT, DPS_UPGRADE_EFFECT, CLICK_UPGRADE_EFFECT,
   PRESTIGE_UNLOCK_LEVEL, PRESTIGE_SHOP_COSTS, startingGoldForLevel, XP_BONUS_PER_LEVEL, GOLD_BONUS_PER_LEVEL, PARTY_GOLD_BONUS_PER_MEMBER,
@@ -28,6 +28,7 @@ import {
   COMPANION_NAMES,
   BOSS_LIFESTEAL_MULT,
   type RetiredHero,
+  type GameAction,
 } from "../src/engine.js";
 import { Character, CLASS_ABILITIES } from "../src/character.js";
 import { GearItem, getItem, getSetItem, SET_DEFS, type Slot } from "../src/gear.js";
@@ -2852,6 +2853,19 @@ describe("guild hall", () => {
     gs.gold = gold;
     return gs;
   }
+
+  // ── GameAction type (used by main.ts call() dispatcher) ──────────
+  it("GameAction includes JSON-returning action methods and excludes others", () => {
+    expectTypeOf<"tick">().toMatchTypeOf<GameAction>();
+    expectTypeOf<"click">().toMatchTypeOf<GameAction>();
+    expectTypeOf<"buyGuildUpgrade">().toMatchTypeOf<GameAction>();
+    expectTypeOf<"equipLootOnChar">().toMatchTypeOf<GameAction>();
+    // number-returning helpers and getters are not actions
+    expectTypeOf<"guildLevel">().not.toMatchTypeOf<GameAction>();
+    expectTypeOf<"lootMax">().not.toMatchTypeOf<GameAction>();
+    // action parameter types are preserved
+    expectTypeOf<GameState["equipLootOnChar"]>().parameters.toEqualTypeOf<[number, number]>();
+  });
 
   // ── guildLevel ───────────────────────────────────────────────────
   it("guildLevel returns 0 for an unowned upgrade", () => {
