@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.66";
+export const VERSION = "v2.32.67";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.67",
+    date: "2026-06-12",
+    changes: [
+      "Add tick() characterization tests (lifesteal targeting, corruption heal reduction, divine wrath, runesmith bonus, berserker keystone, party-size scaling, mana-surge early return)",
+    ],
+  },
   {
     version: "v2.32.66",
     date: "2026-06-12",

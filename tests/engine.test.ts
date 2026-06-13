@@ -6180,3 +6180,141 @@ describe("all_skills_unlocked in toDict", () => {
     expect(gs.toDict().all_skills_unlocked).toBe(true);
   });
 });
+
+// ─── tick() characterization tests — guard rails for the tick() refactor ───
+describe("tick characterization", () => {
+  /** Party of two with controllable DPS/HP; enemy too tough to die. */
+  function duo(): GameState {
+    const gs = make();
+    const ally = new Character("Ally", "rogue", 1);
+    gs.party.addPlayer(ally);
+    gs.upgrades["Ally"] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
+    gs.enemy.hp = gs.enemy.max_hp = 999_999_999;
+    gs.enemy.attack_dps = 0;
+    return gs;
+  }
+
+  it("lifesteal heals the FIRST injured alive member, skipping uninjured ones ahead", () => {
+    const gs = duo();
+    const [hero, ally] = gs.party.team;
+    hero.equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor", { dps: 100 }, 1));
+    hero.lifesteal = 0.5;
+    // hero at full HP, ally injured
+    ally.health = 1;
+    gs.tick(1.0);
+    expect(hero.health).toBe(hero.maxHealth);
+    expect(ally.health).toBeGreaterThan(1);
+  });
+
+  it("corruption at depth reduces lifesteal healing", () => {
+    const setup = (dungeonIndex: number) => {
+      const gs = duo();
+      const hero = gs.party.team[0];
+      hero.equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor", { dps: 100 }, 1));
+      hero.lifesteal = 0.5;
+      hero.health = 1;
+      hero.maxHealth = 1_000_000; // headroom so the heal isn't clamped
+      gs.dungeonIndex = dungeonIndex;
+      gs.dungeonLevel = CORRUPTION_FLOOR + 5;
+      gs.tick(1.0);
+      return gs.party.team[0].health - 1;
+    };
+    const healedNoCorruption = setup(0);
+    const healedAtDepth = setup(2);
+    // corruption also chips health, so compare net healing: depth must heal strictly less
+    expect(healedAtDepth).toBeLessThan(healedNoCorruption);
+  });
+
+  it("divine wrath multiplies damage by 1.15 only while a party member is dead", () => {
+    const dmg = (allyDead: boolean) => {
+      const gs = duo();
+      const [hero, ally] = gs.party.team;
+      hero.equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor", { dps: 100 }, 1));
+      hero.critChance = 0;
+      hero.abilities.push("divine_wrath");
+      if (allyDead) ally.health = 0;
+      const before = gs.enemy.hp;
+      gs.tick(1.0);
+      return before - gs.enemy.hp;
+    };
+    expect(dmg(true) / dmg(false)).toBeCloseTo(1.15, 5);
+  });
+
+  it("runesmith constellation adds extra DPS from dps-rune values", () => {
+    const dmg = (withNode: boolean) => {
+      const gs = make();
+      const hero = gs.party.team[0];
+      hero.equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor", { dps: 100 }, 1));
+      hero.critChance = 0;
+      hero.runes["main_hand"] = RUNE_DEFS["striking_lesser"]; // statKey dps, value 8
+      if (withNode) gs.constellationNodeLevels.set("runesmith_start", 1); // rune effects +8%
+      gs.enemy.hp = gs.enemy.max_hp = 999_999_999;
+      gs.enemy.attack_dps = 0;
+      const before = gs.enemy.hp;
+      gs.tick(1.0);
+      return before - gs.enemy.hp;
+    };
+    // extra damage = runeDpsValue (8) × (1.08 − 1.0) = 0.64
+    expect(dmg(true) - dmg(false)).toBeCloseTo(8 * 0.08, 3);
+  });
+
+  it("warrior keystone (berserker) grants +30% DPS only when someone is at/below half HP", () => {
+    const dmg = (injured: boolean) => {
+      const gs = make();
+      const hero = gs.party.team[0];
+      hero.equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor", { dps: 100 }, 1));
+      hero.critChance = 0;
+      gs.constellationNodeLevels.set("warrior_keystone", 1);
+      if (injured) hero.health = hero.maxHealth * 0.5;
+      gs.enemy.hp = gs.enemy.max_hp = 999_999_999;
+      gs.enemy.attack_dps = 0;
+      const before = gs.enemy.hp;
+      gs.tick(1.0);
+      return before - gs.enemy.hp;
+    };
+    expect(dmg(true) / dmg(false)).toBeCloseTo(1.30, 5);
+  });
+
+  it("incoming enemy damage scales with sqrt of total party size", () => {
+    const totalDamage = (partySize: number) => {
+      const gs = make();
+      for (let i = 1; i < partySize; i++) {
+        const c = new Character(`M${i}`, "rogue", 1);
+        gs.party.addPlayer(c);
+      }
+      for (const c of gs.party.team) { c.maxHealth = 1_000_000; c.health = 1_000_000; }
+      gs.enemy.hp = gs.enemy.max_hp = 999_999_999;
+      gs.enemy.attack_dps = 100;
+      gs.tick(1.0);
+      return gs.party.team.reduce((s, c) => s + (1_000_000 - c.health), 0);
+    };
+    // sqrt(4)/sqrt(1) = 2 — exactly double the total damage
+    expect(totalDamage(4) / totalDamage(1)).toBeCloseTo(2.0, 5);
+  });
+
+  it("a mana-surge kill ends the tick early: fresh enemy untouched, no enemy attack lands", () => {
+    const gs = make();
+    const hero = gs.party.team[0];
+    hero.equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor", { dps: 100 }, 1));
+    hero.abilities.push("mana_surge");
+    hero.surgeTimer = MANA_SURGE_INTERVAL; // fires immediately this tick
+    gs.enemy.hp = 1; // surge kill guaranteed
+    gs.enemy.attack_dps = 1_000;
+    const healthBefore = hero.health;
+    const killsBefore = gs.kills;
+    gs.tick(1.0);
+    expect(gs.kills).toBe(killsBefore + 1);
+    expect(gs.enemy.hp).toBe(gs.enemy.max_hp); // new enemy took no regular DPS
+    expect(hero.health).toBe(healthBefore);    // enemy never attacked this tick
+  });
+
+  it("enrage time does not accumulate when the enemy dies to regular DPS this tick", () => {
+    const gs = make();
+    const hero = gs.party.team[0];
+    hero.equipItem(new GearItem("main_hand" as Slot, "sword", "legendary", "valor", { dps: 1_000 }, 1));
+    gs.enemy = { ...gs.enemy, isBoss: true, hp: 1, max_hp: 1000 };
+    gs.bossEncounterTime = 0;
+    gs.tick(1.0);
+    expect(gs.bossEncounterTime).toBe(0); // died before the timer line was reached
+  });
+});
