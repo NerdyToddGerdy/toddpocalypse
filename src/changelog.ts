@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.67";
+export const VERSION = "v2.32.68";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.68",
+    date: "2026-06-12",
+    changes: [
+      "Refactor tick() into applyManaSurge/scanParty/computePartyDps/applyLifesteal/applyEnemyDamage/applyCorruption — behavior identical",
+      "Consolidate seven per-tick party scans into one pass; remove intermediate array allocations when counting runes",
+    ],
+  },
   {
     version: "v2.32.67",
     date: "2026-06-12",

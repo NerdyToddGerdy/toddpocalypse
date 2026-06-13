@@ -533,6 +533,17 @@ export interface GameStateDict {
   party_version?: number;
 }
 
+/** Per-tick party flags and totals, gathered once per tick by GameState.scanParty(). */
+interface PartyScan {
+  hasExpose: boolean;
+  hasMark: boolean;
+  divineWrathActive: boolean;
+  hasRegrowth: boolean;
+  partyHaste: number;
+  partyLifesteal: number;
+  partyBelow50: boolean;
+}
+
 /** Central game loop: owns all mutable state and exposes action methods that return serialized JSON. */
 export class GameState {
   /** The active party for the current dungeon. */
@@ -734,7 +745,45 @@ export class GameState {
    */
   tick(dt: number): string {
     if (this.idleGoldRate > 0) this.earnGold(this.idleGoldRate * dt);
-    // Mana Surge — fires before regular DPS so we can early-return if enemy dies
+    // Mana Surge fires before regular DPS so we can early-return if the enemy dies
+    if (this.applyManaSurge(dt)) return this.respond();
+
+    const scan = this.scanParty();
+    const damageDealt = this.computePartyDps(scan, dt);
+    this.enemy.hp -= damageDealt;
+    if (this.enemy.hp <= 0) {
+      this.onEnemyDeath();
+      return this.respond();
+    }
+
+    // Boss enrage timer: accumulate time on boss/elite encounters
+    if (this.enemy.isBoss || this.enemy.isElite) {
+      this.bossEncounterTime += dt;
+    }
+
+    // Corruption: scales with floor depth × dungeon number (dungeon 2+ only)
+    const corruptionDepth = this.dungeonIndex >= 1 ? Math.max(0, this.dungeonLevel - CORRUPTION_FLOOR) : 0;
+    const corruptionMult = Math.min(20, corruptionDepth * this.dungeonIndex);
+    const healReduction = Math.min(0.90, corruptionMult * CORRUPTION_HEAL_REDUCTION_PER_FLOOR);
+
+    this.applyLifesteal(damageDealt, scan, healReduction);
+    this.applyEnemyDamage(dt);
+    this.applyCorruption(corruptionMult, dt);
+
+    this.applyLastStandIfActive();
+    if (this.party.team.every(c => !c.isAlive())) {
+      this.onPlayerDeath();
+    }
+    // Auto-prestige: fire when enabled and preview meets threshold
+    if (this.autoPrestigeEnabled && this.highestLevel >= PRESTIGE_UNLOCK_LEVEL &&
+        this.prestigePointsPreview() >= this.autoPrestigeThreshold) {
+      return this.prestige();
+    }
+    return this.respond();
+  }
+
+  /** Advances Mana Surge timers and applies surge damage. Returns true if the enemy died. */
+  private applyManaSurge(dt: number): boolean {
     for (const c of this.party.team) {
       if (!c.isAlive()) continue;
       if (c.abilities.includes("mana_surge") && c.inventory.equippedItems().length > 0) {
@@ -744,15 +793,36 @@ export class GameState {
           const surgeDmg = this.effectiveDps(c) * MANA_SURGE_MULTIPLIER;
           this.enemy.hp -= surgeDmg;
           this.addLog(`${c.name} Mana Surge! (${surgeDmg.toFixed(1)} dmg)`);
-          if (this.enemy.hp <= 0) { this.onEnemyDeath(); return this.respond(); }
+          if (this.enemy.hp <= 0) { this.onEnemyDeath(); return true; }
         }
       }
     }
+    return false;
+  }
 
-    const hasExpose = this.party.team.some(c => c.isAlive() && c.abilities.includes("expose_weakness"));
-    const hasMark = this.party.team.some(c => c.isAlive() && c.abilities.includes("hunters_mark"));
-    const hasDead = this.party.team.some(c => !c.isAlive());
-    const divineWrathActive = hasDead && this.party.team.some(c => c.isAlive() && c.abilities.includes("divine_wrath"));
+  /** Collects per-tick party flags and totals in a single pass over the team.
+   *  Safe to compute up-front: nothing between here and lifesteal changes party health or alive status. */
+  private scanParty(): PartyScan {
+    let hasExpose = false, hasMark = false, hasDead = false, hasDivineWrath = false, hasRegrowth = false;
+    let partyHaste = 0, partyLifesteal = 0, partyBelow50 = false;
+    for (const c of this.party.team) {
+      if (!c.isAlive()) { hasDead = true; continue; }
+      if (c.abilities.includes("expose_weakness")) hasExpose = true;
+      if (c.abilities.includes("hunters_mark")) hasMark = true;
+      if (c.abilities.includes("divine_wrath")) hasDivineWrath = true;
+      if (c.abilities.includes("regrowth")) hasRegrowth = true;
+      partyHaste += c.haste;
+      partyLifesteal += c.lifesteal;
+      if (c.health <= c.maxHealth * 0.5) partyBelow50 = true;
+    }
+    return {
+      hasExpose, hasMark, hasRegrowth, partyHaste, partyLifesteal, partyBelow50,
+      divineWrathActive: hasDead && hasDivineWrath,
+    };
+  }
+
+  /** Computes the party's total damage output for this tick (DPS × multipliers × dt). */
+  private computePartyDps(scan: PartyScan, dt: number): number {
     const shadowStrikeTick = (this.activeEffects["skill_shadow_strike"] ?? 0) > 0 ? SHADOW_STRIKE_MULT : 1.0;
     const battleCryMult = (this.activeEffects["skill_battle_cry"] ?? 0) > 0 ? BATTLE_CRY_MULT : 1.0;
     const arcaneSurgeMult = (this.activeEffects["skill_arcane_surge"] ?? 0) > 0 ? ARCANE_SURGE_MULT : 1.0;
@@ -760,7 +830,6 @@ export class GameState {
 
     const cb = this.constellationBonuses;
     let baseDps = 0;
-    const partyHaste = this.party.team.reduce((s, c) => c.isAlive() ? s + c.haste : s, 0);
     for (const c of this.party.team) {
       if (!c.isAlive()) continue;
       if (c.inventory.equippedItems().length === 0) continue;
@@ -781,47 +850,36 @@ export class GameState {
       const soulSlot = c.artifactSlots.find(s => s?.id === "soulbrand");
       let totalCrit = c.critChance + cb.critChanceBonus;
       if (soulSlot) {
-        totalCrit += ARTIFACT_DEFS[soulSlot.id].effectValue * (soulSlot.level + 1) * Object.values(c.runes).filter(Boolean).length;
+        let runeCount = 0;
+        for (const r of Object.values(c.runes)) if (r) runeCount++;
+        totalCrit += ARTIFACT_DEFS[soulSlot.id].effectValue * (soulSlot.level + 1) * runeCount;
       }
       const critMult = cb.perfectKillActive ? 3 : 2;
       if (totalCrit > 0 && Math.random() < totalCrit) dps *= critMult;
       baseDps += dps;
     }
-    // Runesmith: add extra DPS from rune bonuses above baseline
+    // Runesmith: add extra DPS from rune bonuses above baseline.
+    // Kept as a separate pass so the floating-point addition order (and thus exact totals) is unchanged.
     if (cb.runeBonusMultiplier > 1.0) {
       for (const c of this.party.team) {
         if (!c.isAlive()) continue;
-        const runeBaseDps = Object.values(c.runes ?? {})
-          .filter(Boolean)
-          .reduce((s, r) => (r as Rune).statKey === "dps" ? s + (r as Rune).value : s, 0);
+        let runeBaseDps = 0;
+        for (const r of Object.values(c.runes ?? {})) {
+          if (r && r.statKey === "dps") runeBaseDps += r.value;
+        }
         baseDps += runeBaseDps * (cb.runeBonusMultiplier - 1.0);
       }
     }
     const dpsPrestigeMult = 1 + DPS_BONUS_PER_LEVEL * (this.prestigeUpgrades["dps_bonus"] ?? 0);
-    const partyBelow50 = this.party.team.some(c => c.isAlive() && c.health <= c.maxHealth * 0.5);
-    const berserkerBonus = (cb.berserkerActive && partyBelow50) ? 1.30 : 1.0;
-    const totalDps = baseDps * (1 + partyHaste * cb.hasteMultiplier) * dpsPrestigeMult * cb.dpsMultiplier * berserkerBonus;
-    const dmgMult = (hasExpose ? EXPOSE_WEAKNESS_MULT : 1.0) * (hasMark ? 1.20 : 1.0) * battleCryMult * shadowStrikeTick * arcaneSurgeMult * volleyMult * (divineWrathActive ? 1.15 : 1.0);
-    const damageDealt = totalDps * dmgMult * dt;
-    this.enemy.hp -= damageDealt;
-    if (this.enemy.hp <= 0) {
-      this.onEnemyDeath();
-      return this.respond();
-    }
+    const berserkerBonus = (cb.berserkerActive && scan.partyBelow50) ? 1.30 : 1.0;
+    const totalDps = baseDps * (1 + scan.partyHaste * cb.hasteMultiplier) * dpsPrestigeMult * cb.dpsMultiplier * berserkerBonus;
+    const dmgMult = (scan.hasExpose ? EXPOSE_WEAKNESS_MULT : 1.0) * (scan.hasMark ? 1.20 : 1.0) * battleCryMult * shadowStrikeTick * arcaneSurgeMult * volleyMult * (scan.divineWrathActive ? 1.15 : 1.0);
+    return totalDps * dmgMult * dt;
+  }
 
-    // Boss enrage timer: accumulate time on boss/elite encounters
-    if (this.enemy.isBoss || this.enemy.isElite) {
-      this.bossEncounterTime += dt;
-    }
-
-    // Corruption: scales with floor depth × dungeon number (dungeon 2+ only)
-    const corruptionDepth = this.dungeonIndex >= 1 ? Math.max(0, this.dungeonLevel - CORRUPTION_FLOOR) : 0;
-    const corruptionMult = Math.min(20, corruptionDepth * this.dungeonIndex);
-    const healReduction = Math.min(0.90, corruptionMult * CORRUPTION_HEAL_REDUCTION_PER_FLOOR);
-
-    // Lifesteal: heal the first injured alive character — reduced by corruption at depth
-    const regrowthBonus = this.party.team.some(c => c.isAlive() && c.abilities.includes("regrowth")) ? 0.05 : 0;
-    const partyLifesteal = this.party.team.reduce((s, c) => c.isAlive() ? s + c.lifesteal : s, 0) + regrowthBonus;
+  /** Heals the first injured alive character from lifesteal — reduced by corruption at depth. */
+  private applyLifesteal(damageDealt: number, scan: PartyScan, healReduction: number): void {
+    const partyLifesteal = scan.partyLifesteal + (scan.hasRegrowth ? 0.05 : 0);
     if (damageDealt > 0 && partyLifesteal > 0) {
       const bossReduction = (this.enemy.isBoss || this.enemy.isElite) ? BOSS_LIFESTEAL_MULT : 1.0;
       const effectiveLifesteal = partyLifesteal * (1 - healReduction) * bossReduction;
@@ -830,7 +888,11 @@ export class GameState {
         healTarget.health = Math.min(healTarget.maxHealth, healTarget.health + damageDealt * effectiveLifesteal);
       }
     }
+  }
 
+  /** Applies the enemy's attack to one random living party member, scaled by party size. */
+  private applyEnemyDamage(dt: number): void {
+    const cb = this.constellationBonuses;
     const living = this.party.team.filter(c => c.isAlive());
     if (living.length > 0) {
       const target = living[Math.floor(Math.random() * living.length)];
@@ -845,25 +907,16 @@ export class GameState {
       target.health -= this.enemy.attack_dps * entangleMult * this.bossEnrageMult * partySizeMult * dt * (1 - totalDmgReduction) * phaseReduction;
       target.health = Math.max(0, target.health);
     }
+  }
 
-    // Dungeon corruption: all living members lose % of maxHealth per second, scaling with floor depth × dungeon
+  /** Dungeon corruption: all living members lose % of maxHealth per second, scaling with floor depth × dungeon. */
+  private applyCorruption(corruptionMult: number, dt: number): void {
     if (corruptionMult > 0) {
       for (const c of this.party.team) {
         if (!c.isAlive()) continue;
         c.health = Math.max(0, c.health - c.maxHealth * corruptionMult * CORRUPTION_RATE_PER_FLOOR * dt);
       }
     }
-
-    this.applyLastStandIfActive();
-    if (this.party.team.every(c => !c.isAlive())) {
-      this.onPlayerDeath();
-    }
-    // Auto-prestige: fire when enabled and preview meets threshold
-    if (this.autoPrestigeEnabled && this.highestLevel >= PRESTIGE_UNLOCK_LEVEL &&
-        this.prestigePointsPreview() >= this.autoPrestigeThreshold) {
-      return this.prestige();
-    }
-    return this.respond();
   }
 
   /** Deals a burst of click damage. Pass `manual=true` when triggered by the attack button to count toward the clicking feat. */
