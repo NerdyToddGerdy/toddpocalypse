@@ -1,3 +1,5 @@
+import { pick, randInt } from "./utils.js";
+
 /** Noun suffixes for boss names — equal counts of male and female titles. */
 export const BOSS_NOUNS = [
   "Lord",    "Lady",
@@ -111,16 +113,6 @@ export interface EnemyDict {
   attack_dps: number;
   is_boss: boolean;
   is_elite?: boolean;
-}
-
-/** Returns a uniformly random element from an array. */
-function pick<T>(arr: readonly T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-/** Returns a random integer in [min, max] inclusive. */
-function randInt(min: number, max: number): number {
-  return min + Math.floor(Math.random() * (max - min + 1));
 }
 
 /** Generates a scaled regular enemy for the given dungeon floor and dungeon index.
