@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.65";
+export const VERSION = "v2.32.66";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.32.66",
+    date: "2026-06-12",
+    changes: [
+      "cloudLoad now distinguishes missing saves from server and network failures (CloudLoadResult)",
+      "Pull Save shows accurate errors: 'No cloud save found' vs 'Could not reach the server' vs 'Server error (code)'",
+    ],
+  },
   {
     version: "v2.32.65",
     date: "2026-06-12",

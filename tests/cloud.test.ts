@@ -163,9 +163,9 @@ describe("cloudLoad", () => {
     vi.stubGlobal("crypto", { randomUUID: () => "new-uuid-1234" });
   });
 
-  it("returns the save payload on success", async () => {
+  it("returns ok with the save payload on success", async () => {
     fetchSpy.mockResolvedValue({ ok: true, text: async () => '{"gold":5}' });
-    expect(await cloudLoad("tok")).toBe('{"gold":5}');
+    expect(await cloudLoad("tok")).toEqual({ status: "ok", data: '{"gold":5}' });
   });
 
   it("sends the bearer token", async () => {
@@ -175,19 +175,19 @@ describe("cloudLoad", () => {
     expect((init as RequestInit & { headers: Record<string, string> }).headers.Authorization).toBe("Bearer tok");
   });
 
-  it("returns null for an empty body", async () => {
+  it("returns empty for an empty body", async () => {
     fetchSpy.mockResolvedValue({ ok: true, text: async () => "" });
-    expect(await cloudLoad("tok")).toBeNull();
+    expect(await cloudLoad("tok")).toEqual({ status: "empty" });
   });
 
-  it("returns null on HTTP failure", async () => {
+  it("returns http with the status code on HTTP failure", async () => {
     fetchSpy.mockResolvedValue({ ok: false, status: 500 });
-    expect(await cloudLoad("tok")).toBeNull();
+    expect(await cloudLoad("tok")).toEqual({ status: "http", code: 500 });
   });
 
-  it("returns null on network failure", async () => {
+  it("returns network on fetch rejection", async () => {
     fetchSpy.mockRejectedValue(new Error("network"));
-    expect(await cloudLoad("tok")).toBeNull();
+    expect(await cloudLoad("tok")).toEqual({ status: "network" });
   });
 });
 

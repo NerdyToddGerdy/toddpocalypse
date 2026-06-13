@@ -3710,12 +3710,20 @@ async function pullCloudSave(): Promise<void> {
   const btn = document.getElementById("pull-save-btn") as HTMLButtonElement | null;
   if (btn) btn.disabled = true;
   try {
-    const cloudData = await cloudLoad(token);
-    if (!cloudData) {
+    const result = await cloudLoad(token);
+    if (result.status === "network") {
+      showCloudStatus("✗ Could not reach the server — check your connection.", true);
+      return;
+    }
+    if (result.status === "http") {
+      showCloudStatus(`✗ Server error (${result.code}) — try again later.`, true);
+      return;
+    }
+    if (result.status === "empty") {
       showCloudStatus("✗ No cloud save found.", true);
       return;
     }
-    localStorage.setItem(SAVE_KEY, cloudData);
+    localStorage.setItem(SAVE_KEY, result.data);
     showCloudStatus("✓ Cloud save loaded — reloading…");
     setTimeout(() => window.location.reload(), 1200);
   } finally {
@@ -3789,8 +3797,9 @@ async function initAuth(): Promise<GameStateDict | null> {
   updateAuthUI();
   if (!token) return null;
 
-  const cloudRaw = await cloudLoad(token);
-  if (!cloudRaw) return null;
+  const cloudResult = await cloudLoad(token);
+  if (cloudResult.status !== "ok") return null; // no cloud save or unreachable — fall back to local
+  const cloudRaw = cloudResult.data;
 
   try {
     const cloudDict = JSON.parse(cloudRaw) as GameStateDict;

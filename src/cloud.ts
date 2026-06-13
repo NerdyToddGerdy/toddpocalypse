@@ -120,17 +120,24 @@ export function getLoginUrl(): string {
     return `${COGNITO_DOMAIN}/login?client_id=${COGNITO_CLIENT_ID}&response_type=token&scope=email+openid+profile&redirect_uri=${redirectUri}`;
 }
 
-/** Fetches the player's save data from DynamoDB; returns null on any error or empty save. */
-export async function cloudLoad(token: string): Promise<string | null> {
+/** Outcome of a cloudLoad call, distinguishing a missing save from server/network failures. */
+export type CloudLoadResult =
+    | { status: "ok"; data: string }
+    | { status: "empty" }
+    | { status: "http"; code: number }
+    | { status: "network" };
+
+/** Fetches the player's save data from DynamoDB. */
+export async function cloudLoad(token: string): Promise<CloudLoadResult> {
     try {
         const res = await fetch(`${API_URL}/save`, {
             headers: { Authorization: `Bearer ${token}` },
         });
-        if (!res.ok) return null;
+        if (!res.ok) return { status: "http", code: res.status };
         const text = await res.text();
-        return text || null;
+        return text ? { status: "ok", data: text } : { status: "empty" };
     } catch {
-        return null;
+        return { status: "network" };
     }
 }
 
