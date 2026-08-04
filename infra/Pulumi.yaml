@@ -1,5 +1,5 @@
 name: toddpocalypse-infra
-description: Toddpocalypse cloud save infrastructure
+description: "GerdQuest: Idle Depths cloud save infrastructure"
 runtime:
   name: nodejs
   options:

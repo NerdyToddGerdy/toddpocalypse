@@ -1,4 +1,4 @@
-# Toddpocalypse
+# GerdQuest: Idle Depths
 
 A browser-based idle clicker RPG — descend into the dungeon, collect loot, build your party, and eventually venture into deeper, unknown dungeons.
 
@@ -8,7 +8,7 @@ A browser-based idle clicker RPG — descend into the dungeon, collect loot, bui
 
 ## About
 
-Toddpocalypse is a spiritual successor to [Clickpocalypse](https://github.com/NerdyToddGerdy/toddpocalypse/tree/main/OLD_CODE) — the original browser clicker RPG this project grew out of. The core loop is the same: click to fight, idle to grind, keep going deeper. The codebase is a full rewrite in TypeScript with a proper build pipeline, persistent save state, and a richer progression system.
+GerdQuest: Idle Depths is a spiritual successor to [Clickpocalypse](https://github.com/NerdyToddGerdy/toddpocalypse/tree/main/OLD_CODE) — the original browser clicker RPG this project grew out of. The core loop is the same: click to fight, idle to grind, keep going deeper. The codebase is a full rewrite in TypeScript with a proper build pipeline, persistent save state, and a richer progression system.
 
 ---
 

@@ -1,5 +1,5 @@
 {
-  "name": "toddpocalypse",
+  "name": "gerdquest-idle-depths",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,9 +8,11 @@
     "watch": "node scripts/build.mjs --watch",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^2.1.9",
     "esbuild": "^0.24.0",
     "typescript": "^5.6.3",
     "vitest": "^2.1.4"

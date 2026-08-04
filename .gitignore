@@ -1,5 +1,6 @@
 node_modules/
 dist/
+coverage/
 
 # Python (legacy, removed in TS port)
 __pycache__/
@@ -10,5 +11,6 @@ __pycache__/
 *.egg-info/
 
 .idea/
+.vscode/
 .claude/
 .DS_Store

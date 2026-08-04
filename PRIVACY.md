@@ -1,12 +1,12 @@
 # Privacy Policy
 
-**Toddpocalypse** · Last updated: 2026-05-25
+**GerdQuest: Idle Depths** · Last updated: 2026-05-25
 
 ---
 
 ## Who we are
 
-Toddpocalypse is a free browser-based idle RPG made and operated by Todd Gerdy. You can reach me at **toadimous@gmail.com** with any privacy-related questions.
+GerdQuest: Idle Depths is a free browser-based idle RPG made and operated by Todd Gerdy. You can reach me at **toadimous@gmail.com** with any privacy-related questions.
 
 ---
 

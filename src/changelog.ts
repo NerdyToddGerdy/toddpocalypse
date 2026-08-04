@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.32.68";
+export const VERSION = "v2.33.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.33.0",
+    date: "2026-08-04",
+    changes: [
+      "The game is now called GerdQuest: Idle Depths — new title in the header, browser tab, and character creation screen",
+      "Exported save files are now named gerdquest-save-<date>.json",
+      "Internal: HTML rendering helpers extracted from main.ts into src/ui/html.ts, with test coverage tooling",
+    ],
+  },
   {
     version: "v2.32.68",
     date: "2026-06-12",

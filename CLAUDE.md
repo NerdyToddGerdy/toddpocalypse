@@ -17,7 +17,7 @@ To play locally after `npm run build`, serve `dist/` with any static file server
 
 ## Architecture
 
-**toddpocalypse** is a browser-based idle-clicker RPG written in TypeScript and deployed to GitHub Pages via GitHub Actions.
+**GerdQuest: Idle Depths** is a browser-based idle-clicker RPG written in TypeScript and deployed to GitHub Pages via GitHub Actions.
 
 ### Module layout (`src/`)
 
