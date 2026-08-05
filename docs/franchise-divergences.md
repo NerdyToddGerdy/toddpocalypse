@@ -43,7 +43,7 @@ The bible does not say where per-title divergences get recorded. This is that pl
 | §6 | Accounts + email, not anonymous UUID | ⚪ Open | #64 |
 | §6 | Storage keys keep the `toddpocalypse-` prefix | 🔵 **Conformant** | — |
 | §6 | No `src/data/` | 🟡 Owed | #61 |
-| §6 | No git tags; changelog is `.ts`, not `.md` | 🟡 Owed | #62 |
+| §6 | Changelog is generated `.md` from a typed `.ts` source | 🔵 Conformant | #62 |
 | §6 | No Playwright; failing-test-first rule unadopted | 🟡 Owed | #63 |
 
 ---
@@ -103,6 +103,30 @@ Cognito + Lambda + DynamoDB. §6's Backends section explicitly permits this: "st
 The rule that *does* apply — "the game must remain fully playable with the network down, or the
 backend gone entirely" — appears satisfied: `localStorage` is authoritative and `cloudLoad` returns a
 typed result rather than throwing. **Not yet actually tested**, which is #64.
+
+### §6 — versioning: tags backfilled, `CHANGELOG.md` generated not hand-written
+
+§6 asks for "a version bump, a dated `CHANGELOG.md` section, and a matching `vX.Y.Z` tag" per push.
+Settled 2026-08-05 (#62):
+
+**Tags — the gap is closed.** The repo had **zero** tags against 380+ released versions. All 361
+release commits are now tagged retroactively, annotated, with the tagger date set to each commit's
+own date so they don't all claim to have been cut today. Release subjects follow `vX.Y.Z: subject`;
+four early ones used an em dash instead of a colon and were caught separately. Where one version
+appears on several commits, the most recent carries the tag.
+
+**Tagging is now automated.** A `tag` job in `deploy.yml` reads `VERSION` out of `src/changelog.ts`
+after the build passes and pushes the matching tag. It is a no-op when the tag already exists, so
+re-runs and `workflow_dispatch` are safe. This is what stops the gap reopening.
+
+**`src/changelog.ts` stays the source of truth; `CHANGELOG.md` is generated from it.** The typed
+form is genuinely better — it is type-checked, unit-tested and rendered in-game, none of which a
+Markdown file can do. Rather than maintain two lists, `npm run changelog` renders one into the
+other, and `tests/changelog-md.test.ts` fails if they drift. **Do not hand-edit `CHANGELOG.md`.**
+
+**Known and accepted:** 25 of the 383 changelog entries have no tag, because no commit subject
+identifies them — historically several versions were folded into one commit. They are unrecoverable
+from git and are left untagged rather than guessed at.
 
 ### §1.5 — IP standing
 
@@ -193,9 +217,6 @@ Each is tracked; this section is a pointer, not a duplicate of the issue.
   now injectable and reproducible (#60, v2.35.0); surfacing them is the remaining work, and it is a
   combat-model rewrite, not a UI change.
 - **§6 `src/data/`** (#61) — tables live inside the modules that consume them.
-- **§6 versioning** (#62) — **zero git tags** despite 200+ released versions, and the changelog is
-  `src/changelog.ts` rather than `CHANGELOG.md`. The `.ts` form is arguably better (typed, tested,
-  rendered in-game); the missing tags are a straight gap.
 - **§6 testing** (#63) — Vitest is in place (1349 tests). No Playwright, and the "a regression test
   must be shown to fail against the unfixed code before it is kept" rule isn't formally adopted.
 
@@ -223,8 +244,9 @@ Each is tracked; this section is a pointer, not a duplicate of the issue.
 Facts rot. To re-check the mechanical rows:
 
 ```bash
-git tag | wc -l                                  # §6 versioning — expect 0 until #62
-test -f CHANGELOG.md && echo present             # §6 versioning
+git tag | wc -l                                  # §6 versioning — expect 361+, one per release
+test -f CHANGELOG.md && echo present             # §6 versioning — generated, never hand-edited
+npm run changelog && git diff --exit-code CHANGELOG.md  # §6 — expect no drift
 test -d src/data && echo present                 # §6 data-driven — #61
 test -f src/ui/theme/tokens.css && echo present  # §3 palette — #52
 grep -rc "Math.random" src/*.ts                  # §6 RNG — #60 done, expect rng.ts only

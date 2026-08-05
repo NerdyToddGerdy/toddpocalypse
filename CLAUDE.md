@@ -40,6 +40,7 @@ Conformance work is tracked in #49–#64.
 npm install         # one-time setup
 npm run build       # bundle src/main.ts → dist/game.js + copy public/*
 npm run watch       # esbuild watch mode for local dev
+npm run changelog   # regenerate CHANGELOG.md from src/changelog.ts — run after every version bump
 npm test            # run vitest once
 npm run test:watch  # vitest watch
 npm run typecheck   # tsc --noEmit

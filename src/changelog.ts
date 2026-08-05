@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.35.2";
+export const VERSION = "v2.36.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.36.0",
+    date: "2026-08-05",
+    changes: [
+      "Every release in the game's history now has a matching git tag — 361 of them",
+      "Internal: CHANGELOG.md is generated from the in-game changelog, so the two can't disagree",
+      "Internal: CI now tags each release automatically and runs on current Node",
+    ],
+  },
   {
     version: "v2.35.2",
     date: "2026-08-05",
