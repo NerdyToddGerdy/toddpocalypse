@@ -87,9 +87,6 @@ src/
 public/
   index.html     Page structure and modals
   style.css      All styling
-
-OLD_CODE/
-  basic.js       Scratch JS from an earlier browser experiment (reference only)
 ```
 
 ---

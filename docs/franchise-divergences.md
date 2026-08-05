@@ -144,6 +144,35 @@ codebase and the notes preserved in #49, not from a line-by-line diff — the re
 deliberately gone and **must not be re-vendored to close that gap**. The exposure is low and it is
 recorded here rather than left implicit.
 
+#### `OLD_CODE/` — deleted 2026-08-05, directory `.gitignore`d
+
+The second half of #49 asked whether `OLD_CODE/` stays. It does not. Both files are gone and the
+whole path is ignored.
+
+`clickpocalypse.js` went on 2026-08-04, purged from history. `basic.js` stayed, on the reasoning
+that it "shares zero identifiers with the Clickpocalypse source (0 hits for Dungeon/Character/
+Monster/Party vs. 4–40)". **That test could not have returned anything else** — it compared readable
+names against a *minified* file, where every identifier was already mangled. The conclusion was
+right; the reasoning did not establish it.
+
+Re-examined 2026-08-05. `basic.js` was indeed unrelated to Clickpocalypse — a building/prestige
+incremental (`Settings.building`, `BuildingGenerator`, `numBuildingRows: 11`), with zero hits for
+any RPG-domain term or rarity tier. Different genre, not a party dungeon crawler. **§1.5 was never
+at risk from it.**
+
+But it was not scratch either: 2483 lines with **zero comment lines**, no author, licence or URL,
+tuned magic constants (`ratePower: 4.3`, `basePower: 2.48`, `incModifier: 1.0012`), `Cast.toInt`
+using `value | 0`, and a closing `window["Game"] = Game;` — the Closure Compiler export idiom. That
+is compiled-and-beautified output. Provenance was unknown and the author could not confirm writing
+it, so it was deleted on the same principle as the first file: **this repo does not redistribute
+game source whose origin it cannot vouch for.**
+
+**Residual risk, accepted:** `basic.js` was removed from `HEAD` only — it remains in git history and
+is fetchable by SHA. Unlike `clickpocalypse.js` it was not purged with `filter-repo`, because that
+rewrites every commit SHA and the exposure here is lower: the file is not the work this game claims
+inspiration from, and no §1.5 claim depends on its absence. Revisit if provenance turns out to
+matter.
+
 ---
 
 ## 🟡 Owed — we intend to conform
@@ -200,6 +229,7 @@ test -d src/data && echo present                 # §6 data-driven — #61
 test -f src/ui/theme/tokens.css && echo present  # §3 palette — #52
 grep -rc "Math.random" src/*.ts                  # §6 RNG — #60 done, expect rng.ts only
 grep -n '"eternal"\|"celestial"' src/gear.ts     # §1.5 audit — celestial only, no eternal tier
+test -d OLD_CODE && echo present                 # §1.5 — expect absent, and ignored if recreated
 grep -c "fonts.googleapis" public/index.html     # §3 typography — #54, expect 2
 grep -rn "toddpocalypse-" src/*.ts               # §6 storage keys — expect 5, leave them
 grep -rin "notequest" --exclude-dir=node_modules . # §1 rule 3 — only bible URLs should match

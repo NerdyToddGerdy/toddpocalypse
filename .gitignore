@@ -2,9 +2,11 @@ node_modules/
 dist/
 coverage/
 
-# Third-party game source — must never be committed. Removed from history 2026-08-04;
-# see #49. This repo does not redistribute Clickpocalypse.
-OLD_CODE/clickpocalypse.js
+# Third-party game source — must never be committed. See #49.
+# clickpocalypse.js was removed from history 2026-08-04; basic.js was deleted 2026-08-05
+# after it turned out to be compiled-and-beautified source of unknown provenance, not
+# hand-written scratch. The whole directory is ignored so neither can return.
+OLD_CODE/
 
 # Python (legacy, removed in TS port)
 __pycache__/

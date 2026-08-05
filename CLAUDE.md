@@ -86,12 +86,21 @@ Vitest (`*.test.ts`). Each module has a paired test file. Run with `npm test`.
 - `click()` — burst damage = totalDPS × multiplier × dt + click bonus.
 - `equipLoot/sellLoot/equipAll/buyUpgrade` — sidebar actions; each returns the JSON-serialized state which `main.ts` re-renders.
 
-### OLD_CODE/
+### OLD_CODE/ — gone, and `.gitignore`d
 
-Scratch JavaScript from an earlier browser experiment. Reference only — not part of the build.
+This directory no longer exists. **Do not recreate it, and do not vendor game source into this
+repo.** The whole path is ignored so it cannot return.
 
-**Do not add third-party game source here.** A minified copy of Clickpocalypse used to live in this
-directory; it was purged from the repo and from git history on 2026-08-04 (#49) and is `.gitignore`d
-so it cannot return. *Idle Depths* is original work *inspired by* Clickpocalypse II — a genre, not an
-adaptation — and vendoring someone else's source undercuts that standing. See §1.5 of the franchise
-bible.
+Two files lived here, both removed under #49:
+
+- `clickpocalypse.js` — a minified copy of Clickpocalypse II. Purged from the repo *and from git
+  history* on 2026-08-04.
+- `basic.js` — long described as "scratch JS from an earlier browser experiment". Deleted
+  2026-08-05 once that description stopped holding up: 2483 lines with zero comments, no author or
+  licence, tuned magic constants, and a closing `window["Game"] = Game;` — compiled-and-beautified
+  output, not hand-written, and of unknown provenance. It was a building/prestige incremental,
+  unrelated to Clickpocalypse and to this game.
+
+*Idle Depths* is original work *inspired by* Clickpocalypse II — a genre, not an adaptation — and
+redistributing someone else's source undercuts that standing. See §1.5 of the franchise bible and
+the `OLD_CODE/` row in [`docs/franchise-divergences.md`](docs/franchise-divergences.md).
