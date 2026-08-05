@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.33.1";
+export const VERSION = "v2.33.2";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.33.2",
+    date: "2026-08-04",
+    changes: [
+      "About: reworded the Clickpocalypse credit to thank minmaxia for the genre rather than claim descent",
+    ],
+  },
   {
     version: "v2.33.1",
     date: "2026-08-04",
