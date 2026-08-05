@@ -1,3 +1,4 @@
+import { defaultRng, type RNG } from "./rng.js";
 import { Character, type Rune } from "./character.js";
 import { getConstellationBonuses, CONSTELLATION_NODE_DEFS, type ConstellationBonuses } from "./constellations.js";
 export { CONSTELLATION_NODE_DEFS };
@@ -270,10 +271,10 @@ function companionName(cls: string, slotIdx: number): string {
 const RUNE_TIER_UP: Record<string, string> = { lesser: "greater", greater: "flawless", flawless: "ancient" };
 
 /** Generates a random set piece at the given effective level (random set, random slot from that set). */
-function randomSetDrop(effectiveLevel: number): GearItem {
-  const setDef = SET_DEFS[Math.floor(Math.random() * SET_DEFS.length)];
-  const setSlot = setDef.slots[Math.floor(Math.random() * setDef.slots.length)] as Slot;
-  return getSetItem(setDef.id, setSlot, effectiveLevel);
+function randomSetDrop(effectiveLevel: number, rng: RNG): GearItem {
+  const setDef = SET_DEFS[Math.floor(rng() * SET_DEFS.length)];
+  const setSlot = setDef.slots[Math.floor(rng() * setDef.slots.length)] as Slot;
+  return getSetItem(setDef.id, setSlot, effectiveLevel, rng);
 }
 
 /** Applies the per-character side effect (xp/hp/defense) of buying one upgrade level. dps/click are read on tick. */
@@ -606,6 +607,14 @@ export class GameState {
   skillCooldowns: Record<string, number> = {};
   /** Unix-ms expiry timestamp per active skill effect; entries are pruned on tick. */
   activeEffects: Record<string, number> = {};
+  /**
+   * Randomness source for every roll this state makes (bible §6).
+   *
+   * Defaults to {@link defaultRng}; pass a seeded {@link RNG} to the constructor to
+   * make an entire playthrough reproducible. Deliberately **not** serialized — a
+   * restored save resumes with a fresh source rather than replaying a sequence.
+   */
+  private readonly rng: RNG;
   /** Unique ID for this save file — generated once on new game, survives prestiges. */
   runId: string = crypto.randomUUID();
   /** Unix-ms timestamp when the state was last serialized (used for offline catch-up). */
@@ -709,10 +718,11 @@ export class GameState {
     return STASH_SIZES[level - 1] ?? 15;
   }
 
-  constructor(name = "Hero", characterClass = "fighter") {
+  constructor(name = "Hero", characterClass = "fighter", rng: RNG = defaultRng) {
+    this.rng = rng;
     this.party = new Party();
     this.party.addPlayer(new Character(name, characterClass, 1));
-    this.enemy = generateEnemy(this.dungeonLevel, this.dungeonIndex);
+    this.enemy = generateEnemy(this.dungeonLevel, this.dungeonIndex, this.rng);
     for (const c of this.party.team) {
       this.upgrades[c.name] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
     }
@@ -855,7 +865,7 @@ export class GameState {
         totalCrit += ARTIFACT_DEFS[soulSlot.id].effectValue * (soulSlot.level + 1) * runeCount;
       }
       const critMult = cb.perfectKillActive ? 3 : 2;
-      if (totalCrit > 0 && Math.random() < totalCrit) dps *= critMult;
+      if (totalCrit > 0 && this.rng() < totalCrit) dps *= critMult;
       baseDps += dps;
     }
     // Runesmith: add extra DPS from rune bonuses above baseline.
@@ -895,7 +905,7 @@ export class GameState {
     const cb = this.constellationBonuses;
     const living = this.party.team.filter(c => c.isAlive());
     if (living.length > 0) {
-      const target = living[Math.floor(Math.random() * living.length)];
+      const target = living[Math.floor(this.rng() * living.length)];
       const partySizeMult = Math.sqrt(this.party.team.length);
       // Warden's Core: additive damage reduction scaled by level, capped at 50%
       let artifactDmgReduction = 0;
@@ -932,10 +942,10 @@ export class GameState {
     const hasLuckyStrike = this.party.team.some(c => c.isAlive() && c.abilities.includes("lucky_strike"));
     const hasEagleEye = this.party.team.some(c => c.isAlive() && c.abilities.includes("eagle_eye"));
     const clickCritMult = clickCb.perfectKillActive ? 3 : 2;
-    if (hasLuckyStrike && Math.random() < LUCKY_STRIKE_CHANCE) {
+    if (hasLuckyStrike && this.rng() < LUCKY_STRIKE_CHANCE) {
       damage *= LUCKY_STRIKE_MULTIPLIER;
       this.addLog(`Lucky Strike! ${damage.toFixed(1)} dmg!`);
-    } else if (hasEagleEye && Math.random() < 0.30) {
+    } else if (hasEagleEye && this.rng() < 0.30) {
       damage *= clickCritMult;
       this.addLog(`Eagle Eye! ${damage.toFixed(1)} dmg!`);
     } else {
@@ -1271,7 +1281,7 @@ export class GameState {
     this.lootPool = [];
     this.gearStash = [];
     this.log = [];
-    this.enemy = generateEnemy(1, this.dungeonIndex);
+    this.enemy = generateEnemy(1, this.dungeonIndex, this.rng);
     this._lootCache = null;
     this._stashCache = null;
     this._upgradesCache = null;
@@ -1359,7 +1369,7 @@ export class GameState {
     this.lootPool = [];
     this.log = [];
     this.deathFloors = {};
-    this.enemy = generateEnemy(1, this.dungeonIndex);
+    this.enemy = generateEnemy(1, this.dungeonIndex, this.rng);
     this.skillCooldowns = {};
     this.activeEffects = {};
 
@@ -1473,7 +1483,7 @@ export class GameState {
 
     // Mark that a new hero must be created before gameplay resumes
     this.needsHeroCreation = true;
-    this.enemy = generateEnemy(1, 0);
+    this.enemy = generateEnemy(1, 0, this.rng);
     this._lootCache = null;
     this._stashCache = null;
     this._artifactInvCache = null;
@@ -1492,7 +1502,7 @@ export class GameState {
     this.party.addPlayer(hero);
     this.upgrades[name] = { dps: 0, xp: 0, click: 0, hp: 0, defense: 0 };
     this.needsHeroCreation = false;
-    this.enemy = generateEnemy(1, 0);
+    this.enemy = generateEnemy(1, 0, this.rng);
     this._upgradesCache = null;
     this.partyVersion++;
     this.addLog(`Welcome, ${name} the ${characterClass}!`);
@@ -1706,7 +1716,7 @@ export class GameState {
     }
     if (ancientIdxs.length < 10) return this.respond();
     for (let i = ancientIdxs.length - 1; i >= 0; i--) this.runeInventory.splice(ancientIdxs[i], 1);
-    const id = ARTIFACT_DROP_POOL[Math.floor(Math.random() * ARTIFACT_DROP_POOL.length)];
+    const id = ARTIFACT_DROP_POOL[Math.floor(this.rng() * ARTIFACT_DROP_POOL.length)];
     this.artifactInventory.push({ id, level: 0, fuel: 0 });
     this.addLog(`Forged ${ARTIFACT_DEFS[id]?.name ?? id} from 10 ancient runes!`);
     return this.respond();
@@ -2055,12 +2065,12 @@ export class GameState {
   }
 
   private spawnNextEnemy(): Enemy {
-    if (Math.random() < ELITE_SPAWN_CHANCE) {
-      const elite = generateEliteEnemy(this.dungeonLevel, this.dungeonIndex);
+    if (this.rng() < ELITE_SPAWN_CHANCE) {
+      const elite = generateEliteEnemy(this.dungeonLevel, this.dungeonIndex, this.rng);
       this.addLog(`⚡ An Elite ${elite.name.replace("Elite ", "")} appears!`);
       return elite;
     }
-    return generateEnemy(this.dungeonLevel, this.dungeonIndex);
+    return generateEnemy(this.dungeonLevel, this.dungeonIndex, this.rng);
   }
 
   /** Handles enemy defeat: awards XP/gold/loot, applies pending party abilities, and advances the floor. */
@@ -2163,18 +2173,18 @@ export class GameState {
       this.earnGold(this.enemy.gold_reward * (1 + partyGoldBonus) * goldMasteryMult * prestigeGoldMult * partySizeMult * artifactGoldMult * constellationGoldMult);
       this.lifetimeBossKills += 1;
       if (this.lootPool.length < this.lootMax) {
-        const drop = randomSetDrop(this.dungeonLevel + this.dungeonIndex * 5);
+        const drop = randomSetDrop(this.dungeonLevel + this.dungeonIndex * 5, this.rng);
         this.lootPool.push(drop);
         if (drop.quality === "divine") this.lifetimeDivine = 1;
         else if (QUAL.indexOf(drop.quality as typeof QUAL[number]) >= QUAL.indexOf("legendary")) this.lifetimeLegendary = 1;
         this.addLog(`Dropped: ${drop.getName()}!`);
       }
-      if (this.guildLevel("rune_forge") >= 1 && Math.random() < 0.20) {
+      if (this.guildLevel("rune_forge") >= 1 && this.rng() < 0.20) {
         this.dropRandomLesserRune("Boss");
       }
       // Artifact drop: dungeon 3+ (dungeonIndex >= 2), 10% chance
-      if (this.dungeonIndex >= 2 && Math.random() < 0.10) {
-        const artifactId = ARTIFACT_DROP_POOL[Math.floor(Math.random() * ARTIFACT_DROP_POOL.length)];
+      if (this.dungeonIndex >= 2 && this.rng() < 0.10) {
+        const artifactId = ARTIFACT_DROP_POOL[Math.floor(this.rng() * ARTIFACT_DROP_POOL.length)];
         this.artifactInventory.push({ id: artifactId, level: 0, fuel: 0 });
         this.addLog(`✨ Boss dropped: ${ARTIFACT_DEFS[artifactId].name}!`);
       }
@@ -2201,21 +2211,21 @@ export class GameState {
         return slot ? s + ARTIFACT_DEFS["fortunes_eye"].effectValue * (slot.level + 1) : s;
       }, 0);
       const dropChance = Math.min(0.75, DROP_CHANCE + this.dungeonIndex * 0.05 + gearLuckBonus + fortunesEyeBonus);
-      if ((this.enemy.isElite || Math.random() < dropChance) && this.lootPool.length < this.lootMax) {
+      if ((this.enemy.isElite || this.rng() < dropChance) && this.lootPool.length < this.lootMax) {
         const effectiveLevel = this.dungeonLevel + this.dungeonIndex * 5;
         const lootCb = this.constellationBonuses;
-        const qualityBoost = (lootCb.lootQualityBonus > 0 && Math.random() < lootCb.lootQualityBonus / 100) ? 8 : 0;
-        const drop = getItem(undefined, effectiveLevel + qualityBoost);
+        const qualityBoost = (lootCb.lootQualityBonus > 0 && this.rng() < lootCb.lootQualityBonus / 100) ? 8 : 0;
+        const drop = getItem(undefined, effectiveLevel + qualityBoost, this.rng);
         this.lootPool.push(drop);
         if (drop.quality === "divine") this.lifetimeDivine = 1;
         else if (QUAL.indexOf(drop.quality as typeof QUAL[number]) >= QUAL.indexOf("legendary")) this.lifetimeLegendary = 1;
         this.addLog(`Dropped: ${drop.getName()}!`);
       }
-      if (this.enemy.isElite && this.guildLevel("rune_forge") >= 1 && Math.random() < 0.10) {
+      if (this.enemy.isElite && this.guildLevel("rune_forge") >= 1 && this.rng() < 0.10) {
         this.dropRandomLesserRune("Elite");
       }
-      if (this.enemy.isElite && Math.random() < 0.15 && this.lootPool.length < this.lootMax) {
-        const setDrop = randomSetDrop(this.dungeonLevel + this.dungeonIndex * 5);
+      if (this.enemy.isElite && this.rng() < 0.15 && this.lootPool.length < this.lootMax) {
+        const setDrop = randomSetDrop(this.dungeonLevel + this.dungeonIndex * 5, this.rng);
         this.lootPool.push(setDrop);
         this.addLog(`Elite dropped a set piece: ${setDrop.getName()}!`);
       }
@@ -2226,7 +2236,7 @@ export class GameState {
       if (this.enemy.isElite && execMarkSlot) {
         const checks = execMarkSlot.level + 1;
         for (let i = 0; i < checks && this.lootPool.length < this.lootMax; i++) {
-          const execDrop = randomSetDrop(this.dungeonLevel + this.dungeonIndex * 5);
+          const execDrop = randomSetDrop(this.dungeonLevel + this.dungeonIndex * 5, this.rng);
           this.lootPool.push(execDrop);
           this.addLog(`⚔ Executioner's Mark: ${execDrop.getName()}!`);
         }
@@ -2237,7 +2247,7 @@ export class GameState {
         this.floorKills = 0;
         this.addLog(`Floor ${this.dungeonLevel} cleared! Boss incoming!`);
         const isGateBoss = this.dungeonLevel % 5 === 4;
-        this.enemy = generateBoss(this.dungeonLevel, this.dungeonIndex, this.party.team.length, isGateBoss);
+        this.enemy = generateBoss(this.dungeonLevel, this.dungeonIndex, this.party.team.length, isGateBoss, this.rng);
       } else {
         this.enemy = this.spawnNextEnemy();
       }
@@ -2264,13 +2274,13 @@ export class GameState {
     for (const c of this.party.team) {
       c.health = c.maxHealth;
     }
-    this.enemy = generateEnemy(this.checkpointLevel);
+    this.enemy = generateEnemy(this.checkpointLevel, 0, this.rng);
   }
 
   /** Drops a random lesser-tier rune into the rune inventory and logs it with the given source label. */
   private dropRandomLesserRune(source: string): void {
     const lesserIds = Object.keys(RUNE_DEFS).filter(id => id.endsWith("_lesser"));
-    const runeId = lesserIds[Math.floor(Math.random() * lesserIds.length)];
+    const runeId = lesserIds[Math.floor(this.rng() * lesserIds.length)];
     this.runeInventory.push(RUNE_DEFS[runeId]);
     this.addLog(`${source} dropped a ${RUNE_DEFS[runeId].name}!`);
   }

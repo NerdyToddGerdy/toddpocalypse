@@ -1,4 +1,5 @@
 import { pick, weightedPick } from "./utils.js";
+import { defaultRng, type RNG } from "./rng.js";
 
 /** All equipment slot identifiers, in render order. */
 export const SLOTS = [
@@ -224,19 +225,19 @@ const SLOT_STAT_WEIGHTS: Record<Slot, Partial<Record<keyof GearStats, number>>> 
 };
 
 /** Number of stat rolls based on quality tier index. Sub-common (< index 4) always roll 1. */
-function getRollCount(qualityIdx: number): number {
+function getRollCount(qualityIdx: number, rng: RNG): number {
   if (qualityIdx <= 3) return 1;                               // broken, worn, crude, poor
-  if (qualityIdx <= 6) return Math.random() < 0.5 ? 1 : 2;   // common, fine, superior
+  if (qualityIdx <= 6) return rng() < 0.5 ? 1 : 2;   // common, fine, superior
   if (qualityIdx <= 8) return 2;                               // rare, epic
-  if (qualityIdx <= 10) return Math.random() < 0.5 ? 2 : 3;  // legendary, mythic
+  if (qualityIdx <= 10) return rng() < 0.5 ? 2 : 3;  // legendary, mythic
   return 3;                                                    // ancient+
 }
 
 /** Rolls 1–3 stat bonuses for a gear item based on slot, quality, and dungeon level.
  *  Returns the stats and the primary (first-rolled) stat key. */
-function rollStats(slot: Slot, quality: Quality, dungeonLevel: number): { stats: GearStats; primaryStat: keyof GearStats } {
+function rollStats(slot: Slot, quality: Quality, dungeonLevel: number, rng: RNG): { stats: GearStats; primaryStat: keyof GearStats } {
   const qIdx = QUAL.indexOf(quality);
-  const rollCount = getRollCount(qIdx < 0 ? 4 : qIdx);
+  const rollCount = getRollCount(qIdx < 0 ? 4 : qIdx, rng);
   const pool = { ...SLOT_STAT_WEIGHTS[slot] } as Record<keyof GearStats, number>;
   const scale = gearLevelScale(dungeonLevel);
   const result: Partial<Record<keyof GearStats, number>> = {};
@@ -245,7 +246,7 @@ function rollStats(slot: Slot, quality: Quality, dungeonLevel: number): { stats:
   for (let i = 0; i < rollCount; i++) {
     const keys = Object.keys(pool) as (keyof GearStats)[];
     if (keys.length === 0) break;
-    const stat = weightedPick(keys, keys.map(k => pool[k] ?? 0));
+    const stat = weightedPick(keys, keys.map(k => pool[k] ?? 0), rng);
     if (i === 0) primaryStat = stat;
     delete pool[stat];
     const base = qIdx >= 0 ? STAT_SCALE[stat][qIdx] : (STAT_SCALE[stat][4]);
@@ -438,17 +439,17 @@ export class GearItem {
 const DROP_SLOTS = SLOTS.filter(s => s !== "ring2");
 
 /** Generates a random loot drop for the given floor, optionally forcing a specific slot. */
-export function getItem(slot?: Slot, dungeonLevel = 1): GearItem {
-  const effectiveSlot: Slot = slot === "ring2" ? "ring1" : (slot ?? pick(DROP_SLOTS));
-  const itemType = pick(SLOT_ITEM_TYPES[effectiveSlot]);
-  const quality = weightedPick(QUAL, qualityWeights(dungeonLevel));
-  const { stats, primaryStat } = rollStats(effectiveSlot, quality, dungeonLevel);
-  const adjective = pick(STAT_ADJECTIVES[primaryStat]);
+export function getItem(slot?: Slot, dungeonLevel = 1, rng: RNG = defaultRng): GearItem {
+  const effectiveSlot: Slot = slot === "ring2" ? "ring1" : (slot ?? pick(DROP_SLOTS, rng));
+  const itemType = pick(SLOT_ITEM_TYPES[effectiveSlot], rng);
+  const quality = weightedPick(QUAL, qualityWeights(dungeonLevel), rng);
+  const { stats, primaryStat } = rollStats(effectiveSlot, quality, dungeonLevel, rng);
+  const adjective = pick(STAT_ADJECTIVES[primaryStat], rng);
   return new GearItem(effectiveSlot, itemType, quality, adjective, stats, dungeonLevel);
 }
 
 /** Convenience wrapper — generates a random main-hand weapon. */
-export function getWeapon(): GearItem {
+export function getWeapon(rng: RNG = defaultRng): GearItem {
   return getItem("main_hand");
 }
 
@@ -496,10 +497,10 @@ export function buildSetBonusHTML(setName: string, equippedCount: number): strin
 
 /** Generates a named set piece for the given set, slot, and dungeon level.
  *  Always at least rare quality. ring2 falls back to ring1 (inventory logic handles placement). */
-export function getSetItem(setId: string, slot: Slot, dungeonLevel = 1): GearItem {
+export function getSetItem(setId: string, slot: Slot, dungeonLevel = 1, rng: RNG = defaultRng): GearItem {
   const def = SET_DEFS.find(d => d.id === setId)!;
   const effectiveSlot: Slot = slot === "ring2" ? "ring1" : slot;
-  const itemType = pick(SLOT_ITEM_TYPES[effectiveSlot]);
+  const itemType = pick(SLOT_ITEM_TYPES[effectiveSlot], rng);
   const minQualIdx = QUAL.indexOf("rare");
   // Zero out sub-rare weights; ensure rare always has at least weight 1 even at low dungeon levels
   const weights = qualityWeights(dungeonLevel).map((w, i) => {
@@ -507,8 +508,8 @@ export function getSetItem(setId: string, slot: Slot, dungeonLevel = 1): GearIte
     if (i === minQualIdx) return Math.max(w, 1.0);
     return w;
   });
-  const quality = weightedPick(QUAL, weights);
-  const { stats, primaryStat } = rollStats(effectiveSlot, quality, dungeonLevel);
-  const adjective = pick(STAT_ADJECTIVES[primaryStat]);
+  const quality = weightedPick(QUAL, weights, rng);
+  const { stats, primaryStat } = rollStats(effectiveSlot, quality, dungeonLevel, rng);
+  const adjective = pick(STAT_ADJECTIVES[primaryStat], rng);
   return new GearItem(effectiveSlot, itemType, quality, adjective, stats, dungeonLevel, def.name);
 }

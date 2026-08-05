@@ -1,4 +1,5 @@
 import { pick, randInt } from "./utils.js";
+import { defaultRng, type RNG } from "./rng.js";
 
 /** Noun suffixes for boss names — equal counts of male and female titles. */
 export const BOSS_NOUNS = [
@@ -117,13 +118,13 @@ export interface EnemyDict {
 
 /** Generates a scaled regular enemy for the given dungeon floor and dungeon index.
  *  Each dungeon beyond the first adds 25% to HP/attack and 15% to gold. */
-export function generateEnemy(dungeonLevel: number, dungeonIndex = 0): Enemy {
+export function generateEnemy(dungeonLevel: number, dungeonIndex = 0, rng: RNG = defaultRng): Enemy {
   const mult = 1 + dungeonIndex * 0.40;
-  const name = `${pick(ENEMY_ADJECTIVES)} ${pick(ENEMY_NOUNS)}`;
-  const baseHp = Math.floor(10 * Math.pow(1.3, dungeonLevel) + randInt(0, dungeonLevel * 2));
+  const name = `${pick(ENEMY_ADJECTIVES, rng)} ${pick(ENEMY_NOUNS, rng)}`;
+  const baseHp = Math.floor(10 * Math.pow(1.3, dungeonLevel) + randInt(0, dungeonLevel * 2, rng));
   const hp = Math.floor(baseHp * mult);
-  const xpReward = Math.max(1, dungeonLevel * 3 + randInt(1, 4));
-  const goldReward = Math.max(1, Math.floor((dungeonLevel * 5 + randInt(0, dungeonLevel * 3)) * (1 + dungeonIndex * 0.15) * (1 + dungeonLevel * GOLD_LEVEL_MULT)));
+  const xpReward = Math.max(1, dungeonLevel * 3 + randInt(1, 4, rng));
+  const goldReward = Math.max(1, Math.floor((dungeonLevel * 5 + randInt(0, dungeonLevel * 3, rng)) * (1 + dungeonIndex * 0.15) * (1 + dungeonLevel * GOLD_LEVEL_MULT)));
   const attackDps = Math.round(Math.pow(dungeonLevel, ENEMY_ATTACK_EXPONENT) * 4.0 * mult * 10) / 10;
   return {
     name,
@@ -141,13 +142,13 @@ export function generateEnemy(dungeonLevel: number, dungeonIndex = 0): Enemy {
  *  Boss stats scale exponentially with dungeonIndex (×BOSS_DUNGEON_MULT_BASE per dungeon).
  *  HP also scales by √partySize so larger parties face a tankier boss.
  *  Gate bosses (the floor before a checkpoint) gain extra HP and attack. */
-export function generateBoss(dungeonLevel: number, dungeonIndex = 0, partySize = 1, isGateBoss = false): Enemy {
+export function generateBoss(dungeonLevel: number, dungeonIndex = 0, partySize = 1, isGateBoss = false, rng: RNG = defaultRng): Enemy {
   const mult = Math.pow(BOSS_DUNGEON_MULT_BASE, dungeonIndex);
   const gateMult = isGateBoss ? GATE_BOSS_HP_MULT : 1;
   const gateAttackMult = isGateBoss ? GATE_BOSS_ATTACK_MULT : 1;
   const name = isGateBoss
-    ? `The ${pick(BOSS_TITLES)} ${pick(ENEMY_NOUNS)} ${pick(BOSS_NOUNS)} Guardian`
-    : `The ${pick(BOSS_TITLES)} ${pick(ENEMY_NOUNS)} ${pick(BOSS_NOUNS)}`;
+    ? `The ${pick(BOSS_TITLES, rng)} ${pick(ENEMY_NOUNS, rng)} ${pick(BOSS_NOUNS, rng)} Guardian`
+    : `The ${pick(BOSS_TITLES, rng)} ${pick(ENEMY_NOUNS, rng)} ${pick(BOSS_NOUNS, rng)}`;
   const hp = Math.floor(100 * Math.pow(1.3, dungeonLevel) * mult * Math.sqrt(partySize) * gateMult);
   const xpReward = Math.max(5, dungeonLevel * 9 + 5);
   const goldReward = Math.max(5, Math.floor(dungeonLevel * 15 * (1 + dungeonIndex * 0.15) * (1 + dungeonLevel * GOLD_LEVEL_MULT)));
@@ -165,7 +166,7 @@ export function generateBoss(dungeonLevel: number, dungeonIndex = 0, partySize =
 }
 
 /** Generates a rare elite variant of a regular enemy with boosted stats and guaranteed loot. */
-export function generateEliteEnemy(dungeonLevel: number, dungeonIndex = 0): Enemy {
+export function generateEliteEnemy(dungeonLevel: number, dungeonIndex = 0, rng: RNG = defaultRng): Enemy {
   const base = generateEnemy(dungeonLevel, dungeonIndex);
   const hp = Math.floor(base.max_hp * ELITE_HP_MULT);
   return {

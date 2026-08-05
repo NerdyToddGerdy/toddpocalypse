@@ -46,6 +46,7 @@ import {
   type Slot
 } from "./gear.js";
 import {CHANGELOG, VERSION} from "./changelog.js";
+import {pick} from "./utils.js";
 import {CLASS_ABILITIES, type Rune} from "./character.js";
 import {
   clearToken,
@@ -2885,7 +2886,7 @@ function showDeathToast(respawnFloor: number): void {
   const container = document.getElementById("achievement-toast-container");
   if (!container) return;
   const pool = respawnFloor <= 1 ? DEATH_LINES_FLOOR1 : DEATH_LINES_CHECKPOINT;
-  const line = pool[Math.floor(Math.random() * pool.length)];
+  const line = pick(pool);
   const sub = respawnFloor <= 1 ? "back at floor 1" : `back at floor ${respawnFloor}`;
   const el = document.createElement("div");
   el.className = "achievement-toast death-toast";
@@ -2906,7 +2907,7 @@ const HOMECOMING_LINES = [
 function showHomecomingToast(renownEarned: number): void {
   const container = document.getElementById("achievement-toast-container");
   if (!container) return;
-  const line = HOMECOMING_LINES[Math.floor(Math.random() * HOMECOMING_LINES.length)];
+  const line = pick(HOMECOMING_LINES);
   const el = document.createElement("div");
   el.className = "achievement-toast homecoming-toast";
   el.innerHTML = `<div class="toast-title">Returned to Town</div><div class="toast-name">${line}</div><div class="toast-reward">+${renownEarned} renown • the dungeon shifts anew</div>`;
