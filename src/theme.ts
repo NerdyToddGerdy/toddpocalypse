@@ -8,11 +8,8 @@
 /**
  * Every selectable look, default first.
  *
- * `torchlight` is the franchise house look (franchise bible §3: "a character sheet
- * lit by torchlight in a dark stone room"). The other seven are per-title cosmetic
- * variants — a deliberate divergence from §3's "one committed lit scene", kept
- * because collectible customisation carries weight in an idle game that a solo dice
- * crawler doesn't have. The default is what stays franchise-coherent.
+ * `torchlight` is the franchise house look (bible §3). The other seven are a
+ * deliberate divergence — see `docs/franchise-divergences.md` for the reasoning.
  */
 export const THEMES = [
   "torchlight",
@@ -34,10 +31,9 @@ export const DEFAULT_THEME: Theme = "torchlight";
 /**
  * Retired theme ids mapped to their replacements.
  *
- * `torchlight` shipped as `tavern` before it was retuned to the §3 tokens and
- * promoted to default. Per franchise bible §6, stored player state is never
- * dropped on a rename — anyone who had picked Tavern keeps the same look under
- * its new name rather than being silently reset.
+ * `torchlight` shipped as `tavern` until v2.34.0. Per bible §6, stored player
+ * state is never dropped on a rename — anyone who picked Tavern keeps the same
+ * look under its new name rather than being silently reset.
  */
 export const LEGACY_THEME_ALIASES: Record<string, Theme> = {
   tavern: "torchlight",

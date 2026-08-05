@@ -17,11 +17,22 @@ whole argument for referencing it instead.
 Two things to know when reading it:
 
 - It is written from *Realm of Depths*, so some conventions (React + Vite) describe that title rather
-  than this one. Deliberate divergences here are tracked in #63.
+  than this one.
 - The link points at a **branch**. The bible is not on `main` yet, so this URL will need updating once
   `fix/runid-desync-and-rename` merges. §8.3 proposes a shared repo as the long-term home.
 
-Conformance work for this title is tracked in #49–#64.
+### Where this game differs — `docs/franchise-divergences.md`
+
+**[`docs/franchise-divergences.md`](docs/franchise-divergences.md) is the single record of every
+place *Idle Depths* departs from the bible**, why, and whether it's permanent. Read it before
+"fixing" anything that looks non-conformant — several rows are conformant in a way that looks wrong,
+most notably the storage keys that still carry the old `toddpocalypse-` prefix on purpose.
+
+**When you make a decision that diverges from the bible, record it there — not in a docstring.** A
+comment explains one file; nobody reconstructs the whole picture from eight of them. Code may carry a
+one-line pointer back to that document.
+
+Conformance work is tracked in #49–#64.
 
 ## Commands
 
