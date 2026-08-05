@@ -93,6 +93,7 @@ import {
   SLOT_LABELS,
   statRow,
 } from "./ui/html.js";
+import { DEFAULT_THEME, resolveTheme, type Theme } from "./theme.js";
 
 // Record: Descriptions for the Heroes
 const CLASS_DESCS: Record<string, string> = {
@@ -155,10 +156,6 @@ const SET_BY_NAME = new Map(SET_DEFS.map(s => [s.name, s]));
 /** Maps emoji characters to their sprite-sheet class names in 16x16.png. */
 const SAVE_KEY = "toddpocalypse-save";
 const THEME_KEY = "toddpocalypse-theme";
-const THEMES = ["grimdark", "arcane", "tavern", "inferno", "void-rift", "bloodmoon", "frost-crypt", "necropolis"] as const;
-
-/** The type for the theme.*/
-type Theme = typeof THEMES[number];
 
 /**
  *  Sets the active visual theme on the root element, persists it, and updates picker button states.
@@ -192,10 +189,12 @@ function preloadBossAssets(): void {
   }
 }
 
-/** Loads the persisted theme from localStorage (defaulting to "arcane") and applies it. */
+/**
+ * Loads the persisted theme, migrating retired ids, and applies it.
+ * Falls back to {@link DEFAULT_THEME} when nothing valid is stored.
+ */
 function initTheme(): void {
-  const saved = localStorage.getItem(THEME_KEY);
-  applyTheme((THEMES.includes(saved as Theme) ? saved : "arcane") as Theme);
+  applyTheme(resolveTheme(localStorage.getItem(THEME_KEY)));
 }
 
 let game: GameState | null = null;
@@ -2603,7 +2602,7 @@ function renderDropChart(dungeonLevel: number): void {
 let themePickerKey = "";
 function renderThemePicker(state: GameStateDict): void {
   const prestiges = state.total_prestiges ?? 0;
-  const current = (document.documentElement.dataset.theme ?? "arcane") as Theme;
+  const current = (document.documentElement.dataset.theme ?? DEFAULT_THEME) as Theme;
   const newKey = `${prestiges}|${current}`;
   if (newKey === themePickerKey) return;
   themePickerKey = newKey;

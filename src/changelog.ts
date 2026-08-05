@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.33.2";
+export const VERSION = "v2.34.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,16 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.34.0",
+    date: "2026-08-04",
+    changes: [
+      "New default theme: Torchlight — warm parchment on near-black, the GerdQuest house look",
+      "Tavern is now Torchlight, retuned to the franchise palette and free from the start (was 1 prestige)",
+      "If you had Tavern selected, you keep the same theme under its new name",
+      "The other seven themes are unchanged and stay where they were",
+    ],
+  },
   {
     version: "v2.33.2",
     date: "2026-08-04",

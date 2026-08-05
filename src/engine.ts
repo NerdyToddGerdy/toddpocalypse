@@ -396,9 +396,9 @@ export const LEGACY_UNLOCKS: Record<number, { classes: string[]; title: string; 
 
 /** All visual themes with their prestige unlock requirements. */
 export const THEME_UNLOCKS: { theme: string; icon: string; label: string; prestiges: number }[] = [
+  { theme: "torchlight",  icon: "🕯", label: "Torchlight",   prestiges: 0 },
   { theme: "grimdark",    icon: "⚔",  label: "Grimdark",    prestiges: 0 },
   { theme: "arcane",      icon: "🔮", label: "Arcane",       prestiges: 0 },
-  { theme: "tavern",      icon: "🍺", label: "Tavern",       prestiges: 1 },
   { theme: "inferno",     icon: "🔥", label: "Inferno",      prestiges: 3 },
   { theme: "void-rift",   icon: "🌀", label: "Void Rift",    prestiges: 5 },
   { theme: "bloodmoon",   icon: "🩸", label: "Bloodmoon",    prestiges: 8 },

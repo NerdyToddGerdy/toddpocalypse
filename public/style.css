@@ -3447,17 +3447,25 @@ footer {
     --font-body: 'Cinzel', Georgia, serif;
 }
 
-/* ── Tavern ── */
-[data-theme="tavern"] {
-    --bg: #090704;
-    --surface: #130f08;
-    --surface2: #1e1610;
-    --border: #4a3518;
-    --accent: #d4821a;
+/* ── Torchlight ── */
+/*
+ * Torchlight — the GerdQuest house look (franchise bible §3): a character sheet
+ * lit by torchlight in a dark stone room. Warm parchment on near-black, gold for
+ * anything interactive, red reserved for harm. Colours below are the §3 tokens
+ * verbatim; keep them in sync with the bible rather than tuning them locally.
+ *
+ * Shipped as "tavern" until v2.34.0. Saved values migrate in src/theme.ts.
+ */
+[data-theme="torchlight"] {
+    --bg: #0a0807;          /* §3 --bg-0 */
+    --surface: #17110d;     /* §3 --bg-1 */
+    --surface2: #221812;
+    --border: #b8862f;      /* §3 --gold */
+    --accent: #d9791f;      /* §3 --torch-mid */
     --accent2: #2d7a3a;
-    --danger: #cc3333;
-    --text: #e8d8b0;
-    --muted: #8a7a52;
+    --danger: #a63c1d;      /* §3 --danger */
+    --text: #e9ddc2;        /* §3 --parchment */
+    --muted: #5a4b38;       /* §3 --ink-soft */
     --hp-green: #3a8a3a;
     --xp-blue: #4a6abf;
     --font-display: 'Philosopher', Georgia, serif;
