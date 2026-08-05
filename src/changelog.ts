@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.35.0";
+export const VERSION = "v2.35.1";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.35.1",
+    date: "2026-08-05",
+    changes: [
+      "Internal: recorded the originality audit — no gameplay change",
+    ],
+  },
   {
     version: "v2.35.0",
     date: "2026-08-05",
