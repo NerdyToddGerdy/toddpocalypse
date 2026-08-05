@@ -2,6 +2,27 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Franchise bible
+
+This game ships under the **GerdQuest** label, and the shared standard for every title lives in the
+flagship repo — not here:
+
+**https://github.com/NerdyToddGerdy/notequest_browser/blob/fix/runid-desync-and-rename/docs/franchise-bible.md**
+
+It is the single source of truth for the IP boundary (§1), naming (§2), visual identity (§3), voice
+(§4), design vocabulary (§5) and technical conventions (§6). **Do not vendor a copy into this repo.**
+A local copy existed briefly and had already drifted a full section behind the original, which is the
+whole argument for referencing it instead.
+
+Two things to know when reading it:
+
+- It is written from *Realm of Depths*, so some conventions (React + Vite) describe that title rather
+  than this one. Deliberate divergences here are tracked in #63.
+- The link points at a **branch**. The bible is not on `main` yet, so this URL will need updating once
+  `fix/runid-desync-and-rename` merges. §8.3 proposes a shared repo as the long-term home.
+
+Conformance work for this title is tracked in #49–#64.
+
 ## Commands
 
 ```bash
@@ -56,4 +77,10 @@ Vitest (`*.test.ts`). Each module has a paired test file. Run with `npm test`.
 
 ### OLD_CODE/
 
-Minified JavaScript from a prior browser-based version ("clickpocalypse"). Reference only — not part of the build.
+Scratch JavaScript from an earlier browser experiment. Reference only — not part of the build.
+
+**Do not add third-party game source here.** A minified copy of Clickpocalypse used to live in this
+directory; it was purged from the repo and from git history on 2026-08-04 (#49) and is `.gitignore`d
+so it cannot return. *Idle Depths* is original work *inspired by* Clickpocalypse II — a genre, not an
+adaptation — and vendoring someone else's source undercuts that standing. See §1.5 of the franchise
+bible.

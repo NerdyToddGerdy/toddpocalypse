@@ -10,6 +10,8 @@ A browser-based idle clicker RPG — descend into the dungeon, collect loot, bui
 
 GerdQuest: Idle Depths is a spiritual successor to [Clickpocalypse](https://github.com/NerdyToddGerdy/toddpocalypse/tree/main/OLD_CODE) — the original browser clicker RPG this project grew out of. The core loop is the same: click to fight, idle to grind, keep going deeper. The codebase is a full rewrite in TypeScript with a proper build pipeline, persistent save state, and a richer progression system.
 
+One of three titles under the **GerdQuest** label, alongside *Realm of Depths* and *Isle Raid*. The shared standard for all three — naming, visual identity, voice, design vocabulary and technical conventions — is the [GerdQuest Franchise Bible](https://github.com/NerdyToddGerdy/notequest_browser/blob/fix/runid-desync-and-rename/docs/franchise-bible.md), kept in the flagship repo.
+
 ---
 
 ## How to Play
@@ -87,7 +89,7 @@ public/
   style.css      All styling
 
 OLD_CODE/
-  clickpocalypse.js   Original minified Clickpocalypse source (reference only)
+  basic.js       Scratch JS from an earlier browser experiment (reference only)
 ```
 
 ---
