@@ -11,7 +11,7 @@ and nobody assembles the whole picture from eight of them.
 
 The bible does not say where per-title divergences get recorded. This is that place, until it does.
 
-> Last verified against the codebase: **2026-08-05** (v2.35.0). Facts below were checked, not
+> Last verified against the codebase: **2026-08-09** (v2.37.0). Facts below were checked, not
 > remembered. Re-verify before trusting any row — see the commands at the end.
 
 ## Status legend
@@ -34,7 +34,7 @@ The bible does not say where per-title divergences get recorded. This is that pl
 | §2 | Wordmark is flat, not two-tier | 🟡 Owed | #55 |
 | §3 | Eight themes instead of one committed look | 🟢 **Settled** | #53 closed |
 | §3 | Palette token *names* not adopted | 🟡 Owed | #52 |
-| §3 | Fonts are CDN, and the wrong three | 🟡 Owed | #54 |
+| §3 | Typography — self-hosted franchise faces, shared by all themes | 🔵 Conformant | #54 |
 | §3 | No Die, stacked sheet, ruled paper | 🟡 Owed | #56 |
 | §5 | Hidden float multipliers, no visible tables | 🟡 Owed | #57 |
 | §5 | No depleting resource; prestige not permadeath | ⚪ Open | #58 |
@@ -128,6 +128,43 @@ other, and `tests/changelog-md.test.ts` fails if they drift. **Do not hand-edit 
 identifies them — historically several versions were folded into one commit. They are unrecoverable
 from git and are left untagged rather than guessed at.
 
+### §3 — typography: self-hosted, and shared across every theme
+
+§3: "All self-hosted `woff2`, all OFL, **no CDN**", with a semantic split — display for voice, body
+for fiction, mono for anything a player counts. Settled 2026-08-09 (#54).
+
+The page previously pulled five faces (Cinzel, Cinzel Decorative, Crimson Pro, Pirata One,
+Philosopher) from the Google Fonts CDN. All five are gone. In their place, twelve `woff2` files
+under `public/fonts/` — Metamorphous 400, Spectral 400/400i/600, JetBrains Mono 400/700, latin and
+latin-ext subsets only, 189KB total. **The page now makes no third-party resource request at all.**
+
+All three are OFL, confirmed against the `ofl/` directory of `google/fonts` rather than assumed.
+The licence requires distribution alongside the fonts, so `OFL-metamorphous.txt`,
+`OFL-spectral.txt` and `OFL-jetbrainsmono.txt` ship in `public/fonts/` too. `scripts/build.mjs`
+needed no change — it already copies `public/` recursively.
+
+**The one real judgement call: themes no longer carry their own typography.** Each of the eight
+themes used to override `--font-display` / `--font-body` with its own pair, so Grimdark read in
+Pirata One and Arcane in Cinzel Decorative. Sixteen overrides were removed and five hardcoded
+`font-family: 'Cinzel'` rules now point at `var(--font-display)`. **Themes vary colour, not type.**
+This is what §3 asks for — one committed type stack is the point of the section — but it is a
+visible loss of per-theme character, and it is recorded here so it reads as a decision rather than
+an oversight. Reversing it means reintroducing five CDN faces, so it should not be reversed lightly.
+
+Counted values — gold, HP, XP, DPS, depth, kills, deaths, lifetime stats — render in JetBrains Mono
+with `font-variant-numeric: tabular-nums`, so digits stop jittering as they tick.
+
+`tests/fonts.test.ts` holds the line: it fails if a CDN reference reappears, if any `@font-face`
+points at a remote host, if a retired face returns, or if the three role variables stop resolving
+to their franchise faces.
+
+**Note for future test work:** that test reads `style.css` with `readFileSync`, not the `?raw`
+import the other source-scanning tests use. Vitest stubs CSS modules to an empty string and `?raw`
+does not survive it for `.css` files — the assertions pass vacuously against `""` if you switch it
+back. This is why `@types/node` is now a devDependency and `"node"` is in `tsconfig` types, which
+in turn is why the four timer handles in `main.ts` are typed `ReturnType<typeof setTimeout>` rather
+than `number`.
+
 ### §1.5 — IP standing
 
 Original work inspired by Clickpocalypse II; not an adaptation, carries no attribution obligation,
@@ -208,9 +245,6 @@ Each is tracked; this section is a pointer, not a duplicate of the issue.
 - **§3 palette** (#52) — the §3 *values* are live in `torchlight`, but the token *names*
   (`--bg-0`, `--parchment`, `--ink`…) and a real `src/ui/theme/tokens.css` are not. Currently
   `--bg` / `--surface` / `--accent` / `--text`.
-- **§3 typography** (#54) — five faces from the Google Fonts CDN (Cinzel, Crimson Pro, Pirata One,
-  Philosopher, Cinzel Decorative). §3 wants three self-hosted woff2: Metamorphous, Spectral,
-  JetBrains Mono. The CDN link is itself the violation — "no CDN".
 - **§3 motifs** (#56) — no Die, no stacked sheet, no eyebrow+title, no ruled paper.
 - **§5 visible maths** (#57) — the big one. §5 says visible dice and readable tables are what earn
   the GerdQuest name; this game still resolves everything on hidden floats. The rolls are
@@ -252,7 +286,8 @@ test -f src/ui/theme/tokens.css && echo present  # §3 palette — #52
 grep -rc "Math.random" src/*.ts                  # §6 RNG — #60 done, expect rng.ts only
 grep -n '"eternal"\|"celestial"' src/gear.ts     # §1.5 audit — celestial only, no eternal tier
 test -d OLD_CODE && echo present                 # §1.5 — expect absent, and ignored if recreated
-grep -c "fonts.googleapis" public/index.html     # §3 typography — #54, expect 2
+grep -rc "fonts.googleapis" public/               # §3 typography — #54 done, expect 0
+ls public/fonts/*.woff2 | wc -l                  # §3 typography — expect 12, self-hosted
 grep -rn "toddpocalypse-" src/*.ts               # §6 storage keys — expect 5, leave them
 grep -rin "notequest" --exclude-dir=node_modules . # §1 rule 3 — only bible URLs should match
 ```

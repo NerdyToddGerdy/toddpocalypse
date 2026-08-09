@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.36.0";
+export const VERSION = "v2.37.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,16 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.37.0",
+    date: "2026-08-09",
+    changes: [
+      "New typography throughout: Metamorphous for headings, Spectral for prose, JetBrains Mono for numbers",
+      "Gold, HP, XP, DPS and depth now use tabular figures, so digits stop jittering as they tick",
+      "Themes now change colour only — every theme shares the same typefaces",
+      "Fonts are bundled with the game instead of loaded from Google, so the page makes no outside requests",
+    ],
+  },
   {
     version: "v2.36.0",
     date: "2026-08-05",

@@ -233,10 +233,13 @@ let autoAttackEnabled = localStorage.getItem("autoAttack") === "1";
 let autoAttackIntervalId: number | undefined;
 let lastTickSaveTime = 0;
 const TICK_SAVE_INTERVAL_MS = 5000;
-let gameLoopId: number | undefined;
-let portraitEnterTimer: number | undefined;
-let portraitExitTimer: number | undefined;
-let featsBadgeTimer: number | undefined;
+// ReturnType<> rather than number: with @types/node loaded (for the build
+// scripts and source-scanning tests) the Node overloads are visible, and they
+// return Timeout. This form is correct under both lib sets.
+let gameLoopId: ReturnType<typeof setInterval> | undefined;
+let portraitEnterTimer: ReturnType<typeof setTimeout> | undefined;
+let portraitExitTimer: ReturnType<typeof setTimeout> | undefined;
+let featsBadgeTimer: ReturnType<typeof setTimeout> | undefined;
 
 /** Typed getElementById helper — throws if the element is missing rather than returning null. */
 function $(id: string): HTMLElement {

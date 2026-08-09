@@ -4,6 +4,13 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.37.0 — 2026-08-09
+
+- New typography throughout: Metamorphous for headings, Spectral for prose, JetBrains Mono for numbers
+- Gold, HP, XP, DPS and depth now use tabular figures, so digits stop jittering as they tick
+- Themes now change colour only — every theme shares the same typefaces
+- Fonts are bundled with the game instead of loaded from Google, so the page makes no outside requests
+
 ## v2.36.0 — 2026-08-05
 
 - Every release in the game's history now has a matching git tag — 361 of them

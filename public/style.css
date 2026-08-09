@@ -1,3 +1,114 @@
+/* Franchise faces, self-hosted woff2 (OFL) — §3 forbids CDN fonts. See #54.
+   Licences: public/fonts/OFL-*.txt. Generated once, safe to hand-edit. */
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('fonts/jetbrains-mono-400-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('fonts/jetbrains-mono-400-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('fonts/jetbrains-mono-700-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('fonts/jetbrains-mono-700-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Metamorphous';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('fonts/metamorphous-400-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Metamorphous';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('fonts/metamorphous-400-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Spectral';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('fonts/spectral-400-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Spectral';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('fonts/spectral-400-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('fonts/spectral-400-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('fonts/spectral-400-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('fonts/spectral-600-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('fonts/spectral-600-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
     --bg: #0e0e14;
     --surface: #1a1a26;
@@ -10,8 +121,11 @@
     --hp-green: #3ecf6a;
     --xp-blue: #3b82f6;
     --border: #2e2e48;
-    --font-display: 'Segoe UI', system-ui, sans-serif;
-    --font-body: 'Segoe UI', system-ui, sans-serif;
+    /* §3 semantic split: display for voice, body for fiction, mono for anything
+       a player counts. Shared by every theme — themes vary colour, not type. */
+    --font-display: 'Metamorphous', Georgia, serif;
+    --font-body: 'Spectral', Georgia, serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 
     /* quality tier colors */
     --q-broken:   #555566;
@@ -3421,12 +3535,10 @@ footer {
     --muted: #7a5a4a;
     --hp-green: #5a9e3a;
     --xp-blue: #4a7abf;
-    --font-display: 'Pirata One', serif;
-    --font-body: 'Crimson Pro', Georgia, serif;
 }
 
 [data-theme="grimdark"] h1 {
-    font-family: 'Cinzel', serif;
+    font-family: var(--font-display), serif;
     letter-spacing: 0.18em;
 }
 
@@ -3443,8 +3555,6 @@ footer {
     --muted: #6a6a99;
     --hp-green: #3ecf6a;
     --xp-blue: #3b82f6;
-    --font-display: 'Cinzel Decorative', 'Cinzel', serif;
-    --font-body: 'Cinzel', Georgia, serif;
 }
 
 /* ── Torchlight ── */
@@ -3468,8 +3578,6 @@ footer {
     --muted: #5a4b38;       /* §3 --ink-soft */
     --hp-green: #3a8a3a;
     --xp-blue: #4a6abf;
-    --font-display: 'Philosopher', Georgia, serif;
-    --font-body: 'Crimson Pro', Georgia, serif;
 }
 
 /* ── Inferno ── */
@@ -3485,12 +3593,10 @@ footer {
     --muted: #8a5028;
     --hp-green: #3a9838;
     --xp-blue: #4080e8;
-    --font-display: 'Pirata One', serif;
-    --font-body: 'Crimson Pro', Georgia, serif;
 }
 
 [data-theme="inferno"] h1 {
-    font-family: 'Cinzel', serif;
+    font-family: var(--font-display), serif;
     letter-spacing: 0.18em;
     text-shadow: 0 0 16px #ff6520, 0 0 38px rgba(255,101,32,0.55), 0 0 80px rgba(255,60,0,0.2);
 }
@@ -3555,8 +3661,6 @@ footer {
     --muted: #5a4a8a;
     --hp-green: #10b981;
     --xp-blue: #3b82f6;
-    --font-display: 'Cinzel Decorative', serif;
-    --font-body: 'Cinzel', serif;
 }
 [data-theme="void-rift"] h1 {
     text-shadow: 0 0 16px #7c3aed, 0 0 40px rgba(6,182,212,0.4), 0 0 80px rgba(124,58,237,0.2);
@@ -3590,11 +3694,9 @@ footer {
     --muted: #8a3a48;
     --hp-green: #16a34a;
     --xp-blue: #1d4ed8;
-    --font-display: 'Pirata One', serif;
-    --font-body: 'Crimson Pro', Georgia, serif;
 }
 [data-theme="bloodmoon"] h1 {
-    font-family: 'Cinzel', serif;
+    font-family: var(--font-display), serif;
     letter-spacing: 0.18em;
     text-shadow: 0 0 16px #dc143c, 0 0 40px rgba(220,20,60,0.4), 0 0 80px rgba(180,10,30,0.2);
 }
@@ -3632,8 +3734,6 @@ footer {
     --muted: #4a7a9a;
     --hp-green: #2dd4bf;
     --xp-blue: #60a5fa;
-    --font-display: 'Cinzel', serif;
-    --font-body: 'Crimson Pro', Georgia, serif;
 }
 [data-theme="frost-crypt"] h1 {
     letter-spacing: 0.15em;
@@ -3668,11 +3768,9 @@ footer {
     --muted: #4a7a4a;
     --hp-green: #22c55e;
     --xp-blue: #60a5fa;
-    --font-display: 'Pirata One', serif;
-    --font-body: 'Crimson Pro', Georgia, serif;
 }
 [data-theme="necropolis"] h1 {
-    font-family: 'Cinzel', serif;
+    font-family: var(--font-display), serif;
     letter-spacing: 0.18em;
     text-shadow: 0 0 16px #4ade80, 0 0 40px rgba(74,222,128,0.35), 0 0 80px rgba(163,230,53,0.15);
 }
@@ -3822,7 +3920,7 @@ footer {
 }
 
 .tt-name {
-    font-family: 'Cinzel', serif;
+    font-family: var(--font-display), serif;
     font-size: 0.82rem;
     font-weight: 600;
     letter-spacing: 0.03em;
@@ -5789,3 +5887,15 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
 .spr-heart     { background-position:  -32px  -656px; } /* r41 c2  red heart      */
 .spr-ring      { background-position:  -80px -1840px; } /* r115 c5 ring+gem       */
 .spr-helmet    { background-position:    0px -2000px; } /* r125 c0 orange hat     */
+
+/* ── §3: anything a player counts ──────────────────────────────────────────
+   Mono, tabular figures so digits don't jitter as values tick. See #54. */
+#stat-gold, #stat-idle-rate, #stat-dungeon-num, #stat-level, #stat-best,
+#stat-kills, #stat-deaths, #stat-corruption-dps, #stat-party-hp, #stat-party-dps,
+#enemy-hp-text, #mobile-party-hp-text,
+#depth-label-top, #depth-label-bottom, #depth-current-label, #depth-highest-label,
+#lt-kills, #lt-deaths, #lt-best, #lt-prestiges, #lt-dungeon,
+.pdd-val, .stat-row span:last-child {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+}
