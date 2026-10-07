@@ -4,6 +4,14 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.39.0 — 2026-10-07
+
+- Labels and secondary text are readable in every theme — Void Rift, Bloodmoon, Inferno, Grimdark and Arcane were too faint
+- If your device is set to reduce motion, pulsing borders, glows and bars now hold still
+- Return to Town, HP bars and item tooltips now follow your theme's colours instead of Torchlight's
+- Disabled buttons stay readable: you can see an upgrade's price before you can afford it, and the unlock level on Return to Town and Venture
+- Upgrades you can't afford yet show their price in red
+
 ## v2.38.0 — 2026-10-07
 
 - Labels in the Torchlight theme are readable again — muted text was nearly invisible on the dark panels

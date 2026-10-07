@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.38.0";
+export const VERSION = "v2.39.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,17 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.39.0",
+    date: "2026-10-07",
+    changes: [
+      "Labels and secondary text are readable in every theme — Void Rift, Bloodmoon, Inferno, Grimdark and Arcane were too faint",
+      "If your device is set to reduce motion, pulsing borders, glows and bars now hold still",
+      "Return to Town, HP bars and item tooltips now follow your theme's colours instead of Torchlight's",
+      "Disabled buttons stay readable: you can see an upgrade's price before you can afford it, and the unlock level on Return to Town and Venture",
+      "Upgrades you can't afford yet show their price in red",
+    ],
+  },
   {
     version: "v2.38.0",
     date: "2026-10-07",

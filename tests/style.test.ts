@@ -36,17 +36,111 @@ function contrast(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-describe("torchlight legibility", () => {
-  const torch = block('[data-theme="torchlight"]');
+/** Every theme's token block, plus the unthemed `:root` fallback. */
+const THEMES: [string, string][] = [
+  [":root", block(":root")],
+  ...[...styleCss.matchAll(/\n\[data-theme="([a-z-]+)"\]\s*\{([^}]*)\}/g)].map(
+    (m): [string, string] => [m[1], m[2]],
+  ),
+];
 
-  // §3's --ink-soft is for text *on parchment*. As --muted on --bg-1 it was
-  // ~2.2:1 — every label in the header and sidebar was near-invisible.
-  it("muted text clears WCAG AA against the panel surface", () => {
-    expect(contrast(prop(torch, "--muted"), prop(torch, "--surface"))).toBeGreaterThanOrEqual(4.5);
+describe("muted text legibility (#65)", () => {
+  it("finds all eight themes", () => {
+    expect(THEMES.length).toBe(9);
   });
 
-  it("muted text stays quieter than primary text", () => {
-    expect(luminance(prop(torch, "--muted"))).toBeLessThan(luminance(prop(torch, "--text")));
+  // --muted carries every label, cost and inactive tab. Torchlight's was ~2.2:1
+  // until v2.38.0; five other themes were below 3.2:1 until #65.
+  for (const [name, body] of THEMES) {
+    describe(name, () => {
+      for (const surface of ["--surface", "--surface2"]) {
+        it(`clears WCAG AA against ${surface}`, () => {
+          expect(contrast(prop(body, "--muted"), prop(body, surface))).toBeGreaterThanOrEqual(4.5);
+        });
+      }
+
+      it("stays quieter than primary text", () => {
+        expect(luminance(prop(body, "--muted"))).toBeLessThan(luminance(prop(body, "--text")));
+      });
+    });
+  }
+});
+
+describe("reduced motion (#67)", () => {
+  const m = styleCss.match(/@media \(prefers-reduced-motion: reduce\)\s*\{([\s\S]*?)\n\}/);
+
+  it("has a prefers-reduced-motion block", () => {
+    expect(m).not.toBeNull();
+  });
+
+  it("stops every animation looping and collapses transitions", () => {
+    const body = m![1];
+    expect(body).toMatch(/\*,\s*\*::before,\s*\*::after/);
+    expect(body).toMatch(/animation-iteration-count:\s*1\s*!important/);
+    expect(body).toMatch(/animation-duration:\s*0\.01ms\s*!important/);
+    expect(body).toMatch(/transition-duration:\s*0\.01ms\s*!important/);
+  });
+});
+
+describe("theme leaks (#66)", () => {
+  /** The stylesheet with every theme token block removed. */
+  const outsideThemes = styleCss
+    .replace(/\n:root\s*\{[^}]*\}/, "")
+    .replace(/\n\[data-theme="[a-z-]+"\]\s*\{[^}]*\}/g, "");
+
+  it.each([
+    ["#92620e", "Torchlight brown on the Return to Town button"],
+    ["#f87171", "fixed light-red highlight on HP bars"],
+    ["#ef4444", "fixed red on the low-HP mini bar"],
+    ["rgba(8, 6, 18", "blue-black tooltip background"],
+  ])("no %s (%s)", (literal) => {
+    expect(styleCss).not.toContain(literal);
+  });
+
+  // Purple is the artifact / greater-rune / elite signal — constant across
+  // themes like the quality tiers, but declared once rather than scattered.
+  it.each(["#7c3aed", "#8b5cf6", "#a78bfa", "139, ?92, ?246", "124, ?58, ?237"])(
+    "the arcane purple %s is only declared as a token, never inlined",
+    (literal) => {
+      const uses = outsideThemes.match(new RegExp(literal, "gi")) ?? [];
+      const fallbacks = outsideThemes.match(new RegExp(`var\\(--accent2, ${literal}\\)`, "gi")) ?? [];
+      expect(uses.length - fallbacks.length).toBe(0);
+    },
+  );
+
+  it("declares the arcane tokens", () => {
+    const root = block(":root");
+    expect(prop(root, "--arcane")).toBe("#8b5cf6");
+    expect(prop(root, "--arcane-deep")).toBe("#7c3aed");
+    expect(prop(root, "--arcane-soft")).toBe("#a78bfa");
+  });
+});
+
+describe("disabled controls (#72)", () => {
+  /** Every rule with a `:disabled` selector, one entry per selector. */
+  const disabled = [...styleCss.matchAll(/([^{}]+)\{([^}]*)\}/g)].flatMap((m) =>
+    m[1]
+      .split(",")
+      .map((sel) => sel.replace(/\/\*[\s\S]*?\*\//g, "").trim())
+      .filter((sel) => sel.includes(":disabled") && !sel.includes(":not(:disabled)"))
+      .map((sel) => [sel, m[2]]),
+  );
+
+  it("finds the disabled rules", () => {
+    expect(new Set(disabled.map(([sel]) => sel)).size).toBeGreaterThan(10);
+  });
+
+  // Fading a label to 30% drops it to ~1.5:1 — and the label is what tells the
+  // player the unlock level or the price.
+  it.each(disabled)("%s keeps its label legible", (_sel, body) => {
+    const op = body.match(/opacity:\s*([\d.]+)/);
+    if (op) expect(parseFloat(op[1])).toBeGreaterThanOrEqual(1);
+    expect(body).not.toMatch(/background:\s*var\(--border\)/);
+  });
+
+  it("marks an unaffordable upgrade price as short of gold", () => {
+    const rules = disabled.filter(([sel]) => sel === ".upgrade-btn:disabled").map(([, body]) => body);
+    expect(rules.some((body) => /color:[^;]*var\(--danger\)/.test(body))).toBe(true);
   });
 });
 
