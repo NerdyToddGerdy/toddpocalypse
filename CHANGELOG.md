@@ -4,6 +4,15 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.38.0 — 2026-10-07
+
+- Labels in the Torchlight theme are readable again — muted text was nearly invisible on the dark panels
+- Attack and Begin Adventure are now a torch-lit brass plate in your theme's colour, replacing the off-palette purple
+- Keyboard focus now shows a gold ring on every control
+- Buttons and inputs use the game's typefaces instead of the system font
+- Sign in with Google is a quieter outlined button, so Begin Adventure leads
+- Fixed: on phones, the Venture button pushed the page wider than the screen
+
 ## v2.37.0 — 2026-08-09
 
 - New typography throughout: Metamorphous for headings, Spectral for prose, JetBrains Mono for numbers

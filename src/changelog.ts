@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.37.0";
+export const VERSION = "v2.38.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,18 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.38.0",
+    date: "2026-10-07",
+    changes: [
+      "Labels in the Torchlight theme are readable again — muted text was nearly invisible on the dark panels",
+      "Attack and Begin Adventure are now a torch-lit brass plate in your theme's colour, replacing the off-palette purple",
+      "Keyboard focus now shows a gold ring on every control",
+      "Buttons and inputs use the game's typefaces instead of the system font",
+      "Sign in with Google is a quieter outlined button, so Begin Adventure leads",
+      "Fixed: on phones, the Venture button pushed the page wider than the screen",
+    ],
+  },
   {
     version: "v2.37.0",
     date: "2026-08-09",

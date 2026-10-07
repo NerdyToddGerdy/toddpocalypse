@@ -126,6 +126,11 @@
     --font-display: 'Metamorphous', Georgia, serif;
     --font-body: 'Spectral', Georgia, serif;
     --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+    /* §3 --focus. Shared by every theme: the ring must read on any of them. */
+    --focus: #f2c265;
+    /* Ink for text set on a filled --accent surface. Dark by default; themes
+       whose accent is too deep for dark ink override it. */
+    --on-accent: #1a1005;
 
     /* quality tier colors */
     --q-broken:   #555566;
@@ -184,6 +189,14 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 [hidden] { display: none !important; }
 button, select { touch-action: manipulation; }
+/* Form controls default to the OS sans; make them speak the page's face. */
+button, input, select, textarea { font-family: inherit; }
+
+/* §3: "Focus ring — always visible, never removed." */
+:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+}
 
 /* Fantasy display font applied to all headers and key UI labels */
 h1, h2, .stab-btn, .mobile-tab-btn span, #attack-btn, #skill-btn, .companion-skill-btn,
@@ -858,16 +871,38 @@ main {
     font-weight: 700;
     letter-spacing: 1px;
     text-transform: uppercase;
-    background: linear-gradient(135deg, #7c3aed, #4f46e5);
-    color: #fff;
-    border: none;
-    border-radius: 8px;
+    /* A brass plate lit from above: flame-bright at the top edge, falling
+       to the theme accent, then to shadow. Colour comes from the theme. */
+    background: linear-gradient(180deg,
+        color-mix(in srgb, var(--accent) 55%, #ffc06a) 0%,
+        var(--accent) 42%,
+        color-mix(in srgb, var(--accent) 62%, #000) 100%);
+    color: var(--on-accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 50%, #000);
+    border-radius: 6px;
     cursor: pointer;
-    transition: transform 0.08s, box-shadow 0.08s;
-    box-shadow: 0 4px 14px rgba(124,58,237,0.4);
+    text-shadow: 0 1px 0 color-mix(in srgb, var(--accent) 40%, #fff);
+    transition: transform 0.08s, box-shadow 0.12s, filter 0.12s;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 220, 160, 0.45),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.25),
+        0 0 18px color-mix(in srgb, var(--accent) 35%, transparent),
+        0 4px 10px rgba(0, 0, 0, 0.5);
 }
 
-#attack-btn:active { transform: scale(0.96); box-shadow: none; }
+#attack-btn:hover:not(:disabled) {
+    filter: brightness(1.08);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 220, 160, 0.55),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.25),
+        0 0 28px color-mix(in srgb, var(--accent) 55%, transparent),
+        0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+#attack-btn:active {
+    transform: translateY(1px) scale(0.98);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45);
+}
 #attack-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 #auto-attack-btn {
@@ -1183,7 +1218,7 @@ main {
   box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
 
-.ability-badge:focus { outline: none; }
+.ability-badge:focus:not(:focus-visible) { outline: none; }
 
 .gear-icon { text-align: center; }
 
@@ -1953,16 +1988,19 @@ main {
 .google-signin-btn {
     width: 100%;
     padding: 10px;
-    background: #4285f4;
-    color: #fff;
-    border: none;
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
     border-radius: 6px;
     font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
-    transition: opacity 0.15s;
+    transition: border-color 0.15s, background 0.15s;
 }
-.google-signin-btn:hover { opacity: 0.88; }
+.google-signin-btn:hover {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
 
 #class-picker {
     display: grid;
@@ -2006,19 +2044,28 @@ main {
 
 #start-btn {
     padding: 12px;
-    font-size: 1rem;
-    font-weight: 700;
-    letter-spacing: 1px;
+    font-family: var(--font-display), serif;
+    font-size: 1.05rem;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    background: linear-gradient(135deg, #7c3aed, #4f46e5);
-    color: #fff;
-    border: none;
-    border-radius: 8px;
+    /* Same brass plate as #attack-btn — the two primary actions match. */
+    background: linear-gradient(180deg,
+        color-mix(in srgb, var(--accent) 55%, #ffc06a) 0%,
+        var(--accent) 42%,
+        color-mix(in srgb, var(--accent) 62%, #000) 100%);
+    color: var(--on-accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 50%, #000);
+    border-radius: 6px;
     cursor: pointer;
-    transition: opacity 0.1s;
+    text-shadow: 0 1px 0 color-mix(in srgb, var(--accent) 40%, #fff);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 220, 160, 0.45),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.25),
+        0 0 18px color-mix(in srgb, var(--accent) 35%, transparent);
+    transition: filter 0.12s;
 }
 
-#start-btn:hover { opacity: 0.85; }
+#start-btn:hover { filter: brightness(1.08); }
 
 /* ── Floor progress (monsters left) ── */
 #floor-progress {
@@ -2432,6 +2479,8 @@ main {
     #action-btns #prestige-btn,
     #action-btns #venture-btn {
         flex: 1;
+        min-width: 0;
+        white-space: normal;
         text-align: center;
     }
 
@@ -3524,6 +3573,7 @@ footer {
 
 /* ── Grimdark ── */
 [data-theme="grimdark"] {
+    --on-accent: #fff;
     --bg: #090605;
     --surface: #120c0a;
     --surface2: #1c1210;
@@ -3575,7 +3625,8 @@ footer {
     --accent2: #2d7a3a;
     --danger: #a63c1d;      /* §3 --danger */
     --text: #e9ddc2;        /* §3 --parchment */
-    --muted: #5a4b38;       /* §3 --ink-soft */
+    --muted: #a8936f;       /* dimmed --parchment; §3 --ink-soft is for ink on paper,
+                               illegible on --bg-1. See docs/franchise-divergences.md */
     --hp-green: #3a8a3a;
     --xp-blue: #4a6abf;
 }
@@ -3614,11 +3665,6 @@ footer {
 }
 
 /* Fiery attack button */
-[data-theme="inferno"] #attack-btn {
-    background: linear-gradient(135deg, #e85010 0%, #9c1a00 100%);
-    box-shadow: 0 4px 18px rgba(232,80,16,0.5);
-}
-[data-theme="inferno"] #attack-btn:active { box-shadow: none; }
 
 /* Ember depth fill */
 [data-theme="inferno"] #depth-fill {
@@ -3650,6 +3696,7 @@ footer {
 
 /* ── Void Rift ── */
 [data-theme="void-rift"] {
+    --on-accent: #fff;
     --bg: #030308;
     --surface: #08080f;
     --surface2: #0d0d1a;
@@ -3683,6 +3730,7 @@ footer {
 
 /* ── Bloodmoon ── */
 [data-theme="bloodmoon"] {
+    --on-accent: #fff;
     --bg: #060102;
     --surface: #100205;
     --surface2: #1a040a;

@@ -35,6 +35,7 @@ The bible does not say where per-title divergences get recorded. This is that pl
 | §3 | Eight themes instead of one committed look | 🟢 **Settled** | #53 closed |
 | §3 | Palette token *names* not adopted | 🟡 Owed | #52 |
 | §3 | Typography — self-hosted franchise faces, shared by all themes | 🔵 Conformant | #54 |
+| §3 | Torchlight `--muted` is not `--ink-soft` | 🔵 Conformant | — |
 | §3 | No Die, stacked sheet, ruled paper | 🟡 Owed | #56 |
 | §5 | Hidden float multipliers, no visible tables | 🟡 Owed | #57 |
 | §5 | No depleting resource; prestige not permadeath | ⚪ Open | #58 |
@@ -164,6 +165,21 @@ does not survive it for `.css` files — the assertions pass vacuously against `
 back. This is why `@types/node` is now a devDependency and `"node"` is in `tsconfig` types, which
 in turn is why the four timer handles in `main.ts` are typed `ReturnType<typeof setTimeout>` rather
 than `number`.
+
+### §3 — torchlight `--muted` is a dimmed parchment, not `--ink-soft`
+
+Until v2.38.0 torchlight mapped `--muted` to §3 `--ink-soft` (`#5a4b38`). The bible defines that
+token as **secondary text on parchment** — dark ink on a light sheet. This game has no parchment
+sheet yet (#56), so `--muted` lands on `--bg-1` instead, at about 2.2:1. Every header label, upgrade
+cost and inactive tab was close to invisible.
+
+`--muted` is now `#a8936f` — `--parchment` dimmed, the same role `--ink-soft` plays on paper,
+inverted for a dark ground. It clears WCAG AA (≥ 4.5:1) on `--bg-1`, and `tests/style.test.ts`
+holds it there. **This is the right reading of §3, not a departure from it.** When #56 brings in a
+real parchment surface, text *on that surface* should use `--ink-soft` verbatim.
+
+Changed in the same release: `--focus` (`#f2c265`) is now defined and drawn on `:focus-visible`
+for every theme, as §3 requires.
 
 ### §1.5 — IP standing
 
