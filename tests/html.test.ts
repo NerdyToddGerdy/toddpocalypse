@@ -19,6 +19,8 @@ import {
   renderAutoSellerConfig,
   featRewardText,
   featTierList,
+  upgradeGridColumns,
+  mobileUpgradeButton,
 } from "../src/ui/html.js";
 import { GearItem } from "../src/gear.js";
 import type { GameStateDict } from "../src/engine.js";
@@ -239,5 +241,34 @@ describe("featTierList", () => {
 
   it("needs no tooltip to be understood", () => {
     expect(html).not.toContain("title=");
+  });
+});
+
+// Mobile/tablet audit #4: the upgrade grid always drew three hero columns, so a
+// lone hero sat beside two empty ones, and its upgrade levels weren't shown.
+describe("upgradeGridColumns", () => {
+  it.each([[1, 1], [2, 2], [3, 3], [4, 3], [6, 3]])("party of %i → %i columns", (n, cols) => {
+    expect(upgradeGridColumns(n)).toBe(cols);
+  });
+});
+
+describe("mobileUpgradeButton", () => {
+  const html = mobileUpgradeButton({ charName: "Hero", utype: "dps", label: "DPS", level: 2, cost: 1500, bonus: "+20%" });
+
+  it("keeps the upgrade action and its data", () => {
+    expect(html).toContain('data-action="upgrade"');
+    expect(html).toContain('data-char="Hero"');
+    expect(html).toContain('data-type="dps"');
+    expect(html).toContain('data-cost="1500"');
+  });
+
+  it("shows the price and the current level", () => {
+    expect(html).toContain("1,500g");
+    expect(html).toMatch(/Lv 2/);
+    expect(html).toContain("+20%");
+  });
+
+  it("still shows the level when there is no bonus yet", () => {
+    expect(mobileUpgradeButton({ charName: "Hero", utype: "dps", label: "DPS", level: 0, cost: 50, bonus: "" })).toMatch(/Lv 0/);
   });
 });

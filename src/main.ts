@@ -89,6 +89,8 @@ import {
   renderAutoSellerConfig,
   featRewardText,
   featTierList,
+  upgradeGridColumns,
+  mobileUpgradeButton,
   RUNE_ICONS,
   RUNE_STAT_LABELS,
   runeStatSummary,
@@ -1100,10 +1102,11 @@ function renderUpgrades(state: GameStateDict): void {
       .join("");
 
     // ── Mobile grid (stats down, heroes across, max 3 per group) ────────────
-    const CHUNK = 3;
+    const CHUNK = upgradeGridColumns(state.party.length);
     const statOrder = Object.keys(UPGRADE_LABELS);
     const gridEl = document.getElementById("upgrade-grid")!;
-    gridEl.style.gridTemplateColumns = `auto repeat(${CHUNK}, 1fr)`;
+    // Capped columns: on a tablet a price button shouldn't stretch to 300px+.
+    gridEl.style.gridTemplateColumns = `auto repeat(${CHUNK}, minmax(64px, 160px))`;
 
     let gridHtml = "";
     for (let start = 0; start < state.party.length; start += CHUNK) {
@@ -1127,13 +1130,10 @@ function renderUpgrades(state: GameStateDict): void {
           if (!c) { gridHtml += `<div class="ug-cell ug-empty"></div>`; continue; }
           const u = state.upgrades[c.name]?.[utype as keyof typeof state.upgrades[string]];
           if (!u) { gridHtml += `<div class="ug-cell ug-empty"></div>`; continue; }
-          const bonusVal = getMobileUpgradeValue(utype, u.level);
-          gridHtml += `<button class="upgrade-btn ug-btn"
-              data-action="upgrade"
-              data-char="${c.name}"
-              data-type="${utype}"
-              data-cost="${u.cost}"
-              title="${meta.label} — ${c.name} (Lv ${u.level})">${formatNumber(u.cost)}g${bonusVal ? `<span class="ug-btn-meta">${bonusVal}</span>` : ""}</button>`;
+          gridHtml += mobileUpgradeButton({
+            charName: c.name, utype, label: meta.label, level: u.level, cost: u.cost,
+            bonus: getMobileUpgradeValue(utype, u.level),
+          });
         }
       }
 
@@ -2494,10 +2494,10 @@ function updatePrestigeButton(state: GameStateDict): void {
   const btn = $("prestige-btn") as HTMLButtonElement;
   if (state.prestige_available) {
     btn.disabled = false;
-    btn.textContent = `★ Return to Town (+${state.prestige_points_preview} rn)`;
+    btn.innerHTML = `★ <span class="act-verb">Return to </span>Town (+${state.prestige_points_preview} rn)`;
   } else {
     btn.disabled = true;
-    btn.textContent = `★ Return to Town (need lv${20})`;
+    btn.innerHTML = `★ <span class="act-verb">Return to </span>Town (need lv${20})`;
   }
 }
 
@@ -2985,7 +2985,7 @@ function initMobileTabs(): void {
     allPanelIds.forEach(id => document.getElementById(id)?.classList.remove("tab-visible"));
     TAB_PANELS[tab]?.forEach(id => document.getElementById(id)?.classList.add("tab-visible"));
     tabs.forEach(btn => btn.classList.toggle("active", btn.dataset.tab === tab));
-    const isMobile = window.matchMedia("(max-width: 1280px)").matches;
+    const isMobile = window.matchMedia("(max-width: 1023px)").matches;
     combatSubBar.style.display = isMobile && tab === "combat" ? "flex" : "none";
     if (tab === "combat") applyCombatSubTab?.();
   }

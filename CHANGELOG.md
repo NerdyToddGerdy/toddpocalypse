@@ -4,6 +4,15 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.42.0 — 2026-10-07
+
+- Tablets in landscape and 1024–1280px laptops now get the full desktop layout instead of the phone one
+- Phones held sideways are playable: the header scrolls away and the bars along the bottom are slimmer, so your party and gear fit on screen
+- On phones, Return to Town is shortened to Town so both header buttons fit on one line, unlock level included
+- The Upgrade tab shows one column per hero you actually have, and each upgrade now shows its level
+- Bigger tap targets on touch screens for the gear toggle and the header buttons
+- Prestige and Guild no longer flash in the tab bar before they're unlocked
+
 ## v2.41.0 — 2026-10-07
 
 - Feats list each tier on its own line — Bronze, Silver, Gold — with the goal and the reward side by side, and the next one highlighted

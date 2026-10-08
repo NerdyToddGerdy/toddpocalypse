@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import indexHtml from "../public/index.html?raw";
 
 // Read from disk, not `?raw` — see the note in fonts.test.ts.
 const styleCss = readFileSync(
@@ -278,5 +279,110 @@ describe("desktop layout (#73)", () => {
 
   it("gold reads left-aligned like every other stat", () => {
     expect(prop(block("#stat-gold"), "text-align")).toBe("left");
+  });
+});
+
+const mainTs = readFileSync(fileURLToPath(new URL("../src/main.ts", import.meta.url)), "utf8");
+
+describe("breakpoints (mobile/tablet audit)", () => {
+  // The desktop grid fits from 1024px; at 1281px it locked every tablet and
+  // 1280px laptop into the phone layout.
+  it("desktop starts at 1024px, the phone layout ends at 1023px", () => {
+    expect(styleCss).not.toMatch(/128[01]px/);
+    expect(styleCss).toMatch(/@media \(min-width: 1024px\)/);
+    expect(styleCss).toMatch(/@media \(max-width: 1023px\)/);
+  });
+
+  it("main.ts agrees with the stylesheet", () => {
+    expect(mainTs).not.toMatch(/max-width: 1280px/);
+    expect(mainTs).toMatch(/matchMedia\("\(max-width: 1023px\)"\)/);
+  });
+});
+
+describe("bottom chrome", () => {
+  it("is sized by two variables instead of hard-coded offsets", () => {
+    expect(styleCss).not.toMatch(/calc\(96px/);
+    expect(bodiesFor("#enemy-panel").join(";")).toMatch(/bottom:\s*calc\(var\(--tabbar-h\) \+ var\(--hpbar-h\)\)/);
+    expect(bodiesFor("#mobile-party-hp-bar").join(";")).toMatch(/bottom:\s*var\(--tabbar-h\)/);
+    expect(bodiesFor("#mobile-tabs").join(";")).toMatch(/height:\s*var\(--tabbar-h\)/);
+  });
+});
+
+describe("landscape phones (#1)", () => {
+  const m = styleCss.match(/@media \(max-width: 1023px\) and \(max-height: 500px\)\s*\{([\s\S]*?)\n\}/);
+
+  it("has a short-screen block", () => {
+    expect(m).not.toBeNull();
+  });
+
+  // Header + enemy panel + HP bar + tabs filled all 390px; nothing else could show.
+  it("lets the header scroll away and shrinks the fixed chrome", () => {
+    const body = m![1];
+    expect(body).toMatch(/header\s*\{[^}]*position:\s*static/);
+    expect(body).toMatch(/body\s*\{[^}]*overflow:\s*visible/);
+    expect(body).toMatch(/--tabbar-h:\s*\d+px/);
+    expect(body).toMatch(/--hpbar-h:\s*\d+px/);
+    expect(body).toMatch(/#monster-portrait-wrap\s*\{[^}]*display:\s*none/);
+  });
+});
+
+describe("phone header (#3)", () => {
+  it("keeps the locked Return to Town / Venture buttons to one line", () => {
+    const m = styleCss.match(/@media \(max-width: 600px\)\s*\{([\s\S]*?)\n\}/);
+    expect(m).not.toBeNull();
+    expect(m![1]).toMatch(/#action-btns button\s*\{[^}]*white-space:\s*nowrap/);
+    expect(m![1]).toMatch(/text-overflow:\s*ellipsis/);
+  });
+});
+
+describe("touch targets (#5)", () => {
+  const m = styleCss.match(/@media \(pointer: coarse\)\s*\{([\s\S]*?)\n\}/);
+
+  it("enlarges small controls on touch screens", () => {
+    expect(m).not.toBeNull();
+    expect(m![1]).toMatch(/#party-gear-toggle\s*\{[^}]*min-width:\s*40px[^}]*min-height:\s*40px/);
+    expect(m![1]).toMatch(/#action-btns button\s*\{[^}]*min-height:\s*36px/);
+  });
+});
+
+describe("tab bar (#6)", () => {
+  // Prestige and Guild flashed in the bar during character creation, then vanished.
+  it.each(["prestige", "guild"])("the %s tab starts hidden until unlocked", (tab) => {
+    expect(indexHtml).toMatch(new RegExp(`<button class="mobile-tab-btn" data-tab="${tab}" hidden>`));
+  });
+});
+
+describe("paperdoll width", () => {
+  it("never spreads wider than a body's width of slots", () => {
+    expect(bodiesFor(".gear-pdoll-grid").join(";")).toMatch(/max-width:\s*\d+px/);
+  });
+});
+
+describe("narrow desktop, 1024–1279px", () => {
+  const m = styleCss.match(/@media \(min-width: 1024px\) and \(max-width: 1279px\)\s*\{([\s\S]*?)\n\}/);
+
+  // Moving the breakpoint down put a 1229px-wide header on 1024px screens.
+  it("wraps the stats onto their own header row", () => {
+    expect(m).not.toBeNull();
+    expect(m![1]).toMatch(/header\s*\{[^}]*flex-wrap:\s*wrap/);
+    expect(m![1]).toMatch(/#stats-bar\s*\{[^}]*width:\s*100%/);
+  });
+
+  it("only puts a lone hero's paperdoll beside the stats when there's room", () => {
+    expect(styleCss).toMatch(/@media \(min-width: 1200px\)\s*\{\s*\.char-card:only-child \{/);
+  });
+});
+
+describe("phone action labels (#3)", () => {
+  // Ellipsis alone cut "Return to Town (need lv20)" to "Return to Town (…" —
+  // dropping the unlock level, the one part worth reading.
+  it("wraps the droppable verb so phones can omit it", () => {
+    const labels = mainTs.match(/★ <span class="act-verb">Return to <\/span>Town/g) ?? [];
+    expect(labels.length).toBe(2);
+  });
+
+  it("hides that verb on phones", () => {
+    const m = styleCss.match(/@media \(max-width: 600px\)\s*\{([\s\S]*?)\n\}/);
+    expect(m![1]).toMatch(/\.act-verb\s*\{\s*display:\s*none/);
   });
 });

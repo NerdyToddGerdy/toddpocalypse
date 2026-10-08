@@ -495,3 +495,19 @@ export function featTierList(tiers: FeatTierView[]): string {
   }).join("");
   return `<ol class="feat-tier-list">${rows}</ol>`;
 }
+
+/** Heroes per row of the mobile upgrade grid: as many as you have, at most three. */
+export function upgradeGridColumns(partySize: number): number {
+  return Math.max(1, Math.min(3, partySize));
+}
+
+/** One cell of the mobile upgrade grid: the price, with the current level and bonus beneath. */
+export function mobileUpgradeButton(o: { charName: string; utype: string; label: string; level: number; cost: number; bonus: string }): string {
+  const meta = `Lv ${o.level}${o.bonus ? ` ${o.bonus}` : ""}`;
+  return `<button class="upgrade-btn ug-btn"
+      data-action="upgrade"
+      data-char="${o.charName}"
+      data-type="${o.utype}"
+      data-cost="${o.cost}"
+      title="${o.label} — ${o.charName} (Lv ${o.level})">${formatNumber(o.cost)}g<span class="ug-btn-meta">${meta}</span></button>`;
+}

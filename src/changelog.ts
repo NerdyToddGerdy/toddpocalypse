@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.41.0";
+export const VERSION = "v2.42.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,18 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.42.0",
+    date: "2026-10-07",
+    changes: [
+      "Tablets in landscape and 1024–1280px laptops now get the full desktop layout instead of the phone one",
+      "Phones held sideways are playable: the header scrolls away and the bars along the bottom are slimmer, so your party and gear fit on screen",
+      "On phones, Return to Town is shortened to Town so both header buttons fit on one line, unlock level included",
+      "The Upgrade tab shows one column per hero you actually have, and each upgrade now shows its level",
+      "Bigger tap targets on touch screens for the gear toggle and the header buttons",
+      "Prestige and Guild no longer flash in the tab bar before they're unlocked",
+    ],
+  },
   {
     version: "v2.41.0",
     date: "2026-10-07",

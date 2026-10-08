@@ -126,6 +126,9 @@
     --font-display: 'Metamorphous', Georgia, serif;
     --font-body: 'Spectral', Georgia, serif;
     --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+    /* Fixed bottom chrome on the phone layout: tab bar, then the party HP bar. */
+    --tabbar-h: 60px;
+    --hpbar-h: 36px;
     /* §3 --focus. Shared by every theme: the ring must read on any of them. */
     --focus: #f2c265;
     /* Ink for text set on a filled --accent surface. Dark by default; themes
@@ -567,7 +570,7 @@ header h1 {
     gap: 12px;
 }
 
-@media (max-width: 1280px) {
+@media (max-width: 1023px) {
     #settings-modal-box {
         width: 100%;
         height: 100%;
@@ -1533,7 +1536,7 @@ main {
 }
 
 /* Desktop: panels live inside the sidebar card — no individual borders */
-@media (min-width: 1281px) {
+@media (min-width: 1024px) {
     #upgrades-panel, #loot-panel, #prestige-panel, #guild-hall-panel, #feats-panel, #log-panel {
         display: none;
         background: none;
@@ -1753,7 +1756,7 @@ main {
 /* ── Mobile upgrade grid (hidden on desktop) ── */
 #upgrade-grid { display: none; }
 
-@media (max-width: 1280px) {
+@media (max-width: 1023px) {
     #upgrade-cards { display: none; }
     #upgrade-grid {
         display: grid;
@@ -2367,7 +2370,7 @@ main {
     display: none;
 }
 
-@media (max-width: 1280px) {
+@media (max-width: 1023px) {
     #settings-open-btn { display: none; }
 
     body {
@@ -2385,7 +2388,7 @@ main {
         gap: 12px;
         padding: 12px;
         padding-left: 56px; /* 44px gauge + 12px gap */
-        padding-bottom: calc(96px + var(--enemy-panel-h, 149px)); /* tracks live enemy panel height */
+        padding-bottom: calc(var(--tabbar-h) + var(--hpbar-h) + var(--enemy-panel-h, 149px)); /* tracks live enemy panel height */
         overflow-y: auto;
     }
 
@@ -2408,7 +2411,7 @@ main {
         flex-direction: column;
         align-items: center;
         /* top/bottom padding tracks live header + enemy panel heights via JS ResizeObserver */
-        padding: var(--header-h, 148px) 4px calc(96px + var(--enemy-panel-h, 149px));
+        padding: var(--header-h, 148px) 4px calc(var(--tabbar-h) + var(--hpbar-h) + var(--enemy-panel-h, 149px));
         gap: 4px;
         background: var(--surface);
         border-right: 1px solid var(--border);
@@ -2425,7 +2428,7 @@ main {
     #enemy-panel {
         display: flex !important;
         position: fixed;
-        bottom: 96px; /* sit above party hp bar (60px tab + 36px hp bar) */
+        bottom: calc(var(--tabbar-h) + var(--hpbar-h)); /* sit above the party HP bar */
         left: 0; right: 0;
         z-index: 50;
         border-radius: 0;
@@ -2441,9 +2444,9 @@ main {
     #mobile-party-hp-bar {
         display: flex;
         position: fixed;
-        bottom: 60px;
+        bottom: var(--tabbar-h);
         left: 0; right: 0;
-        height: 36px;
+        height: var(--hpbar-h);
         background: var(--surface);
         border-top: 1px solid var(--border);
         z-index: 51;
@@ -2508,7 +2511,6 @@ main {
     #action-btns #venture-btn {
         flex: 1;
         min-width: 0;
-        white-space: normal;
         text-align: center;
     }
 
@@ -2604,7 +2606,7 @@ main {
         background: var(--surface);
         border-top: 1px solid var(--border);
         z-index: 100;
-        height: 60px;
+        height: var(--tabbar-h);
     }
 
     .mobile-tab-btn {
@@ -3912,7 +3914,7 @@ footer {
 
 /* Desktop: the sidebar is one panel, so it carries the double rule and the
    sections it switches between don't repeat it (#71). */
-@media (min-width: 1281px) {
+@media (min-width: 1024px) {
     [data-theme] #sidebar {
         outline: 1px solid var(--border);
         outline-offset: -4px;
@@ -4148,7 +4150,7 @@ footer {
     color: var(--text);
 }
 
-@media (max-width: 1280px) {
+@media (max-width: 1023px) {
     .item-tooltip { display: none; }
 }
 
@@ -4156,7 +4158,7 @@ footer {
 .mic-overlay {
     display: none;
 }
-@media (max-width: 1280px) {
+@media (max-width: 1023px) {
     .mic-overlay {
         display: block;
         position: fixed;
@@ -5575,7 +5577,7 @@ footer {
 .retire-unlock-item { font-size: 0.82rem; color: var(--text); margin: 3px 0; }
 .retire-unlock-none { color: var(--muted); font-size: 0.8rem; text-align: center; padding: 8px 0; border-color: var(--border); background: none; }
 
-@media (max-width: 1280px) {
+@media (max-width: 1023px) {
     #party-rune-panel, #party-artifact-panel { grid-template-columns: 1fr; }
 }
 
@@ -5612,7 +5614,7 @@ footer {
 /* Toggle visibility based on data-left-sub attribute on <main> */
 main[data-left-sub="party"] #constellation-panel { display: none !important; }
 main[data-left-sub="stars"] #party-panel { display: none !important; }
-@media (max-width: 1280px) {
+@media (max-width: 1023px) {
     main[data-left-sub="stars"] #loot-panel { display: none !important; }
 }
 
@@ -5731,13 +5733,19 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
     grid-column: 1 / -1;
     grid-row: 2;
     padding: 6px 0 4px;
+    /* Three slot columns read as a body; on a tablet they'd spread edge to edge. */
+    max-width: 420px;
+    width: 100%;
+    margin-inline: auto;
 }
 
-/* Desktop, one hero (#73): the card takes the whole panel — portrait, stats
-   and abilities on the left, paperdoll beside them instead of underneath. */
-@media (min-width: 1281px) {
+/* Desktop, one hero (#73): the card takes the whole panel. From 1200px there's
+   room for the paperdoll beside portrait, stats and abilities, not under them. */
+@media (min-width: 1024px) {
+    .char-card:only-child { grid-column: 1 / -1; }
+}
+@media (min-width: 1200px) {
     .char-card:only-child {
-        grid-column: 1 / -1;
         grid-template-columns: 84px 1fr 120px minmax(280px, 1.2fr);
         grid-template-rows: auto auto 1fr;
         column-gap: 16px;
@@ -6031,3 +6039,49 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
 }
 
 .retire-btn:disabled { color: var(--muted) !important; }
+
+/* ── Phones (#3): keep the header to as few lines as possible ── */
+@media (max-width: 600px) {
+    #stats-bar { gap: 4px 10px; font-size: 0.76rem; }
+    /* "★ Town (need lv20)" — the unlock level matters more than the verb. */
+    .act-verb { display: none; }
+    #action-btns button {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 0.7rem;
+        padding: 6px 8px;
+    }
+}
+
+/* ── Touch screens (#5): no control smaller than a fingertip ── */
+@media (pointer: coarse) {
+    #party-gear-toggle { min-width: 40px; min-height: 40px; }
+    #action-btns button { min-height: 36px; }
+}
+
+/* ── Landscape phones (#1) ──
+   Header, enemy panel, HP bar and tab bar together were taller than the
+   screen. Here the page scrolls as a whole, so the header scrolls away, and
+   the fixed chrome along the bottom slims down. */
+@media (max-width: 1023px) and (max-height: 500px) {
+    :root { --tabbar-h: 44px; --hpbar-h: 24px; }
+    body { height: auto; overflow: visible; }
+    header { position: static; }
+    main { overflow: visible; padding-left: 12px; }
+    #depth-gauge { display: none; }
+    #monster-portrait-wrap { display: none; }
+    .mobile-tab-btn { flex-direction: row; gap: 6px; }
+    #attack-btn { padding: 4px 10px; }
+}
+
+/* ── Narrow desktop: tablets in landscape, small laptops ──
+   The one-row header needs ~1230px. Below that, stats and actions take a
+   second row under the wordmark, as they do on phones. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+    header { flex-wrap: wrap; row-gap: 10px; }
+    header h1 { order: 1; }
+    #header-avatar-area { order: 2; margin-left: auto; }
+    #stats-bar { order: 3; width: 100%; gap: 18px; }
+    #action-btns { margin-left: auto; }
+}
