@@ -4,6 +4,10 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.45.1 — 2026-10-08
+
+- Internal: links to the GerdQuest franchise bible point at its permanent home — no gameplay change
+
 ## v2.45.0 — 2026-10-08
 
 - The enemy panel no longer has an empty gap under the HP bar — on phones it’s about a fifth shorter, leaving more room for your party

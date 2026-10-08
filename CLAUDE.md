@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This game ships under the **GerdQuest** label, and the shared standard for every title lives in the
 flagship repo — not here:
 
-**https://github.com/NerdyToddGerdy/notequest_browser/blob/fix/runid-desync-and-rename/docs/franchise-bible.md**
+**https://github.com/NerdyToddGerdy/notequest_browser/blob/main/docs/franchise-bible.md**
 
 It is the single source of truth for the IP boundary (§1), naming (§2), visual identity (§3), voice
 (§4), design vocabulary (§5) and technical conventions (§6). **Do not vendor a copy into this repo.**
@@ -18,8 +18,8 @@ Two things to know when reading it:
 
 - It is written from *Realm of Depths*, so some conventions (React + Vite) describe that title rather
   than this one.
-- The link points at a **branch**. The bible is not on `main` yet, so this URL will need updating once
-  `fix/runid-desync-and-rename` merges. §8.3 proposes a shared repo as the long-term home.
+- The link points at the flagship repo's `main`. §8.3 proposes a shared repo as the long-term home; if
+  the bible moves there, update this link, `README.md` and `docs/franchise-divergences.md` together.
 
 ### Where this game differs — `docs/franchise-divergences.md`
 

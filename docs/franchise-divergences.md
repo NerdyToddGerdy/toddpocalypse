@@ -2,7 +2,7 @@
 
 The bible is the shared standard for every GerdQuest title and lives in the flagship repo:
 
-**https://github.com/NerdyToddGerdy/notequest_browser/blob/fix/runid-desync-and-rename/docs/franchise-bible.md**
+**https://github.com/NerdyToddGerdy/notequest_browser/blob/main/docs/franchise-bible.md**
 
 It is written from *Realm of Depths*, so some of it describes that title rather than this one. This
 file is the single record of every place *Idle Depths* differs, why, and whether the difference is
