@@ -4,6 +4,12 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.40.0 — 2026-10-07
+
+- New title lettering: a small GerdQuest label sits above Idle Depths, which now fits on one line
+- Ordinary enemies no longer leave an empty gap where the boss portrait goes
+- Tabs and choices are marked the same way everywhere: an underline for the tab you're on, an outline for the option you've picked
+
 ## v2.39.0 — 2026-10-07
 
 - Labels and secondary text are readable in every theme — Void Rift, Bloodmoon, Inferno, Grimdark and Arcane were too faint

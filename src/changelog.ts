@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.39.0";
+export const VERSION = "v2.40.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.40.0",
+    date: "2026-10-07",
+    changes: [
+      "New title lettering: a small GerdQuest label sits above Idle Depths, which now fits on one line",
+      "Ordinary enemies no longer leave an empty gap where the boss portrait goes",
+      "Tabs and choices are marked the same way everywhere: an underline for the tab you're on, an outline for the option you've picked",
+    ],
+  },
   {
     version: "v2.39.0",
     date: "2026-10-07",

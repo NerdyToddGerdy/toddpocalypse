@@ -91,3 +91,24 @@ describe("retired faces", () => {
     expect(indexHtml).not.toContain(face);
   });
 });
+
+/**
+ * §2: one heading holds both halves, so its accessible name is the full phrase;
+ * the series prefix is a <small> above the installment name. See #55.
+ */
+describe("two-tier wordmark", () => {
+  const headings = [...indexHtml.matchAll(/<(h[12])\b[^>]*class="[^"]*\bwordmark\b[^"]*"[^>]*>([\s\S]*?)<\/\1>/g)];
+
+  it("marks both the header and the start screen", () => {
+    expect(headings.map((m) => m[1]).sort()).toEqual(["h1", "h2"]);
+  });
+
+  it.each(headings.map((m) => [m[1], m[2]]))("%s carries <small>GerdQuest</small> then Idle Depths", (_tag, inner) => {
+    expect(inner).toMatch(/<small>GerdQuest<\/small>\s+Idle Depths/);
+    expect(inner).not.toContain("GerdQuest: Idle Depths");
+  });
+
+  it("leaves no flat colon-form heading behind", () => {
+    expect(indexHtml).not.toMatch(/<h[12][^>]*>[^<]*(<img[^>]*>)?\s*GerdQuest: Idle Depths/);
+  });
+});

@@ -120,8 +120,9 @@ describe("disabled controls (#72)", () => {
   /** Every rule with a `:disabled` selector, one entry per selector. */
   const disabled = [...styleCss.matchAll(/([^{}]+)\{([^}]*)\}/g)].flatMap((m) =>
     m[1]
+      .replace(/\/\*[\s\S]*?\*\//g, "")
       .split(",")
-      .map((sel) => sel.replace(/\/\*[\s\S]*?\*\//g, "").trim())
+      .map((sel) => sel.trim())
       .filter((sel) => sel.includes(":disabled") && !sel.includes(":not(:disabled)"))
       .map((sel) => [sel, m[2]]),
   );
@@ -169,5 +170,61 @@ describe("controls", () => {
   it("draws the §3 focus ring on keyboard focus", () => {
     expect(prop(block(":focus-visible"), "outline")).toContain("var(--focus)");
     expect(styleCss).toMatch(/--focus:\s*#f2c265;/);
+  });
+});
+
+/** Every declaration body for an exact selector, wherever it appears (grouped or in @media). */
+function bodiesFor(selector: string): string[] {
+  return [...styleCss.matchAll(/([^{}]+)\{([^}]*)\}/g)]
+    .filter((m) => m[1].replace(/\/\*[\s\S]*?\*\//g, "").split(",").map((s) => s.trim()).includes(selector))
+    .map((m) => m[2]);
+}
+
+describe("active states (#69)", () => {
+  // Navigation switches the view: underline in --accent, label in --text, no fill.
+  const NAV = [
+    ".stab-btn.active", ".loot-stab.active", ".combat-stab.active", ".mobile-tab-btn.active",
+    ".lcol-stab.active", ".ptab-btn.active", ".profile-tab-btn.active",
+  ];
+  // A choice picks a value: --accent outline over a faint --accent wash.
+  const CHOICE = [
+    ".class-btn.selected", ".feats-filter-btn.active", ".theme-btn.active",
+    ".title-chip.active", ".profile-pick-btn.active",
+  ];
+
+  it.each(NAV)("%s is an accent underline with primary text", (sel) => {
+    const all = bodiesFor(sel).join(";");
+    expect(all, sel).not.toBe("");
+    expect(all).not.toContain("--accent2");
+    expect(all).toMatch(/color:\s*var\(--text\)/);
+    expect(all).toMatch(/border-(bottom|top)-color:\s*var\(--accent\)/);
+    expect(all).not.toMatch(/background(-color)?:\s*(?!none|transparent)/);
+  });
+
+  it.each(CHOICE)("%s is an accent outline with a faint wash", (sel) => {
+    const all = bodiesFor(sel).join(";");
+    expect(all, sel).not.toBe("");
+    expect(all).not.toContain("--accent2");
+    expect(all).toMatch(/border-color:\s*var\(--accent\)/);
+    expect(all).toMatch(/background:\s*color-mix\(in srgb, var\(--accent\) \d+%, transparent\)/);
+    expect(all).toMatch(/color:\s*var\(--text\)/);
+  });
+});
+
+describe("enemy portrait column (#68)", () => {
+  // The portrait is boss/elite only; for everything else the column must leave
+  // the layout rather than sit there invisible.
+  it("drops out of the layout when no boss or elite portrait is showing", () => {
+    const body = bodiesFor("#monster-portrait-wrap:not(.boss-visible):not(.boss-exiting)").join(";");
+    expect(body).toMatch(/display:\s*none/);
+  });
+});
+
+describe("wordmark (#55)", () => {
+  it("styles the series prefix small, uppercase and letter-spaced", () => {
+    const body = bodiesFor(".wordmark small").join(";");
+    expect(body).toMatch(/text-transform:\s*uppercase/);
+    expect(body).toMatch(/letter-spacing:/);
+    expect(body).toMatch(/font-size:\s*0?\.\d+em/);
   });
 });

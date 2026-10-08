@@ -31,7 +31,7 @@ The bible does not say where per-title divergences get recorded. This is that pl
 | --- | --- | --- | --- |
 | §1.5 | IP standing — inspired-by, not adapted-from | 🔵 Conformant (audited 2026-08-05) | #49, #50 |
 | §2 | Name collides with a live idle game | 🟢 Settled (knowingly) | #51 closed |
-| §2 | Wordmark is flat, not two-tier | 🟡 Owed | #55 |
+| §2 | Two-tier wordmark — prefix in mono, not display | 🔵 Conformant | #55 |
 | §3 | Eight themes instead of one committed look | 🟢 **Settled** | #53 closed |
 | §3 | Palette token *names* not adopted | 🟡 Owed | #52 |
 | §3 | Typography — self-hosted franchise faces, shared by all themes | 🔵 Conformant | #54 |
@@ -181,6 +181,23 @@ real parchment surface, text *on that surface* should use `--ink-soft` verbatim.
 Changed in the same release: `--focus` (`#f2c265`) is now defined and drawn on `:focus-visible`
 for every theme, as §3 requires.
 
+### §2 — the two-tier wordmark
+
+Adopted in v2.40.0 (#55). The header `<h1>` and the start-screen `<h2>` both read
+`<small>GerdQuest</small> Idle Depths`, so each heading's accessible name is the full phrase and no
+colon form remains. `tests/fonts.test.ts` holds the markup.
+
+Two details that look like deviations and are not:
+
+- **The prefix is set in JetBrains Mono**, not Metamorphous. §2 asks for "small, uppercase,
+  letter-spaced"; §3's eyebrow motif is "a small mono uppercase label" and names the wordmark as one
+  of its uses. Mono is the reading that satisfies both.
+- **Styles live under `.wordmark small` in `style.css`**, not a `.module.css` — this title has no
+  CSS modules (see §6 below).
+
+The page `<title>` keeps `GerdQuest: Idle Depths`. A tab title is one line of plain text with no
+second tier to put the prefix in, and the colon is the conventional separator there.
+
 ### §1.5 — IP standing
 
 Original work inspired by Clickpocalypse II; not an adaptation, carries no attribution obligation,
@@ -256,8 +273,6 @@ matter.
 
 Each is tracked; this section is a pointer, not a duplicate of the issue.
 
-- **§2 wordmark** (#55) — flat `<h1>` with a colon instead of the two-tier `<small>GerdQuest</small>`
-  form. Matters for looking like a sibling title on a shared landing page.
 - **§3 palette** (#52) — the §3 *values* are live in `torchlight`, but the token *names*
   (`--bg-0`, `--parchment`, `--ink`…) and a real `src/ui/theme/tokens.css` are not. Currently
   `--bg` / `--surface` / `--accent` / `--text`.
