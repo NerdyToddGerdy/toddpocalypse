@@ -374,7 +374,7 @@ header h1 {
 
 #stats-bar span { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
 #stats-bar > div { white-space: nowrap; }
-#stat-gold { min-width: 6ch; display: inline-block; text-align: right; }
+#stat-gold { min-width: 6ch; display: inline-block; text-align: left; }
 
 #stat-party-hp-wrap { display: none; }
 #stat-party-dps-wrap { display: none; }
@@ -1008,11 +1008,22 @@ main {
 .ptab-btn:hover { color: var(--text); }
 .ptab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
 
-#party-panel h2 {
+/* Every panel title — one style (#71). */
+#party-panel h2,
+#upgrades-panel h2,
+#loot-panel h2,
+#feats-panel h2,
+#prestige-panel h2,
+#guild-hall-panel h2,
+#log-panel h2 {
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 1.5px;
     color: var(--muted);
+    margin-bottom: 10px;
+}
+
+#party-panel h2 {
     margin-bottom: 12px;
     display: flex;
     align-items: center;
@@ -1046,7 +1057,7 @@ main {
 
 .char-card {
     background: var(--surface2);
-    border: 1px solid var(--border);
+    border: 1px solid color-mix(in srgb, var(--border) 45%, transparent);
     border-radius: 8px;
     padding: 12px 14px;
     transition: opacity 0.3s, filter 0.3s;
@@ -1429,8 +1440,9 @@ main {
     border-radius: 10px;
     overflow: hidden;
     position: sticky;
-    top: 16px;
-    max-height: calc(100vh - 32px);
+    /* Clear the sticky header, not just the viewport edge (#73). */
+    top: calc(var(--header-h, 80px) + 16px);
+    max-height: calc(100vh - var(--header-h, 80px) - 32px);
 }
 
 /* ── Sidebar tab strip ── */
@@ -1593,12 +1605,6 @@ main {
 
 .sell-all-btn:hover:not(:disabled) { background: var(--accent); color: #0e0e14; }
 
-#loot-panel h2, #upgrades-panel h2 {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--muted);
-}
 
 #loot-count { color: var(--accent2); font-weight: 600; }
 
@@ -1617,7 +1623,7 @@ main {
 
 .loot-item {
     background: var(--surface2);
-    border: 1px solid var(--border);
+    border: 1px solid color-mix(in srgb, var(--border) 45%, transparent);
     border-radius: 7px;
     padding: 7px 10px;
     margin-bottom: 6px;
@@ -1701,11 +1707,10 @@ main {
 
 /* ── Upgrades ── */
 .upgrade-card {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    padding: 8px 10px;
-    margin-bottom: 8px;
+    background: none;
+    border: none;
+    padding: 0;
+    margin-bottom: 16px;
 }
 
 .upgrade-char-name {
@@ -1818,13 +1823,6 @@ main {
     overflow: hidden;
 }
 
-#log-panel h2 {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--muted);
-    margin-bottom: 10px;
-}
 
 #combat-log { font-size: 0.82rem; line-height: 1.7; }
 
@@ -2665,13 +2663,6 @@ main {
     overflow-y: auto;
 }
 
-#prestige-panel h2 {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--muted);
-    margin-bottom: 10px;
-}
 
 #prestige-points-display {
     color: var(--accent);
@@ -2758,13 +2749,6 @@ main {
     overflow-y: auto;
 }
 
-#guild-hall-panel h2 {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--muted);
-    margin-bottom: 10px;
-}
 
 /* Guild hall reuses .prestige-item / .prestige-item-meta / .prestige-item-name / .prestige-item-desc */
 .guild-buy-btn {
@@ -2825,8 +2809,8 @@ main {
 .feat-card {
     background: var(--card);
     border-radius: 6px;
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--border);
+    border: 1px solid color-mix(in srgb, var(--border) 45%, transparent);
+    border-left: 3px solid color-mix(in srgb, var(--border) 45%, transparent);
     padding: 9px 10px;
     margin-bottom: 6px;
 }
@@ -2860,45 +2844,37 @@ main {
 .feat-desc { font-size: 0.68rem; color: var(--muted); line-height: 1.35; }
 
 /* ── Reward chips ── */
-.feat-rewards { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
-.feat-reward-chip {
-    font-size: 0.62rem;
-    font-weight: 600;
-    padding: 2px 7px;
-    border-radius: 10px;
-    background: color-mix(in srgb, var(--accent2, #a78bfa) 12%, transparent);
-    color: var(--accent2, #a78bfa);
-    border: 1px solid color-mix(in srgb, var(--accent2, #a78bfa) 35%, transparent);
-}
-.feat-reward-chip.reward-bronze { background: color-mix(in srgb, #cd7f32 15%, transparent); color: #cd7f32; border-color: color-mix(in srgb, #cd7f32 40%, transparent); }
-.feat-reward-chip.reward-silver { background: color-mix(in srgb, #c0c0c0 15%, transparent); color: #c0c0c0; border-color: color-mix(in srgb, #c0c0c0 40%, transparent); }
-.feat-reward-chip.reward-gold   { background: color-mix(in srgb, #ffd700 15%, transparent); color: #c8a800; border-color: color-mix(in srgb, #ffd700 40%, transparent); }
+/* ── Tiers (#70): one row per medal — medal, goal, reward ── */
+.feat-reward { font-size: 0.72rem; color: var(--text); margin-top: 5px; }
 
-/* ── Tier pips ── */
-.feat-tiers { display: flex; gap: 5px; margin-top: 7px; }
-.feat-tier-pip {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1px;
-    padding: 3px 8px;
-    border-radius: 5px;
-    border: 1.5px solid var(--border);
-    background: var(--bg);
-    min-width: 36px;
-    cursor: default;
+.feat-tier-list {
+    list-style: none;
+    margin: 7px 0 2px;
+    display: grid;
+    gap: 2px;
 }
-.feat-tier-letter { font-size: 0.6rem; font-weight: 700; color: var(--muted); line-height: 1; }
-.feat-tier-thresh { font-size: 0.58rem; color: var(--muted); line-height: 1; }
-.feat-tier-pip.bronze-done { background: color-mix(in srgb, #cd7f32 20%, transparent); border-color: #cd7f32; }
-.feat-tier-pip.bronze-done .feat-tier-letter,
-.feat-tier-pip.bronze-done .feat-tier-thresh { color: #cd7f32; }
-.feat-tier-pip.silver-done { background: color-mix(in srgb, #c0c0c0 20%, transparent); border-color: #c0c0c0; }
-.feat-tier-pip.silver-done .feat-tier-letter,
-.feat-tier-pip.silver-done .feat-tier-thresh { color: #c0c0c0; }
-.feat-tier-pip.gold-done { background: color-mix(in srgb, #ffd700 20%, transparent); border-color: #c8a800; }
-.feat-tier-pip.gold-done .feat-tier-letter,
-.feat-tier-pip.gold-done .feat-tier-thresh { color: #c8a800; }
+.feat-tier {
+    --medal: var(--muted);
+    display: grid;
+    grid-template-columns: 4.6em 4.2em 1fr;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 0.72rem;
+    color: var(--muted);
+}
+.feat-tier--bronze { --medal-hue: #cd7f32; }
+.feat-tier--silver { --medal-hue: #c0c0c0; }
+.feat-tier--gold   { --medal-hue: #d4b106; }
+.feat-tier.is-done,
+.feat-tier.is-next { --medal: var(--medal-hue); color: var(--text); }
+.feat-tier-medal { color: var(--medal); font-weight: 600; }
+.feat-tier.is-done .feat-tier-medal::before { content: "✓ "; }
+.feat-tier-goal {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+.feat-tier.is-done .feat-tier-reward { color: var(--muted); }
 
 /* ── Progress ── */
 .feat-progress-wrap {
@@ -3932,6 +3908,22 @@ footer {
 [data-theme] #settings-panel {
     outline: 1px solid var(--border);
     outline-offset: -4px;
+}
+
+/* Desktop: the sidebar is one panel, so it carries the double rule and the
+   sections it switches between don't repeat it (#71). */
+@media (min-width: 1281px) {
+    [data-theme] #sidebar {
+        outline: 1px solid var(--border);
+        outline-offset: -4px;
+    }
+    [data-theme] #sidebar > section { outline: none; }
+}
+
+/* A tab bar with one visible tab is a label, not navigation (#71). */
+#loot-subtab-nav:not(:has(.loot-stab:not([hidden]) ~ .loot-stab:not([hidden]))),
+#party-panel-tabs:not(:has(.ptab-btn:not([hidden]) ~ .ptab-btn:not([hidden]))) {
+    display: none;
 }
 
 [data-theme] #enemy-name {
@@ -5739,6 +5731,32 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
     grid-column: 1 / -1;
     grid-row: 2;
     padding: 6px 0 4px;
+}
+
+/* Desktop, one hero (#73): the card takes the whole panel — portrait, stats
+   and abilities on the left, paperdoll beside them instead of underneath. */
+@media (min-width: 1281px) {
+    .char-card:only-child {
+        grid-column: 1 / -1;
+        grid-template-columns: 84px 1fr 120px minmax(280px, 1.2fr);
+        grid-template-rows: auto auto 1fr;
+        column-gap: 16px;
+    }
+    /* Three rows instead of five, so the paperdoll is no taller than the
+       stats beside it. Head and body stay on the centre line. */
+    .char-card:only-child .gear-pdoll-grid {
+        grid-column: 4;
+        grid-row: 1 / span 3;
+        grid-template-areas:
+            "main_hand helmet off_hand"
+            "ring1     chest  ring2"
+            "gloves    legs   shoes";
+        padding: 0;
+    }
+    .char-card:only-child .char-abilities,
+    .char-card:only-child .char-gear,
+    .char-card:only-child .char-set-bonuses { grid-column: 1 / 4; }
+    #party-panel.gear-hidden .char-card:only-child { grid-template-columns: 84px 1fr 120px; }
 }
 
 .gear-pdoll-cell {

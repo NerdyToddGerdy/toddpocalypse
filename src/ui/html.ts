@@ -4,6 +4,10 @@
  * take serialized state and return markup strings, which keeps them unit-testable.
  */
 import {
+  type AchievementReward,
+  type AchievementTierLabel,
+  AVATAR_DEFS,
+  BORDER_DEFS,
   CLICK_UPGRADE_EFFECT,
   DEFENSE_UPGRADE_EFFECT,
   DPS_UPGRADE_EFFECT,
@@ -449,4 +453,45 @@ export function buildArtifactTooltipHTML(a: { id: string; level: number; name: s
     <div class="tt-divider"></div>
     <div class="tt-stats"><div class="tt-stat-row"><span class="tt-stat-label">${a.stat || "No effect"}</span></div></div>
   `;
+}
+
+/** A reward in plain words: "+500 gold", "Title “Slayer”", "🐉 Dragon Slayer avatar". */
+export function featRewardText(r: AchievementReward): string {
+  if (r.type === "gold") return `+${formatNumber(r.value ?? 0)} gold`;
+  if (r.type === "title") return `Title “${r.title}”`;
+  if (r.type === "avatar") {
+    const a = AVATAR_DEFS.find(x => x.id === r.cosmetic);
+    return `${a ? `${a.icon} ${a.name}` : r.cosmetic} avatar`;
+  }
+  if (r.type === "border") {
+    const b = BORDER_DEFS.find(x => x.id === r.cosmetic);
+    return `${b?.name ?? r.cosmetic} border`;
+  }
+  return "";
+}
+
+/** One feat tier as the renderer sees it. */
+export interface FeatTierView {
+  label: AchievementTierLabel;
+  threshold: number;
+  reward?: AchievementReward;
+  done: boolean;
+}
+
+/**
+ * A feat's tiers as an ordered list — medal, goal and reward on one row, so the
+ * card reads without a tooltip. The first unearned tier is marked as next.
+ */
+export function featTierList(tiers: FeatTierView[]): string {
+  const next = tiers.find(t => !t.done);
+  const rows = tiers.map(t => {
+    const state = t.done ? " is-done" : t === next ? " is-next" : "";
+    const reward = t.reward ? featRewardText(t.reward) : "";
+    return `<li class="feat-tier feat-tier--${t.label}${state}">
+      <span class="feat-tier-medal">${t.label[0].toUpperCase() + t.label.slice(1)}</span>
+      <span class="feat-tier-goal">${formatNumber(t.threshold)}</span>
+      <span class="feat-tier-reward">${reward}</span>
+    </li>`;
+  }).join("");
+  return `<ol class="feat-tier-list">${rows}</ol>`;
 }

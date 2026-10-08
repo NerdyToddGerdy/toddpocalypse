@@ -17,6 +17,8 @@ import {
   guildUpgradePreview,
   runeStatSummary,
   renderAutoSellerConfig,
+  featRewardText,
+  featTierList,
 } from "../src/ui/html.js";
 import { GearItem } from "../src/gear.js";
 import type { GameStateDict } from "../src/engine.js";
@@ -173,5 +175,69 @@ describe("renderAutoSellerConfig", () => {
     expect(html).toContain('data-quality="broken" checked');
     expect(html).toContain('data-quality="worn"');
     expect(html).not.toContain('data-quality="divine"');
+  });
+});
+
+
+// #70: feat tiers used to be a letter (B/S/G) over a number, with rewards in a
+// separate row of letter-prefixed chips; the meaning lived only in a tooltip.
+describe("featRewardText", () => {
+  it("names gold in words, not the g suffix that collides with Gold tier", () => {
+    expect(featRewardText({ type: "gold", value: 500 })).toBe("+500 gold");
+  });
+
+  it("labels a title as a title", () => {
+    expect(featRewardText({ type: "title", title: "Slayer" })).toBe("Title “Slayer”");
+  });
+
+  it("resolves an avatar to its icon and name", () => {
+    expect(featRewardText({ type: "avatar", cosmetic: "dragon" })).toMatch(/Dragon Slayer avatar$/);
+  });
+
+  it("resolves a border to its name", () => {
+    expect(featRewardText({ type: "border", cosmetic: "iron" })).toBe("Iron border");
+  });
+
+  it("returns empty for a reward it cannot describe", () => {
+    expect(featRewardText({ type: "prestige_points", value: 1 })).toBe("");
+  });
+});
+
+describe("featTierList", () => {
+  const tiers = [
+    { label: "bronze" as const, threshold: 100, reward: { type: "gold" as const, value: 500 }, done: true },
+    { label: "silver" as const, threshold: 1000, reward: { type: "border" as const, cosmetic: "iron" }, done: false },
+    { label: "gold" as const, threshold: 10000, done: false },
+  ];
+  const html = featTierList(tiers);
+  const rows = [...html.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)];
+
+  it("is an ordered list, one row per tier", () => {
+    expect(html.startsWith("<ol")).toBe(true);
+    expect(rows).toHaveLength(3);
+  });
+
+  it("spells out each medal", () => {
+    expect(rows[0][1]).toContain("Bronze");
+    expect(rows[1][1]).toContain("Silver");
+    expect(rows[2][1]).toContain("Gold");
+    expect(html).not.toMatch(/>[BSG]:? </);
+  });
+
+  it("puts each tier's goal and reward on the same row", () => {
+    expect(rows[0][1]).toContain("100");
+    expect(rows[0][1]).toContain("+500 gold");
+    expect(rows[1][1]).toContain("1,000");
+    expect(rows[1][1]).toContain("Iron border");
+  });
+
+  it("marks earned tiers done and the first unearned one as next", () => {
+    expect(rows[0][0]).toContain("is-done");
+    expect(rows[1][0]).toContain("is-next");
+    expect(rows[2][0]).not.toMatch(/is-done|is-next/);
+  });
+
+  it("needs no tooltip to be understood", () => {
+    expect(html).not.toContain("title=");
   });
 });

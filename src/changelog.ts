@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.40.0";
+export const VERSION = "v2.41.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,18 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.41.0",
+    date: "2026-10-07",
+    changes: [
+      "Feats list each tier on its own line — Bronze, Silver, Gold — with the goal and the reward side by side, and the next one highlighted",
+      "Feat rewards are written out: +500 gold, Title “Slayer”, Iron border",
+      "Fewer boxes inside boxes: upgrade groups, loot, feats and hero cards sit on lighter lines, and every panel title matches",
+      "Tab bars with only one tab are hidden until there's something to switch to",
+      "With a single hero on desktop, the hero card spans the panel with the equipment beside it",
+      "The sidebar no longer slides under the header when it sticks",
+    ],
+  },
   {
     version: "v2.40.0",
     date: "2026-10-07",

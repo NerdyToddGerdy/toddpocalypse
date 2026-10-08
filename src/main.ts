@@ -87,6 +87,8 @@ import {
   HERO_IMG,
   prestigeCurrentStat,
   renderAutoSellerConfig,
+  featRewardText,
+  featTierList,
   RUNE_ICONS,
   RUNE_STAT_LABELS,
   runeStatSummary,
@@ -2710,22 +2712,6 @@ function renderFeats(state: GameStateDict): void {
     if (isFeatVisible(def, state)) byCategory[def.category]?.push(def);
   }
 
-  function featRewardChip(r: { type: string; value?: number; title?: string; cosmetic?: string }, tierLabel?: string): string {
-    let text = "";
-    if (r.type === "gold") text = `+${formatNumber(r.value ?? 0)}g`;
-    else if (r.type === "title") text = `"${r.title}"`;
-    else if (r.type === "avatar") {
-      const a = AVATAR_DEFS.find(x => x.id === r.cosmetic);
-      text = `${a?.icon ?? ""} ${a?.name ?? r.cosmetic}`;
-    } else if (r.type === "border") {
-      const b = BORDER_DEFS.find(x => x.id === r.cosmetic);
-      text = `${b?.name ?? r.cosmetic} border`;
-    }
-    if (!text) return "";
-    const cls = tierLabel ? ` reward-${tierLabel}` : "";
-    return `<span class="feat-reward-chip${cls}">${tierLabel ? tierLabel[0].toUpperCase() + ": " : ""}${text}</span>`;
-  }
-
   function featStatus(def: typeof ACHIEVEMENTS[0]): "done" | "active" | "locked" {
     if (def.tiers) {
       const lastLabel = def.tiers[def.tiers.length - 1].label;
@@ -2774,16 +2760,7 @@ function renderFeats(state: GameStateDict): void {
       let tierHtml = "";
       let progressHtml = "";
       if (def.tiers && !isHidden) {
-        const pips = def.tiers.map(t => {
-          const done = unlocked.has(`${def.id}_${t.label}`);
-          const cls = done ? ` ${t.label}-done` : "";
-          const rewardTip = t.reward ? " — " + (t.reward.type === "gold" ? `+${formatNumber(t.reward.value ?? 0)}g` : t.reward.type === "title" ? `"${t.reward.title}"` : t.reward.cosmetic ?? "") : "";
-          return `<span class="feat-tier-pip${cls}" title="${t.label[0].toUpperCase() + t.label.slice(1)}: ${formatNumber(t.threshold)}${rewardTip}">
-            <span class="feat-tier-letter">${t.label[0].toUpperCase()}</span>
-            <span class="feat-tier-thresh">${formatNumber(t.threshold)}</span>
-          </span>`;
-        }).join("");
-        tierHtml = `<div class="feat-tiers">${pips}</div>`;
+        tierHtml = featTierList(def.tiers.map(t => ({ ...t, done: unlocked.has(`${def.id}_${t.label}`) })));
 
         const nextTier = def.tiers.find(t => !unlocked.has(`${def.id}_${t.label}`));
         if (nextTier) {
@@ -2807,13 +2784,9 @@ function renderFeats(state: GameStateDict): void {
         }
       }
 
-      let rewardHtml = "";
-      if (!isHidden) {
-        const chips = def.tiers
-          ? def.tiers.filter(t => t.reward).map(t => featRewardChip(t.reward!, t.label)).filter(Boolean).join("")
-          : def.reward ? featRewardChip(def.reward) : "";
-        if (chips) rewardHtml = `<div class="feat-rewards">${chips}</div>`;
-      }
+      // Tiered rewards sit on their tier's row; a single reward gets one line.
+      const single = !isHidden && !def.tiers && def.reward ? featRewardText(def.reward) : "";
+      const rewardHtml = single ? `<div class="feat-reward">${single}</div>` : "";
 
       return `<div class="feat-card feat-card--${status}">
         <div class="feat-card-header">

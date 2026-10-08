@@ -118,7 +118,7 @@ describe("theme leaks (#66)", () => {
 
 describe("disabled controls (#72)", () => {
   /** Every rule with a `:disabled` selector, one entry per selector. */
-  const disabled = [...styleCss.matchAll(/([^{}]+)\{([^}]*)\}/g)].flatMap((m) =>
+  const disabled = [...styleCss.matchAll(/([^{}]+)\{([^{}]*)\}/g)].flatMap((m) =>
     m[1]
       .replace(/\/\*[\s\S]*?\*\//g, "")
       .split(",")
@@ -175,7 +175,7 @@ describe("controls", () => {
 
 /** Every declaration body for an exact selector, wherever it appears (grouped or in @media). */
 function bodiesFor(selector: string): string[] {
-  return [...styleCss.matchAll(/([^{}]+)\{([^}]*)\}/g)]
+  return [...styleCss.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
     .filter((m) => m[1].replace(/\/\*[\s\S]*?\*\//g, "").split(",").map((s) => s.trim()).includes(selector))
     .map((m) => m[2]);
 }
@@ -226,5 +226,57 @@ describe("wordmark (#55)", () => {
     expect(body).toMatch(/text-transform:\s*uppercase/);
     expect(body).toMatch(/letter-spacing:/);
     expect(body).toMatch(/font-size:\s*0?\.\d+em/);
+  });
+});
+
+describe("panel chrome (#71)", () => {
+  // One heading style for every panel title — Feats used to be a large display
+  // heading beside small tracked ones.
+  it("every panel title shares a single rule", () => {
+    const panels = ["#party-panel", "#upgrades-panel", "#loot-panel", "#feats-panel", "#prestige-panel", "#guild-hall-panel", "#log-panel"];
+    const shared = [...styleCss.matchAll(/([^{}]+)\{([^{}]*)\}/g)].find((m) =>
+      panels.every((p) => m[1].replace(/\/\*[\s\S]*?\*\//g, "").split(",").map((s) => s.trim()).includes(`${p} h2`)),
+    );
+    expect(shared, "no rule covers all panel titles").toBeDefined();
+    expect(shared![2]).toMatch(/text-transform:\s*uppercase/);
+  });
+
+  it("a group inside a panel is a heading and whitespace, not another box", () => {
+    expect(prop(block(".upgrade-card"), "border")).toBe("none");
+    expect(prop(block(".upgrade-card"), "background")).toBe("none");
+  });
+
+  it.each([".loot-item", ".feat-card", ".char-card"])("%s sits on a hairline, not a full gold rule", (sel) => {
+    expect(prop(block(sel), "border")).toMatch(/color-mix\(in srgb, var\(--border\) \d+%, transparent\)/);
+  });
+
+  it("the sidebar carries the panel frame; its sections do not repeat it", () => {
+    expect(bodiesFor("[data-theme] #sidebar > section").join(";")).toMatch(/outline:\s*none/);
+    expect(bodiesFor("[data-theme] #sidebar").join(";")).toMatch(/outline:\s*1px solid var\(--border\)/);
+  });
+
+  // A tab bar with one tab in it is a label pretending to be navigation.
+  it.each(["#loot-subtab-nav", "#party-panel-tabs"])("%s hides itself until it has two tabs", (sel) => {
+    const rule = [...styleCss.matchAll(/([^{}]+)\{([^{}]*)\}/g)].find(
+      (m) => m[1].includes(`${sel}:not(:has(`) && /display:\s*none/.test(m[2]),
+    );
+    expect(rule).toBeDefined();
+  });
+});
+
+describe("desktop layout (#73)", () => {
+  it("a lone hero spans the panel with the paperdoll beside the stats", () => {
+    expect(bodiesFor(".char-card:only-child").join(";")).toMatch(/grid-column:\s*1 \/ -1/);
+    expect(styleCss).toMatch(/\.char-card:only-child \.gear-pdoll-grid\s*\{[^}]*grid-column:\s*4/);
+  });
+
+  it("the sticky sidebar clears the sticky header", () => {
+    const body = block("#sidebar");
+    expect(prop(body, "top")).toContain("var(--header-h");
+    expect(prop(body, "max-height")).toContain("var(--header-h");
+  });
+
+  it("gold reads left-aligned like every other stat", () => {
+    expect(prop(block("#stat-gold"), "text-align")).toBe("left");
   });
 });

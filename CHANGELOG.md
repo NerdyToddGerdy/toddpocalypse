@@ -4,6 +4,15 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.41.0 — 2026-10-07
+
+- Feats list each tier on its own line — Bronze, Silver, Gold — with the goal and the reward side by side, and the next one highlighted
+- Feat rewards are written out: +500 gold, Title “Slayer”, Iron border
+- Fewer boxes inside boxes: upgrade groups, loot, feats and hero cards sit on lighter lines, and every panel title matches
+- Tab bars with only one tab are hidden until there's something to switch to
+- With a single hero on desktop, the hero card spans the panel with the equipment beside it
+- The sidebar no longer slides under the header when it sticks
+
 ## v2.40.0 — 2026-10-07
 
 - New title lettering: a small GerdQuest label sits above Idle Depths, which now fits on one line
