@@ -399,3 +399,47 @@ describe("equipment paperdoll", () => {
     expect(styleCss.match(/"main_hand helmet off_hand"/g)).toHaveLength(1);
   });
 });
+
+describe("phone type size", () => {
+  // Measured on a 412px Galaxy Note 20 viewport: almost everything rendered
+  // at 8–13px. Raising the root on the phone layout scales every rem together.
+  const PHONE_ROOT_PX = 16 * 1.15;
+  const m = styleCss.match(/\/\* ── Phone type scale[\s\S]*?@media \(max-width: 1023px\)\s*\{([\s\S]*?)\n\}/);
+
+  it("scales the root on the phone/tablet layout", () => {
+    expect(m).not.toBeNull();
+    expect(m![1]).toMatch(/html\s*\{\s*font-size:\s*115%;\s*\}/);
+  });
+
+  // The labels that would still render under 11px after the root scale.
+  it.each([
+    ".depth-tick-label", ".gear-pdoll-label", ".gear-pdoll-count", ".ug-btn-meta",
+    ".mobile-tab-btn span:not(.tab-badge)", "#enemy-hp-text",
+  ])("%s has a floor of 11px", (sel) => {
+    const rule = [...m![1].matchAll(/([^{}]+)\{([^{}]*)\}/g)].find((r) =>
+      r[1].split(",").map((s) => s.trim()).includes(sel));
+    expect(rule, sel).toBeDefined();
+    const rem = parseFloat(rule![2].match(/font-size:\s*([\d.]+)rem/)![1]);
+    expect(rem * PHONE_ROOT_PX).toBeGreaterThanOrEqual(11);
+  });
+
+  it("keeps the GerdQuest prefix legible", () => {
+    const em = parseFloat(m![1].match(/\.wordmark small\s*\{\s*font-size:\s*([\d.]+)em/)![1]);
+    // header h1 is 1.1rem on phones
+    expect(em * 1.1 * PHONE_ROOT_PX).toBeGreaterThanOrEqual(11);
+  });
+
+  it("lets players pinch-zoom", () => {
+    const meta = indexHtml.match(/<meta name="viewport" content="([^"]+)"/)![1];
+    expect(meta).not.toMatch(/user-scalable\s*=\s*no|maximum-scale/);
+  });
+});
+
+describe("narrowest phones", () => {
+  // At 360px the scaled-up header buttons truncated the unlock level again.
+  it("steps the header buttons down a size below 380px", () => {
+    const m = styleCss.match(/@media \(max-width: 380px\)\s*\{([\s\S]*?)\n\}/);
+    expect(m).not.toBeNull();
+    expect(m![1]).toMatch(/#action-btns button\s*\{[^}]*font-size:\s*0\.6\d?rem/);
+  });
+});

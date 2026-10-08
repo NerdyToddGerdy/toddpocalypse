@@ -6085,3 +6085,24 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
     #stats-bar { order: 3; width: 100%; gap: 18px; }
     #action-btns { margin-left: auto; }
 }
+
+/* ── Phone type scale ──
+   On a 412px phone nearly every label rendered at 8–13px. One root bump
+   scales every rem size together (and, being a percentage, still honours the
+   player's own font-size setting); the handful still under 11px get a floor. */
+@media (max-width: 1023px) {
+    html { font-size: 115%; }
+
+    .depth-tick-label,
+    .gear-pdoll-label,
+    .gear-pdoll-count,
+    .ug-btn-meta { font-size: 0.6rem; }
+    .mobile-tab-btn span:not(.tab-badge) { font-size: 0.65rem; }
+    #enemy-hp-text { font-size: 0.7rem; }
+    .wordmark small { font-size: 0.55em; }
+}
+
+/* ── Narrowest phones: keep "(need lv20)" whole at 360px ── */
+@media (max-width: 380px) {
+    #action-btns button { font-size: 0.62rem; padding: 6px 4px; }
+}

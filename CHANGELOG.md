@@ -4,6 +4,13 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.44.0 — 2026-10-07
+
+- Bigger text on phones and tablets — most labels went from 9–12px to 12–14px, and nothing is smaller than 11px
+- Enemy HP numbers, tab names and equipment slot labels are easier to read
+- You can pinch to zoom on phones again
+- Text size follows your phone's font-size setting
+
 ## v2.43.0 — 2026-10-07
 
 - Your hero's equipment slots are laid out three by three on every screen — phones and tablets included — so hero cards are much shorter

@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.43.0";
+export const VERSION = "v2.44.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,16 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.44.0",
+    date: "2026-10-07",
+    changes: [
+      "Bigger text on phones and tablets — most labels went from 9–12px to 12–14px, and nothing is smaller than 11px",
+      "Enemy HP numbers, tab names and equipment slot labels are easier to read",
+      "You can pinch to zoom on phones again",
+      "Text size follows your phone's font-size setting",
+    ],
+  },
   {
     version: "v2.43.0",
     date: "2026-10-07",
