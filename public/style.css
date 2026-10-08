@@ -5733,6 +5733,12 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
     grid-column: 1 / -1;
     grid-row: 2;
     padding: 6px 0 4px;
+    /* Three rows, not the five-row body shape: head and body stay on the
+       centre line, and the card is ~140px shorter wherever it stacks. */
+    grid-template-areas:
+        "main_hand helmet off_hand"
+        "ring1     chest  ring2"
+        "gloves    legs   shoes";
     /* Three slot columns read as a body; on a tablet they'd spread edge to edge. */
     max-width: 420px;
     width: 100%;
@@ -5750,15 +5756,9 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
         grid-template-rows: auto auto 1fr;
         column-gap: 16px;
     }
-    /* Three rows instead of five, so the paperdoll is no taller than the
-       stats beside it. Head and body stay on the centre line. */
     .char-card:only-child .gear-pdoll-grid {
         grid-column: 4;
         grid-row: 1 / span 3;
-        grid-template-areas:
-            "main_hand helmet off_hand"
-            "ring1     chest  ring2"
-            "gloves    legs   shoes";
         padding: 0;
     }
     .char-card:only-child .char-abilities,

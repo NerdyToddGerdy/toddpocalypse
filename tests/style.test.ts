@@ -386,3 +386,16 @@ describe("phone action labels (#3)", () => {
     expect(m![1]).toMatch(/\.act-verb\s*\{\s*display:\s*none/);
   });
 });
+
+describe("equipment paperdoll", () => {
+  // Three rows instead of five in every layout — the stacked mobile/tablet card
+  // was ~140px taller than it needed to be.
+  it("is 3×3 by default, not only for a lone hero on wide desktop", () => {
+    const base = bodiesFor(".gear-pdoll-grid").join(";");
+    expect(base).toMatch(/grid-template-areas:\s*"main_hand helmet off_hand"\s*"ring1\s+chest\s+ring2"\s*"gloves\s+legs\s+shoes"/);
+  });
+
+  it("is declared once", () => {
+    expect(styleCss.match(/"main_hand helmet off_hand"/g)).toHaveLength(1);
+  });
+});

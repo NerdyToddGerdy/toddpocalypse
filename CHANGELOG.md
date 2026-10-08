@@ -4,6 +4,10 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.43.0 — 2026-10-07
+
+- Your hero's equipment slots are laid out three by three on every screen — phones and tablets included — so hero cards are much shorter
+
 ## v2.42.0 — 2026-10-07
 
 - Tablets in landscape and 1024–1280px laptops now get the full desktop layout instead of the phone one
