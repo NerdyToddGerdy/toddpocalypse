@@ -532,9 +532,6 @@ function renderFloorProgress(state: GameStateDict): void {
   if (newKey === floorProgressKey) return;
   floorProgressKey = newKey;
 
-  let monsterLeftText: HTMLElement = $("monsters-left-text");
-  monsterLeftText.textContent = "";
-  monsterLeftText.className = "";
 
 
   const row = $("floor-pip-row");

@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.44.0";
+export const VERSION = "v2.45.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,14 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.45.0",
+    date: "2026-10-08",
+    changes: [
+      "The enemy panel no longer has an empty gap under the HP bar — on phones it’s about a fifth shorter, leaving more room for your party",
+      "A boss's enrage bar now shares a line with the floor progress, so the Attack button stays put when a boss arrives",
+    ],
+  },
   {
     version: "v2.44.0",
     date: "2026-10-07",

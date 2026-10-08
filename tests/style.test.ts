@@ -443,3 +443,33 @@ describe("narrowest phones", () => {
     expect(m![1]).toMatch(/#action-btns button\s*\{[^}]*font-size:\s*0\.6\d?rem/);
   });
 });
+
+describe("enemy panel band", () => {
+  // Ordinary enemies showed an empty band between the HP bar and the floor
+  // pips: a hidden enrage bar holding its row (deliberately, since v2.25.1, so
+  // the panel never resizes) plus a monsters-left line that is always empty.
+  const floorProgress = indexHtml.match(/<div id="floor-progress">([\s\S]*?)\n {10}<\/div>/)![1];
+
+  it("puts the enrage bar in the floor-pip row instead of a row of its own", () => {
+    expect(floorProgress).toContain('id="enemy-enrage-bar-wrap"');
+    expect(floorProgress).toContain('id="floor-pip-row"');
+  });
+
+  it("keeps the row a constant height, so the panel still never resizes", () => {
+    const body = bodiesFor("#floor-progress").join(";");
+    expect(body).toMatch(/flex-direction:\s*row/);
+    expect(body).toMatch(/min-height:\s*\d+px/);
+    expect(bodiesFor("#enemy-enrage-bar-wrap").join(";")).not.toMatch(/visibility:\s*hidden/);
+  });
+
+  it("drops the monsters-left line that was always empty", () => {
+    expect(indexHtml).not.toContain("monsters-left-text");
+    expect(mainTs).not.toContain("monsters-left-text");
+    expect(styleCss).not.toContain("monsters-left-text");
+  });
+
+  it("collapses skill rows until there is a skill in them", () => {
+    expect(styleCss).toMatch(/#skill-row:not\(:has\(> :not\(\[hidden\]\)\)\)/);
+    expect(styleCss).toMatch(/#companion-skills:empty/);
+  });
+});

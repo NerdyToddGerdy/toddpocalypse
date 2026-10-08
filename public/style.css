@@ -818,11 +818,13 @@ main {
     overflow: hidden;
     border: 1px solid #b45309;
     position: relative;
-    visibility: hidden;
+    display: none;
+    flex: 1;
+    min-width: 0;
     transition: border-color 0.4s;
 }
 #enemy-enrage-bar-wrap.active {
-    visibility: visible;
+    display: block;
 }
 #enemy-enrage-bar-wrap.enraged {
     animation: enragePulse 0.7s ease-in-out infinite alternate;
@@ -2099,23 +2101,22 @@ main {
 #start-btn:hover { filter: brightness(1.08); }
 
 /* ── Floor progress (monsters left) ── */
+/* One status row: floor pips, joined by the enrage bar on bosses and elites.
+   The row's height is fixed whether or not the bar shows, so the panel never
+   resizes when a boss arrives (the reason the bar used to keep a hidden row
+   of its own, v2.25.1). */
 #floor-progress {
     display: flex;
-    flex-direction: column;
-    gap: 6px;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    min-height: 18px;
 }
-
-#monsters-left-text {
-    font-size: 0.75rem;
-    color: var(--muted);
-    text-align: center;
-    letter-spacing: 0.5px;
-    height: 1.4rem;
-    line-height: 1.4rem;
-    overflow: hidden;
-}
+#floor-progress:has(#enemy-enrage-bar-wrap.active) #floor-pip-row { flex: 0 0 auto; }
+#checkpoint-display:empty { display: none; }
 
 #floor-pip-row {
+    flex: 1;
     display: flex;
     gap: 4px;
     justify-content: center;
@@ -2537,13 +2538,7 @@ main {
     #enemy-level { font-size: 0.68rem; }
     .hp-bar-wrap { height: 14px; }
     #enemy-hp-text { font-size: 0.62rem; }
-    #floor-progress {
-        flex-direction: row;
-        flex-wrap: nowrap;
-        align-items: center;
-        gap: 4px 6px;
-    }
-    #monsters-left-text { font-size: 0.64rem; flex: 0 0 auto; text-align: left; height: 1.2rem; line-height: 1.2rem; }
+    #floor-progress { gap: 6px; }
     #floor-pip-row { flex: 1; justify-content: center; gap: 2px; }
     .floor-pip { width: 7px; height: 4px; }
     #checkpoint-display { display: none; }
@@ -3007,6 +3002,10 @@ main {
 }
 
 /* ── Companion skill buttons ── */
+/* No skill yet, no row — an empty row still costs the panel its gap. */
+#skill-row:not(:has(> :not([hidden]))),
+#companion-skills:empty { display: none; }
+
 #companion-skills { display: flex; flex-direction: row; flex-wrap: wrap; gap: 4px; margin-top: 4px; align-items: stretch; }
 
 .companion-skill-cell {

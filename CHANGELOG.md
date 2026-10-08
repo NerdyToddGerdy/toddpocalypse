@@ -4,6 +4,11 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.45.0 — 2026-10-08
+
+- The enemy panel no longer has an empty gap under the HP bar — on phones it’s about a fifth shorter, leaving more room for your party
+- A boss's enrage bar now shares a line with the floor progress, so the Attack button stays put when a boss arrives
+
 ## v2.44.0 — 2026-10-07
 
 - Bigger text on phones and tablets — most labels went from 9–12px to 12–14px, and nothing is smaller than 11px
