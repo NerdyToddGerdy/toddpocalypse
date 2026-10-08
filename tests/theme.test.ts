@@ -11,8 +11,8 @@ describe("THEMES", () => {
     expect(THEMES).not.toContain("tavern");
   });
 
-  it("still offers all eight looks", () => {
-    expect(THEMES).toHaveLength(8);
+  it("offers all nine looks", () => {
+    expect(THEMES).toHaveLength(9);
   });
 });
 
@@ -96,5 +96,18 @@ describe("THEME_UNLOCKS agrees with the theme module", () => {
 
   it("has an unlock row for every theme, and no orphans", () => {
     expect(THEME_UNLOCKS.map(t => t.theme).sort()).toEqual([...THEMES].sort());
+  });
+});
+
+describe("ledger", () => {
+  // The paper look of the sister title, Realm of Depths. Named for its
+  // "Adventurer's Ledger" sheet, not after NoteQuest (bible §1 rule 3).
+  it("is a selectable theme", () => {
+    expect(THEMES).toContain("ledger");
+  });
+
+  it("is free from the first minute, like the house look", async () => {
+    const { THEME_UNLOCKS } = await import("../src/engine.js");
+    expect(THEME_UNLOCKS.find(t => t.theme === "ledger")?.prestiges).toBe(0);
   });
 });

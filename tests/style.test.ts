@@ -51,8 +51,8 @@ const THEMES: [string, string][] = [
 ];
 
 describe("muted text legibility (#65)", () => {
-  it("finds all eight themes", () => {
-    expect(THEMES.length).toBe(8);
+  it("finds all nine themes", () => {
+    expect(THEMES.length).toBe(9);
   });
 
   // --parchment-dim carries every label, cost and inactive tab. Torchlight's was ~2.2:1
@@ -65,8 +65,10 @@ describe("muted text legibility (#65)", () => {
         });
       }
 
+      // Quieter = closer to the surface than primary text, on a dark ground or on paper.
       it("stays quieter than primary text", () => {
-        expect(luminance(prop(body, "--parchment-dim"))).toBeLessThan(luminance(prop(body, "--parchment")));
+        const surface = prop(body, "--bg-1");
+        expect(contrast(prop(body, "--parchment-dim"), surface)).toBeLessThan(contrast(prop(body, "--parchment"), surface));
       });
     });
   }
@@ -553,7 +555,64 @@ describe("§3 motifs — legibility (#56)", () => {
   });
 
   it("empty slots on the sheet are drawn, not faded out", () => {
-    const body = bodiesFor(':where(:root:not([data-theme]), [data-theme="torchlight"]) .char-card .gear-pdoll-slot.empty').join(";");
+    const body = bodiesFor(':where(:root:not([data-theme]), [data-theme="torchlight"], [data-theme="ledger"]) .gear-pdoll-slot.empty').join(";");
     expect(body).toMatch(/opacity:\s*1/);
+  });
+});
+
+describe("Ledger theme", () => {
+  // Realm of Depths' look: parchment sheets on a dark table, ink text.
+  const ledger = THEMES.find(([n]) => n === "ledger")?.[1] ?? "";
+  const tok = (name: string) => prop(ledger, name);
+
+  it("lays paper on a dark table — the page itself stays dark (§3 committed dark)", () => {
+    expect(tok("--bg-0")).toBe("#0a0807");
+    expect(luminance(tok("--bg-1"))).toBeGreaterThan(0.5);
+    expect(contrast(tok("--parchment"), tok("--bg-1"))).toBeGreaterThanOrEqual(7);
+  });
+
+  it.each(["--torch-mid", "--secondary", "--danger"])("%s reads as text on paper", (name) => {
+    expect(contrast(tok(name), tok("--bg-1"))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  // §3's #f2c265 is ~1.3:1 on parchment: the ring would vanish. Visible beats verbatim.
+  it("keeps the focus ring visible on paper", () => {
+    expect(contrast(tok("--focus"), tok("--bg-1"))).toBeGreaterThanOrEqual(3);
+  });
+
+  it.each(["broken", "worn", "crude", "poor", "common", "fine", "superior", "rare", "epic",
+    "legendary", "mythic", "ancient", "celestial", "void", "divine"])(
+    "quality %s is legible on paper", (q) => {
+      expect(contrast(tok(`--q-${q}`), tok("--bg-1"))).toBeGreaterThanOrEqual(4.5);
+    });
+
+  it("primary actions are ink plates, as on the sister title", () => {
+    for (const sel of ['[data-theme="ledger"] #attack-btn:not(:disabled)', '[data-theme="ledger"] #start-btn']) {
+      expect(bodiesFor(sel).join(";"), sel).toMatch(/background:\s*var\(--ink\)/);
+    }
+  });
+
+  it("the paper slot treatment covers it too", () => {
+    expect(bodiesFor(':where(:root:not([data-theme]), [data-theme="torchlight"], [data-theme="ledger"]) .gear-pdoll-slot.empty').join(";")).toMatch(/opacity:\s*1/);
+  });
+});
+
+describe("Ledger — colours written for a dark ground get paper versions", () => {
+  // Each of these was a light hardcoded colour (or a light token mix) that
+  // printed at ~2:1 on parchment in the first Ledger screenshots.
+  it.each([
+    '[data-theme="ledger"] .ind-up',
+    '[data-theme="ledger"] .tt-stat-val.tt-dps',
+    '[data-theme="ledger"] .tt-stat-val.tt-crit',
+    '[data-theme="ledger"] #enemy-panel #enemy-name',
+    '[data-theme="ledger"] #enemy-panel.elite-enemy #enemy-name',
+    '[data-theme="ledger"] .feat-tier--bronze',
+    '[data-theme="ledger"] .feat-tier--silver',
+  ])("%s is overridden", (sel) => {
+    expect(bodiesFor(sel).join(";"), sel).toMatch(/(color|--medal-hue):/);
+  });
+
+  it("white bar labels get an ink halo so they read over the empty track", () => {
+    expect(bodiesFor('[data-theme="ledger"] #enemy-hp-text').join(";")).toMatch(/text-shadow:[^;]*var\(--ink\)/);
   });
 });

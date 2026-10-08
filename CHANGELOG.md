@@ -4,6 +4,12 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.47.0 — 2026-10-08
+
+- New theme: Ledger — parchment sheets and ink on a dark table, the look of GerdQuest: Realm of Depths. Free from the start; pick it in Settings
+- Item rarity colours, enemy names, tooltips and bar labels are all readable on paper
+- Internal: dice-based combat was considered and set aside — dice don't suit this game's pacing
+
 ## v2.46.0 — 2026-10-08
 
 - Your hero's card is now a character sheet: ruled parchment, stacked on the table like the rest of the GerdQuest series (Torchlight theme)

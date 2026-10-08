@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.46.0";
+export const VERSION = "v2.47.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.47.0",
+    date: "2026-10-08",
+    changes: [
+      "New theme: Ledger — parchment sheets and ink on a dark table, the look of GerdQuest: Realm of Depths. Free from the start; pick it in Settings",
+      "Item rarity colours, enemy names, tooltips and bar labels are all readable on paper",
+      "Internal: dice-based combat was considered and set aside — dice don't suit this game's pacing",
+    ],
+  },
   {
     version: "v2.46.0",
     date: "2026-10-08",

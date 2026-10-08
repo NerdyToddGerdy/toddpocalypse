@@ -1,8 +1,9 @@
 # Design: d6 resolution and visible tables (#57)
 
-> **Status: proposal, not built.** Nothing here is implemented. This document exists because #57
-> asked for "a design doc before code": the change touches every balance number in the game, so the
-> decisions in [§9](#9-decisions-for-the-owner) need an owner's call before any of it lands.
+> **Status: not pursued — decided 2026-10-08.** The owner rejected d6 resolution for *Idle Depths*:
+> dice don't suit this idle game's pacing. See `docs/franchise-divergences.md` §5.1. The non-dice
+> half, making the existing maths visible, continues as #74. This document is kept for the record,
+> so the idea isn't rediscovered from scratch; nothing in it is planned.
 
 Franchise bible §5.1: *"Everything resolves on ordinary dice, and the player can see the table. No
 hidden float multipliers."* §5.4: *"Show the roll, show the modifier, show the table row."* For this

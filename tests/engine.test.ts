@@ -4015,8 +4015,8 @@ describe("offline progress catch-up", () => {
 });
 
 describe("THEME_UNLOCKS", () => {
-  it("has exactly 8 themes", () => {
-    expect(THEME_UNLOCKS).toHaveLength(8);
+  it("has exactly 9 themes", () => {
+    expect(THEME_UNLOCKS).toHaveLength(9);
   });
 
   it("prestige requirements are non-decreasing", () => {

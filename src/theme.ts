@@ -8,11 +8,13 @@
 /**
  * Every selectable look, default first.
  *
- * `torchlight` is the franchise house look (bible §3). The other seven are a
+ * `torchlight` is the franchise house look (bible §3); `ledger` is the paper look
+ * of the sister title, Realm of Depths. The other seven are a
  * deliberate divergence — see `docs/franchise-divergences.md` for the reasoning.
  */
 export const THEMES = [
   "torchlight",
+  "ledger",
   "grimdark",
   "arcane",
   "inferno",

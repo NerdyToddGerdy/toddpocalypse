@@ -32,12 +32,13 @@ The bible does not say where per-title divergences get recorded. This is that pl
 | §1.5 | IP standing — inspired-by, not adapted-from | 🔵 Conformant (audited 2026-08-05) | #49, #50 |
 | §2 | Name collides with a live idle game | 🟢 Settled (knowingly) | #51 closed |
 | §2 | Two-tier wordmark — prefix in mono, not display | 🔵 Conformant | #55 |
-| §3 | Eight themes instead of one committed look | 🟢 **Settled** | #53 closed |
+| §3 | Nine themes instead of one committed look | 🟢 **Settled** | #53 closed |
 | §3 | Palette in `src/ui/theme/tokens.css` — plus six local extensions and the quality ladder | 🔵 Conformant | #52 |
 | §3 | Typography — self-hosted franchise faces, shared by all themes | 🔵 Conformant | #54 |
 | §3 | Secondary text is `--parchment-dim`, not `--ink-soft` | 🔵 Conformant | — |
-| §3 | Stacked sheet, ruled paper, eyebrow+title done; the Die waits for #57 | 🟡 Owed (Die only) | #56 |
-| §5 | Hidden float multipliers, no visible tables. Design proposed in `docs/design/d6-combat.md` | 🟡 Owed | #57 |
+| §3 | Stacked sheet, ruled paper, eyebrow+title; no Die (no dice, §5.1) | 🟢 Settled | #56 closed |
+| §5.1 | No d6: dice don't suit this idle game's pacing | 🟢 **Settled** | #57 closed |
+| §5.4 | Maths still hidden: loot odds, crits, the DPS stack | 🟡 Owed | #74 |
 | §5 | No depleting resource; prestige not permadeath | ⚪ Open | #58 |
 | §6 | Vanilla DOM + esbuild, not React + Vite | 🟢 **Settled** | #63 |
 | §6 | Has a backend (bible permits) | 🔵 Conformant | #64 |
@@ -51,17 +52,59 @@ The bible does not say where per-title divergences get recorded. This is that pl
 
 ## 🟢 Settled — the bible is what should move
 
-### §3 — eight themes, not one committed lit scene
+### §5.1 — no d6: dice don't suit this idle game's pacing
 
-§3 says "This is one lit scene, not a document that should invert." This title ships **eight**
-selectable themes, prestige-unlocked.
+§5.1: "Everything resolves on ordinary dice, and the player can see the table." For *Idle Depths*,
+§5 says (1) dice and (4) visible bookkeeping are "where it earns the GerdQuest name". Decided
+**2026-10-08 by the owner: no dice.**
+
+**Why:** dice don't suit this idle game's pacing. The party fights continuously, many times a
+second and for hours unattended. A roll is a discrete moment you watch land, and the genre's
+rhythm has no room for one.
+
+**What's kept:** the half of §5 that never needed dice. §5.4's "show the modifier, show the table
+row" is #74: readable loot odds, crit odds and the DPS stack as real numbers.
+
+**What it costs:** the bible asks a title to hit **at least three** of §5's six instincts. Without
+(1), *Idle Depths* needs three of the others, and today it arguably hits none of them fully. (4) is
+the cheapest to reach (#74); (2) a depleting resource and (3) permadeath are the open questions in
+#58. The bible's own recommendation for this title was (2) and (3), so those are the natural pair to
+add to (4).
+
+**Knock-on:** §3's Die, "reuse it verbatim in every title", has no roll to show here, so it is not
+ported (#56 closed). The design that was proposed is kept for the record at
+`docs/design/d6-combat.md`, marked not pursued, so the idea isn't rediscovered from scratch.
+
+### §3 — the hero card is the stacked sheet, in torchlight only
+
+#56. The stacked sheet and ruled paper are the hero card, ported from *Realm of Depths'*
+`.screen-sheet`. Eyebrow+title pairs class and level with the hero's name, and the level with the
+enemy's name on desktop. In torchlight only, because beige paper would fight the opt-in themes; the
+**Ledger** theme carries the paper look across the whole UI instead. No Die, per §5.1 above.
+
+### §3 — nine themes, not one committed lit scene
+
+§3 says "This is one lit scene, not a document that should invert." This title ships **nine**
+selectable themes, most of them prestige-unlocked.
 
 **Why:** collectible customisation carries weight in an idle game that a solo dice crawler doesn't
 have. Unlocking a look is a progression reward here; in *Realm of Depths* it would be noise.
 
 **How it's reconciled:** the **default** is franchise-constant. `torchlight` is the §3 palette
 verbatim (it is the `:root` of `src/ui/theme/tokens.css`, with no override block), free from the first minute, and top of the unlock list — so the game a new player sees,
-and every screenshot, is the house look. The other seven are opt-in.
+and every screenshot, is the house look. The other eight are opt-in.
+
+**Ledger** (added v2.47.0, free) is *Realm of Depths'* own look carried across the whole UI:
+parchment panels with ruled lines, a stacked-paper edge, ink text and ink-plate buttons on the
+dark table. It is not a light mode: the page stays `--bg-0`, and only the sheets are paper, exactly
+as on the sister title. It is named for that game's "Adventurer's Ledger" sheet, **never after
+NoteQuest** (§1 rule 3). Two values depart from §3 for legibility on paper, and both are tested:
+
+- **`--focus`** is ember `#8a3412`, not `#f2c265`, which is about 1.3:1 on parchment. §3 says the
+  ring is "always visible", and visible wins over verbatim.
+- **The `--q-*` rarity ladder is deepened** to ink strength (≥ 4.5:1 on `--bg-1`). These colours
+  are otherwise constant across themes, but `--q-common` `#e2e0f0` and `--q-divine` `#fff` would
+  print as blank paper. The hues are kept; only their strength changes.
 
 > **Owed to the bible:** §3 needs amending to permit per-title cosmetic variants — the *default*
 > look is franchise-constant, additional themes are a per-title call. Until that lands this is an
@@ -309,15 +352,9 @@ matter.
 
 Each is tracked; this section is a pointer, not a duplicate of the issue.
 
-- **§3 motifs** (#56) — the stacked sheet and ruled paper are the hero card, ported from *Realm of
-  Depths'* `.screen-sheet`, in the torchlight look only (beige paper would fight the opt-in themes).
-  Eyebrow+title pairs class and level with the hero's name, and the level with the enemy's name on
-  desktop. **The Die is still owed.** It lands with #57's visible rolls, so it shows a real value.
-- **§5 visible maths** (#57) — the big one. Proposed in `docs/design/d6-combat.md`, awaiting the
-  owner's decisions in its §9. §5 says visible dice and readable tables are what earn
-  the GerdQuest name; this game still resolves everything on hidden floats. The rolls are
-  now injectable and reproducible (#60, v2.35.0); surfacing them is the remaining work, and it is a
-  combat-model rewrite, not a UI change.
+- **§5.4 visible maths** (#74) — show the loot odds, crit odds and the DPS multiplier stack as
+  real numbers, without dice (see §5.1 under Settled). The rolls are already injectable and
+  reproducible (#60, v2.35.0), so this is presentation work, not a combat rewrite.
 - **§6 `src/data/`** (#61) — tables live inside the modules that consume them.
 - **§6 testing** (#63) — Vitest is in place (1349 tests). No Playwright, and the "a regression test
   must be shown to fail against the unfixed code before it is kept" rule isn't formally adopted.
