@@ -1,0 +1,74 @@
+/*
+ * GerdQuest palette — franchise bible §3, issue #52.
+ *
+ * "A character sheet lit by torchlight in a dark stone room. Warm parchment
+ * foreground on near-black, gold for anything interactive, red reserved for harm."
+ *
+ * The §3 block is the bible's table verbatim: change the bible first, then here.
+ * These values are the torchlight look, which is the default; the seven opt-in
+ * themes in style.css override a subset (see docs/franchise-divergences.md §3).
+ *
+ * Committed dark. There is no light mode: :root[data-theme="light"] would
+ * resolve to these same values, which is the point.
+ */
+:root {
+    color-scheme: dark;
+
+    /* ── §3 ── */
+    --bg-0:        #0a0807;  /* page background, near-black */
+    --bg-1:        #17110d;  /* raised dark surfaces */
+    --torch-core:  #ffc06a;  /* brightest flame */
+    --torch-mid:   #d9791f;  /* flame body, glows — the primary accent */
+    --ember:       #b8481f;  /* dying flame */
+    --gold:        #b8862f;  /* borders, labels, interactive affordance */
+    --gold-bright: #e0ac48;  /* wordmark, emphasis */
+    --parchment:   #e9ddc2;  /* primary text on dark */
+    --parchment-2: #ddcca2;  /* stacked-sheet layers, dividers */
+    --parchment-3: #cbb686;
+    --ink:         #2a2016;  /* body text on parchment */
+    --ink-soft:    #5a4b38;  /* secondary text on parchment */
+    --danger:      #a63c1d;  /* damage, death, warnings */
+    --focus:       #f2c265;  /* focus ring — always visible, never removed */
+
+    /* ── Local extensions (Idle Depths) ──
+       Roles this title needs that §3 doesn't define. Each is a candidate for
+       the bible rather than a quiet divergence; see franchise-divergences.md. */
+
+    /* A second raised surface: cards and inputs sitting on --bg-1. */
+    --bg-2:          #221812;
+    /* Secondary text on dark. §3's --ink-soft is for ink on parchment and is
+       ~2.2:1 on --bg-1; this is --parchment dimmed, at 6.3:1 (#65). */
+    --parchment-dim: #a8936f;
+    /* Second accent: skills, guild, active progress. Themes recolour it. */
+    --secondary:     #2d7a3a;
+    /* Resource bars. */
+    --hp:            #3a8a3a;
+    --xp:            #4a6abf;
+    /* Text on a filled --torch-mid surface; deep-accent themes set it light. */
+    --on-torch:      #1a1005;
+
+    /* Gear-quality ladder — a genre need Realm of Depths doesn't have, and the
+       first case of a title needing tokens the franchise set lacks (#52).
+       Constant across themes: a colour here names a rarity, not a mood. */
+    --q-broken:    #555566;
+    --q-worn:      #888899;
+    --q-crude:     #aaaabb;
+    --q-poor:      #ccccdd;
+    --q-common:    #e2e0f0;
+    --q-fine:      #22c55e;
+    --q-superior:  #3b82f6;
+    --q-rare:      #a855f7;
+    --q-epic:      #f97316;
+    --q-legendary: #f59e0b;
+    --q-mythic:    #e879f9;
+    --q-ancient:   #34d399;
+    --q-celestial: #67e8f9;
+    --q-void:      #c084fc;
+    --q-divine:    #fff;
+
+    /* Arcane purple — the artifact / greater-rune / elite signal. Constant
+       across themes, like the quality tiers: it identifies a kind of thing. */
+    --arcane:      #8b5cf6;
+    --arcane-deep: #7c3aed;
+    --arcane-soft: #a78bfa;
+}

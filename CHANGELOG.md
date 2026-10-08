@@ -4,6 +4,14 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.46.0 — 2026-10-08
+
+- Your hero's card is now a character sheet: ruled parchment, stacked on the table like the rest of the GerdQuest series (Torchlight theme)
+- Hero class and level, and the enemy's level on desktop, now sit as a small label above the name
+- Empty equipment slot names are easier to read
+- Internal: colours now use the GerdQuest franchise palette names, from one shared file — no colour changes
+- Internal: a design proposal for dice-based combat (docs/design/d6-combat.md) — nothing in play has changed
+
 ## v2.45.1 — 2026-10-08
 
 - Internal: links to the GerdQuest franchise bible point at its permanent home — no gameplay change

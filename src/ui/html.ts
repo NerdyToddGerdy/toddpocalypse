@@ -349,7 +349,7 @@ export function buildCharTooltipHTML(c: CharDictWithEffectiveDps): string {
   return `
     <img class="tt-hero-portrait" src="${heroImg}" alt="${c.character_class}">
     <span class="tt-name">${c.name}</span>
-    <div class="tt-rarity" style="color:var(--muted);text-transform:none;font-weight:400">Lv${c.level} ${c.character_class}</div>
+    <div class="tt-rarity" style="color:var(--parchment-dim);text-transform:none;font-weight:400">Lv${c.level} ${c.character_class}</div>
     <div class="tt-divider"></div>
     <div class="tt-stats">${rows}</div>
     ${runeBadges}
@@ -363,7 +363,7 @@ export function buildPartyTooltipHTML(party: CharDictWithEffectiveDps[]): string
   const totalHp   = party.reduce((s, c) => s + Math.ceil(c.health), 0);
   const totalMaxHp = party.reduce((s, c) => s + c.max_health, 0);
   const members = party.map(c =>
-    `<div class="tt-stat-row"><span class="tt-stat-label">${c.name}</span><span class="tt-stat-val" style="color:var(--muted);font-weight:400">Lv${c.level} ${c.character_class}</span></div>`
+    `<div class="tt-stat-row"><span class="tt-stat-label">${c.name}</span><span class="tt-stat-val" style="color:var(--parchment-dim);font-weight:400">Lv${c.level} ${c.character_class}</span></div>`
   ).join("");
   return `
     <span class="tt-name">Your Party</span>

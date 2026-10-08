@@ -33,11 +33,11 @@ The bible does not say where per-title divergences get recorded. This is that pl
 | §2 | Name collides with a live idle game | 🟢 Settled (knowingly) | #51 closed |
 | §2 | Two-tier wordmark — prefix in mono, not display | 🔵 Conformant | #55 |
 | §3 | Eight themes instead of one committed look | 🟢 **Settled** | #53 closed |
-| §3 | Palette token *names* not adopted | 🟡 Owed | #52 |
+| §3 | Palette in `src/ui/theme/tokens.css` — plus six local extensions and the quality ladder | 🔵 Conformant | #52 |
 | §3 | Typography — self-hosted franchise faces, shared by all themes | 🔵 Conformant | #54 |
-| §3 | Torchlight `--muted` is not `--ink-soft` | 🔵 Conformant | — |
-| §3 | No Die, stacked sheet, ruled paper | 🟡 Owed | #56 |
-| §5 | Hidden float multipliers, no visible tables | 🟡 Owed | #57 |
+| §3 | Secondary text is `--parchment-dim`, not `--ink-soft` | 🔵 Conformant | — |
+| §3 | Stacked sheet, ruled paper, eyebrow+title done; the Die waits for #57 | 🟡 Owed (Die only) | #56 |
+| §5 | Hidden float multipliers, no visible tables. Design proposed in `docs/design/d6-combat.md` | 🟡 Owed | #57 |
 | §5 | No depleting resource; prestige not permadeath | ⚪ Open | #58 |
 | §6 | Vanilla DOM + esbuild, not React + Vite | 🟢 **Settled** | #63 |
 | §6 | Has a backend (bible permits) | 🔵 Conformant | #64 |
@@ -60,7 +60,7 @@ selectable themes, prestige-unlocked.
 have. Unlocking a look is a progression reward here; in *Realm of Depths* it would be noise.
 
 **How it's reconciled:** the **default** is franchise-constant. `torchlight` is the §3 palette
-verbatim, free from the first minute, and top of the unlock list — so the game a new player sees,
+verbatim (it is the `:root` of `src/ui/theme/tokens.css`, with no override block), free from the first minute, and top of the unlock list — so the game a new player sees,
 and every screenshot, is the house look. The other seven are opt-in.
 
 > **Owed to the bible:** §3 needs amending to permit per-title cosmetic variants — the *default*
@@ -166,20 +166,56 @@ back. This is why `@types/node` is now a devDependency and `"node"` is in `tscon
 in turn is why the four timer handles in `main.ts` are typed `ReturnType<typeof setTimeout>` rather
 than `number`.
 
-### §3 — torchlight `--muted` is a dimmed parchment, not `--ink-soft`
+### §3 — secondary text is `--parchment-dim`, a dimmed parchment, not `--ink-soft`
 
 Until v2.38.0 torchlight mapped `--muted` to §3 `--ink-soft` (`#5a4b38`). The bible defines that
 token as **secondary text on parchment** — dark ink on a light sheet. This game has no parchment
 sheet yet (#56), so `--muted` lands on `--bg-1` instead, at about 2.2:1. Every header label, upgrade
 cost and inactive tab was close to invisible.
 
-`--muted` is now `#a8936f` — `--parchment` dimmed, the same role `--ink-soft` plays on paper,
+`--muted` became `#a8936f` — `--parchment` dimmed — and under #52 was renamed `--parchment-dim`
+so the name says what it is, the same role `--ink-soft` plays on paper,
 inverted for a dark ground. It clears WCAG AA (≥ 4.5:1) on `--bg-1`, and `tests/style.test.ts`
 holds it there. **This is the right reading of §3, not a departure from it.** When #56 brings in a
 real parchment surface, text *on that surface* should use `--ink-soft` verbatim.
 
 Changed in the same release: `--focus` (`#f2c265`) is now defined and drawn on `:focus-visible`
 for every theme, as §3 requires.
+
+### §3 — the palette, in `src/ui/theme/tokens.css`
+
+Adopted in v2.46.0 (#52). `tokens.css` holds the §3 table verbatim under its own names and sets
+`color-scheme: dark`; the build copies it to `dist/` and the page loads it before `style.css`. The
+pre-franchise names are retired everywhere — `tests/tokens.test.ts` fails if any comes back:
+
+| Was | Now | |
+| --- | --- | --- |
+| `--bg` / `--surface` | `--bg-0` / `--bg-1` | §3 |
+| `--border` | `--gold` | §3 "borders, labels, interactive affordance" |
+| `--accent` | `--torch-mid` | §3 "flame body, glows" |
+| `--text` | `--parchment` | §3 |
+| `--danger`, `--focus` | unchanged | §3 |
+| `--surface2`, `--muted`, `--accent2`, `--hp-green`, `--xp-blue`, `--on-accent` | `--bg-2`, `--parchment-dim`, `--secondary`, `--hp`, `--xp`, `--on-torch` | local |
+
+**The rename changed no pixels.** Verified by diffing the computed colour, background, border,
+shadow and outline of all 2,851 body elements against the previous build, in all eight themes. The
+only differences are unstyled, hidden controls picking up dark UA defaults from `color-scheme`.
+
+**Local extensions — owed to the bible as proposals, not kept as quiet divergences.** Six roles this
+title needs that §3 doesn't name: a second raised surface (`--bg-2`), secondary text on dark
+(`--parchment-dim`), a second accent (`--secondary`), resource bars (`--hp`, `--xp`) and ink on a
+filled torch surface (`--on-torch`). `--parchment-dim` is the strongest candidate: any title with
+text on a dark ground needs it, and §3's only secondary-text token is for paper.
+
+**The 15-step gear-quality ladder (`--q-*`) and the arcane purple are the first tokens a title has
+needed that the franchise set has no equivalent for.** They are a genre need — rarity tiers —
+that *Realm of Depths* doesn't have. They stay constant across themes, because a colour there names
+a rarity rather than setting a mood. Flag to the bible: §3 should say whether titles may add
+semantic tokens like these, and where they live.
+
+**Themes.** The seven opt-in themes override §3 names (`--bg-1`, `--torch-mid`, `--parchment`…)
+with their own values. Tokens they don't override — `--torch-core`, `--ember`, `--gold-bright`,
+`--parchment-2`/`-3`, `--ink`, `--ink-soft` — fall back to the torchlight values.
 
 ### §2 — the two-tier wordmark
 
@@ -273,11 +309,12 @@ matter.
 
 Each is tracked; this section is a pointer, not a duplicate of the issue.
 
-- **§3 palette** (#52) — the §3 *values* are live in `torchlight`, but the token *names*
-  (`--bg-0`, `--parchment`, `--ink`…) and a real `src/ui/theme/tokens.css` are not. Currently
-  `--bg` / `--surface` / `--accent` / `--text`.
-- **§3 motifs** (#56) — no Die, no stacked sheet, no eyebrow+title, no ruled paper.
-- **§5 visible maths** (#57) — the big one. §5 says visible dice and readable tables are what earn
+- **§3 motifs** (#56) — the stacked sheet and ruled paper are the hero card, ported from *Realm of
+  Depths'* `.screen-sheet`, in the torchlight look only (beige paper would fight the opt-in themes).
+  Eyebrow+title pairs class and level with the hero's name, and the level with the enemy's name on
+  desktop. **The Die is still owed.** It lands with #57's visible rolls, so it shows a real value.
+- **§5 visible maths** (#57) — the big one. Proposed in `docs/design/d6-combat.md`, awaiting the
+  owner's decisions in its §9. §5 says visible dice and readable tables are what earn
   the GerdQuest name; this game still resolves everything on hidden floats. The rolls are
   now injectable and reproducible (#60, v2.35.0); surfacing them is the remaining work, and it is a
   combat-model rewrite, not a UI change.

@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.45.1";
+export const VERSION = "v2.46.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,17 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.46.0",
+    date: "2026-10-08",
+    changes: [
+      "Your hero's card is now a character sheet: ruled parchment, stacked on the table like the rest of the GerdQuest series (Torchlight theme)",
+      "Hero class and level, and the enemy's level on desktop, now sit as a small label above the name",
+      "Empty equipment slot names are easier to read",
+      "Internal: colours now use the GerdQuest franchise palette names, from one shared file — no colour changes",
+      "Internal: a design proposal for dice-based combat (docs/design/d6-combat.md) — nothing in play has changed",
+    ],
+  },
   {
     version: "v2.45.1",
     date: "2026-10-08",

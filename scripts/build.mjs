@@ -10,6 +10,8 @@ const watch = process.argv.includes("--watch");
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 await cp(resolve(root, "public"), dist, { recursive: true });
+// §3 palette (#52) lives with the source, not in public/. Re-run the build after editing it.
+await cp(resolve(root, "src/ui/theme/tokens.css"), resolve(dist, "tokens.css"));
 
 const options = {
   entryPoints: [resolve(root, "src/main.ts")],

@@ -744,8 +744,8 @@ function renderParty(state: GameStateDict): void {
 <div class="char-card${leveledUpFlags[ci] ? " levelup-flash" : ""}${c.health <= 0 ? " is-dead" : ""}">
   <div class="char-header">
     <div class="char-header-left">
-      <div class="char-name" data-char="${charJson}">${c.name}</div>
       <div class="char-class">${c.character_class} <span class="char-level">Lv ${c.level}</span></div>
+      <div class="char-name" data-char="${charJson}">${c.name}</div>
       <div class="char-dps" data-dps="${dpsData}">${(c.dps * upgMult).toFixed(1)} DPS</div>
       <div class="char-rune-row">${runeRowHtml}</div>
       ${artifactSlots.some(Boolean) ? `<div class="char-artifact-row">${artifactBadgesHtml}</div>` : ""}
@@ -2828,7 +2828,7 @@ function showAchievementToasts(unlocks: AchievementUnlock[]): void {
         r.type === "title" ? `Title unlocked: "${r.title}"` :
         r.type === "avatar" ? (() => { const a = AVATAR_DEFS.find(x => x.id === r.cosmetic); return `Avatar: ${a?.icon ?? ""} ${a?.name ?? r.cosmetic}`; })() :
         r.type === "border" ? (() => { const b = BORDER_DEFS.find(x => x.id === r.cosmetic); return `Border: ${b?.name ?? r.cosmetic}`; })() : "";
-      const tierTag = u.tier ? ` <span style="font-size:0.6rem;color:var(--muted)">(${u.tier})</span>` : "";
+      const tierTag = u.tier ? ` <span style="font-size:0.6rem;color:var(--parchment-dim)">(${u.tier})</span>` : "";
       const toastTitle = u.wasHidden ? "Mystery Feat Revealed!" : "Feat Unlocked!";
       const el = document.createElement("div");
       el.className = "achievement-toast";
@@ -4121,7 +4121,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const logHistoryModal:HTMLElement = $("log-history-modal");
   document.getElementById("log-history-btn")?.addEventListener("click", () => {
     const body = $("log-history-body");
-    body.innerHTML = [...fullLog].reverse().map(l => `<div class="log-line">${l}</div>`).join("") || `<div class="log-line" style="color:var(--muted)">No history yet.</div>`;
+    body.innerHTML = [...fullLog].reverse().map(l => `<div class="log-line">${l}</div>`).join("") || `<div class="log-line" style="color:var(--parchment-dim)">No history yet.</div>`;
     logHistoryModal.classList.add("open");
   });
   document.getElementById("log-history-close")?.addEventListener("click", () => {

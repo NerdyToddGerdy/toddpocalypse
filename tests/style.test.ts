@@ -2,12 +2,17 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import indexHtml from "../public/index.html?raw";
+import { existsSync } from "node:fs";
 
 // Read from disk, not `?raw` — see the note in fonts.test.ts.
 const styleCss = readFileSync(
   fileURLToPath(new URL("../public/style.css", import.meta.url)),
   "utf8",
 );
+
+const TOKENS_PATH = fileURLToPath(new URL("../src/ui/theme/tokens.css", import.meta.url));
+const tokensCss = existsSync(TOKENS_PATH) ? readFileSync(TOKENS_PATH, "utf8") : "";
+const tokensRoot = tokensCss.match(/:root\s*\{([^}]*)\}/)?.[1] ?? "";
 
 /** First top-level block for an exact selector, e.g. `#attack-btn`. */
 function block(selector: string): string {
@@ -37,9 +42,9 @@ function contrast(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-/** Every theme's token block, plus the unthemed `:root` fallback. */
+/** Every theme: the §3 default (torchlight) from tokens.css, plus the seven opt-in overrides. */
 const THEMES: [string, string][] = [
-  [":root", block(":root")],
+  ["torchlight (tokens.css)", tokensRoot],
   ...[...styleCss.matchAll(/\n\[data-theme="([a-z-]+)"\]\s*\{([^}]*)\}/g)].map(
     (m): [string, string] => [m[1], m[2]],
   ),
@@ -47,21 +52,21 @@ const THEMES: [string, string][] = [
 
 describe("muted text legibility (#65)", () => {
   it("finds all eight themes", () => {
-    expect(THEMES.length).toBe(9);
+    expect(THEMES.length).toBe(8);
   });
 
-  // --muted carries every label, cost and inactive tab. Torchlight's was ~2.2:1
+  // --parchment-dim carries every label, cost and inactive tab. Torchlight's was ~2.2:1
   // until v2.38.0; five other themes were below 3.2:1 until #65.
   for (const [name, body] of THEMES) {
     describe(name, () => {
-      for (const surface of ["--surface", "--surface2"]) {
+      for (const surface of ["--bg-1", "--bg-2"]) {
         it(`clears WCAG AA against ${surface}`, () => {
-          expect(contrast(prop(body, "--muted"), prop(body, surface))).toBeGreaterThanOrEqual(4.5);
+          expect(contrast(prop(body, "--parchment-dim"), prop(body, surface))).toBeGreaterThanOrEqual(4.5);
         });
       }
 
       it("stays quieter than primary text", () => {
-        expect(luminance(prop(body, "--muted"))).toBeLessThan(luminance(prop(body, "--text")));
+        expect(luminance(prop(body, "--parchment-dim"))).toBeLessThan(luminance(prop(body, "--parchment")));
       });
     });
   }
@@ -104,13 +109,13 @@ describe("theme leaks (#66)", () => {
     "the arcane purple %s is only declared as a token, never inlined",
     (literal) => {
       const uses = outsideThemes.match(new RegExp(literal, "gi")) ?? [];
-      const fallbacks = outsideThemes.match(new RegExp(`var\\(--accent2, ${literal}\\)`, "gi")) ?? [];
+      const fallbacks = outsideThemes.match(new RegExp(`var\\(--secondary, ${literal}\\)`, "gi")) ?? [];
       expect(uses.length - fallbacks.length).toBe(0);
     },
   );
 
   it("declares the arcane tokens", () => {
-    const root = block(":root");
+    const root = tokensRoot;
     expect(prop(root, "--arcane")).toBe("#8b5cf6");
     expect(prop(root, "--arcane-deep")).toBe("#7c3aed");
     expect(prop(root, "--arcane-soft")).toBe("#a78bfa");
@@ -137,7 +142,7 @@ describe("disabled controls (#72)", () => {
   it.each(disabled)("%s keeps its label legible", (_sel, body) => {
     const op = body.match(/opacity:\s*([\d.]+)/);
     if (op) expect(parseFloat(op[1])).toBeGreaterThanOrEqual(1);
-    expect(body).not.toMatch(/background:\s*var\(--border\)/);
+    expect(body).not.toMatch(/background:\s*var\(--gold\)/);
   });
 
   it("marks an unaffordable upgrade price as short of gold", () => {
@@ -153,7 +158,7 @@ describe("primary actions", () => {
     it(`${sel} draws its colour from the theme, not a hardcoded purple`, () => {
       const body = block(sel);
       expect(body).not.toMatch(/#7c3aed|#4f46e5|124,\s*58,\s*237/);
-      expect(prop(body, "background")).toContain("var(--accent)");
+      expect(prop(body, "background")).toContain("var(--torch-mid)");
     });
   }
 
@@ -170,24 +175,37 @@ describe("controls", () => {
   // §3: "Focus ring — always visible, never removed".
   it("draws the §3 focus ring on keyboard focus", () => {
     expect(prop(block(":focus-visible"), "outline")).toContain("var(--focus)");
-    expect(styleCss).toMatch(/--focus:\s*#f2c265;/);
+    expect(tokensCss).toMatch(/--focus:\s*#f2c265;/);
   });
 });
 
 /** Every declaration body for an exact selector, wherever it appears (grouped or in @media). */
+/** Split a selector list on its top-level commas — not those inside :where(…) or :not(…). */
+function splitSelectors(list: string): string[] {
+  const out: string[] = [];
+  let depth = 0, start = 0;
+  for (let i = 0; i < list.length; i++) {
+    if (list[i] === "(") depth++;
+    else if (list[i] === ")") depth--;
+    else if (list[i] === "," && depth === 0) { out.push(list.slice(start, i)); start = i + 1; }
+  }
+  out.push(list.slice(start));
+  return out.map((s) => s.replace(/\s+/g, " ").trim());
+}
+
 function bodiesFor(selector: string): string[] {
   return [...styleCss.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
-    .filter((m) => m[1].replace(/\/\*[\s\S]*?\*\//g, "").split(",").map((s) => s.trim()).includes(selector))
+    .filter((m) => splitSelectors(m[1].replace(/\/\*[\s\S]*?\*\//g, "")).includes(selector))
     .map((m) => m[2]);
 }
 
 describe("active states (#69)", () => {
-  // Navigation switches the view: underline in --accent, label in --text, no fill.
+  // Navigation switches the view: underline in --torch-mid, label in --parchment, no fill.
   const NAV = [
     ".stab-btn.active", ".loot-stab.active", ".combat-stab.active", ".mobile-tab-btn.active",
     ".lcol-stab.active", ".ptab-btn.active", ".profile-tab-btn.active",
   ];
-  // A choice picks a value: --accent outline over a faint --accent wash.
+  // A choice picks a value: --torch-mid outline over a faint --torch-mid wash.
   const CHOICE = [
     ".class-btn.selected", ".feats-filter-btn.active", ".theme-btn.active",
     ".title-chip.active", ".profile-pick-btn.active",
@@ -196,19 +214,19 @@ describe("active states (#69)", () => {
   it.each(NAV)("%s is an accent underline with primary text", (sel) => {
     const all = bodiesFor(sel).join(";");
     expect(all, sel).not.toBe("");
-    expect(all).not.toContain("--accent2");
-    expect(all).toMatch(/color:\s*var\(--text\)/);
-    expect(all).toMatch(/border-(bottom|top)-color:\s*var\(--accent\)/);
+    expect(all).not.toContain("--secondary");
+    expect(all).toMatch(/color:\s*var\(--parchment\)/);
+    expect(all).toMatch(/border-(bottom|top)-color:\s*var\(--torch-mid\)/);
     expect(all).not.toMatch(/background(-color)?:\s*(?!none|transparent)/);
   });
 
   it.each(CHOICE)("%s is an accent outline with a faint wash", (sel) => {
     const all = bodiesFor(sel).join(";");
     expect(all, sel).not.toBe("");
-    expect(all).not.toContain("--accent2");
-    expect(all).toMatch(/border-color:\s*var\(--accent\)/);
-    expect(all).toMatch(/background:\s*color-mix\(in srgb, var\(--accent\) \d+%, transparent\)/);
-    expect(all).toMatch(/color:\s*var\(--text\)/);
+    expect(all).not.toContain("--secondary");
+    expect(all).toMatch(/border-color:\s*var\(--torch-mid\)/);
+    expect(all).toMatch(/background:\s*color-mix\(in srgb, var\(--torch-mid\) \d+%, transparent\)/);
+    expect(all).toMatch(/color:\s*var\(--parchment\)/);
   });
 });
 
@@ -248,12 +266,12 @@ describe("panel chrome (#71)", () => {
   });
 
   it.each([".loot-item", ".feat-card", ".char-card"])("%s sits on a hairline, not a full gold rule", (sel) => {
-    expect(prop(block(sel), "border")).toMatch(/color-mix\(in srgb, var\(--border\) \d+%, transparent\)/);
+    expect(prop(block(sel), "border")).toMatch(/color-mix\(in srgb, var\(--gold\) \d+%, transparent\)/);
   });
 
   it("the sidebar carries the panel frame; its sections do not repeat it", () => {
     expect(bodiesFor("[data-theme] #sidebar > section").join(";")).toMatch(/outline:\s*none/);
-    expect(bodiesFor("[data-theme] #sidebar").join(";")).toMatch(/outline:\s*1px solid var\(--border\)/);
+    expect(bodiesFor("[data-theme] #sidebar").join(";")).toMatch(/outline:\s*1px solid var\(--gold\)/);
   });
 
   // A tab bar with one tab in it is a label pretending to be navigation.
@@ -471,5 +489,71 @@ describe("enemy panel band", () => {
   it("collapses skill rows until there is a skill in them", () => {
     expect(styleCss).toMatch(/#skill-row:not\(:has\(> :not\(\[hidden\]\)\)\)/);
     expect(styleCss).toMatch(/#companion-skills:empty/);
+  });
+});
+
+describe("§3 motifs (#56)", () => {
+  // Ported from Realm of Depths' global.css `.screen-sheet`, scoped to the hero
+  // card — this title's character sheet — and to the house (torchlight) look.
+  const SHEET = ':where(:root:not([data-theme]), [data-theme="torchlight"]) .char-card';
+  const sheet = bodiesFor(SHEET).join(";");
+
+  it("the hero card is a parchment sheet with ruled lines", () => {
+    expect(sheet).toMatch(/background-color:\s*var\(--parchment-2\)/);
+    expect(sheet).toMatch(/repeating-linear-gradient\(\s*to bottom,\s*transparent,\s*transparent 27px,\s*rgba\(42, 32, 22, 0\.06\) 28px\s*\)/);
+  });
+
+  it("sits on two rotated copies of itself", () => {
+    const before = bodiesFor(`${SHEET}::before`).join(";");
+    const after = bodiesFor(`${SHEET}::after`).join(";");
+    expect(before).toMatch(/rotate\(-0\.55deg\)/);
+    expect(after).toMatch(/rotate\(0\.45deg\)/);
+    expect(bodiesFor(`${SHEET}::before`).concat(bodiesFor(`${SHEET}::after`)).join(";")).toMatch(/pointer-events:\s*none/);
+  });
+
+  // Inside the sheet the tokens flip to ink-on-paper, so every rule written for
+  // a dark ground reads correctly without being rewritten.
+  it.each([
+    ["--parchment", 7],
+    ["--parchment-dim", 4.5],
+    ["--torch-mid", 4.5],
+  ])("remaps %s to something legible on paper (≥ %s:1)", (token, min) => {
+    const value = sheet.match(new RegExp(`${token}:\\s*(#[0-9a-f]{6})`, "i"))?.[1]
+      ?? ({ "var(--ink)": "#2a2016", "var(--ink-soft)": "#5a4b38" } as Record<string, string>)[
+        sheet.match(new RegExp(`${token}:\\s*(var\\(--[a-z-]+\\))`))?.[1] ?? ""];
+    expect(value, token).toBeDefined();
+    expect(contrast(value!, "#ddcca2")).toBeGreaterThanOrEqual(min);
+  });
+
+  it("puts the hero's class and level as an eyebrow above the name", () => {
+    expect(mainTs.indexOf('<div class="char-class">')).toBeLessThan(mainTs.indexOf('<div class="char-name"'));
+    const eyebrow = bodiesFor(".char-class").join(";");
+    expect(eyebrow).toMatch(/font-family:\s*var\(--font-mono\)/);
+    expect(eyebrow).toMatch(/text-transform:\s*uppercase/);
+  });
+
+  it("does the same for the enemy's level on desktop", () => {
+    expect(indexHtml.indexOf('id="enemy-level"')).toBeLessThan(indexHtml.indexOf('id="enemy-name"'));
+    const m = styleCss.match(/\/\* ── Eyebrow \+ title[\s\S]*?@media \(min-width: 1024px\)\s*\{([\s\S]*?)\n\}/);
+    expect(m).not.toBeNull();
+    expect(m![1]).toMatch(/#enemy-level\s*\{[^}]*font-family:\s*var\(--font-mono\)/);
+  });
+});
+
+describe("§3 motifs — legibility (#56)", () => {
+  // The eyebrows first used --gold, which several themes set to a dark border tone.
+  it("eyebrows use --parchment-dim, legible in every theme", () => {
+    expect(bodiesFor(".char-class").join(";")).toMatch(/color:\s*var\(--parchment-dim\)/);
+    const m = styleCss.match(/\/\* ── Eyebrow \+ title[\s\S]*?@media \(min-width: 1024px\)\s*\{([\s\S]*?)\n\}/);
+    expect(m![1]).toMatch(/#enemy-level\s*\{[^}]*color:\s*var\(--parchment-dim\)/);
+  });
+
+  it("slot labels follow the token, so they turn to ink on the sheet", () => {
+    expect(bodiesFor(".gear-pdoll-label").join(";")).toMatch(/color:\s*var\(--parchment-dim\)/);
+  });
+
+  it("empty slots on the sheet are drawn, not faded out", () => {
+    const body = bodiesFor(':where(:root:not([data-theme]), [data-theme="torchlight"]) .char-card .gear-pdoll-slot.empty').join(";");
+    expect(body).toMatch(/opacity:\s*1/);
   });
 });

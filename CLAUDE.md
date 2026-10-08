@@ -67,11 +67,14 @@ gear.ts        GearItem + getItem() — slots, qualities, drop weights
 ### Public assets (`public/`)
 
 - `index.html` — page chrome, character creation overlay, panels
-- `style.css` — all styling
+- `style.css` — all styling except the palette
+
+The palette is `src/ui/theme/tokens.css` (franchise bible §3, #52): the §3 tokens plus this title's
+local extensions. Use those names (`--bg-1`, `--parchment`, `--torch-mid`…), never raw hex.
 
 ### Build
 
-`scripts/build.mjs` runs esbuild on `src/main.ts` → `dist/game.js` and copies `public/*` to `dist/`. The `dist/` directory is what GitHub Pages serves.
+`scripts/build.mjs` runs esbuild on `src/main.ts` → `dist/game.js`, copies `public/*` to `dist/`, and copies `src/ui/theme/tokens.css` to `dist/tokens.css`. `npm run watch` copies tokens only at startup, so restart it after editing the palette. The `dist/` directory is what GitHub Pages serves.
 
 ### Tests (`tests/`)
 
