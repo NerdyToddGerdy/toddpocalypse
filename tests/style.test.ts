@@ -654,3 +654,29 @@ describe("prices are counted numbers (§3)", () => {
     expect(bodiesFor(".upgrade-btn").join(";")).toMatch(/font-family:\s*var\(--font-mono\)/);
   });
 });
+
+describe("condensed party view", () => {
+  const mainTs2 = mainTs;
+
+  it("hides the rune row until the Rune Forge is built", () => {
+    expect(bodiesFor("#party-panel.runes-locked .char-rune-row").join(";")).toMatch(/display:\s*none/);
+    expect(mainTs2).toMatch(/classList\.toggle\("runes-locked", \(state\.guild_upgrades\["rune_forge"\] \?\? 0\) < 1\)/);
+  });
+
+  it("shows the gear boxes only while the paperdoll is hidden", () => {
+    expect(bodiesFor("#party-panel:not(.gear-hidden) .char-gear-row").join(";")).toMatch(/display:\s*none/);
+  });
+
+  it("places the gear boxes right above the rune row", () => {
+    expect(mainTs2.indexOf('class="char-gear-row"')).toBeLessThan(mainTs2.indexOf('class="char-rune-row"'));
+    expect(mainTs2.indexOf('class="char-gear-row"')).toBeGreaterThan(-1);
+  });
+
+  it("their hover popup is the paperdoll's item popup", () => {
+    expect(mainTs2).toMatch(/TOOLTIP_SELECTORS = "[^"]*\.char-gear-sq\[data-item\]/);
+  });
+
+  it("set pieces get a gold border", () => {
+    expect(bodiesFor(".char-gear-sq.set-piece").join(";")).toMatch(/border-color:\s*var\(--gold-bright\)/);
+  });
+});

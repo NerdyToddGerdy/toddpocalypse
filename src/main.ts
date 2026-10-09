@@ -104,6 +104,7 @@ import {
   buildReturnToTownHTML,
   deviceClaimError,
   buildQuartermasterHTML,
+  charGearRowHTML,
 } from "./ui/html.js";
 import { initDialogs } from "./ui/dialogs.js";
 import { DEFAULT_THEME, resolveTheme, type Theme } from "./theme.js";
@@ -290,6 +291,8 @@ let lastDpsBreakdown: PartyDpsBreakdown | undefined;
 
 function render(state: GameStateDict): void {
   lastDpsBreakdown = state.dps_breakdown;
+  // Rune squares mean nothing until the Rune Forge is built.
+  document.getElementById("party-panel")?.classList.toggle("runes-locked", (state.guild_upgrades["rune_forge"] ?? 0) < 1);
   document.querySelectorAll<HTMLElement>(".char-crit").forEach((el, i) => {
     const text = critLabel(state.dps_breakdown?.heroes[i]?.crit);
     if (el.textContent !== text) el.textContent = text;
@@ -764,6 +767,7 @@ function renderParty(state: GameStateDict): void {
       <div class="char-name" data-char="${charJson}">${c.name}</div>
       <div class="char-dps" data-dps="${ci}">${(c.dps * upgMult).toFixed(1)} DPS</div>
       <div class="char-crit">${critLabel(state.dps_breakdown?.heroes[ci]?.crit)}</div>
+      <div class="char-gear-row">${charGearRowHTML(c.equipment, ci)}</div>
       <div class="char-rune-row">${runeRowHtml}</div>
       ${artifactSlots.some(Boolean) ? `<div class="char-artifact-row">${artifactBadgesHtml}</div>` : ""}
     </div>
@@ -3032,7 +3036,7 @@ function initLootSubtabs(): void {
   btns.forEach(btn => btn.addEventListener("click", () => showLootSub(btn.dataset.lootStab!)));
 }
 
-const TOOLTIP_SELECTORS = ".gear-pdoll-slot.filled[data-item], .loot-item[data-item], .char-name[data-char], .hero-sprite[data-char], #party-panel h2[data-party], [data-active-skill], .char-dps[data-dps], .tt-rune-slot[data-rune], .pdoll-slot.equipped[data-rune], .char-artifact-badge[data-artifact], .set-bonus-badge[data-set], .ability-badge[data-skill]";
+const TOOLTIP_SELECTORS = ".gear-pdoll-slot.filled[data-item], .char-gear-sq[data-item], .loot-item[data-item], .char-name[data-char], .hero-sprite[data-char], #party-panel h2[data-party], [data-active-skill], .char-dps[data-dps], .tt-rune-slot[data-rune], .pdoll-slot.equipped[data-rune], .char-artifact-badge[data-artifact], .set-bonus-badge[data-set], .ability-badge[data-skill]";
 
 function getTooltipContent(el: HTMLElement): string | null {
   try {

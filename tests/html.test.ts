@@ -26,6 +26,7 @@ import {
   welcomeBackLine,
   buildReturnToTownHTML,
   buildQuartermasterHTML,
+  charGearRowHTML,
 } from "../src/ui/html.js";
 import { GearItem } from "../src/gear.js";
 import type { GameStateDict } from "../src/engine.js";
@@ -436,5 +437,41 @@ describe("buildQuartermasterHTML", () => {
 
   it("buys through the buy-consumable action", () => {
     expect(html.match(/data-action="buy-consumable"/g)).toHaveLength(3);
+  });
+});
+
+// The condensed party view: one box per equipped slot, above the rune row.
+describe("charGearRowHTML", () => {
+  const sword = { slot: "main_hand", name: "fine sword of striking", quality: "fine", stats: { dps: 4 } };
+  const setHelm = { slot: "helmet", name: "Warden's Helm", quality: "epic", stats: { defense: 0.05 }, set_name: "Warden" };
+  const html = charGearRowHTML({ main_hand: sword, helmet: setHelm, chest: null } as never, 2);
+  const boxes = [...html.matchAll(/<button[^>]*class="char-gear-sq[^"]*"[^>]*>/g)].map((m) => m[0]);
+
+  it("draws one box per gear slot, in the rune row's order", () => {
+    expect(boxes).toHaveLength(9);
+    expect(boxes[0]).toContain('data-slot="main_hand"');
+    expect(boxes[2]).toContain('data-slot="helmet"');
+  });
+
+  it("colours a filled box by its item's quality", () => {
+    expect(boxes[0]).toMatch(/class="char-gear-sq filled q-fine"/);
+  });
+
+  it("gives set pieces the gold set border", () => {
+    expect(boxes[2]).toMatch(/set-piece/);
+    expect(boxes[0]).not.toMatch(/set-piece/);
+  });
+
+  it("hovers like the paperdoll (item popup) and clicks like it (gear slot dialog)", () => {
+    expect(boxes[0]).toContain("data-item=");
+    expect(boxes[0]).toContain('data-action="gear-slot-click"');
+    expect(boxes[0]).toContain('data-char-idx="2"');
+  });
+
+  it("leaves empty slots as quiet, inert boxes with a name for screen readers", () => {
+    expect(boxes[3]).toMatch(/class="char-gear-sq empty"/);
+    expect(boxes[3]).toContain("disabled");
+    expect(boxes[3]).toMatch(/aria-label="Chest: empty"/);
+    expect(boxes[0]).toMatch(/aria-label="Main Hand: fine sword of striking"/);
   });
 });

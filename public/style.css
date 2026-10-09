@@ -6355,3 +6355,25 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
 }
+
+/* ── Condensed party view: equipped gear at a glance ── */
+#party-panel.runes-locked .char-rune-row { display: none; }
+#party-panel:not(.gear-hidden) .char-gear-row { display: none; }
+.char-gear-row { display: flex; gap: 4px; margin: 3px 0 0; }
+/* Same footprint as the rune squares beneath it. */
+.char-gear-sq {
+    width: 11px;
+    height: 11px;
+    flex-shrink: 0;
+    padding: 0;
+    border: 1px solid color-mix(in srgb, var(--gold) 55%, transparent);
+    border-radius: 2px;
+    background: transparent;
+}
+.char-gear-sq.filled { cursor: help; }
+.char-gear-sq.empty { opacity: 1; border-style: dashed; cursor: default; }
+/* The fill is the quality colour; each q-* class already sets `color`. */
+.char-gear-sq.filled { background: currentColor; border-color: color-mix(in srgb, currentColor 60%, #000); }
+.char-gear-sq.set-piece { border: 2px solid; border-color: var(--gold-bright); }
+.char-gear-sq.filled:hover,
+.char-gear-sq.filled:focus-visible { transform: scale(1.25); }

@@ -4,6 +4,12 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.52.0 — 2026-10-09
+
+- With your party's gear hidden, each hero now shows a row of small boxes for their equipped items, coloured by quality, with a gold border for set pieces
+- Hover a box to see the item; click it to open that gear slot, just like the full equipment view
+- The rune squares stay hidden until you build the Rune Forge
+
 ## v2.51.0 — 2026-10-09
 
 - New: the Quartermaster, at the top of the Guild Hall tab. Spend gold on a Whetstone (party damage ×1.5), a Lucky charm (+15% drop chance), a Gold draught (boss gold ×1.5) or a Healing potion

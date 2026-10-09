@@ -668,3 +668,21 @@ export function buildQuartermasterHTML(items: ConsumableView[], gold: number): s
     </section>
     <h3 class="qm-head">Guild upgrades</h3>`;
 }
+
+/**
+ * The condensed party view's gear row: one box per slot, coloured by the
+ * equipped item's quality, gold-bordered for set pieces. Hover shows the item
+ * popup and a click opens the gear slot dialog, exactly as the paperdoll does.
+ */
+export function charGearRowHTML(equipment: Partial<Record<string, GearItemDict | null>>, charIdx: number): string {
+  return ALL_SLOTS.map((slot) => {
+    const item = equipment[slot];
+    const label = SLOT_LABELS[slot] ?? slot;
+    if (!item) {
+      return `<button class="char-gear-sq empty" data-slot="${slot}" aria-label="${label}: empty" disabled></button>`;
+    }
+    const itemJson = encodeURIComponent(JSON.stringify(item));
+    const set = item.set_name ? " set-piece" : "";
+    return `<button class="char-gear-sq filled ${qualityClass(item.quality)}${set}" data-action="gear-slot-click" data-char-idx="${charIdx}" data-slot="${slot}" data-item="${itemJson}" aria-label="${label}: ${esc(item.name)}"></button>`;
+  }).join("");
+}
