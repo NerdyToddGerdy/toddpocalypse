@@ -21,6 +21,9 @@ import {
   featTierList,
   upgradeGridColumns,
   mobileUpgradeButton,
+  formatOdds,
+  buildLootOddsHTML,
+  welcomeBackLine,
 } from "../src/ui/html.js";
 import { GearItem } from "../src/gear.js";
 import type { GameStateDict } from "../src/engine.js";
@@ -117,13 +120,114 @@ describe("buildTooltipHTML", () => {
   });
 });
 
+// #74: every multiplier, in order, so the parts shown make the total shown.
 describe("buildDpsTooltipHTML", () => {
-  it("shows base and total, hiding zero rows", () => {
-    const html = buildDpsTooltipHTML({ total: 15, base: 10, gear: 5, upgDps: 0 });
-    expect(html).toContain("DPS Breakdown");
+  const hero = {
+    name: "Aldric",
+    parts: [{ label: "Class & level", value: 10 }, { label: "Gear", value: 5 }],
+    factors: [{ label: "DPS upgrades", value: 1.2 }, { label: "Bloodlust", value: 1.6 }],
+    crit: { chance: 0.12, multiplier: 2, sources: [{ label: "Gear", value: 0.08 }, { label: "Runes", value: 0.04 }] },
+    average: 15 * 1.2 * 1.6 * 1.12,
+  };
+  const party = { factors: [{ label: "Battle Cry", value: 2 }], runesmith: 0, average: 64.5, heroCount: 1 };
+  const html = buildDpsTooltipHTML({ hero, party });
+
+  it("adds up the base parts", () => {
+    expect(html).toContain("Class &amp; level");
     expect(html).toContain("15.0");
-    expect(html).toContain("+5.0");
-    expect(html).not.toContain("Upgrades");
+  });
+
+  it("shows every multiplier with its label, as ×", () => {
+    expect(html).toContain("DPS upgrades");
+    expect(html).toContain("×1.2");
+    expect(html).toContain("Bloodlust");
+    expect(html).toContain("×1.6");
+    expect(html).toContain("Battle Cry");
+    expect(html).toContain("×2");
+  });
+
+  it("states the crit odds and where they come from", () => {
+    expect(html).toMatch(/12% chance/);
+    expect(html).toMatch(/×2 damage/);
+    expect(html).toContain("Runes");
+  });
+
+  it("ends on the party's average", () => {
+    expect(html).toContain("64.5");
+  });
+
+  it("explains a hero who deals nothing", () => {
+    const idle = buildDpsTooltipHTML({ hero: { ...hero, average: 0, inactive: "No gear equipped — a hero needs at least one item to fight" }, party });
+    expect(idle).toContain("No gear equipped");
+  });
+});
+
+describe("formatOdds", () => {
+  it.each([
+    [0.45, "45%"],
+    [0.123, "12.3%"],
+    [0.01, "1%"],
+    [0.004, "1 in 250"],
+    [0.000714, "1 in 1,401"],
+    [0, "—"],
+  ])("%s → %s", (p, want) => {
+    expect(formatOdds(p)).toBe(want);
+  });
+});
+
+describe("buildLootOddsHTML", () => {
+  const odds = {
+    drop: { parts: [{ label: "Base", value: 0.45 }, { label: "Dungeon 2", value: 0.05 }], cap: 0.75, total: 0.5, capped: false },
+    effective_level: 8,
+    quality_boost_chance: 0,
+    quality: { common: 0.6, fine: 0.3, rare: 0.004, epic: 0 } as Record<string, number>,
+  };
+  const html = buildLootOddsHTML(odds, 3);
+
+  it("leads with the chance an enemy drops anything, and its sources", () => {
+    expect(html).toContain("50%");
+    expect(html).toContain("Base");
+    expect(html).toContain("Dungeon 2");
+  });
+
+  it("says when quality rolls deeper than the floor shown", () => {
+    expect(html).toMatch(/floor 8/i);
+  });
+
+  it("lists each quality that can drop, rare ones as 1 in N", () => {
+    expect(html).toContain("60%");
+    expect(html).toContain("1 in 250");
+    expect(html).not.toMatch(/>epic</i);
+  });
+
+  it("notes elite and boss drops, which skip the roll", () => {
+    expect(html).toMatch(/elites always drop/i);
+    expect(html).toMatch(/bosses always drop a set piece/i);
+  });
+
+  it("says when the cap is reached", () => {
+    expect(buildLootOddsHTML({ ...odds, drop: { ...odds.drop, total: 0.75, capped: true } }, 3)).toMatch(/capped at 75%/i);
+  });
+});
+
+describe("welcomeBackLine", () => {
+  it("says what was earned, and that the party didn't fight", () => {
+    const line = welcomeBackLine(4210, 3 * 3600_000 + 12 * 60_000);
+    expect(line).toContain("4,210 gold");
+    expect(line).toContain("3h 12m");
+    expect(line).toMatch(/doesn't fight while you're away/);
+  });
+
+  it("says when the idle cap cut earnings short", () => {
+    expect(welcomeBackLine(100, 10 * 3600_000)).toMatch(/stops after 8h/);
+  });
+
+  it("is honest when nothing was earned", () => {
+    expect(welcomeBackLine(0, 45 * 60_000)).toMatch(/no idle gold/i);
+  });
+
+  it("says nothing after a short absence with nothing earned", () => {
+    expect(welcomeBackLine(0, 20_000)).toBe("");
   });
 });
 

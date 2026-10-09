@@ -6259,3 +6259,43 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
     box-shadow: none;
 }
 [data-theme="ledger"] :is(.prune-char-block, .artifact-char-block)::before { display: none; }
+
+/* ── Show the maths (#74) ── */
+/* Crit chance on the hero sheet: a counted number, so mono. */
+.char-crit {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    color: var(--parchment-dim);
+    margin-top: 1px;
+}
+.char-crit:empty { display: none; }
+.tt-sub {
+    font-size: 0.66rem;
+    color: var(--parchment-dim);
+    margin: 2px 0 4px;
+}
+.tt-note {
+    font-size: 0.72rem;
+    font-style: italic;
+    color: var(--danger);
+}
+/* The loot odds dialog: drop chance, then quality. */
+.odds-section + .odds-section {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+}
+.odds-head {
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--parchment);
+    margin: 0 0 6px;
+}
+.odds-head strong { font-family: var(--font-mono); color: var(--torch-mid); }
+.odds-note {
+    font-size: 0.72rem;
+    color: var(--parchment-dim);
+    margin: 4px 0 8px;
+    line-height: 1.4;
+}

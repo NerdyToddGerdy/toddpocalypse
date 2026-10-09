@@ -38,7 +38,7 @@ The bible does not say where per-title divergences get recorded. This is that pl
 | §3 | Secondary text is `--parchment-dim`, not `--ink-soft` | 🔵 Conformant | — |
 | §3 | Stacked sheet, ruled paper, eyebrow+title; no Die (no dice, §5.1) | 🟢 Settled | #56 closed |
 | §5.1 | No d6: dice don't suit this idle game's pacing | 🟢 **Settled** | #57 closed |
-| §5.4 | Maths still hidden: loot odds, crits, the DPS stack | 🟡 Owed | #74 |
+| §5.4 | Bookkeeping made visible: loot odds, crit odds, the DPS stack | 🔵 Conformant | #74 |
 | §5 | No depleting resource; prestige not permadeath | ⚪ Open | #58 |
 | §6 | Vanilla DOM + esbuild, not React + Vite | 🟢 **Settled** | #63 |
 | §6 | Has a backend (bible permits) | 🔵 Conformant | #64 |
@@ -51,6 +51,30 @@ The bible does not say where per-title divergences get recorded. This is that pl
 ---
 
 ## 🟢 Settled — the bible is what should move
+
+### §5.4 — bookkeeping made visible, without dice
+
+Done in v2.49.0 (#74). §5.4: "Show the roll, show the modifier, show the table row." With no dice
+(§5.1), this title shows the numbers it already uses:
+
+- **Loot odds** (the 📊 Odds dialog): the drop chance and each part of it, and every quality's
+  chance on this floor, rare ones as "1 in N". The previous chart got this wrong from dungeon 2 on,
+  because it rolled quality by floor number rather than the effective level the engine uses.
+- **Crit odds** on every hero sheet ("12% crit for ×2"), with their sources in the DPS tooltip.
+- **The DPS stack**: the tooltip lists every part and multiplier in the order combat applies them.
+  It also says when a hero deals nothing because no gear is equipped, a rule that was invisible
+  before.
+- **Time away**: the welcome-back line says plainly that the party doesn't fight offline, and
+  when the 8-hour idle cap cut earnings short.
+
+**The numbers shown are the numbers rolled.** Combat and the breakdown read the same labelled
+helpers (`heroFactors`, `critFor`, `partyFactors`, `dropChanceBreakdown`, `qualityOdds`), and
+`tests/odds.test.ts` checks that the breakdown's average equals what combat deals.
+
+**Not done, by the owner's choice (2026-10-09): no log lines** explaining individual hits or drops.
+
+This is the first §5 instinct *Idle Depths* fully meets. Two more are needed for the bible's
+"at least three"; (2) and (3) are the open questions in #58.
 
 ### §5.1 — no d6: dice don't suit this idle game's pacing
 
@@ -352,9 +376,6 @@ matter.
 
 Each is tracked; this section is a pointer, not a duplicate of the issue.
 
-- **§5.4 visible maths** (#74) — show the loot odds, crit odds and the DPS multiplier stack as
-  real numbers, without dice (see §5.1 under Settled). The rolls are already injectable and
-  reproducible (#60, v2.35.0), so this is presentation work, not a combat rewrite.
 - **§6 `src/data/`** (#61) — tables live inside the modules that consume them.
 - **§6 testing** (#63) — Vitest is in place (1349 tests). No Playwright, and the "a regression test
   must be shown to fail against the unfixed code before it is kept" rule isn't formally adopted.

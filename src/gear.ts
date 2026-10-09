@@ -139,6 +139,25 @@ export function qualityWeights(dungeonLevel: number): number[] {
   });
 }
 
+/**
+ * The chance of each quality tier, aligned with `QUAL` (#74).
+ *
+ * Built from `qualityWeights`, the same table `getItem` rolls on, so what the
+ * player is shown is what the game rolls. `boostChance` is the chance the drop
+ * rolls `boostLevels` floors deeper instead (the constellation loot bonus).
+ */
+export function qualityOdds(level: number, boostChance = 0, boostLevels = 8): number[] {
+  const normalise = (w: number[]) => {
+    const total = w.reduce((a, b) => a + b, 0);
+    return w.map((x) => x / total);
+  };
+  const base = normalise(qualityWeights(level));
+  if (boostChance <= 0) return base;
+  if (boostChance >= 1) return normalise(qualityWeights(level + boostLevels));
+  const boosted = normalise(qualityWeights(level + boostLevels));
+  return base.map((p, i) => (1 - boostChance) * p + boostChance * boosted[i]);
+}
+
 /** CSS class name for each quality tier, used by the loot renderer. */
 export const QUALITY_CLASSES: Record<Quality, string> = {
   broken:    "q-broken",

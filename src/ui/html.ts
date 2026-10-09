@@ -5,6 +5,10 @@
  */
 import {
   type AchievementReward,
+  type Factor,
+  type HeroDps,
+  type LootOdds,
+  OFFLINE_GOLD_CAP_SECONDS,
   type AchievementTierLabel,
   AVATAR_DEFS,
   BORDER_DEFS,
@@ -25,6 +29,7 @@ import {
   type GearItemDict,
   type GearStats,
   QUAL,
+  QUALITY_CLASSES,
   qualityClass,
 } from "../gear.js";
 import { CLASS_ABILITIES, type Rune } from "../character.js";
@@ -432,18 +437,64 @@ export function buildActiveSkillTooltipHTML(skillId: string, skillState?: { rema
   return `<div class="skill-tooltip"><div class="skill-tooltip-name">${name}</div><div class="skill-tooltip-desc">${desc}</div><div class="skill-tooltip-cd">Cooldown: ${cooldownKills} kills</div>${statusLine}</div>`;
 }
 
-export function buildDpsTooltipHTML(d: { total: number; base: number; gear: number; runes?: number; upgDps: number }): string {
+/** Escapes text for HTML. */
+function esc(t: string): string {
+  return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/** A multiplier as the player reads it: ×1.2, ×2, ×1.12. */
+function times(v: number): string {
+  return `×${Number(v.toFixed(2))}`;
+}
+
+/** The crit line on a hero sheet: "12% crit for ×2". */
+export function critLabel(crit?: { chance: number; multiplier: number }): string {
+  if (!crit) return "";
+  return `${Number((crit.chance * 100).toFixed(1))}% crit for ×${crit.multiplier}`;
+}
+
+/** A probability as the player reads it: "45%", "12.3%", and "1 in 250" below 1%. */
+export function formatOdds(p: number): string {
+  if (p <= 0) return "—";
+  if (p >= 0.01) return `${Number((p * 100).toFixed(1))}%`;
+  return `1 in ${Math.round(1 / p).toLocaleString("en-US")}`;
+}
+
+/**
+ * The DPS tooltip (#74): every part and multiplier in the order combat applies
+ * them, so the numbers shown multiply out to the total shown.
+ */
+export function buildDpsTooltipHTML(d: {
+  hero: HeroDps;
+  party: { factors: Factor[]; runesmith: number; average: number; heroCount: number };
+}): string {
+  const { hero, party } = d;
+  const base = hero.parts.reduce((a, p) => a + p.value, 0);
+  const critAvg = 1 + Math.min(1, Math.max(0, hero.crit.chance)) * (hero.crit.multiplier - 1);
+  const critPct = `${Number((hero.crit.chance * 100).toFixed(1))}% chance`;
+  const rows: string[] = [
+    ...hero.parts.map((p) => statRow(esc(p.label), p.value.toFixed(1), "tt-dps")),
+    statRow("Base", base.toFixed(1)),
+    ...hero.factors.map((f) => statRow(esc(f.label), times(f.value), "tt-dps")),
+    statRow(`Crits: ${critPct}, ×${hero.crit.multiplier} damage`, `${times(critAvg)} avg`, "tt-crit"),
+    ...hero.crit.sources.map((s) => statRow(`&nbsp;&nbsp;${esc(s.label)}`, `${Number((s.value * 100).toFixed(1))}%`)),
+  ];
+  const heroLine = hero.inactive
+    ? `<div class="tt-note">${esc(hero.inactive)}</div>`
+    : statRow(`${esc(hero.name)}, on average`, hero.average.toFixed(1), "tt-dps");
+  const partyRows = [
+    ...(party.runesmith > 0 ? [statRow("Runesmith", `+${party.runesmith.toFixed(1)}`, "tt-dps")] : []),
+    ...party.factors.map((f) => statRow(esc(f.label), times(f.value), "tt-dps")),
+  ];
   return `
-    <div class="tt-name">DPS Breakdown</div>
+    <div class="tt-name">${esc(hero.name)}'s damage</div>
     <div class="tt-divider"></div>
-    <div class="tt-stats">
-      ${statRow("Base", d.base.toFixed(1), "tt-dps")}
-      ${d.upgDps > 0 ? statRow("Upgrades", `+${d.upgDps.toFixed(1)}`, "tt-dps") : ""}
-      ${d.gear > 0 ? statRow("Gear", `+${d.gear.toFixed(1)}`, "tt-dps") : ""}
-      ${d.runes && d.runes > 0 ? statRow("Runes", `+${d.runes.toFixed(1)}`, "tt-dps") : ""}
-    </div>
+    <div class="tt-stats">${rows.join("")}</div>
     <div class="tt-divider"></div>
-    ${statRow("Total", d.total.toFixed(1), "tt-dps")}
+    ${heroLine}
+    ${partyRows.length ? `<div class="tt-divider"></div><div class="tt-sub">Whole party</div><div class="tt-stats">${partyRows.join("")}</div>` : ""}
+    <div class="tt-divider"></div>
+    ${statRow(party.heroCount > 1 ? "Party total, on average" : "Total, on average", party.average.toFixed(1), "tt-dps")}
   `;
 }
 
@@ -516,4 +567,58 @@ export function mobileUpgradeButton(o: { charName: string; utype: string; label:
 /** Browser tab title: progress first, so it can be read from another tab. */
 export function tabTitle(gold: number, floor: number): string {
   return `${formatNumber(gold)} gold · Floor ${floor} — GerdQuest: Idle Depths`;
+}
+
+/** The loot odds dialog (#74): the drop chance and each quality's odds on this floor. */
+export function buildLootOddsHTML(odds: LootOdds, floor: number): string {
+  const { drop } = odds;
+  const dropRows = drop.parts.map((p, i) =>
+    statRow(esc(p.label), `${i === 0 ? "" : "+"}${formatOdds(p.value)}`)).join("");
+  const notes = [
+    drop.capped ? `Capped at ${formatOdds(drop.cap)}.` : "",
+    "Elites always drop loot, and 15% of the time a set piece as well. Bosses always drop a set piece.",
+  ].filter(Boolean).map((n) => `<p class="odds-note">${n}</p>`).join("");
+  const qualityNotes = [
+    odds.effective_level !== floor
+      ? `Rolled as floor ${odds.effective_level}: each dungeon past the first adds 5 floors.`
+      : "",
+    odds.quality_boost_chance > 0
+      ? `${formatOdds(odds.quality_boost_chance)} of drops roll 8 floors deeper (constellations).`
+      : "",
+  ].filter(Boolean).map((n) => `<p class="odds-note">${n}</p>`).join("");
+  const qualityRows = [...QUAL].reverse()
+    .filter((q) => (odds.quality[q] ?? 0) > 0)
+    .map((q) => {
+      const p = odds.quality[q];
+      return `<div class="drop-chart-row">
+        <span class="drop-chart-label ${QUALITY_CLASSES[q]}">${q}</span>
+        <div class="drop-chart-bar-wrap"><div class="drop-chart-bar" style="width:${(p * 100).toFixed(2)}%;background:var(--q-${q})"></div></div>
+        <span class="drop-chart-pct">${formatOdds(p)}</span>
+      </div>`;
+    }).join("");
+  return `
+    <section class="odds-section">
+      <h3 class="odds-head">An enemy drops loot <strong>${formatOdds(drop.total)}</strong> of the time</h3>
+      <div class="tt-stats">${dropRows}</div>
+      ${notes}
+    </section>
+    <section class="odds-section">
+      <h3 class="odds-head">Quality of each drop</h3>
+      ${qualityNotes}
+      ${qualityRows}
+    </section>`;
+}
+
+/** The welcome-back log line: what time away earned, and that nobody fought (#74). */
+export function welcomeBackLine(earned: number, elapsedMs: number): string {
+  const mins = Math.round(elapsedMs / 60_000);
+  if (earned < 1 && mins < 1) return "";
+  const away = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
+  if (earned < 1) {
+    return `Welcome back. You were away ${away}. Your party doesn't fight while you're away, and you have no idle gold yet.`;
+  }
+  const capped = elapsedMs / 1000 > OFFLINE_GOLD_CAP_SECONDS
+    ? ` Idle gold stops after ${OFFLINE_GOLD_CAP_SECONDS / 3600}h.`
+    : "";
+  return `Welcome back. You were away ${away} and earned ${Math.floor(earned).toLocaleString("en-US")} gold in idle income — your party doesn't fight while you're away.${capped}`;
 }

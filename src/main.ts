@@ -21,6 +21,7 @@ import {
   type GameAction,
   GameState,
   type GameStateDict,
+  type PartyDpsBreakdown,
   GUILD_HALL_COSTS,
   GUILD_HALL_DUNGEON_REQ,
   GUILD_HALL_PREREQS,
@@ -39,9 +40,7 @@ import {
   type GearItemDict,
   gearPower,
   QUAL,
-  QUALITY_CLASSES,
   qualityClass,
-  qualityWeights,
   SET_DEFS,
   SLOTS,
   type Slot
@@ -99,6 +98,9 @@ import {
   SLOT_LABELS,
   statRow,
   tabTitle,
+  critLabel,
+  buildLootOddsHTML,
+  welcomeBackLine,
 } from "./ui/html.js";
 import { initDialogs } from "./ui/dialogs.js";
 import { DEFAULT_THEME, resolveTheme, type Theme } from "./theme.js";
@@ -280,8 +282,15 @@ function call<K extends GameAction>(method: K, ...args: Parameters<GameState[K]>
 
 /** Full re-render of all UI panels from a GameStateDict snapshot. */
 let lastTitleKey = "";
+/** The latest damage breakdown, read by the DPS tooltip when it opens (#74). */
+let lastDpsBreakdown: PartyDpsBreakdown | undefined;
 
 function render(state: GameStateDict): void {
+  lastDpsBreakdown = state.dps_breakdown;
+  document.querySelectorAll<HTMLElement>(".char-crit").forEach((el, i) => {
+    const text = critLabel(state.dps_breakdown?.heroes[i]?.crit);
+    if (el.textContent !== text) el.textContent = text;
+  });
   const currentDeaths = state.deaths;
   if (lastDeathCount === null) {
     lastDeathCount = currentDeaths;
@@ -695,14 +704,8 @@ function renderParty(state: GameStateDict): void {
           <span class="gear-pdoll-label">${short}</span>
         </div>`;
       }).join("");
-      const gearDps = Object.values(c.equipment).reduce((sum, item) =>
-        sum + (item?.stats?.dps ?? 0), 0);
-      const runeDps = Object.values(c.runes ?? {}).reduce((sum, rune) =>
-        sum + (rune?.statKey === "dps" ? (rune?.value ?? 0) : 0), 0);
       const upgLevel = state.upgrades[c.name]?.dps?.level ?? 0;
       const upgMult = 1 + DPS_UPGRADE_EFFECT * upgLevel;
-      const upgDps = c.dps * (upgMult - 1);
-      const dpsData = encodeURIComponent(JSON.stringify({ total: c.dps * upgMult, base: Math.max(0, c.dps - gearDps - runeDps), gear: gearDps, runes: runeDps, upgDps }));
       const classAbilities = CLASS_ABILITIES[c.character_class] ?? [];
       const abilitiesHtml = classAbilities.map(a => {
         const unlocked = c.abilities.includes(a.id);
@@ -756,7 +759,8 @@ function renderParty(state: GameStateDict): void {
     <div class="char-header-left">
       <div class="char-class">${c.character_class} <span class="char-level">Lv ${c.level}</span></div>
       <div class="char-name" data-char="${charJson}">${c.name}</div>
-      <div class="char-dps" data-dps="${dpsData}">${(c.dps * upgMult).toFixed(1)} DPS</div>
+      <div class="char-dps" data-dps="${ci}">${(c.dps * upgMult).toFixed(1)} DPS</div>
+      <div class="char-crit">${critLabel(state.dps_breakdown?.heroes[ci]?.crit)}</div>
       <div class="char-rune-row">${runeRowHtml}</div>
       ${artifactSlots.some(Boolean) ? `<div class="char-artifact-row">${artifactBadgesHtml}</div>` : ""}
     </div>
@@ -2590,26 +2594,6 @@ function updateShopBadge(state: GameStateDict): void {
 }
 
 /** Renders the drop-rate chart modal showing per-tier probabilities for the given dungeon floor. */
-function renderDropChart(dungeonLevel: number): void {
-  $("drop-chart-floor").textContent = String(dungeonLevel);
-  const weights = qualityWeights(dungeonLevel);
-  const total = weights.reduce((s, w) => s + w, 0);
-  $("drop-chart-body").innerHTML = [...QUAL].reverse().map((q, ri) => {
-    const i = QUAL.length - 1 - ri;
-    const w = weights[i];
-    const locked = w === 0;
-    const pct = locked ? 0 : (w / total) * 100;
-    const cssVar = `var(--q-${q})`;
-    return `
-      <div class="drop-chart-row${locked ? " drop-chart-locked" : ""}">
-        <span class="drop-chart-label ${QUALITY_CLASSES[q]}">${q}</span>
-        <div class="drop-chart-bar-wrap">
-          ${locked ? "" : `<div class="drop-chart-bar" style="width:${pct.toFixed(2)}%;background:${cssVar}"></div>`}
-        </div>
-        <span class="drop-chart-pct">${locked ? "locked" : pct < 0.05 ? "<0.1%" : pct.toFixed(1) + "%"}</span>
-      </div>`;
-  }).join("");
-}
 
 /** Renders the combat log panel from the state snapshot. */
 let themePickerKey = "";
@@ -3049,7 +3033,13 @@ function getTooltipContent(el: HTMLElement): string | null {
       const skillState = el.dataset.skillState ? JSON.parse(decodeURIComponent(el.dataset.skillState)) : undefined;
       return buildActiveSkillTooltipHTML(el.dataset.activeSkill, skillState);
     }
-    if (el.dataset.dps)      return buildDpsTooltipHTML(JSON.parse(decodeURIComponent(el.dataset.dps)));
+    if (el.dataset.dps !== undefined) {
+      const b = lastDpsBreakdown;
+      const hero = b?.heroes[Number(el.dataset.dps)];
+      return hero && b
+        ? buildDpsTooltipHTML({ hero, party: { factors: b.factors, runesmith: b.runesmith, average: b.average, heroCount: b.heroes.length } })
+        : "";
+    }
     if (el.dataset.item) {
       const item = JSON.parse(decodeURIComponent(el.dataset.item)) as GearItemDict;
       let equippedSetCount = 0;
@@ -3235,7 +3225,7 @@ function hideSessionConflictBanner(): void {
 /** Serializes game state to localStorage every tick; writes to DynamoDB at most once per 30 seconds. */
 async function saveGame(): Promise<void> {
   if (!game) return;
-  const data = game.getLastJson() || game.respond();
+  const data = game.saveJson();
   localStorage.setItem(SAVE_KEY, data);
   const token = getStoredToken();
   const now = Date.now();
@@ -3441,13 +3431,8 @@ function continueGame(saved: GameStateDict): void {
   if (saved.saved_at && saved.saved_at > 0) {
     const elapsedMs = Date.now() - saved.saved_at;
     const earned = game.applyOfflineProgress(elapsedMs);
-    if (earned >= 1) {
-      const mins = Math.round(elapsedMs / 60_000);
-      const timeStr = mins >= 60
-        ? `${Math.floor(mins / 60)}h ${mins % 60}m`
-        : `${mins}m`;
-      game.log.push(`Welcome back! Earned ${Math.floor(earned).toLocaleString()} gold while away (${timeStr}).`);
-    }
+    const welcome = welcomeBackLine(earned, elapsedMs);
+    if (welcome) game.log.push(welcome);
   }
 
   render(JSON.parse(game.respond()));
@@ -3755,8 +3740,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let dropChartModal = $("drop-chart-modal");
   $("drop-chart-btn").addEventListener("click", () => {
-    const level = game ? game.dungeonLevel : 1;
-    renderDropChart(level);
+    if (!game) return;
+    $("drop-chart-body").innerHTML = buildLootOddsHTML(game.lootOdds(), game.dungeonLevel);
+    $("drop-chart-floor").textContent = String(game.dungeonLevel);
     dropChartModal.classList.add("open");
   });
   $("drop-chart-close").addEventListener("click", () => {

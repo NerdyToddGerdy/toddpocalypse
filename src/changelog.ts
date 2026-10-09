@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.48.0";
+export const VERSION = "v2.49.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,18 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.49.0",
+    date: "2026-10-09",
+    changes: [
+      "See the odds: the 📊 Odds button in the Loot tab shows this floor's drop chance and every quality's chance, rare ones as 1 in N",
+      "Fixed: from dungeon 2 on, the old drop chart showed the odds for a shallower floor than the one you were on",
+      "Each hero sheet shows its crit chance and multiplier",
+      "Hover a hero's DPS to see every part of it: base, gear, runes, each multiplier in order, crits, and the party-wide bonuses",
+      "A hero with nothing equipped deals no damage — the DPS tooltip now says so",
+      "Coming back after time away now says plainly that your party doesn't fight while you're gone",
+    ],
+  },
   {
     version: "v2.48.0",
     date: "2026-10-09",

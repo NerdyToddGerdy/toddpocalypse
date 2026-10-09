@@ -4,7 +4,7 @@ import { getConstellationBonuses, CONSTELLATION_NODE_DEFS, type ConstellationBon
 export { CONSTELLATION_NODE_DEFS };
 export type { ConstellationBonuses };
 import { Party } from "./party.js";
-import { GearItem, getItem, getSetItem, SET_DEFS, gearPower, QUAL, SLOTS, autoSellThreshold, type GearItemDict, type Slot } from "./gear.js";
+import { GearItem, getItem, getSetItem, SET_DEFS, gearPower, QUAL, SLOTS, autoSellThreshold, qualityOdds, type GearItemDict, type Slot } from "./gear.js";
 import { generateEnemy, generateBoss, generateEliteEnemy, ENEMY_NOUNS, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT, type Enemy, type EnemyDict } from "./dungeon.js";
 import { ARTIFACT_DEFS, ARTIFACT_DROP_POOL, LEGACY_UPGRADED_MAP, artifactUpgradeCost, artifactSellValue, artifactFuelValue, artifactStatLabel, type ArtifactEffectId, type ArtifactInstance } from "./artifacts.js";
 export { ARTIFACT_DEFS, ARTIFACT_DROP_POOL, artifactUpgradeCost, artifactSellValue, artifactFuelValue, artifactStatLabel };
@@ -55,6 +55,47 @@ export const LOOT_MAX = 8;
 
 /** Probability that a regular enemy kill produces a loot drop. */
 export const DROP_CHANCE = 0.45;
+/** The most an ordinary enemy's drop chance can reach, whatever the bonuses. */
+export const DROP_CHANCE_CAP = 0.75;
+/** How many floors deeper a constellation-boosted drop rolls its quality. */
+export const QUALITY_BOOST_LEVELS = 8;
+
+/** One labelled number in a breakdown the player can read (#74). */
+export interface Factor { label: string; value: number }
+/** A hero's crit chance, its sources, and how much a crit multiplies damage. */
+export interface CritInfo { chance: number; multiplier: number; sources: Factor[] }
+/** One hero's share of party damage. */
+export interface HeroDps {
+  name: string;
+  /** Additive parts of base DPS: class & level, gear, runes. */
+  parts: Factor[];
+  /** This hero's own multipliers, in the order combat applies them. */
+  factors: Factor[];
+  crit: CritInfo;
+  /** Average DPS after this hero's factors and crits, before party-wide ones. */
+  average: number;
+  /** Why the hero deals nothing right now, if so. */
+  inactive?: string;
+}
+/** Where the party's damage comes from. */
+export interface PartyDpsBreakdown {
+  heroes: HeroDps[];
+  /** Party-wide multipliers in effect, in the order combat applies them. */
+  factors: Factor[];
+  /** Runesmith's flat extra, added before the party-wide multipliers. */
+  runesmith: number;
+  /** Average damage per second, crits averaged in. */
+  average: number;
+}
+/** The chance an ordinary enemy drops loot. */
+export interface DropChanceBreakdown { parts: Factor[]; cap: number; total: number; capped: boolean }
+/** The current floor's loot table. */
+export interface LootOdds {
+  drop: DropChanceBreakdown;
+  effective_level: number;
+  quality_boost_chance: number;
+  quality: Record<string, number>;
+}
 
 /** Base gold cost for the first level of each upgrade type. */
 export const UPGRADE_BASES: Record<string, number> = {
@@ -474,6 +515,10 @@ export interface GameStateDict {
   monsters_left: number;
   enemy: EnemyDict;
   party: ReturnType<Character["toDict"]>[];
+  /** Live snapshots only (`respond()`); never written to a save (#74). */
+  dps_breakdown?: PartyDpsBreakdown;
+  /** Live snapshots only (`respond()`); never written to a save (#74). */
+  loot_odds?: LootOdds;
   loot_pool: GearItemDict[];
   upgrades: Record<string, Record<UpgradeType, { level: number; cost: number; effect: number }>>;
   log: string[];
@@ -848,59 +893,200 @@ export class GameState {
 
   /** Computes the party's total damage output for this tick (DPS × multipliers × dt). */
   private computePartyDps(scan: PartyScan, dt: number): number {
-    const shadowStrikeTick = (this.activeEffects["skill_shadow_strike"] ?? 0) > 0 ? SHADOW_STRIKE_MULT : 1.0;
-    const battleCryMult = (this.activeEffects["skill_battle_cry"] ?? 0) > 0 ? BATTLE_CRY_MULT : 1.0;
-    const arcaneSurgeMult = (this.activeEffects["skill_arcane_surge"] ?? 0) > 0 ? ARCANE_SURGE_MULT : 1.0;
-    const volleyMult = (this.activeEffects["skill_volley"] ?? 0) > 0 ? VOLLEY_MULT : 1.0;
-
-    const cb = this.constellationBonuses;
     let baseDps = 0;
     for (const c of this.party.team) {
       if (!c.isAlive()) continue;
       if (c.inventory.equippedItems().length === 0) continue;
-      let dps = this.effectiveDps(c);
-      if (c.abilities.includes("bloodlust") && c.health <= c.maxHealth * 0.5) dps *= BLOODLUST_MULTIPLIER;
-      // Berserker's Eye: streak-based DPS bonus, scales with level
-      const eyeSlot = c.artifactSlots.find(s => s?.id === "berserkers_eye");
-      if (eyeSlot) {
-        const eyeDef = ARTIFACT_DEFS[eyeSlot.id];
-        const mult = eyeSlot.level + 1;
-        const streakBonus = Math.min(this.killStreak * eyeDef.effectValue * mult, (eyeDef.cap ?? 1) * mult);
-        dps *= (1 + streakBonus);
-      }
-      // Warlord's Sigil: flat DPS bonus per level
-      const sigilSlot = c.artifactSlots.find(s => s?.id === "warlords_sigil");
-      if (sigilSlot) dps *= (1 + ARTIFACT_DEFS["warlords_sigil"].effectValue * (sigilSlot.level + 1));
-      // Soulbrand: crit bonus per rune, scales with level
-      const soulSlot = c.artifactSlots.find(s => s?.id === "soulbrand");
-      let totalCrit = c.critChance + cb.critChanceBonus;
-      if (soulSlot) {
-        let runeCount = 0;
-        for (const r of Object.values(c.runes)) if (r) runeCount++;
-        totalCrit += ARTIFACT_DEFS[soulSlot.id].effectValue * (soulSlot.level + 1) * runeCount;
-      }
-      const critMult = cb.perfectKillActive ? 3 : 2;
-      if (totalCrit > 0 && this.rng() < totalCrit) dps *= critMult;
+      let { dps } = this.heroFactors(c);
+      const crit = this.critFor(c);
+      if (crit.chance > 0 && this.rng() < crit.chance) dps *= crit.multiplier;
       baseDps += dps;
     }
-    // Runesmith: add extra DPS from rune bonuses above baseline.
-    // Kept as a separate pass so the floating-point addition order (and thus exact totals) is unchanged.
-    if (cb.runeBonusMultiplier > 1.0) {
-      for (const c of this.party.team) {
-        if (!c.isAlive()) continue;
-        let runeBaseDps = 0;
-        for (const r of Object.values(c.runes ?? {})) {
-          if (r && r.statKey === "dps") runeBaseDps += r.value;
-        }
-        baseDps += runeBaseDps * (cb.runeBonusMultiplier - 1.0);
-      }
-    }
-    const dpsPrestigeMult = 1 + DPS_BONUS_PER_LEVEL * (this.prestigeUpgrades["dps_bonus"] ?? 0);
-    const berserkerBonus = (cb.berserkerActive && scan.partyBelow50) ? 1.30 : 1.0;
-    const totalDps = baseDps * (1 + scan.partyHaste * cb.hasteMultiplier) * dpsPrestigeMult * cb.dpsMultiplier * berserkerBonus;
-    const dmgMult = (scan.hasExpose ? EXPOSE_WEAKNESS_MULT : 1.0) * (scan.hasMark ? 1.20 : 1.0) * battleCryMult * shadowStrikeTick * arcaneSurgeMult * volleyMult * (scan.divineWrathActive ? 1.15 : 1.0);
+    // Runesmith: added per hero, in team order, so float totals are unchanged.
+    for (const term of this.runesmithTerms()) baseDps += term;
+    const { pre, dmg } = this.partyFactors(scan);
+    const totalDps = pre.reduce((acc, f) => acc * f.value, baseDps);
+    const dmgMult = dmg.reduce((acc, f) => acc * f.value, 1);
     return totalDps * dmgMult * dt;
   }
+
+  /**
+   * One hero's DPS after its own multipliers, before crits — with each factor
+   * labelled for the breakdown (#74). Combat and the tooltip both read this.
+   */
+  private heroFactors(c: Character): { dps: number; factors: Factor[] } {
+    const upgrades = 1 + DPS_UPGRADE_EFFECT * (this.upgrades[c.name]?.dps ?? 0);
+    const factors: Factor[] = [{ label: "DPS upgrades", value: upgrades }];
+    let dps = c.dps * upgrades;
+    if (c.abilities.includes("bloodlust") && c.health <= c.maxHealth * 0.5) {
+      dps *= BLOODLUST_MULTIPLIER;
+      factors.push({ label: "Bloodlust", value: BLOODLUST_MULTIPLIER });
+    }
+    // Berserker's Eye: streak-based DPS bonus, scales with level
+    const eyeSlot = c.artifactSlots.find(s => s?.id === "berserkers_eye");
+    if (eyeSlot) {
+      const eyeDef = ARTIFACT_DEFS[eyeSlot.id];
+      const mult = eyeSlot.level + 1;
+      const streakBonus = Math.min(this.killStreak * eyeDef.effectValue * mult, (eyeDef.cap ?? 1) * mult);
+      dps *= (1 + streakBonus);
+      factors.push({ label: "Berserker's Eye", value: 1 + streakBonus });
+    }
+    // Warlord's Sigil: flat DPS bonus per level
+    const sigilSlot = c.artifactSlots.find(s => s?.id === "warlords_sigil");
+    if (sigilSlot) {
+      const sigil = 1 + ARTIFACT_DEFS["warlords_sigil"].effectValue * (sigilSlot.level + 1);
+      dps *= sigil;
+      factors.push({ label: "Warlord's Sigil", value: sigil });
+    }
+    return { dps, factors };
+  }
+
+  /** A hero's crit chance and multiplier, with where the chance comes from (#74). */
+  private critFor(c: Character): CritInfo {
+    const cb = this.constellationBonuses;
+    let chance = c.critChance + cb.critChanceBonus;
+    // c.critChance is one running total; split it back into its sources.
+    const gear = c.inventory.equippedItems().reduce((sum, item) => sum + (item.stats.critChance ?? 0), 0);
+    const runes = Object.values(c.runes).reduce((sum, r) => sum + (r?.statKey === "critChance" ? r.value : 0), 0);
+    const sets = Object.values(c.appliedSetBonuses).reduce((sum, b) => sum + (b.critChance ?? 0), 0);
+    const other = c.critChance - gear - runes - sets;
+    const sources: Factor[] = [
+      { label: "Gear", value: gear },
+      { label: "Runes", value: runes },
+      { label: "Set bonuses", value: sets },
+      { label: "Other", value: other },
+      { label: "Constellations", value: cb.critChanceBonus },
+    ];
+    // Soulbrand: crit bonus per rune, scales with level
+    const soulSlot = c.artifactSlots.find(s => s?.id === "soulbrand");
+    if (soulSlot) {
+      let runeCount = 0;
+      for (const r of Object.values(c.runes)) if (r) runeCount++;
+      const soul = ARTIFACT_DEFS[soulSlot.id].effectValue * (soulSlot.level + 1) * runeCount;
+      chance += soul;
+      sources.push({ label: "Soulbrand", value: soul });
+    }
+    return {
+      chance,
+      multiplier: cb.perfectKillActive ? 3 : 2,
+      sources: sources.filter(s => Math.abs(s.value) > 1e-9),
+    };
+  }
+
+  /** Runesmith's flat extra per living hero, in team order. */
+  private runesmithTerms(): number[] {
+    const cb = this.constellationBonuses;
+    if (cb.runeBonusMultiplier <= 1.0) return [];
+    const terms: number[] = [];
+    for (const c of this.party.team) {
+      if (!c.isAlive()) continue;
+      let runeBaseDps = 0;
+      for (const r of Object.values(c.runes ?? {})) {
+        if (r && r.statKey === "dps") runeBaseDps += r.value;
+      }
+      terms.push(runeBaseDps * (cb.runeBonusMultiplier - 1.0));
+    }
+    return terms;
+  }
+
+  /**
+   * Party-wide multipliers, in the order combat applies them. `pre` scales the
+   * party's summed DPS; `dmg` scales the damage that lands. Both include
+   * factors of 1 so combat's arithmetic is unchanged; the breakdown hides them.
+   */
+  private partyFactors(scan: PartyScan): { pre: Factor[]; dmg: Factor[] } {
+    const cb = this.constellationBonuses;
+    const active = (id: string, mult: number) => ((this.activeEffects[id] ?? 0) > 0 ? mult : 1.0);
+    return {
+      pre: [
+        { label: "Haste", value: 1 + scan.partyHaste * cb.hasteMultiplier },
+        { label: "Renown DPS bonus", value: 1 + DPS_BONUS_PER_LEVEL * (this.prestigeUpgrades["dps_bonus"] ?? 0) },
+        { label: "Constellations", value: cb.dpsMultiplier },
+        { label: "Berserker (below half HP)", value: (cb.berserkerActive && scan.partyBelow50) ? 1.30 : 1.0 },
+      ],
+      dmg: [
+        { label: "Expose Weakness", value: scan.hasExpose ? EXPOSE_WEAKNESS_MULT : 1.0 },
+        { label: "Hunter's Mark", value: scan.hasMark ? 1.20 : 1.0 },
+        { label: "Battle Cry", value: active("skill_battle_cry", BATTLE_CRY_MULT) },
+        { label: "Shadow Strike", value: active("skill_shadow_strike", SHADOW_STRIKE_MULT) },
+        { label: "Arcane Surge", value: active("skill_arcane_surge", ARCANE_SURGE_MULT) },
+        { label: "Volley", value: active("skill_volley", VOLLEY_MULT) },
+        { label: "Divine Wrath", value: scan.divineWrathActive ? 1.15 : 1.0 },
+      ],
+    };
+  }
+
+  /** Where the party's damage comes from, with crits averaged in (#74). */
+  partyDpsBreakdown(): PartyDpsBreakdown {
+    const scan = this.scanParty();
+    const heroes: HeroDps[] = this.party.team.map((c) => {
+      const gear = c.inventory.equippedItems().reduce((sum, item) => sum + (item.stats.dps ?? 0), 0);
+      const runes = Object.values(c.runes).reduce((sum, r) => sum + (r?.statKey === "dps" ? r.value : 0), 0);
+      const parts: Factor[] = [
+        { label: "Class & level", value: c.dps - gear - runes },
+        { label: "Gear", value: gear },
+        { label: "Runes", value: runes },
+      ].filter((p) => Math.abs(p.value) > 1e-9);
+      const { dps, factors } = this.heroFactors(c);
+      const crit = this.critFor(c);
+      const p = Math.min(1, Math.max(0, crit.chance));
+      const inactive = !c.isAlive()
+        ? "Fallen — deals no damage until revived"
+        : c.inventory.equippedItems().length === 0
+          ? "No gear equipped — a hero needs at least one item to fight"
+          : undefined;
+      return {
+        name: c.name,
+        parts,
+        factors: factors.filter((f) => f.value !== 1),
+        crit,
+        average: inactive ? 0 : dps * (1 + p * (crit.multiplier - 1)),
+        inactive,
+      };
+    });
+    const runesmith = this.runesmithTerms().reduce((a, b) => a + b, 0);
+    const { pre, dmg } = this.partyFactors(scan);
+    const all = [...pre, ...dmg];
+    const sum = heroes.reduce((a, h) => a + h.average, 0) + runesmith;
+    return {
+      heroes,
+      factors: all.filter((f) => f.value !== 1),
+      runesmith,
+      average: all.reduce((acc, f) => acc * f.value, sum),
+    };
+  }
+
+  /** The chance an ordinary enemy drops loot, and what it's made of (#74). */
+  dropChanceBreakdown(): DropChanceBreakdown {
+    const gearLuckBonus = 0.05 * (this.prestigeUpgrades["gear_luck"] ?? 0);
+    // Fortune's Eye: additive drop chance bonus, sum across all equipped copies
+    const fortunesEyeBonus = this.party.team.reduce((s, c) => {
+      const slot = c.artifactSlots.find(a => a?.id === "fortunes_eye");
+      return slot ? s + ARTIFACT_DEFS["fortunes_eye"].effectValue * (slot.level + 1) : s;
+    }, 0);
+    const raw = DROP_CHANCE + this.dungeonIndex * 0.05 + gearLuckBonus + fortunesEyeBonus;
+    const parts: Factor[] = [
+      { label: "Base", value: DROP_CHANCE },
+      { label: `Dungeon ${this.dungeonIndex + 1}`, value: this.dungeonIndex * 0.05 },
+      { label: "Gear Luck", value: gearLuckBonus },
+      { label: "Fortune's Eye", value: fortunesEyeBonus },
+    ].filter((p) => p.label === "Base" || p.value > 0);
+    return { parts, cap: DROP_CHANCE_CAP, total: Math.min(DROP_CHANCE_CAP, raw), capped: raw > DROP_CHANCE_CAP };
+  }
+
+  /** The current floor's loot table: drop chance and the odds of each quality (#74). */
+  lootOdds(): LootOdds {
+    const effectiveLevel = this.dungeonLevel + this.dungeonIndex * 5;
+    const boost = Math.min(1, this.constellationBonuses.lootQualityBonus / 100);
+    const odds = qualityOdds(effectiveLevel, boost, QUALITY_BOOST_LEVELS);
+    return {
+      drop: this.dropChanceBreakdown(),
+      effective_level: effectiveLevel,
+      quality_boost_chance: boost,
+      quality: Object.fromEntries(QUAL.map((q, i) => [q, odds[i]])),
+    };
+  }
+
 
   /** Heals the first injured alive character from lifesteal — reduced by corruption at depth. */
   private applyLifesteal(damageDealt: number, scan: PartyScan, healReduction: number): void {
@@ -1828,7 +2014,8 @@ export class GameState {
 
   /** Serializes the current game state to a JSON string for the renderer. */
   respond(): string {
-    const dict = this.toDict();
+    // The live snapshot adds derived breakdowns for the UI (#74); saves don't.
+    const dict: GameStateDict = { ...this.toDict(), dps_breakdown: this.partyDpsBreakdown(), loot_odds: this.lootOdds() };
     this._stateCache = dict;
     this._lastJson = JSON.stringify(dict);
     this.pendingAchievements = [];
@@ -1837,6 +2024,9 @@ export class GameState {
 
   /** Returns the last JSON string produced by respond(), for use by save routines without re-serializing. */
   getLastJson(): string { return this._lastJson; }
+
+  /** The save format: state only, without the derived breakdowns `respond()` adds. */
+  saveJson(): string { return JSON.stringify(this.toDict()); }
 
   /** Returns the GameStateDict from the most recent respond() call, or recomputes if needed. */
   getState(): GameStateDict {
@@ -2219,17 +2409,11 @@ export class GameState {
       this.addLog(`Descending to level ${this.dungeonLevel}!`);
       this.enemy = this.spawnNextEnemy();
     } else {
-      const gearLuckBonus = 0.05 * (this.prestigeUpgrades["gear_luck"] ?? 0);
-      // Fortune's Eye: additive drop chance bonus, sum across all equipped copies
-      const fortunesEyeBonus = this.party.team.reduce((s, c) => {
-        const slot = c.artifactSlots.find(a => a?.id === "fortunes_eye");
-        return slot ? s + ARTIFACT_DEFS["fortunes_eye"].effectValue * (slot.level + 1) : s;
-      }, 0);
-      const dropChance = Math.min(0.75, DROP_CHANCE + this.dungeonIndex * 0.05 + gearLuckBonus + fortunesEyeBonus);
+      const dropChance = this.dropChanceBreakdown().total;
       if ((this.enemy.isElite || this.rng() < dropChance) && this.lootPool.length < this.lootMax) {
         const effectiveLevel = this.dungeonLevel + this.dungeonIndex * 5;
         const lootCb = this.constellationBonuses;
-        const qualityBoost = (lootCb.lootQualityBonus > 0 && this.rng() < lootCb.lootQualityBonus / 100) ? 8 : 0;
+        const qualityBoost = (lootCb.lootQualityBonus > 0 && this.rng() < lootCb.lootQualityBonus / 100) ? QUALITY_BOOST_LEVELS : 0;
         const drop = getItem(undefined, effectiveLevel + qualityBoost, this.rng);
         this.lootPool.push(drop);
         if (drop.quality === "divine") this.lifetimeDivine = 1;
