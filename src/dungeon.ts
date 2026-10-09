@@ -1,7 +1,7 @@
 import { pick, randInt } from "./utils.js";
 import { defaultRng, type RNG } from "./rng.js";
 
-/** Noun suffixes for boss names — equal counts of male and female titles. */
+/** Noun suffixes for boss names — equal counts of male and female titles. Flavour only: no effect on stats (bible §5.6; tests/dungeon.test.ts holds it). */
 export const BOSS_NOUNS = [
   "Lord",    "Lady",
   "King",    "Queen",
@@ -10,7 +10,7 @@ export const BOSS_NOUNS = [
   "Overlord", "Sovereign",
 ];
 
-/** Title adjectives for boss enemies. */
+/** Title adjectives for boss enemies. Flavour only: no effect on stats (bible §5.6; tests/dungeon.test.ts holds it). */
 const BOSS_TITLES = [
   "Abyssal",
   "Dread",
@@ -24,7 +24,7 @@ const BOSS_TITLES = [
   "Ancient",
 ];
 
-/** Adjectives prepended to regular enemy names. */
+/** Adjectives prepended to regular enemy names. Flavour only: no effect on stats (bible §5.6; tests/dungeon.test.ts holds it). */
 const ENEMY_ADJECTIVES = [
   "Frightening",
   "Hideous",
@@ -43,7 +43,7 @@ const ENEMY_ADJECTIVES = [
   "Venomous",
 ];
 
-/** Nouns used as enemy creature type names. */
+/** Nouns used as enemy creature type names. Flavour only: no effect on stats (bible §5.6; tests/dungeon.test.ts holds it). */
 export const ENEMY_NOUNS = [
   "Goblin",
   "Troll",

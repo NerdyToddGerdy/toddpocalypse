@@ -8,6 +8,7 @@ import {
   type Factor,
   type HeroDps,
   type LootOdds,
+  type SummaryLine,
   OFFLINE_GOLD_CAP_SECONDS,
   type AchievementTierLabel,
   AVATAR_DEFS,
@@ -621,4 +622,19 @@ export function welcomeBackLine(earned: number, elapsedMs: number): string {
     ? ` Idle gold stops after ${OFFLINE_GOLD_CAP_SECONDS / 3600}h.`
     : "";
   return `Welcome back. You were away ${away} and earned ${Math.floor(earned).toLocaleString("en-US")} gold in idle income — your party doesn't fight while you're away.${capped}`;
+}
+
+/**
+ * The Return to Town dialog body (#58): what you keep and what starts over, in
+ * plain words, then the flavour line — flavour, not a rule (bible §5.6).
+ */
+export function buildReturnToTownHTML(s: { renown: number; keep: SummaryLine[]; reset: SummaryLine[] }): string {
+  const list = (items: SummaryLine[]) => `<ul>${items.map((i) => `<li>${esc(i.label)}</li>`).join("")}</ul>`;
+  return `
+    <p class="rtt-lead">You'll earn <strong>${s.renown} renown</strong>.</p>
+    <div class="rtt-lists">
+      <section class="rtt-keep"><h3>You keep</h3>${list(s.keep)}</section>
+      <section class="rtt-reset"><h3>Starts over</h3>${list(s.reset)}</section>
+    </div>
+    <p class="rtt-flavour">The dungeon shifts while you rest — its passages rearrange, and the depths forget you.</p>`;
 }

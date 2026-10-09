@@ -4,6 +4,12 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.50.0 — 2026-10-09
+
+- Return to Town now shows what you keep — renown, the Guild Hall, runes, artifacts and more — and what starts over, before you decide
+- It opens on Stay in the dungeon, and Escape backs out
+- Internal: the game's design decisions are recorded — no dice, no supplies, prestige rather than permadeath, a party of one to six
+
 ## v2.49.0 — 2026-10-09
 
 - See the odds: the 📊 Odds button in the Loot tab shows this floor's drop chance and every quality's chance, rare ones as 1 in N

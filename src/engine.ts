@@ -60,6 +60,8 @@ export const DROP_CHANCE_CAP = 0.75;
 /** How many floors deeper a constellation-boosted drop rolls its quality. */
 export const QUALITY_BOOST_LEVELS = 8;
 
+/** One line of the Return to Town summary: a stable key for tests, and the words shown. */
+export interface SummaryLine { key: string; label: string }
 /** One labelled number in a breakdown the player can read (#74). */
 export interface Factor { label: string; value: number }
 /** A hero's crit chance, its sources, and how much a crit multiplies damage. */
@@ -1541,6 +1543,38 @@ export class GameState {
   }
 
   /** Resets the current run, awards prestige points, and rebuilds the party from prestige upgrades. Returns serialized JSON. */
+  /**
+   * What Return to Town keeps and what starts over, in plain words (#58,
+   * bible §5.5 "the world outlives the character"). Each entry is checked
+   * against prestige() in tests/return-to-town.test.ts, so keep them in step.
+   */
+  returnToTownSummary(): { renown: number; keep: SummaryLine[]; reset: SummaryLine[] } {
+    const lead = this.party.team[0];
+    const hasSocketedRunes = this.party.team.some(c => Object.values(c.runes).some(Boolean));
+    const companionSlots = [2, 3, 4, 5, 6].filter(n => (this.prestigeUpgrades[`party_slot_${n}`] ?? 0) > 0).length;
+    const keep: SummaryLine[] = [
+      { key: "renown", label: "Renown, and every upgrade bought with it" },
+      ...(Object.keys(this.guildUpgrades).length ? [{ key: "guild", label: "The Guild Hall and its upgrades" }] : []),
+      ...(this.constellationNodeLevels.size ? [{ key: "constellations", label: "Your constellations" }] : []),
+      ...(this.dungeonIndex > 0 ? [{ key: "dungeon", label: `Dungeon ${this.dungeonIndex + 1}: you start there again` }] : []),
+      ...(hasSocketedRunes || this.runeInventory.length ? [{ key: "runes", label: "Socketed runes and your spare runes" }] : []),
+      ...(this.artifactInventory.length || this.party.team.some(c => c.artifactSlots.some(Boolean))
+        ? [{ key: "artifacts", label: "Artifacts" }] : []),
+      ...(this.gearStash.length ? [{ key: "stash", label: "Gear in the stash" }] : []),
+      ...(companionSlots ? [{ key: "companions", label: `Your companion${companionSlots > 1 ? "s" : ""}, at level 1` }] : []),
+      { key: "records", label: "Feats, titles and lifetime records" },
+    ];
+    const reset: SummaryLine[] = [
+      { key: "floor", label: "Floor progress: you start at floor 1" },
+      { key: "levels", label: `Hero levels${lead ? ` (${lead.name} is level ${lead.level})` : ""}` },
+      { key: "gear", label: "Equipped gear and unclaimed loot" },
+      { key: "upgrades", label: "Gold upgrades" },
+      { key: "gold", label: `Gold: you start again from ${startingGoldForLevel(this.prestigeUpgrades["starting_gold"] ?? 0).toLocaleString("en-US")}` },
+      ...(this.autoSellQualities.length ? [{ key: "autosell", label: "Auto-sell choices" }] : []),
+    ];
+    return { renown: this.prestigePointsPreview(), keep, reset };
+  }
+
   prestige(): string {
     if (this.highestLevel < PRESTIGE_UNLOCK_LEVEL) return this.respond();
     const earned = this.prestigePointsPreview();

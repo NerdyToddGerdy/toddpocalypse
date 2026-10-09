@@ -24,6 +24,7 @@ import {
   formatOdds,
   buildLootOddsHTML,
   welcomeBackLine,
+  buildReturnToTownHTML,
 } from "../src/ui/html.js";
 import { GearItem } from "../src/gear.js";
 import type { GameStateDict } from "../src/engine.js";
@@ -374,5 +375,29 @@ describe("mobileUpgradeButton", () => {
 
   it("still shows the level when there is no bonus yet", () => {
     expect(mobileUpgradeButton({ charName: "Hero", utype: "dps", label: "DPS", level: 0, cost: 50, bonus: "" })).toMatch(/Lv 0/);
+  });
+});
+
+// #58 / §5.5: Return to Town says plainly what outlives the run.
+describe("buildReturnToTownHTML", () => {
+  const html = buildReturnToTownHTML({
+    renown: 7,
+    keep: [{ key: "renown", label: "Renown, and every upgrade bought with it" }, { key: "guild", label: "The Guild Hall and its upgrades" }],
+    reset: [{ key: "floor", label: "Floor progress: you start at floor 1" }],
+  });
+
+  it("leads with the renown earned", () => {
+    expect(html).toMatch(/7 renown/);
+  });
+
+  it("lists what you keep and what starts over, under those headings", () => {
+    expect(html).toContain("You keep");
+    expect(html).toContain("The Guild Hall and its upgrades");
+    expect(html).toContain("Starts over");
+    expect(html).toContain("Floor progress: you start at floor 1");
+  });
+
+  it("keeps the flavour line, after the plain lists", () => {
+    expect(html.indexOf("The dungeon shifts")).toBeGreaterThan(html.indexOf("Starts over"));
   });
 });

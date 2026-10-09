@@ -101,6 +101,7 @@ import {
   critLabel,
   buildLootOddsHTML,
   welcomeBackLine,
+  buildReturnToTownHTML,
 } from "./ui/html.js";
 import { initDialogs } from "./ui/dialogs.js";
 import { DEFAULT_THEME, resolveTheme, type Theme } from "./theme.js";
@@ -2833,6 +2834,7 @@ function showAchievementToasts(unlocks: AchievementUnlock[]): void {
   });
 }
 
+/** Flavour only: the rule is the respawn floor shown beneath it (bible §5.6). */
 const DEATH_LINES_FLOOR1 = [
   "You open your eyes. Cold stone, a torch nearby. Somehow you're back at the entrance.",
   "The last thing you remember was the blow. Now you're standing at the dungeon gate, inexplicably alive.",
@@ -2842,6 +2844,7 @@ const DEATH_LINES_FLOOR1 = [
   "You gasp awake in the dark. The dungeon entrance looms ahead. Some force has returned you here.",
 ];
 
+/** Flavour only: the rule is the respawn floor shown beneath it (bible §5.6). */
 const DEATH_LINES_CHECKPOINT = [
   "You come to at the checkpoint. Someone — or something — dragged you back here.",
   "Barely alive. You stir at the checkpoint torch, wounds already closing.",
@@ -2862,6 +2865,7 @@ function showDeathToast(respawnFloor: number): void {
   setTimeout(() => el.remove(), 4500);
 }
 
+/** Flavour only: the rule is the renown shown beneath it (bible §5.6). */
 const HOMECOMING_LINES = [
   "The villagers cheer as you stumble through the gates. Bards will sing of this tonight.",
   "Word spreads fast — the hero has returned. Coin and cheer flow freely at the tavern.",
@@ -3864,11 +3868,8 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (action === "sell-all") call("sellAll");
     else if (action === "prestige") {
       if (!game) return;
-      const pts = game.prestigePointsPreview();
-      if (confirm(`Return to Town? You will earn ${pts} renown.\n\nThe dungeon shifts while you rest — its passages rearrange and your hard-won knowledge of the depths fades. Expedition upgrades and progress will be lost.`)) {
-        call("prestige");
-        showHomecomingToast(pts);
-      }
+      $("return-town-body").innerHTML = buildReturnToTownHTML(game.returnToTownSummary());
+      $("return-town-modal").classList.add("open");
     }
     else if (action === "buy-prestige") {
       const type = btn.dataset.type!;
@@ -4097,6 +4098,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   $("hall-of-fame-close").addEventListener("click", () => hallOfFameModal.classList.remove("open"));
   hallOfFameModal.addEventListener("click", (e) => { if (e.target === hallOfFameModal) hallOfFameModal.classList.remove("open"); });
+
+  // Return to Town: says what you keep before you go (#58)
+  const returnTownModal = $("return-town-modal");
+  const closeReturnTown = () => returnTownModal.classList.remove("open");
+  $("return-town-close").addEventListener("click", closeReturnTown);
+  $("return-town-cancel").addEventListener("click", closeReturnTown);
+  returnTownModal.addEventListener("click", (e) => { if (e.target === returnTownModal) closeReturnTown(); });
+  $("return-town-confirm").addEventListener("click", () => {
+    if (!game) return;
+    closeReturnTown();
+    const pts = game.prestigePointsPreview();
+    call("prestige");
+    showHomecomingToast(pts);
+  });
 
   // Retire confirmation modal
 

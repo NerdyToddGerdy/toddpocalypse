@@ -367,3 +367,30 @@ describe("generateEliteEnemy", () => {
   });
 });
 
+
+// Bible §5.6 "honest simplification" (#58): enemy names are flavour. The words
+// differ between these two enemies; nothing a player fights against does.
+describe("enemy names are flavour", () => {
+  /** An RNG whose first `nameDraws` values are `nameValue`, then a fixed tail. */
+  function scripted(nameValue: number, nameDraws: number) {
+    const tail = [0.31, 0.62, 0.17, 0.88, 0.45, 0.5, 0.5, 0.5];
+    let i = 0;
+    return () => (i < nameDraws ? (i++, nameValue) : tail[(i++ - nameDraws) % tail.length]);
+  }
+  const stats = (e: ReturnType<typeof generateEnemy>) =>
+    ({ hp: e.max_hp, attack: e.attack_dps, xp: e.xp_reward, gold: e.gold_reward });
+
+  it("an ordinary enemy's name never changes its stats", () => {
+    const a = generateEnemy(14, 1, scripted(0.01, 2));
+    const b = generateEnemy(14, 1, scripted(0.99, 2));
+    expect(a.name).not.toBe(b.name);
+    expect(stats(a)).toEqual(stats(b));
+  });
+
+  it("nor does a boss's title", () => {
+    const a = generateBoss(10, 0, 1, false, scripted(0.01, 3));
+    const b = generateBoss(10, 0, 1, false, scripted(0.99, 3));
+    expect(a.name).not.toBe(b.name);
+    expect(stats(a)).toEqual(stats(b));
+  });
+});

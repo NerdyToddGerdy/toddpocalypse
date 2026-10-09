@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.49.0";
+export const VERSION = "v2.50.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.50.0",
+    date: "2026-10-09",
+    changes: [
+      "Return to Town now shows what you keep — renown, the Guild Hall, runes, artifacts and more — and what starts over, before you decide",
+      "It opens on Stay in the dungeon, and Escape backs out",
+      "Internal: the game's design decisions are recorded — no dice, no supplies, prestige rather than permadeath, a party of one to six",
+    ],
+  },
   {
     version: "v2.49.0",
     date: "2026-10-09",

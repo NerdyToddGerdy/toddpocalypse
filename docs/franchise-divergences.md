@@ -39,7 +39,11 @@ The bible does not say where per-title divergences get recorded. This is that pl
 | §3 | Stacked sheet, ruled paper, eyebrow+title; no Die (no dice, §5.1) | 🟢 Settled | #56 closed |
 | §5.1 | No d6: dice don't suit this idle game's pacing | 🟢 **Settled** | #57 closed |
 | §5.4 | Bookkeeping made visible: loot odds, crit odds, the DPS stack | 🔵 Conformant | #74 |
-| §5 | No depleting resource; prestige not permadeath | ⚪ Open | #58 |
+| §5 | Hits three instincts: (4) visible bookkeeping, (5) the world outlives the run, (6) honest simplification | 🔵 Conformant | #58 |
+| §5.2 | No depleting resource: supplies are a *Realm of Depths* mechanic | 🟢 **Settled** | #58 |
+| §5.3 | Prestige, not permadeath: a wipe returns you to the checkpoint | 🟢 **Settled** | #58 |
+| §7 | Party of one to six | 🟢 **Settled** | #58 |
+| §7 | Setting and lore | ⚪ Open (deferred) | #58 |
 | §6 | Vanilla DOM + esbuild, not React + Vite | 🟢 **Settled** | #63 |
 | §6 | Has a backend (bible permits) | 🔵 Conformant | #64 |
 | §6 | Accounts + email, not anonymous UUID | ⚪ Open | #64 |
@@ -51,6 +55,54 @@ The bible does not say where per-title divergences get recorded. This is that pl
 ---
 
 ## 🟢 Settled — the bible is what should move
+
+### §5 — three instincts: (4), (5) and (6)
+
+Decided **2026-10-09** (#58). The bible asks every title to hit at least three of §5's six instincts.
+*Idle Depths* declined (1) dice, (2) a depleting resource and (3) permadeath (sections below), and
+claims the other three:
+
+- **(4) Bookkeeping made visible** — #74, v2.49.0: loot odds, crit odds and the DPS stack, shown from
+  the code that rolls them.
+- **(5) The world outlives the character** — what survives a Return to Town is the world: renown and
+  its upgrades, the Guild Hall, constellations, the dungeon you've reached, runes, artifacts, the
+  stash, and your records. The run's heroes, gear and floor do not. This was always true in code;
+  since v2.50.0 the **Return to Town dialog lists it** ("You keep" / "Starts over"), from
+  `returnToTownSummary()` (`src/engine.ts`). `tests/return-to-town.test.ts` runs the real
+  `prestige()` and checks every line the dialog shows, so it can't promise more than the game does.
+- **(6) Honest simplification** — where something is flavour, the code says so. Enemy names — the
+  adjective, the creature and a boss's title — have **no effect on stats**; HP, damage and rewards
+  come from floor and dungeon alone (`src/dungeon.ts`, held by `tests/dungeon.test.ts`). The words
+  that *are* rules: **Elite** (stronger, always drops loot) and **Guardian** (the gate boss before a
+  checkpoint). Names do count toward the Bestiary feat, which tracks kinds of enemy killed. Death and
+  homecoming lines are flavour too; the rule is the floor or renown shown beneath them. The "dungeon
+  shifts while you rest" line is flavour for the reset, and the dialog now states the reset plainly
+  beside it.
+
+### §5.2 — no depleting resource
+
+§5.2: "A resource that runs out and kills you." Decided **2026-10-09 by the owner: none.**
+
+**Why:** supplies and torches belong to *Realm of Depths*, where the depleting light *is* the clock
+of a solo crawl. They don't fit this game: an idle party fights for hours unattended, and a resource
+that runs out while you're away would punish exactly the play the genre is built on.
+
+### §5.3 — prestige, not permadeath
+
+§5.3: "Permadeath, with a record of the dead." §7 leaned toward "runs that genuinely *end*". Decided
+**2026-10-09 by the owner: keep it as it is.** A wipe sends the party back to the checkpoint with gear,
+gold and levels intact. Return to Town is a chosen soft reset into renown.
+
+**The case for it:** in an idle game, the player's investment is time away. Permadeath would let a
+single unattended wipe erase hours of progress the player didn't watch happen, which reads as
+unfair rather than tense. The run still ends, by the player's choice, and what survives it is shown
+plainly (§5 (5) above). The record of the dead exists, voluntarily: **Retire** ends a hero for good
+and writes them into the **Hall of Fame**.
+
+### §7 — party of one to six
+
+Decided **2026-10-09: keep the party.** One hero to start, up to six through renown and the Guild
+Hall. The recruitment, companion and party-slot systems stay.
 
 ### §5.4 — bookkeeping made visible, without dice
 
@@ -73,8 +125,7 @@ helpers (`heroFactors`, `critFor`, `partyFactors`, `dropChanceBreakdown`, `quali
 
 **Not done, by the owner's choice (2026-10-09): no log lines** explaining individual hits or drops.
 
-This is the first §5 instinct *Idle Depths* fully meets. Two more are needed for the bible's
-"at least three"; (2) and (3) are the open questions in #58.
+This is one of the three §5 instincts *Idle Depths* claims; see "§5 — three instincts" below.
 
 ### §5.1 — no d6: dice don't suit this idle game's pacing
 
@@ -89,11 +140,8 @@ rhythm has no room for one.
 **What's kept:** the half of §5 that never needed dice. §5.4's "show the modifier, show the table
 row" is #74: readable loot odds, crit odds and the DPS stack as real numbers.
 
-**What it costs:** the bible asks a title to hit **at least three** of §5's six instincts. Without
-(1), *Idle Depths* needs three of the others, and today it arguably hits none of them fully. (4) is
-the cheapest to reach (#74); (2) a depleting resource and (3) permadeath are the open questions in
-#58. The bible's own recommendation for this title was (2) and (3), so those are the natural pair to
-add to (4).
+**What it costs:** the bible asks a title to hit **at least three** of §5's six instincts. With (1),
+(2) and (3) all declined (see below), *Idle Depths* claims (4), (5) and (6) instead.
 
 **Knock-on:** §3's Die, "reuse it verbatim in every title", has no roll to show here, so it is not
 ported (#56 closed). The design that was proposed is kept for the record at
@@ -384,9 +432,8 @@ Each is tracked; this section is a pointer, not a duplicate of the issue.
 
 ## ⚪ Open — undecided
 
-- **§5.2 / §5.3 / §7** (#58) — the depleting resource, permadeath vs prestige, party size, setting.
-  Note the game has *already* answered prestige-vs-permadeath by accident: it ships a prestige
-  button and a renown system, which is the option §5.3 leans against. Either argue it or change it.
+- **§7 setting** (#58) — **deferred by the owner, 2026-10-09.** The world stays generic for now.
+  §8.1 still notes this title is the cheapest place to start shared franchise lore, if that happens.
 - **§6 identity** (#64) — §6 says *prefer* an anonymous UUID: "no passwords, no email, no personal
   data to protect." We use Cognito with Google sign-in requesting `email+openid+profile`, and
   maintain a `PRIVACY.md` because of it. A considered trade for cross-device sync — but the

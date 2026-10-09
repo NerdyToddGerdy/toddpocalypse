@@ -37,8 +37,8 @@ describe("dialogs: keyboard and focus", () => {
     expect(wrapFocusIndex(i, n, back)).toBe(want);
   });
 
-  it("finds all 18 dialogs", () => {
-    expect(dialogs()).toHaveLength(18);
+  it("finds all 19 dialogs", () => {
+    expect(dialogs()).toHaveLength(19);
   });
 
   // Escape works by clicking the dialog's own close control, so every dialog
