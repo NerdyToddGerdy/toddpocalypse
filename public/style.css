@@ -1433,15 +1433,19 @@ main {
 }
 
 .stab-btn {
-    flex: 1;
-    padding: 9px 2px;
+    /* Sized to the label, not equal shares: five tabs (Upgrades, Loot, Renown,
+       Guild, Feats) fit 280px in sentence case, where equal 56px shares
+       truncated "Upgrades". */
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 9px 3px;
     background: none;
     border: none;
     border-bottom: 2px solid transparent;
     color: var(--parchment-dim);
-    font-size: 0.62rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-size: 0.7rem;
     cursor: pointer;
     position: relative;
     margin-bottom: -1px;
@@ -2659,6 +2663,11 @@ main {
 .shop-current-stat { font-size: 0.68rem; color: var(--hp); margin-top: 2px; }
 
 .prestige-buy-btn {
+    /* "Locked (need Hall 1)" used to take the row and squeeze the description
+       to one word per line. */
+    white-space: normal;
+    max-width: 45%;
+    text-align: center;
     padding: 6px 12px;
     font-size: 0.72rem;
     font-weight: 700;
@@ -2667,7 +2676,6 @@ main {
     border: 1px solid var(--torch-mid);
     border-radius: 4px;
     cursor: pointer;
-    white-space: nowrap;
     transition: background 0.1s, color 0.1s;
     flex-shrink: 0;
 }
@@ -4591,7 +4599,7 @@ footer {
 }
 .pdoll-slot-label {
     font-size: 0.58rem;
-    color: rgba(180,140,55,0.65);
+    color: var(--parchment-dim);
     text-transform: uppercase;
     letter-spacing: 0.08em;
     line-height: 1;
@@ -6237,3 +6245,17 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
     text-shadow: 0 0 2px var(--ink), 0 0 3px var(--ink), 0 1px 1px var(--ink);
 }
 [data-theme="ledger"] #mobile-party-hp-text { color: var(--ink); }
+
+/* Long panel titles ("Hall of Renown (1,234 rn)") wrap instead of clipping. */
+[data-theme] #prestige-panel h2 { display: block; white-space: normal; text-align: center; }
+[data-theme] #prestige-panel h2::before,
+[data-theme] #prestige-panel h2::after { display: none; }
+
+/* Ledger: late-game screens found in the floor-44 audit. */
+[data-theme="ledger"] #stat-party-gold-bonus { color: var(--q-legendary); }
+[data-theme="ledger"] :is(.prune-char-block, .artifact-char-block) {
+    background: var(--bg-2);
+    border-color: color-mix(in srgb, var(--gold) 45%, transparent);
+    box-shadow: none;
+}
+[data-theme="ledger"] :is(.prune-char-block, .artifact-char-block)::before { display: none; }

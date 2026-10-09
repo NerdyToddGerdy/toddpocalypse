@@ -14,12 +14,26 @@ export { ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT };
 export const ELITE_SPAWN_CHANCE = 0.15;
 
 /** Formats a number with commas below 10,000 and shorthand (k/m/b) above. */
+const NUMBER_UNITS: [number, string][] = [
+  [1e18, "qi"], [1e15, "qa"], [1e12, "t"], [1e9, "b"], [1e6, "m"], [1e3, "k"],
+];
+
+/** A gold amount: "500g", "1,500g", "40k g" — the narrow space keeps "40kg" from reading as kilograms. */
+export function formatGold(n: number): string {
+  const s = formatNumber(n);
+  return /\d$/.test(s) ? `${s}g` : `${s}\u202Fg`;
+}
+
 export function formatNumber(n: number): string {
   const v = Math.floor(n);
   if (v < 10_000) return v.toLocaleString("en-US");
-  if (v < 1_000_000) return (v / 1_000).toFixed(1).replace(/\.0$/, "") + "k";
-  if (v < 1_000_000_000) return (v / 1_000_000).toFixed(1).replace(/\.0$/, "") + "m";
-  return (v / 1_000_000_000).toFixed(1).replace(/\.0$/, "") + "b";
+  for (const [size, suffix] of NUMBER_UNITS) {
+    if (v < size) continue;
+    // Whole tenths, floored: never rounds 999,999,999 up to "1000m".
+    const tenths = Math.floor((v * 10) / size);
+    return `${tenths / 10}${suffix}`;
+  }
+  return v.toLocaleString("en-US");
 }
 
 /** Base number of kills required to reach the boss on floor 1. */

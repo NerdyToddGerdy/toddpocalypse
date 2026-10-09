@@ -20,6 +20,7 @@ import {
   ACHIEVEMENTS,
   CONSTELLATION_NODE_DEFS,
   formatNumber,
+  formatGold,
   BOSS_ENRAGE_TRIGGER,
   BOSS_ENRAGE_STEP,
   BOSS_ENRAGE_TRIGGER_MIN,
@@ -5477,6 +5478,27 @@ describe("formatNumber", () => {
   it("1000000000 → '1b'",()=> expect(formatNumber(1000000000)).toBe("1b"));
   it("floats are floored for < 10k", () => expect(formatNumber(9999.9)).toBe("9,999"));
   it("floats work in shorthand range", () => expect(formatNumber(12345)).toBe("12.3k"));
+  // Late game reaches trillions; "1000b" and "1718bg" were showing on screen.
+  it("1e12 → '1t'",      () => expect(formatNumber(1e12)).toBe("1t"));
+  it("1.718e12 → '1.7t'",() => expect(formatNumber(1.718e12)).toBe("1.7t"));
+  it("1e15 → '1qa'",     () => expect(formatNumber(1e15)).toBe("1qa"));
+  it("1e18 → '1qi'",     () => expect(formatNumber(1e18)).toBe("1qi"));
+  // Rounding up crossed a unit boundary: 999,999,999 became "1000m".
+  it("never rounds up into '1000' of a unit", () => {
+    expect(formatNumber(999_999_999)).toBe("999.9m");
+    expect(formatNumber(999_999)).toBe("999.9k");
+  });
+});
+
+// ─── formatGold ───────────────────────────────────────────────────────────────
+
+// "40kg" read as kilograms and "1.2tg" as nothing; a narrow no-break space
+// separates a unit letter from the g.
+describe("formatGold", () => {
+  it("digits take the g directly", () => expect(formatGold(500)).toBe("500g"));
+  it("thousands separators stay", () => expect(formatGold(1500)).toBe("1,500g"));
+  it("a unit letter gets a narrow space", () => expect(formatGold(40_000)).toBe("40k\u202Fg"));
+  it("trillions", () => expect(formatGold(1.2e12)).toBe("1.2t\u202Fg"));
 });
 
 // ─── retireHero ───────────────────────────────────────────────────────────────

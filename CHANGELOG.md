@@ -4,6 +4,17 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.48.0 — 2026-10-09
+
+- Every window can now be used from the keyboard: Escape closes it, Tab stays inside it, and focus returns to where you were
+- Screen readers now announce feats, deaths and returns to town as they happen
+- Add Idle Depths to your phone's home screen and it opens as its own app, with a dark status bar
+- The browser tab shows your gold and floor, so you can check progress from another tab
+- Big numbers read properly: 1t, 1qa and beyond instead of 1000b, and prices like 40k g no longer look like kilograms
+- Late-game screens tidied: the sidebar's five tabs fit, the Hall of Renown title wraps, and locked upgrades no longer squeeze their descriptions
+- Ledger theme: rune and artifact cards, the gold bonus and rune slot labels now print cleanly on paper
+- Shared links now show a preview card
+
 ## v2.47.0 — 2026-10-08
 
 - New theme: Ledger — parchment sheets and ink on a dark table, the look of GerdQuest: Realm of Depths. Free from the start; pick it in Settings

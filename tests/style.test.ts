@@ -616,3 +616,34 @@ describe("Ledger — colours written for a dark ground get paper versions", () =
     expect(bodiesFor('[data-theme="ledger"] #enemy-hp-text').join(";")).toMatch(/text-shadow:[^;]*var\(--ink\)/);
   });
 });
+
+describe("late-game screens (audit with a floor-44 save)", () => {
+  // Five sidebar tabs in 280px overlapped in uppercase tracking.
+  it("sidebar tabs set in sentence case and allowed to shrink", () => {
+    const body = bodiesFor(".stab-btn").join(";");
+    expect(body).not.toMatch(/text-transform:\s*uppercase/);
+    expect(body).toMatch(/min-width:\s*0/);
+  });
+
+  // "Locked (need Hall 1)" squeezed its description to one word per line.
+  it("renown and guild buy buttons wrap instead of starving the description", () => {
+    const body = bodiesFor(".prestige-buy-btn").join(";");
+    expect(body).toMatch(/white-space:\s*normal/);
+    expect(body).toMatch(/max-width:\s*\d+%/);
+  });
+
+  it("long panel titles wrap rather than being clipped", () => {
+    expect(bodiesFor("[data-theme] #prestige-panel h2").join(";")).toMatch(/white-space:\s*normal/);
+  });
+
+  it("rune paperdoll labels follow the theme", () => {
+    expect(bodiesFor(".pdoll-slot-label").join(";")).toMatch(/color:\s*var\(--parchment-dim\)/);
+  });
+
+  it.each([
+    '[data-theme="ledger"] #stat-party-gold-bonus',
+    '[data-theme="ledger"] :is(.prune-char-block, .artifact-char-block)',
+  ])("Ledger reprints %s for paper", (sel) => {
+    expect(bodiesFor(sel).join(";"), sel).not.toBe("");
+  });
+});

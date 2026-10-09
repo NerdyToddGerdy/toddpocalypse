@@ -12,6 +12,7 @@ import {
   DEFENSE_UPGRADE_EFFECT,
   DPS_UPGRADE_EFFECT,
   formatNumber,
+  formatGold,
   type GameStateDict,
   HP_UPGRADE_EFFECT,
   SKILL_DEFS,
@@ -311,7 +312,7 @@ export function buildTooltipHTML(item: GearItemDict, equippedSetCount = 0): stri
     <div class="tt-stats">${statRows || '<div class="tt-stat-row"><span class="tt-stat-label">No stats</span></div>'}</div>
     ${setBlock}
     <div class="tt-divider"></div>
-    <div class="tt-sell">Sell: ${formatNumber(item.sell_value)}g</div>
+    <div class="tt-sell">Sell: ${formatGold(item.sell_value)}</div>
   `;
 }
 
@@ -509,5 +510,10 @@ export function mobileUpgradeButton(o: { charName: string; utype: string; label:
       data-char="${o.charName}"
       data-type="${o.utype}"
       data-cost="${o.cost}"
-      title="${o.label} — ${o.charName} (Lv ${o.level})">${formatNumber(o.cost)}g<span class="ug-btn-meta">${meta}</span></button>`;
+      title="${o.label} — ${o.charName} (Lv ${o.level})">${formatGold(o.cost)}<span class="ug-btn-meta">${meta}</span></button>`;
+}
+
+/** Browser tab title: progress first, so it can be read from another tab. */
+export function tabTitle(gold: number, floor: number): string {
+  return `${formatNumber(gold)} gold · Floor ${floor} — GerdQuest: Idle Depths`;
 }

@@ -17,6 +17,7 @@ import {
   CORRUPTION_RATE_PER_FLOOR,
   DPS_UPGRADE_EFFECT,
   formatNumber,
+  formatGold,
   type GameAction,
   GameState,
   type GameStateDict,
@@ -97,7 +98,9 @@ import {
   SKILL_NAMES,
   SLOT_LABELS,
   statRow,
+  tabTitle,
 } from "./ui/html.js";
+import { initDialogs } from "./ui/dialogs.js";
 import { DEFAULT_THEME, resolveTheme, type Theme } from "./theme.js";
 
 // Record: Descriptions for the Heroes
@@ -276,6 +279,8 @@ function call<K extends GameAction>(method: K, ...args: Parameters<GameState[K]>
 }
 
 /** Full re-render of all UI panels from a GameStateDict snapshot. */
+let lastTitleKey = "";
+
 function render(state: GameStateDict): void {
   const currentDeaths = state.deaths;
   if (lastDeathCount === null) {
@@ -474,6 +479,11 @@ function render(state: GameStateDict): void {
   renderSkillButton(state);
   renderCompanionSkills(state);
   renderLog(state);
+  const titleKey = `${Math.floor(state.gold)}|${state.dungeon_level}`;
+  if (titleKey !== lastTitleKey) {
+    lastTitleKey = titleKey;
+    document.title = tabTitle(state.gold, state.dungeon_level);
+  }
   renderThemePicker(state);
   renderFeats(state);
   showAchievementToasts(state.pending_achievements ?? []);
@@ -992,7 +1002,7 @@ function renderLoot(state: GameStateDict): void {
     <div class="loot-dmg ${triCls || qc}">${formatLootStats(tri, item.stats ?? { dps: item.damage })}</div>
     <div class="loot-btns">
       <button class="equip-btn" data-action="equip" data-idx="${i}">Equip</button>
-      <button class="sell-btn"  data-action="sell"  data-idx="${i}">${formatNumber(item.sell_value)}g</button>
+      <button class="sell-btn"  data-action="sell"  data-idx="${i}">${formatGold(item.sell_value)}</button>
       ${stashUnlocked ? `<button class="stash-loot-btn" data-action="stash-loot" data-idx="${i}" ${stashFull ? "disabled" : ""}>📦</button>` : ""}
     </div>
   </div>
@@ -1056,7 +1066,7 @@ function renderStash(state: GameStateDict): void {
   <div class="stash-item-btns">
     ${charSel}
     <button class="stash-equip-btn" data-action="equip-from-stash" data-stash-idx="${idx}">Equip</button>
-    <button class="stash-sell-btn" data-action="sell-from-stash" data-stash-idx="${idx}">${formatNumber(item.sell_value)}g</button>
+    <button class="stash-sell-btn" data-action="sell-from-stash" data-stash-idx="${idx}">${formatGold(item.sell_value)}</button>
   </div>
 </div>`;
   }).join("");
@@ -1087,7 +1097,7 @@ function renderUpgrades(state: GameStateDict): void {
                   data-action="upgrade"
                   data-char="${c.name}"
                   data-type="${utype}"
-                  data-cost="${u.cost}">${formatNumber(u.cost)}g</button>
+                  data-cost="${u.cost}">${formatGold(u.cost)}</button>
             </div>`;
           })
           .join("");
@@ -1215,7 +1225,7 @@ function updateProfileDropdownStats(state: GameStateDict): void {
     set("pstat-hero-class",  hero.character_class ?? "—");
     set("pstat-hero-level",  String(hero.level ?? 1));
     set("pstat-hero-floor",  String(state.dungeon_level ?? 1));
-    set("pstat-hero-gold",   formatNumber(state.gold ?? 0) + "g");
+    set("pstat-hero-gold",   formatGold(state.gold ?? 0));
     set("pstat-hero-kills",  String(state.kills ?? 0));
     set("pstat-hero-deaths", String(state.deaths ?? 0));
   }
@@ -1518,7 +1528,7 @@ function renderGuildHall(state: GameStateDict): void {
         ${prereqMet && currentStat ? `<div class="shop-current-stat">${currentStat}</div>` : ""}
         ${prereqMet && preview ? `<div class="guild-preview">→ ${preview}</div>` : ""}
       </div>
-      <button class="guild-buy-btn" data-action="buy-guild" data-type="${type}" ${disabled ? "disabled" : ""}>${atMax ? "Owned" : formatNumber(nextCost) + "g"}</button>
+      <button class="guild-buy-btn" data-action="buy-guild" data-type="${type}" ${disabled ? "disabled" : ""}>${atMax ? "Owned" : formatGold(nextCost)}</button>
     </div>`;
   }).join("");
 
@@ -1913,7 +1923,7 @@ function renderLootRuneInventory(runeInv: Rune[], runeForge: number, hasCombineA
           <div class="rune-item-bottom">
             <span class="rune-stat">+${rune.value} ${statLabel}</span>
             <div class="rune-item-btns">
-              <button class="rune-sell-btn" data-action="sell-rune" data-rune-idx="${i}">${formatNumber(sellVal)}g</button>
+              <button class="rune-sell-btn" data-action="sell-rune" data-rune-idx="${i}">${formatGold(sellVal)}</button>
             </div>
           </div>
         </div>`;
@@ -1961,7 +1971,7 @@ function renderLootRuneInventory(runeInv: Rune[], runeForge: number, hasCombineA
   el.innerHTML = `<div class="rune-inv-section">
     <div class="rune-inv-title">
       <span>${getSprite("🔮")} Runes (${runeInv.length})</span>
-      ${runeInv.length > 0 ? `<button class="rune-sell-all-btn" data-action="sell-all-runes">Sell All (${formatNumber(sellAllVal)}g)</button>` : ""}
+      ${runeInv.length > 0 ? `<button class="rune-sell-all-btn" data-action="sell-all-runes">Sell All (${formatGold(sellAllVal)})</button>` : ""}
     </div>
     ${forgeArtifactHtml}
     ${combineHtml}
@@ -2024,7 +2034,7 @@ function renderArtifactPanel(state: GameStateDict): void {
             <div class="artifact-inv-name">${def.name}${inst.level > 0 ? ` <span class="artifact-level-badge">+${inst.level}</span>` : ""}</div>
             <div class="artifact-inv-desc">${def.desc}</div>
           </div>
-          <button class="artifact-sell-btn" data-action="sell-artifact" data-inv-idx="${i}" title="Sell for ${formatNumber(sellVal)}g">${formatNumber(sellVal)}g</button>
+          <button class="artifact-sell-btn" data-action="sell-artifact" data-inv-idx="${i}" title="Sell for ${formatGold(sellVal)}">${formatGold(sellVal)}</button>
         </div>`;
       }).join("");
 
@@ -2245,7 +2255,7 @@ function renderArtifactModalBody(state: GameStateDict): void {
         </button>
         <button class="amodal-remove-btn" data-action="modal-unequip-artifact" data-char-idx="${artifactModalCharIdx}" data-slot-idx="${artifactModalSlotIdx}" title="Remove — return to inventory">🗑</button>
         <button class="artifact-sell-btn amodal-sell-btn" data-action="modal-sell-equipped-artifact" data-char-idx="${artifactModalCharIdx}" data-slot-idx="${artifactModalSlotIdx}">
-          Sell ${formatNumber(def.sellValue * (inst.level + 1))}g
+          Sell ${formatGold(def.sellValue * (inst.level + 1))}
         </button>
       </div>`;
   } else {
@@ -2268,7 +2278,7 @@ function renderArtifactModalBody(state: GameStateDict): void {
       ${equipSection}
       <div class="amodal-section amodal-sell-section">
         <button class="artifact-sell-btn amodal-sell-btn" data-action="sell-artifact" data-inv-idx="${artifactModalTargetIdx}">
-          Sell for ${formatNumber(def.sellValue * (inst.level + 1))}g
+          Sell for ${formatGold(def.sellValue * (inst.level + 1))}
         </button>
       </div>`;
   }
@@ -2823,7 +2833,7 @@ function showAchievementToasts(unlocks: AchievementUnlock[]): void {
     setTimeout(() => {
       const r = u.reward;
       const rewardText = !r ? "" :
-        r.type === "gold" ? `+${formatNumber(r.value ?? 0)}g` :
+        r.type === "gold" ? `+${formatGold(r.value ?? 0)}` :
         r.type === "prestige_points" ? `+${r.value} renown` :
         r.type === "title" ? `Title unlocked: "${r.title}"` :
         r.type === "avatar" ? (() => { const a = AVATAR_DEFS.find(x => x.id === r.cosmetic); return `Avatar: ${a?.icon ?? ""} ${a?.name ?? r.cosmetic}`; })() :
@@ -2909,7 +2919,7 @@ function appendLog(msg: string): void {
   const log = $("combat-log");
   log.insertAdjacentHTML(
     "afterbegin",
-    `<div class="log-line" style="color:var(--danger)">${msg}</div>`,
+    `<div class="log-line" role="alert" style="color:var(--danger)">${msg}</div>`,
   );
   while (log.children.length > 50) log.lastElementChild!.remove();
 }
@@ -3643,6 +3653,7 @@ document.addEventListener("DOMContentLoaded", () => {
   preloadBossAssets();
   initTheme();
   initHeaderHeightVar();
+  initDialogs();
   initEnemyPanelHeightVar();
   initEnemySticky();
   initSaveBackup();

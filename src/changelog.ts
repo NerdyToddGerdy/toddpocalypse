@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.47.0";
+export const VERSION = "v2.48.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,20 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.48.0",
+    date: "2026-10-09",
+    changes: [
+      "Every window can now be used from the keyboard: Escape closes it, Tab stays inside it, and focus returns to where you were",
+      "Screen readers now announce feats, deaths and returns to town as they happen",
+      "Add Idle Depths to your phone's home screen and it opens as its own app, with a dark status bar",
+      "The browser tab shows your gold and floor, so you can check progress from another tab",
+      "Big numbers read properly: 1t, 1qa and beyond instead of 1000b, and prices like 40k g no longer look like kilograms",
+      "Late-game screens tidied: the sidebar's five tabs fit, the Hall of Renown title wraps, and locked upgrades no longer squeeze their descriptions",
+      "Ledger theme: rune and artifact cards, the gold bonus and rune slot labels now print cleanly on paper",
+      "Shared links now show a preview card",
+    ],
+  },
   {
     version: "v2.47.0",
     date: "2026-10-08",

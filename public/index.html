@@ -4,6 +4,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GerdQuest: Idle Depths</title>
+  <meta name="description" content="An idle dungeon crawler in the GerdQuest series. Your party fights on its own; you choose the gear, the upgrades and how deep to go." />
+  <meta name="theme-color" content="#0a0807" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="GerdQuest: Idle Depths" />
+  <meta property="og:description" content="An idle dungeon crawler. Your party fights on its own; you choose the gear, the upgrades and how deep to go." />
+  <meta property="og:url" content="https://nerdytoddgerdy.github.io/toddpocalypse/" />
+  <meta property="og:image" content="https://nerdytoddgerdy.github.io/toddpocalypse/social-card.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="The Idle Depths combat screen: an enemy panel with an Attack button above the hero's character sheet." />
+  <meta name="twitter:card" content="summary_large_image" />
   <!-- Fonts are self-hosted woff2 under fonts/ — no CDN, per §3. See #54. -->
   <link rel="stylesheet" href="tokens.css" />
   <link rel="stylesheet" href="style.css" />
@@ -12,7 +24,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 </head>
 <body>
-<div id="achievement-toast-container"></div>
+<div id="achievement-toast-container" role="status" aria-live="polite"></div>
 
 <div id="creation-overlay">
   <div id="creation-box">
@@ -153,7 +165,7 @@
         <div id="enemy-content">
           <div id="enemy-header">
             <div id="enemy-level"></div>
-            <div id="enemy-name">Loading…</div>
+            <div id="enemy-name">The dungeon waits</div>
           </div>
           <div class="hp-bar-wrap">
             <div id="enemy-hp-bar" style="width:100%"></div>
@@ -348,7 +360,7 @@
   </div>
 </div>
 
-<div id="save-conflict-modal" aria-modal="true" role="dialog" aria-labelledby="save-conflict-title">
+<div id="save-conflict-modal" aria-modal="true" role="dialog" data-dialog-required aria-labelledby="save-conflict-title">
   <div id="save-conflict-box">
     <h2 id="save-conflict-title"><span class="spr spr-warning" aria-hidden="true"></span> Save Conflict</h2>
     <p>Your local save and cloud save are from different runs. Which would you like to keep?</p>
@@ -553,7 +565,7 @@
       <div id="retire-unlock-preview"></div>
       <div id="retire-confirm-actions">
         <button id="retire-confirm-yes" class="danger-btn">Retire Forever</button>
-        <button id="retire-confirm-cancel" class="secondary-btn">Cancel</button>
+        <button id="retire-confirm-cancel" class="secondary-btn" data-autofocus>Cancel</button>
       </div>
     </div>
   </div>
