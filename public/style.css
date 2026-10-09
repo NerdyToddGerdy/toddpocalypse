@@ -6337,3 +6337,21 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
 @media (max-width: 600px) {
     .rtt-lists { grid-template-columns: 1fr; }
 }
+
+/* ── Quartermaster (#15): consumables at the top of the Guild Hall tab ── */
+.quartermaster { margin-bottom: 14px; }
+.qm-head {
+    font-family: var(--font-display);
+    font-size: 0.82rem;
+    font-weight: 400;
+    color: var(--parchment);
+    margin: 4px 0 4px;
+}
+.qm-note { font-size: 0.7rem; color: var(--parchment-dim); margin: 0 0 8px; }
+
+/* Prices are counted numbers: mono, tabular (§3). It also gives "10k g" a real
+   space, which the display face nearly closes up. */
+.upgrade-btn, .guild-buy-btn, .prestige-buy-btn {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+}

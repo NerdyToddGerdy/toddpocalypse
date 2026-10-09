@@ -5,7 +5,7 @@ export { CONSTELLATION_NODE_DEFS };
 export type { ConstellationBonuses };
 import { Party } from "./party.js";
 import { GearItem, getItem, getSetItem, SET_DEFS, gearPower, QUAL, SLOTS, autoSellThreshold, qualityOdds, type GearItemDict, type Slot } from "./gear.js";
-import { generateEnemy, generateBoss, generateEliteEnemy, ENEMY_NOUNS, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT, type Enemy, type EnemyDict } from "./dungeon.js";
+import { generateEnemy, generateBoss, generateEliteEnemy, bossGoldReward, ENEMY_NOUNS, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT, type Enemy, type EnemyDict } from "./dungeon.js";
 import { ARTIFACT_DEFS, ARTIFACT_DROP_POOL, LEGACY_UPGRADED_MAP, artifactUpgradeCost, artifactSellValue, artifactFuelValue, artifactStatLabel, type ArtifactEffectId, type ArtifactInstance } from "./artifacts.js";
 export { ARTIFACT_DEFS, ARTIFACT_DROP_POOL, artifactUpgradeCost, artifactSellValue, artifactFuelValue, artifactStatLabel };
 export type { ArtifactInstance };
@@ -18,10 +18,10 @@ const NUMBER_UNITS: [number, string][] = [
   [1e18, "qi"], [1e15, "qa"], [1e12, "t"], [1e9, "b"], [1e6, "m"], [1e3, "k"],
 ];
 
-/** A gold amount: "500g", "1,500g", "40k g" — the narrow space keeps "40kg" from reading as kilograms. */
+/** A gold amount: "500g", "1,500g", "40k g" — the space keeps "40kg" from reading as kilograms. */
 export function formatGold(n: number): string {
   const s = formatNumber(n);
-  return /\d$/.test(s) ? `${s}g` : `${s}\u202Fg`;
+  return /\d$/.test(s) ? `${s}g` : `${s}\u00A0g`;
 }
 
 export function formatNumber(n: number): string {
@@ -139,6 +139,48 @@ export const MANA_SURGE_MULTIPLIER = 5;
 
 /** Probability that a click triggers Lucky Strike. */
 export const LUCKY_STRIKE_CHANCE = 0.25;
+/** Eagle Eye's chance to fire on a click. Quoted in the log (§4: state the odds). */
+export const EAGLE_EYE_CHANCE = 0.30;
+/** Chance a boss drops a lesser rune once the Rune Forge is built. */
+export const BOSS_RUNE_CHANCE = 0.20;
+/** Chance an elite drops a lesser rune once the Rune Forge is built. */
+export const ELITE_RUNE_CHANCE = 0.10;
+/** Chance an elite also drops a set piece. */
+export const ELITE_SET_PIECE_CHANCE = 0.15;
+/** Chance a boss drops an artifact, from dungeon 3 on. */
+export const BOSS_ARTIFACT_CHANCE = 0.10;
+
+/** Whetstone: party damage multiplier while it lasts (#15). */
+export const WHETSTONE_MULT = 1.5;
+/** Lucky charm: added to the drop chance while it lasts, still under the cap. */
+export const LUCKY_CHARM_BONUS = 0.15;
+/** Gold draught: boss gold multiplier while it lasts. */
+export const GOLD_DRAUGHT_MULT = 1.5;
+
+export type ConsumableId = "whetstone" | "lucky_charm" | "gold_draught" | "healing_potion";
+/** A Quartermaster item. Lasts `kills` kills or `bosses` bosses, or acts at once. */
+export interface ConsumableDef {
+  name: string;
+  icon: string;
+  /** What it does, in plain words with the real numbers (§4). */
+  effect: string;
+  kills?: number;
+  bosses?: number;
+  /** Price, in multiples of what a boss pays at your deepest floor this run. */
+  priceBossGold: number;
+}
+/**
+ * The Quartermaster's stock (#15). Prices track boss gold at your deepest floor,
+ * so they stay a real cost from the first dungeon to the last.
+ */
+export const CONSUMABLE_DEFS: Record<ConsumableId, ConsumableDef> = {
+  whetstone:      { name: "Whetstone",      icon: "🗡", effect: "Party damage ×1.5 for the next 10 kills.", kills: 10, priceBossGold: 1 },
+  lucky_charm:    { name: "Lucky charm",    icon: "🍀", effect: "+15% drop chance for the next 10 kills, still capped at 75%.", kills: 10, priceBossGold: 1 },
+  gold_draught:   { name: "Gold draught",   icon: "🍺", effect: "Boss gold ×1.5 for the next 3 bosses.", bosses: 3, priceBossGold: 2 },
+  healing_potion: { name: "Healing potion", icon: "🧪", effect: "Heals every living hero to full, now.", priceBossGold: 0.5 },
+};
+/** One Quartermaster item as the UI shows it. */
+export interface ConsumableView { id: ConsumableId; name: string; icon: string; effect: string; price: number; charges: number; unit: "kills" | "bosses" | null }
 
 /** Click damage multiplier when Lucky Strike procs. */
 export const LUCKY_STRIKE_MULTIPLIER = 3;
@@ -572,6 +614,10 @@ export interface GameStateDict {
   artifact_inventory?: ArtifactInstance[];
   kill_streak?: number;
   lifetime_best_kill_streak?: number;
+  /** Kills or bosses left on active Quartermaster items (#15). */
+  consumable_charges?: Partial<Record<ConsumableId, number>>;
+  /** Live snapshots only: the Quartermaster's stock, priced (#15). */
+  consumables?: ConsumableView[];
   earned_avatars?: string[];
   earned_borders?: string[];
   selected_avatar?: string;
@@ -754,6 +800,8 @@ export class GameState {
   constellationShards = 0;
   /** Levels invested in each constellation node (0 = not unlocked). */
   constellationNodeLevels: Map<string, number> = new Map();
+  /** Kills or bosses left on each active Quartermaster item (#15). Cleared by Return to Town. */
+  consumableCharges: Partial<Record<ConsumableId, number>> = {};
   /** Tracks whether Last Stand has fired this floor. */
   lastStandUsedThisFloor = false;
 
@@ -864,7 +912,7 @@ export class GameState {
           c.surgeTimer -= MANA_SURGE_INTERVAL;
           const surgeDmg = this.effectiveDps(c) * MANA_SURGE_MULTIPLIER;
           this.enemy.hp -= surgeDmg;
-          this.addLog(`${c.name} Mana Surge! (${surgeDmg.toFixed(1)} dmg)`);
+          this.addLog(`${c.name}'s Mana Surge hits for ${surgeDmg.toFixed(1)} damage.`);
           if (this.enemy.hp <= 0) { this.onEnemyDeath(); return true; }
         }
       }
@@ -1014,6 +1062,7 @@ export class GameState {
         { label: "Arcane Surge", value: active("skill_arcane_surge", ARCANE_SURGE_MULT) },
         { label: "Volley", value: active("skill_volley", VOLLEY_MULT) },
         { label: "Divine Wrath", value: scan.divineWrathActive ? 1.15 : 1.0 },
+        { label: "Whetstone", value: (this.consumableCharges.whetstone ?? 0) > 0 ? WHETSTONE_MULT : 1.0 },
       ],
     };
   }
@@ -1066,12 +1115,14 @@ export class GameState {
       const slot = c.artifactSlots.find(a => a?.id === "fortunes_eye");
       return slot ? s + ARTIFACT_DEFS["fortunes_eye"].effectValue * (slot.level + 1) : s;
     }, 0);
-    const raw = DROP_CHANCE + this.dungeonIndex * 0.05 + gearLuckBonus + fortunesEyeBonus;
+    const luckyCharm = (this.consumableCharges.lucky_charm ?? 0) > 0 ? LUCKY_CHARM_BONUS : 0;
+    const raw = DROP_CHANCE + this.dungeonIndex * 0.05 + gearLuckBonus + fortunesEyeBonus + luckyCharm;
     const parts: Factor[] = [
       { label: "Base", value: DROP_CHANCE },
       { label: `Dungeon ${this.dungeonIndex + 1}`, value: this.dungeonIndex * 0.05 },
       { label: "Gear Luck", value: gearLuckBonus },
       { label: "Fortune's Eye", value: fortunesEyeBonus },
+      { label: "Lucky charm", value: luckyCharm },
     ].filter((p) => p.label === "Base" || p.value > 0);
     return { parts, cap: DROP_CHANCE_CAP, total: Math.min(DROP_CHANCE_CAP, raw), capped: raw > DROP_CHANCE_CAP };
   }
@@ -1147,12 +1198,12 @@ export class GameState {
     const clickCritMult = clickCb.perfectKillActive ? 3 : 2;
     if (hasLuckyStrike && this.rng() < LUCKY_STRIKE_CHANCE) {
       damage *= LUCKY_STRIKE_MULTIPLIER;
-      this.addLog(`Lucky Strike! ${damage.toFixed(1)} dmg!`);
-    } else if (hasEagleEye && this.rng() < 0.30) {
+      this.addLog(`Lucky Strike: ${damage.toFixed(1)} damage (a ${LUCKY_STRIKE_CHANCE * 100}% chance).`);
+    } else if (hasEagleEye && this.rng() < EAGLE_EYE_CHANCE) {
       damage *= clickCritMult;
-      this.addLog(`Eagle Eye! ${damage.toFixed(1)} dmg!`);
+      this.addLog(`Eagle Eye: ${damage.toFixed(1)} damage (a ${EAGLE_EYE_CHANCE * 100}% chance).`);
     } else {
-      this.addLog(`You strike for ${damage.toFixed(1)}!`);
+      this.addLog(`You strike for ${damage.toFixed(1)}.`);
     }
     this.enemy.hp -= damage;
     if (this.enemy.hp <= 0) this.onEnemyDeath();
@@ -1167,7 +1218,7 @@ export class GameState {
     const old = target.equipItem(item);
     target.recomputeSetBonuses();
     this.lifetimeLoot += 1;
-    this.addLog(`${target.name} equips ${item.getName()}!`);
+    this.addLog(`${target.name} equips ${item.getName()}.`);
     if (old) this.disposeItem(old);
     this._lootCache = null;
     this.partyVersion++;
@@ -1184,7 +1235,7 @@ export class GameState {
     const old = char.equipItem(item);
     char.recomputeSetBonuses();
     this.lifetimeLoot += 1;
-    this.addLog(`${char.name} equips ${item.getName()}!`);
+    this.addLog(`${char.name} equips ${item.getName()}.`);
     if (old) this.lootPool.push(old);
     this._lootCache = null;
     this.partyVersion++;
@@ -1224,7 +1275,7 @@ export class GameState {
     char.recomputeSetBonuses();
     this._stashCache = null;
     this.partyVersion++;
-    this.addLog(`${char.name} equips ${item.getName()} from stash!`);
+    this.addLog(`${char.name} equips ${item.getName()} from the stash.`);
     if (old) {
       if (this.gearStash.length < this.stashMax) {
         this.gearStash.push(old);
@@ -1273,7 +1324,7 @@ export class GameState {
       if (netGain > 0) {
         const old = target.equipItem(item);
         this.lifetimeLoot += 1;
-        this.addLog(`${target.name} equips ${item.getName()}!`);
+        this.addLog(`${target.name} equips ${item.getName()}.`);
         if (old) this.disposeItem(old);
       } else {
         this.earnGold(item.sellValue);
@@ -1330,7 +1381,7 @@ export class GameState {
     this._artifactInvCache = null;
     this.partyVersion++;
     const label = instance.level > 0 ? `${ARTIFACT_DEFS[instance.id].name} +${instance.level}` : ARTIFACT_DEFS[instance.id].name;
-    this.addLog(`${char.name} equips ${label}!`);
+    this.addLog(`${char.name} equips ${label}.`);
     return this.respond();
   }
 
@@ -1361,7 +1412,7 @@ export class GameState {
     while (target.fuel >= artifactUpgradeCost(target.level)) {
       target.fuel -= artifactUpgradeCost(target.level);
       target.level += 1;
-      this.addLog(`✨ ${ARTIFACT_DEFS[target.id].name} leveled up to +${target.level}!`);
+      this.addLog(`✨ ${ARTIFACT_DEFS[target.id].name} rises to +${target.level}.`);
     }
     return true;
   }
@@ -1418,7 +1469,7 @@ export class GameState {
     const ut = upgradeType as UpgradeType;
     const cost = this.upgradeCost(charName, ut);
     if (this.gold < cost) {
-      this.addLog("Not enough gold!");
+      this.addLog("Not enough gold.");
       return this.respond();
     }
     this.gold -= cost;
@@ -1429,7 +1480,7 @@ export class GameState {
     applyUpgradeStatEffect(char, ut);
     this._upgradesCache = null;
     this.partyVersion++;
-    this.addLog(`${charName}: ${ut} upgraded!`);
+    this.addLog(`${charName}: ${ut} upgraded.`);
     return this.respond();
   }
 
@@ -1493,9 +1544,9 @@ export class GameState {
     const shardsEarned = Math.floor(this.totalPrestiges / 10);
     if (shardsEarned > 0) {
       this.constellationShards += shardsEarned;
-      this.addLog(`✦ +${shardsEarned} soul shard${shardsEarned !== 1 ? "s" : ""} from constellation reward!`);
+      this.addLog(`✦ +${shardsEarned} soul shard${shardsEarned !== 1 ? "s" : ""} from a constellation reward.`);
     }
-    this.addLog(`Ventured to dungeon ${this.dungeonIndex + 1}! Total idle: ${this.idleGoldRate.toFixed(1)} gold/sec.`);
+    this.addLog(`You venture into dungeon ${this.dungeonIndex + 1}. Idle income: ${this.idleGoldRate.toFixed(1)} gold a second.`);
     return this.respond();
   }
 
@@ -1536,13 +1587,54 @@ export class GameState {
       if (c.health <= 0) {
         c.health = 1;
         this.lastStandUsedThisFloor = true;
-        this.addLog(`✦ Last Stand! ${c.name} survives at 1 HP!`);
+        this.addLog(`✦ Last Stand: ${c.name} survives at 1 HP.`);
         return;
       }
     }
   }
 
   /** Resets the current run, awards prestige points, and rebuilds the party from prestige upgrades. Returns serialized JSON. */
+  /** A Quartermaster item's price: its multiple of a boss's gold at your deepest floor (#15). */
+  consumablePrice(id: string): number {
+    const def = CONSUMABLE_DEFS[id as ConsumableId];
+    return def ? Math.ceil(bossGoldReward(this.highestLevel, this.dungeonIndex) * def.priceBossGold) : Infinity;
+  }
+
+  /** Buys a Quartermaster item. Lasting items stack by extending their duration. */
+  buyConsumable(id: string): string {
+    const def = CONSUMABLE_DEFS[id as ConsumableId];
+    if (!def || !(this.prestigeUpgrades["guild_hall_access"] > 0)) return this.respond();
+    const price = this.consumablePrice(id);
+    if (this.gold < price) {
+      this.addLog(`Not enough gold for a ${def.name.toLowerCase()}: it costs ${formatGold(price)}.`);
+      return this.respond();
+    }
+    this.gold -= price;
+    if (id === "healing_potion") {
+      for (const c of this.party.team) if (c.isAlive()) c.health = c.maxHealth;
+      this.addLog(`Healing potion: every living hero is back to full HP.`);
+      return this.respond();
+    }
+    const add = def.kills ?? def.bosses ?? 0;
+    const left = (this.consumableCharges[id as ConsumableId] ?? 0) + add;
+    this.consumableCharges[id as ConsumableId] = left;
+    this.addLog(`${def.name}: ${def.effect.replace(/\.$/, "")} (${left} ${def.kills ? "kills" : "bosses"} left).`);
+    return this.respond();
+  }
+
+  /** Every Quartermaster item, priced and with what's left, for the live snapshot. */
+  consumableViews(): ConsumableView[] {
+    return (Object.keys(CONSUMABLE_DEFS) as ConsumableId[]).map((id) => {
+      const def = CONSUMABLE_DEFS[id];
+      return {
+        id, name: def.name, icon: def.icon, effect: def.effect,
+        price: this.consumablePrice(id),
+        charges: this.consumableCharges[id] ?? 0,
+        unit: def.kills ? "kills" : def.bosses ? "bosses" : null,
+      };
+    });
+  }
+
   /**
    * What Return to Town keeps and what starts over, in plain words (#58,
    * bible §5.5 "the world outlives the character"). Each entry is checked
@@ -1571,6 +1663,8 @@ export class GameState {
       { key: "upgrades", label: "Gold upgrades" },
       { key: "gold", label: `Gold: you start again from ${startingGoldForLevel(this.prestigeUpgrades["starting_gold"] ?? 0).toLocaleString("en-US")}` },
       ...(this.autoSellQualities.length ? [{ key: "autosell", label: "Auto-sell choices" }] : []),
+      ...(Object.values(this.consumableCharges).some(n => (n ?? 0) > 0)
+        ? [{ key: "consumables", label: "Quartermaster items still in effect" }] : []),
     ];
     return { renown: this.prestigePointsPreview(), keep, reset };
   }
@@ -1607,6 +1701,7 @@ export class GameState {
     this.enemy = generateEnemy(1, this.dungeonIndex, this.rng);
     this.skillCooldowns = {};
     this.activeEffects = {};
+    this.consumableCharges = {};
 
     this.party.team = [];
     this.upgrades = {};
@@ -1642,7 +1737,7 @@ export class GameState {
 
     this.gold = startingGoldForLevel(this.prestigeUpgrades["starting_gold"] ?? 0);
 
-    this.addLog(`Returned to town (run ${this.totalPrestiges})! Earned ${earned} renown.`);
+    this.addLog(`Back in town after run ${this.totalPrestiges}. +${earned} renown.`);
     this.checkAchievements();
     return this.respond();
   }
@@ -1740,7 +1835,7 @@ export class GameState {
     this.enemy = generateEnemy(1, 0, this.rng);
     this._upgradesCache = null;
     this.partyVersion++;
-    this.addLog(`Welcome, ${name} the ${characterClass}!`);
+    this.addLog(`${name} the ${characterClass} enters the dungeon.`);
     return this.respond();
   }
 
@@ -1768,7 +1863,7 @@ export class GameState {
     const currentStacks = this.prestigeUpgrades[type] ?? 0;
     const cost = prestigeUpgradeCost(type, currentStacks);
     if (this.prestigePoints < cost) {
-      this.addLog("Not enough renown!");
+      this.addLog("Not enough renown.");
       return this.respond();
     }
     this.prestigePoints -= cost;
@@ -1795,7 +1890,7 @@ export class GameState {
       this.gold += startingGoldForLevel(lvl) - startingGoldForLevel(lvl - 1);
     }
 
-    this.addLog(`Hall of Renown: ${type} purchased!`);
+    this.addLog(`Hall of Renown: ${type} bought.`);
     if (type === "auto_seller") this.runAutoSeller();
     if (type === "auto_equip") this.runAutoEquip();
     if (type === "auto_upgrade") this.runAutoUpgrade();
@@ -1832,12 +1927,12 @@ export class GameState {
     if (owned >= costs.length) return this.respond();
     const cost = costs[owned];
     if (this.gold < cost) {
-      this.addLog("Not enough gold for Guild Hall upgrade!");
+      this.addLog("Not enough gold for that Guild Hall upgrade.");
       return this.respond();
     }
     this.gold -= cost;
     this.guildUpgrades[type] = owned + 1;
-    this.addLog(`Guild Hall: ${type.replace(/_/g, " ")} upgraded!`);
+    this.addLog(`Guild Hall: ${type.replace(/_/g, " ")} upgraded.`);
     this.checkAchievements();
     return this.respond();
   }
@@ -1953,7 +2048,7 @@ export class GameState {
     for (let i = ancientIdxs.length - 1; i >= 0; i--) this.runeInventory.splice(ancientIdxs[i], 1);
     const id = ARTIFACT_DROP_POOL[Math.floor(this.rng() * ARTIFACT_DROP_POOL.length)];
     this.artifactInventory.push({ id, level: 0, fuel: 0 });
-    this.addLog(`Forged ${ARTIFACT_DEFS[id]?.name ?? id} from 10 ancient runes!`);
+    this.addLog(`Forged ${ARTIFACT_DEFS[id]?.name ?? id} from 10 ancient runes.`);
     return this.respond();
   }
 
@@ -1992,12 +2087,12 @@ export class GameState {
     this.skillCooldowns[skillId] = def.cooldownKills;
     if (def.durationKills > 0) this.activeEffects[skillId] = def.durationKills;
     this.lifetimeSkillActivations += 1;
-    this.addLog(`${caster.name} uses ${skillId.replace("skill_", "").replace(/_/g, " ")}!`);
+    this.addLog(`${caster.name} uses ${skillId.replace("skill_", "").replace(/_/g, " ")}.`);
     if (skillId === "skill_consecrate") {
       for (const c of this.party.team) {
         if (c.isAlive()) c.health = Math.min(c.maxHealth, c.health + c.maxHealth * 0.50);
       }
-      this.addLog(`Holy light surges — party healed 50% max HP!`);
+      this.addLog(`Holy light — the party heals 50% of its max HP.`);
     }
     return true;
   }
@@ -2049,7 +2144,12 @@ export class GameState {
   /** Serializes the current game state to a JSON string for the renderer. */
   respond(): string {
     // The live snapshot adds derived breakdowns for the UI (#74); saves don't.
-    const dict: GameStateDict = { ...this.toDict(), dps_breakdown: this.partyDpsBreakdown(), loot_odds: this.lootOdds() };
+    const dict: GameStateDict = {
+      ...this.toDict(),
+      dps_breakdown: this.partyDpsBreakdown(),
+      loot_odds: this.lootOdds(),
+      consumables: this.consumableViews(),
+    };
     this._stateCache = dict;
     this._lastJson = JSON.stringify(dict);
     this.pendingAchievements = [];
@@ -2156,6 +2256,7 @@ export class GameState {
       artifact_inventory: (this._artifactInvCache !== null && this._artifactInvCache.length === this.artifactInventory.length ? this._artifactInvCache : (this._artifactInvCache = this.artifactInventory.map(a => ({ id: a.id as ArtifactEffectId, level: a.level, fuel: a.fuel })))),
       kill_streak: this.killStreak,
       lifetime_best_kill_streak: this.lifetimeBestKillStreak,
+      consumable_charges: { ...this.consumableCharges },
       earned_avatars: [...this.earnedAvatars],
       earned_borders: [...this.earnedBorders],
       selected_avatar: this.selectedAvatar,
@@ -2306,7 +2407,7 @@ export class GameState {
   private spawnNextEnemy(): Enemy {
     if (this.rng() < ELITE_SPAWN_CHANCE) {
       const elite = generateEliteEnemy(this.dungeonLevel, this.dungeonIndex, this.rng);
-      this.addLog(`⚡ An Elite ${elite.name.replace("Elite ", "")} appears!`);
+      this.addLog(`⚡ An elite ${elite.name.replace("Elite ", "")} appears. Elites always drop loot.`);
       return elite;
     }
     return generateEnemy(this.dungeonLevel, this.dungeonIndex, this.rng);
@@ -2338,7 +2439,7 @@ export class GameState {
     this.lifetimeEnemyKills[name] = (this.lifetimeEnemyKills[name] ?? 0) + 1;
     if (this.enemy.isElite) this.lifetimeEliteKills += 1;
     const xp = this.enemy.xp_reward;
-    this.addLog(`${name} defeated! +${xp}xp`);
+    this.addLog(`${name} falls. +${xp} XP.`);
     const xpCb = this.constellationBonuses;
     const constellationXpMult = xpCb.xpMultiplier + (xpCb.ancientWisdomActive ? this.dungeonIndex * 0.02 : 0);
     const levelsBeforeXp = this.party.team.map(c => c.level);
@@ -2354,17 +2455,17 @@ export class GameState {
           for (const other of this.party.team) {
             if (other !== c) other.dps *= 1.1;
           }
-          this.addLog(`${c.name} raises Battle Standard! Party DPS +10%.`);
+          this.addLog(`${c.name} raises the Battle Standard: party DPS +10%.`);
         } else if (ability === "arcane_study") {
           for (const other of this.party.team) {
             other.xpMultiplier *= 1.25;
           }
-          this.addLog(`${c.name} unlocks Arcane Study! Party XP +25%.`);
+          this.addLog(`${c.name} learns Arcane Study: party XP +25%.`);
         } else if (ability === "holy_light") {
           for (const other of this.party.team) {
             other.health = Math.min(other.maxHealth, other.health + 5);
           }
-          this.addLog(`${c.name} Holy Light! Party healed 5 HP.`);
+          this.addLog(`${c.name}'s Holy Light heals the party 5 HP.`);
         }
       }
     }
@@ -2409,23 +2510,25 @@ export class GameState {
     }
     const constellationGoldMult = this.constellationBonuses.goldMultiplier;
     if (this.enemy.isBoss) {
-      this.earnGold(this.enemy.gold_reward * (1 + partyGoldBonus) * goldMasteryMult * prestigeGoldMult * partySizeMult * artifactGoldMult * constellationGoldMult);
+      const draught = (this.consumableCharges.gold_draught ?? 0) > 0;
+      this.earnGold(this.enemy.gold_reward * (1 + partyGoldBonus) * goldMasteryMult * prestigeGoldMult * partySizeMult * artifactGoldMult * constellationGoldMult * (draught ? GOLD_DRAUGHT_MULT : 1));
+      if (draught) this.consumableCharges.gold_draught = this.consumableCharges.gold_draught! - 1;
       this.lifetimeBossKills += 1;
       if (this.lootPool.length < this.lootMax) {
         const drop = randomSetDrop(this.dungeonLevel + this.dungeonIndex * 5, this.rng);
         this.lootPool.push(drop);
         if (drop.quality === "divine") this.lifetimeDivine = 1;
         else if (QUAL.indexOf(drop.quality as typeof QUAL[number]) >= QUAL.indexOf("legendary")) this.lifetimeLegendary = 1;
-        this.addLog(`Dropped: ${drop.getName()}!`);
+        this.addLog(`Dropped: ${drop.getName()}.`);
       }
-      if (this.guildLevel("rune_forge") >= 1 && this.rng() < 0.20) {
-        this.dropRandomLesserRune("Boss");
+      if (this.guildLevel("rune_forge") >= 1 && this.rng() < BOSS_RUNE_CHANCE) {
+        this.dropRandomLesserRune("Boss", BOSS_RUNE_CHANCE);
       }
       // Artifact drop: dungeon 3+ (dungeonIndex >= 2), 10% chance
-      if (this.dungeonIndex >= 2 && this.rng() < 0.10) {
+      if (this.dungeonIndex >= 2 && this.rng() < BOSS_ARTIFACT_CHANCE) {
         const artifactId = ARTIFACT_DROP_POOL[Math.floor(this.rng() * ARTIFACT_DROP_POOL.length)];
         this.artifactInventory.push({ id: artifactId, level: 0, fuel: 0 });
-        this.addLog(`✨ Boss dropped: ${ARTIFACT_DEFS[artifactId].name}!`);
+        this.addLog(`✨ The boss dropped ${ARTIFACT_DEFS[artifactId].name} (a ${BOSS_ARTIFACT_CHANCE * 100}% chance).`);
       }
       this.dungeonLevel += 1;
       this.floorKills = 0;
@@ -2437,10 +2540,10 @@ export class GameState {
       const isCheckpoint = cpLevel > 0 && this.dungeonLevel % 5 === 0 && this.dungeonLevel <= cpLevel * 5;
       if (isCheckpoint) {
         this.checkpointLevel = this.dungeonLevel;
-        this.addLog(`⚑ Checkpoint! Respawn set to floor ${this.checkpointLevel}.`);
+        this.addLog(`⚑ Checkpoint: if the party falls, it wakes on floor ${this.checkpointLevel}.`);
       }
       this.lastStandUsedThisFloor = false;
-      this.addLog(`Descending to level ${this.dungeonLevel}!`);
+      this.addLog(`Floor ${this.dungeonLevel}. Enemies here have about 30% more HP than on the floor above.`);
       this.enemy = this.spawnNextEnemy();
     } else {
       const dropChance = this.dropChanceBreakdown().total;
@@ -2452,15 +2555,15 @@ export class GameState {
         this.lootPool.push(drop);
         if (drop.quality === "divine") this.lifetimeDivine = 1;
         else if (QUAL.indexOf(drop.quality as typeof QUAL[number]) >= QUAL.indexOf("legendary")) this.lifetimeLegendary = 1;
-        this.addLog(`Dropped: ${drop.getName()}!`);
+        this.addLog(`Dropped: ${drop.getName()}.`);
       }
-      if (this.enemy.isElite && this.guildLevel("rune_forge") >= 1 && this.rng() < 0.10) {
-        this.dropRandomLesserRune("Elite");
+      if (this.enemy.isElite && this.guildLevel("rune_forge") >= 1 && this.rng() < ELITE_RUNE_CHANCE) {
+        this.dropRandomLesserRune("Elite", ELITE_RUNE_CHANCE);
       }
-      if (this.enemy.isElite && this.rng() < 0.15 && this.lootPool.length < this.lootMax) {
+      if (this.enemy.isElite && this.rng() < ELITE_SET_PIECE_CHANCE && this.lootPool.length < this.lootMax) {
         const setDrop = randomSetDrop(this.dungeonLevel + this.dungeonIndex * 5, this.rng);
         this.lootPool.push(setDrop);
-        this.addLog(`Elite dropped a set piece: ${setDrop.getName()}!`);
+        this.addLog(`The elite also dropped a set piece: ${setDrop.getName()} (a ${ELITE_SET_PIECE_CHANCE * 100}% chance).`);
       }
       // Executioner's Mark: elite triggers (level+1) extra boss-quality set piece drop checks
       const execMarkSlot = this.party.team
@@ -2471,19 +2574,23 @@ export class GameState {
         for (let i = 0; i < checks && this.lootPool.length < this.lootMax; i++) {
           const execDrop = randomSetDrop(this.dungeonLevel + this.dungeonIndex * 5, this.rng);
           this.lootPool.push(execDrop);
-          this.addLog(`⚔ Executioner's Mark: ${execDrop.getName()}!`);
+          this.addLog(`⚔ Executioner's Mark: ${execDrop.getName()}.`);
         }
       }
       this.kills += 1;
       this.floorKills += 1;
       if (this.floorKills >= killsForFloor(this.dungeonLevel)) {
         this.floorKills = 0;
-        this.addLog(`Floor ${this.dungeonLevel} cleared! Boss incoming!`);
+        this.addLog(`Floor ${this.dungeonLevel} cleared. The boss is next.`);
         const isGateBoss = this.dungeonLevel % 5 === 4;
         this.enemy = generateBoss(this.dungeonLevel, this.dungeonIndex, this.party.team.length, isGateBoss, this.rng);
       } else {
         this.enemy = this.spawnNextEnemy();
       }
+    }
+    // Kill-based Quartermaster items count down after the kill they applied to.
+    for (const id of ["whetstone", "lucky_charm"] as const) {
+      if ((this.consumableCharges[id] ?? 0) > 0) this.consumableCharges[id] = this.consumableCharges[id]! - 1;
     }
     this._lootCache = null;
     this._artifactInvCache = null;
@@ -2493,13 +2600,11 @@ export class GameState {
 
   /** Handles party wipe: increments deaths, resets to checkpoint, and fully restores all HP. */
   onPlayerDeath(): void {
-    const player = this.party.team[0];
     this.deaths += 1;
     this.killStreak = 0;
     this.deathFloors[this.dungeonLevel] = (this.deathFloors[this.dungeonLevel] ?? 0) + 1;
-    const msg = this.checkpointLevel > 1
-      ? `${player.name} was defeated! Respawning at floor ${this.checkpointLevel}...`
-      : `${player.name} was defeated! Returning to level 1...`;
+    // Plain about what a wipe costs and keeps (§4: don't soften death; state the mechanic).
+    const msg = `The party falls on floor ${this.dungeonLevel}. It wakes on floor ${this.checkpointLevel} — gear, gold and levels kept.`;
     this.addLog(msg);
     this.dungeonLevel = this.checkpointLevel;
     this.kills = 0;
@@ -2511,11 +2616,11 @@ export class GameState {
   }
 
   /** Drops a random lesser-tier rune into the rune inventory and logs it with the given source label. */
-  private dropRandomLesserRune(source: string): void {
+  private dropRandomLesserRune(source: string, chance: number): void {
     const lesserIds = Object.keys(RUNE_DEFS).filter(id => id.endsWith("_lesser"));
     const runeId = lesserIds[Math.floor(this.rng() * lesserIds.length)];
     this.runeInventory.push(RUNE_DEFS[runeId]);
-    this.addLog(`${source} dropped a ${RUNE_DEFS[runeId].name}!`);
+    this.addLog(`${source} dropped a ${RUNE_DEFS[runeId].name} (a ${chance * 100}% chance).`);
   }
 
   /** Passes a displaced item to the best recipient if it is an upgrade for them; otherwise sells it. */
@@ -2524,7 +2629,7 @@ export class GameState {
       const recipient = this.bestRecipient(old);
       const further = recipient.equipItem(old);
       recipient.recomputeSetBonuses();
-      this.addLog(`${recipient.name} equips ${old.getName()}!`);
+      this.addLog(`${recipient.name} equips ${old.getName()}.`);
       if (further) {
         this.earnGold(further.sellValue);
         this.lifetimeSold += 1;
@@ -2605,7 +2710,7 @@ export class GameState {
     this.lifetimeSold += toSell.length;
     this.lootPool = this.lootPool.filter(item => !toSell.includes(item));
     this._lootCache = null;
-    this.addLog(`Auto Seller: sold ${toSell.length} item(s) for ${gold}g`);
+    this.addLog(`Auto Seller: sold ${toSell.length} item${toSell.length === 1 ? "" : "s"} for ${gold}g.`);
   }
 
   /** Adds any newly available quality tiers to autoSellQualities when Smart Seller is owned. */
@@ -2635,7 +2740,7 @@ export class GameState {
           const target = this.bestRecipient(item);
           const old = target.equipItem(item);
           target.recomputeSetBonuses();
-          this.addLog(`Auto Equip: ${target.name} equips ${item.getName()}!`);
+          this.addLog(`Auto Equip: ${target.name} equips ${item.getName()}.`);
           if (old) this.disposeItem(old);
           anyEquipped = true;
           found = true;
@@ -2787,6 +2892,7 @@ export class GameState {
     });
     gs.killStreak = d.kill_streak ?? 0;
     gs.lifetimeBestKillStreak = d.lifetime_best_kill_streak ?? 0;
+    gs.consumableCharges = { ...(d.consumable_charges ?? {}) };
     gs.lifetimeClicks = d.lifetime_clicks ?? 0;
     gs.earnedAvatars = new Set(d.earned_avatars ?? ["default"]);
     gs.earnedBorders = new Set(d.earned_borders ?? ["none"]);

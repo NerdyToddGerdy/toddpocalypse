@@ -138,6 +138,11 @@ export function generateEnemy(dungeonLevel: number, dungeonIndex = 0, rng: RNG =
   };
 }
 
+/** The gold a boss pays at a floor, before the party's gold bonuses. Shop prices are priced in it. */
+export function bossGoldReward(dungeonLevel: number, dungeonIndex = 0): number {
+  return Math.max(5, Math.floor(dungeonLevel * 15 * (1 + dungeonIndex * 0.15) * (1 + dungeonLevel * GOLD_LEVEL_MULT)));
+}
+
 /** Generates a scaled floor boss with higher HP and attack than regular enemies.
  *  Boss stats scale exponentially with dungeonIndex (×BOSS_DUNGEON_MULT_BASE per dungeon).
  *  HP also scales by √partySize so larger parties face a tankier boss.
@@ -151,7 +156,7 @@ export function generateBoss(dungeonLevel: number, dungeonIndex = 0, partySize =
     : `The ${pick(BOSS_TITLES, rng)} ${pick(ENEMY_NOUNS, rng)} ${pick(BOSS_NOUNS, rng)}`;
   const hp = Math.floor(100 * Math.pow(1.3, dungeonLevel) * mult * Math.sqrt(partySize) * gateMult);
   const xpReward = Math.max(5, dungeonLevel * 9 + 5);
-  const goldReward = Math.max(5, Math.floor(dungeonLevel * 15 * (1 + dungeonIndex * 0.15) * (1 + dungeonLevel * GOLD_LEVEL_MULT)));
+  const goldReward = bossGoldReward(dungeonLevel, dungeonIndex);
   const attackDps = Math.round(Math.pow(dungeonLevel, ENEMY_ATTACK_EXPONENT) * 6.5 * mult * gateAttackMult * 10) / 10;
   return {
     name,

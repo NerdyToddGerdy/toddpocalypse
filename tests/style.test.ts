@@ -647,3 +647,10 @@ describe("late-game screens (audit with a floor-44 save)", () => {
     expect(bodiesFor(sel).join(";"), sel).not.toBe("");
   });
 });
+
+describe("prices are counted numbers (§3)", () => {
+  it("price buttons use the mono face", () => {
+    expect(bodiesFor(".guild-buy-btn").join(";")).toMatch(/font-family:\s*var\(--font-mono\)/);
+    expect(bodiesFor(".upgrade-btn").join(";")).toMatch(/font-family:\s*var\(--font-mono\)/);
+  });
+});

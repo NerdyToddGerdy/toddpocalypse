@@ -9,6 +9,7 @@ import {
   type HeroDps,
   type LootOdds,
   type SummaryLine,
+  type ConsumableView,
   OFFLINE_GOLD_CAP_SECONDS,
   type AchievementTierLabel,
   AVATAR_DEFS,
@@ -637,4 +638,33 @@ export function buildReturnToTownHTML(s: { renown: number; keep: SummaryLine[]; 
       <section class="rtt-reset"><h3>Starts over</h3>${list(s.reset)}</section>
     </div>
     <p class="rtt-flavour">The dungeon shifts while you rest — its passages rearrange, and the depths forget you.</p>`;
+}
+
+/** What a player sees when claiming this device for cloud saves fails unexpectedly (#48). */
+export function deviceClaimError(e: unknown): string {
+  const detail = e instanceof Error ? e.message : String(e);
+  return `✗ Couldn't make this the active device (${detail}). Your progress is saved here; try again in a moment.`;
+}
+
+/** The Quartermaster section at the top of the Guild Hall tab (#15). */
+export function buildQuartermasterHTML(items: ConsumableView[], gold: number): string {
+  const left = (c: ConsumableView) => {
+    if (!c.unit || c.charges <= 0) return "";
+    const unit = c.unit === "kills" ? (c.charges === 1 ? "kill" : "kills") : (c.charges === 1 ? "boss" : "bosses");
+    return `<div class="shop-current-stat">${c.charges} ${unit} left</div>`;
+  };
+  const rows = items.map((c) => `<div class="prestige-item qm-item">
+      <div class="prestige-item-meta">
+        <div class="prestige-item-name">${c.icon} ${esc(c.name)}</div>
+        <div class="prestige-item-desc">${esc(c.effect)}</div>
+        ${left(c)}
+      </div>
+      <button class="guild-buy-btn" data-action="buy-consumable" data-id="${c.id}" ${gold < c.price ? "disabled" : ""}>${formatGold(c.price)}</button>
+    </div>`).join("");
+  return `<section class="quartermaster">
+      <h3 class="qm-head">Quartermaster</h3>
+      <p class="qm-note">Prices follow what a boss pays on your deepest floor this run.</p>
+      ${rows}
+    </section>
+    <h3 class="qm-head">Guild upgrades</h3>`;
 }

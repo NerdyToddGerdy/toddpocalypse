@@ -39,6 +39,7 @@ The bible does not say where per-title divergences get recorded. This is that pl
 | §3 | Stacked sheet, ruled paper, eyebrow+title; no Die (no dice, §5.1) | 🟢 Settled | #56 closed |
 | §5.1 | No d6: dice don't suit this idle game's pacing | 🟢 **Settled** | #57 closed |
 | §5.4 | Bookkeeping made visible: loot odds, crit odds, the DPS stack | 🔵 Conformant | #74 |
+| §4 | Voice: plain, no exclamation marks, the real odds stated | 🔵 Conformant | #59 |
 | §5 | Hits three instincts: (4) visible bookkeeping, (5) the world outlives the run, (6) honest simplification | 🔵 Conformant | #58 |
 | §5.2 | No depleting resource: supplies are a *Realm of Depths* mechanic | 🟢 **Settled** | #58 |
 | §5.3 | Prestige, not permadeath: a wipe returns you to the checkpoint | 🟢 **Settled** | #58 |
@@ -55,6 +56,24 @@ The bible does not say where per-title divergences get recorded. This is that pl
 ---
 
 ## 🟢 Settled — the bible is what should move
+
+### §4 — voice
+
+Done in v2.51.0 (#59). §4: "Wry, plain, and honest about the odds. Never epic, never cute."
+
+- **No exclamation marks or ellipses** in any of the 58 log lines, the feat toasts or the death
+  message. `tests/voice.test.ts` checks every `addLog` call, so new lines are held to it too.
+- **State the mechanic.** "Descending to level 5!" is now "Floor 5. Enemies here have about 30% more
+  HP than on the floor above." A wipe says what it costs and keeps: "The party falls on floor 12.
+  It wakes on floor 10 — gear, gold and levels kept."
+- **The real odds, where they cost nothing:** Lucky Strike (25%), Eagle Eye (30%), rune drops (20%
+  from bosses, 10% from elites), a boss's artifact (10%), an elite's set piece (15%), and "Elites
+  always drop loot". Each chance is a named constant shared by the roll and the sentence that
+  quotes it.
+- **Never epic:** the homecoming lines are now wry ("Town is exactly where you left it. The dungeon
+  is not.") rather than "Bards will sing of this tonight."
+
+Upgrade, artifact and constellation descriptions were already plain; nothing there changed.
 
 ### §5 — three instincts: (4), (5) and (6)
 

@@ -25,6 +25,7 @@ import {
   buildLootOddsHTML,
   welcomeBackLine,
   buildReturnToTownHTML,
+  buildQuartermasterHTML,
 } from "../src/ui/html.js";
 import { GearItem } from "../src/gear.js";
 import type { GameStateDict } from "../src/engine.js";
@@ -399,5 +400,41 @@ describe("buildReturnToTownHTML", () => {
 
   it("keeps the flavour line, after the plain lists", () => {
     expect(html.indexOf("The dungeon shifts")).toBeGreaterThan(html.indexOf("Starts over"));
+  });
+});
+
+// #15: the Quartermaster, in the Guild Hall tab.
+describe("buildQuartermasterHTML", () => {
+  const items = [
+    { id: "whetstone" as const, name: "Whetstone", icon: "🗡", effect: "Party damage ×1.5 for the next 10 kills.", price: 4500, charges: 7, unit: "kills" as const },
+    { id: "gold_draught" as const, name: "Gold draught", icon: "🍺", effect: "Boss gold ×1.5 for the next 3 bosses.", price: 90_000, charges: 1, unit: "bosses" as const },
+    { id: "healing_potion" as const, name: "Healing potion", icon: "🧪", effect: "Heals every living hero to full, now.", price: 2250, charges: 0, unit: null },
+  ];
+  const html = buildQuartermasterHTML(items, 10_000);
+
+  it("titles the section and says how prices are set", () => {
+    expect(html).toContain("Quartermaster");
+    expect(html).toMatch(/deepest floor/);
+  });
+
+  it("shows each item's effect and price", () => {
+    expect(html).toContain("Party damage ×1.5 for the next 10 kills.");
+    expect(html).toContain("4,500g");
+    expect(html).toContain("90k\u00A0g");
+  });
+
+  it("says what's left on active items, in the right unit", () => {
+    expect(html).toContain("7 kills left");
+    expect(html).toContain("1 boss left");
+    expect(html).not.toMatch(/0 kills left/);
+  });
+
+  it("disables what you can't afford", () => {
+    expect(html).toMatch(/data-id="gold_draught"[^>]*disabled/);
+    expect(html).not.toMatch(/data-id="whetstone"[^>]*disabled/);
+  });
+
+  it("buys through the buy-consumable action", () => {
+    expect(html.match(/data-action="buy-consumable"/g)).toHaveLength(3);
   });
 });

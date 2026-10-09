@@ -102,6 +102,8 @@ import {
   buildLootOddsHTML,
   welcomeBackLine,
   buildReturnToTownHTML,
+  deviceClaimError,
+  buildQuartermasterHTML,
 } from "./ui/html.js";
 import { initDialogs } from "./ui/dialogs.js";
 import { DEFAULT_THEME, resolveTheme, type Theme } from "./theme.js";
@@ -1500,7 +1502,8 @@ function renderGuildHall(state: GameStateDict): void {
   const socketKey = state.party.map(c =>
     Object.values(c.runes ?? {}).filter(Boolean).map((r: any) => r.id).join(",")
   ).join("|");
-  const newKey = JSON.stringify(state.guild_upgrades) + "|" + affordKey + "|" + state.dungeon_index + "|" + runeInvKey + "|" + socketKey;
+  const qmKey = (state.consumables ?? []).map(c => `${c.id}:${c.charges}:${c.price}:${state.gold >= c.price}`).join(",");
+  const newKey = JSON.stringify(state.guild_upgrades) + "|" + affordKey + "|" + state.dungeon_index + "|" + runeInvKey + "|" + socketKey + "|" + qmKey;
   if (newKey === guildKey) return;
   guildKey = newKey;
 
@@ -1541,7 +1544,7 @@ function renderGuildHall(state: GameStateDict): void {
   const runeInv: Rune[] = state.rune_inventory ?? [];
   const hasCombineAll = (state.prestige_upgrades["combine_all_runes"] ?? 0) >= 1;
 
-  $("guild-hall-items").innerHTML = upgradesHtml;
+  $("guild-hall-items").innerHTML = buildQuartermasterHTML(state.consumables ?? [], state.gold) + upgradesHtml;
   renderPartyRunePanel(runeInv, state.party, runeForge);
   renderLootRuneInventory(runeInv, runeForge, hasCombineAll);
 }
@@ -2824,7 +2827,7 @@ function showAchievementToasts(unlocks: AchievementUnlock[]): void {
         r.type === "avatar" ? (() => { const a = AVATAR_DEFS.find(x => x.id === r.cosmetic); return `Avatar: ${a?.icon ?? ""} ${a?.name ?? r.cosmetic}`; })() :
         r.type === "border" ? (() => { const b = BORDER_DEFS.find(x => x.id === r.cosmetic); return `Border: ${b?.name ?? r.cosmetic}`; })() : "";
       const tierTag = u.tier ? ` <span style="font-size:0.6rem;color:var(--parchment-dim)">(${u.tier})</span>` : "";
-      const toastTitle = u.wasHidden ? "Mystery Feat Revealed!" : "Feat Unlocked!";
+      const toastTitle = u.wasHidden ? "Hidden feat revealed" : "Feat unlocked";
       const el = document.createElement("div");
       el.className = "achievement-toast";
       el.innerHTML = `<div class="toast-title">${toastTitle}</div><div class="toast-name">${u.name}${tierTag}</div>${rewardText ? `<div class="toast-reward">${rewardText}</div>` : ""}`;
@@ -2867,12 +2870,12 @@ function showDeathToast(respawnFloor: number): void {
 
 /** Flavour only: the rule is the renown shown beneath it (bible §5.6). */
 const HOMECOMING_LINES = [
-  "The villagers cheer as you stumble through the gates. Bards will sing of this tonight.",
-  "Word spreads fast — the hero has returned. Coin and cheer flow freely at the tavern.",
-  "Children run to meet you at the gates. The innkeeper has your usual room ready.",
-  "The village elder nods in quiet respect. You've earned this rest.",
-  "The market stirs. Stories of your deeds are already trading hands.",
-  "Fires are lit in your honor. The village is glad to have you back.",
+  "The gate guard waves you through without looking up.",
+  "Town is exactly where you left it. The dungeon is not.",
+  "The tavern is as loud as you left it. Nobody asks where you've been.",
+  "You count the renown twice. It comes out the same.",
+  "The innkeeper has a room ready. She has seen this before.",
+  "You sleep for a day. Below, the passages are already rearranging.",
 ];
 
 function showHomecomingToast(renownEarned: number): void {
@@ -3265,7 +3268,7 @@ async function setActiveDevice(): Promise<void> {
   try {
     resetSessionId();
     lastCloudSaveAt = Date.now(); // block periodic saves from racing the claim
-    const data = game.respond();
+    const data = game.saveJson();
     localStorage.setItem(SAVE_KEY, data);
     const result = await cloudClaimSession(token, data, true);
     if (result === "ok") {
@@ -3729,7 +3732,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const btn = $("hard-reset-yes") as HTMLButtonElement;
       btn.disabled = true;
       btn.textContent = "Clearing cloud…";
-      const freshData = new GameState().respond();
+      const freshData = new GameState().saveJson();
       const result = await cloudClaimSession(token, freshData, true);
       if (result === "error") {
         btn.disabled = false;
@@ -3767,12 +3770,14 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("pull-save-btn")?.addEventListener("click", () => {
     pullCloudSave().catch(e => console.error("pullCloudSave:", e));
   });
-  document.getElementById("claim-device-btn")?.addEventListener("click", () => {
-    setActiveDevice().catch(e => console.error("setActiveDevice:", e));
+  // Both claim buttons share one handler, so an unexpected failure reaches the
+  // player as well as the console (#48).
+  const claimDevice = () => setActiveDevice().catch(e => {
+    console.error("setActiveDevice:", e);
+    showCloudStatus(deviceClaimError(e), true);
   });
-  document.getElementById("claim-device-banner-btn")?.addEventListener("click", () => {
-    setActiveDevice().catch(e => console.error("setActiveDevice:", e));
-  });
+  document.getElementById("claim-device-btn")?.addEventListener("click", claimDevice);
+  document.getElementById("claim-device-banner-btn")?.addEventListener("click", claimDevice);
 
   // Auth → cloud load → local load → new game
   initAuth().then(cloudSaved => {
@@ -3893,6 +3898,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     else if (action === "buy-guild") {
       call("buyGuildUpgrade", btn.dataset.type!);
+    }
+    else if (action === "buy-consumable") {
+      call("buyConsumable", btn.dataset.id!);
     }
     else if (action === "activate-skill") {
       if (!game) return;
@@ -4123,7 +4131,7 @@ document.addEventListener("DOMContentLoaded", () => {
     retireConfirmModal.classList.remove("open");
     const json = game.retireHero();
     const state = JSON.parse(json) as GameStateDict;
-    localStorage.setItem(SAVE_KEY, json);
+    localStorage.setItem(SAVE_KEY, game.saveJson());
     clearInterval(gameLoopId);
     showCreationOverlayForRetirement(state);
     render(state);

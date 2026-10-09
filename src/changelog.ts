@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.50.0";
+export const VERSION = "v2.51.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,19 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.51.0",
+    date: "2026-10-09",
+    changes: [
+      "New: the Quartermaster, at the top of the Guild Hall tab. Spend gold on a Whetstone (party damage ×1.5), a Lucky charm (+15% drop chance), a Gold draught (boss gold ×1.5) or a Healing potion",
+      "Quartermaster prices follow what a boss pays on your deepest floor, and buying an item that's still active adds to its duration",
+      "The Whetstone shows in the DPS breakdown and the Lucky charm in the loot odds, so you can see exactly what you bought",
+      "The log reads plainly now: no exclamation marks, and it states the odds where they're known — Lucky Strike 25%, rune drops 20% from bosses",
+      "Prices are set in the number font, so 10k g no longer reads as 10kg",
+      "If making this device the active save device fails, the game now tells you instead of failing silently",
+      "Fixed: claiming the active device, retiring and resetting no longer write extra display data into your save",
+    ],
+  },
   {
     version: "v2.50.0",
     date: "2026-10-09",

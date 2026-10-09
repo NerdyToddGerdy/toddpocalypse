@@ -5492,13 +5492,13 @@ describe("formatNumber", () => {
 
 // ─── formatGold ───────────────────────────────────────────────────────────────
 
-// "40kg" read as kilograms and "1.2tg" as nothing; a narrow no-break space
+// "40kg" read as kilograms and "1.2tg" as nothing; a no-break space
 // separates a unit letter from the g.
 describe("formatGold", () => {
   it("digits take the g directly", () => expect(formatGold(500)).toBe("500g"));
   it("thousands separators stay", () => expect(formatGold(1500)).toBe("1,500g"));
-  it("a unit letter gets a narrow space", () => expect(formatGold(40_000)).toBe("40k\u202Fg"));
-  it("trillions", () => expect(formatGold(1.2e12)).toBe("1.2t\u202Fg"));
+  it("a unit letter gets a space", () => expect(formatGold(40_000)).toBe("40k\u00A0g"));
+  it("trillions", () => expect(formatGold(1.2e12)).toBe("1.2t\u00A0g"));
 });
 
 // ─── retireHero ───────────────────────────────────────────────────────────────

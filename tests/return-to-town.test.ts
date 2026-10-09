@@ -32,6 +32,7 @@ function midGame(): GameState {
   gs.upgrades.Aldric.dps = 3;
   gs.gold = 5000;
   gs.lifetimeKills = 900;
+  gs.consumableCharges = { whetstone: 4 };
   return gs;
 }
 
@@ -82,6 +83,7 @@ const RESET_CHECKS: Record<string, Check> = {
     expect(a.gold).toBeLessThan(5000);
   },
   autosell: (_b, a) => expect(a.autoSellQualities).toHaveLength(0),
+  consumables: (_b, a) => expect(Object.values(a.consumableCharges).every((n) => !n)).toBe(true),
 };
 
 describe("returnToTownSummary", () => {
