@@ -629,10 +629,11 @@ export function welcomeBackLine(earned: number, elapsedMs: number): string {
  * The Return to Town dialog body (#58): what you keep and what starts over, in
  * plain words, then the flavour line — flavour, not a rule (bible §5.6).
  */
-export function buildReturnToTownHTML(s: { renown: number; keep: SummaryLine[]; reset: SummaryLine[] }): string {
+export function buildReturnToTownHTML(s: { renown: number; keep: SummaryLine[]; reset: SummaryLine[]; nextRenownFloor?: number; best?: number }): string {
   const list = (items: SummaryLine[]) => `<ul>${items.map((i) => `<li>${esc(i.label)}</li>`).join("")}</ul>`;
   return `
     <p class="rtt-lead">You'll earn <strong>${s.renown} renown</strong>.</p>
+    ${s.nextRenownFloor && s.best !== undefined ? `<p class="rtt-next">${renownNextLine(s.renown, s.nextRenownFloor, s.best)}</p>` : ""}
     <div class="rtt-lists">
       <section class="rtt-keep"><h3>You keep</h3>${list(s.keep)}</section>
       <section class="rtt-reset"><h3>Starts over</h3>${list(s.reset)}</section>
@@ -800,4 +801,10 @@ export function lootCardActionsHTML(idx: number, sellValue: number, stash: { unl
 /** Grey squares for the free slots in the loot chest, so the phone grid keeps its size. */
 export function emptyLootSquaresHTML(count: number): string {
   return `<span class="loot-sq loot-sq-empty" aria-hidden="true"></span>`.repeat(Math.max(0, count));
+}
+
+/** When Return to Town pays one more renown: "Reach floor 40 for 5 renown (1 floor to go)." */
+export function renownNextLine(renown: number, nextFloor: number, best: number): string {
+  const togo = Math.max(1, nextFloor - best);
+  return `Reach floor ${nextFloor} for ${renown + 1} renown (${togo} floor${togo === 1 ? "" : "s"} to go).`;
 }

@@ -190,6 +190,14 @@ export const EMPOWER_MULTIPLIER = 2;
 
 /** Minimum dungeon floor (highest_level) required to trigger a prestige. */
 export const PRESTIGE_UNLOCK_LEVEL = 20;
+/** Floors past PRESTIGE_UNLOCK_LEVEL per extra renown. */
+export const FLOORS_PER_RENOWN = 5;
+
+/** The deepest floor that pays one more renown than `best` does (see prestigePointsPreview). */
+export function nextRenownFloor(best: number): number {
+  if (best < PRESTIGE_UNLOCK_LEVEL) return PRESTIGE_UNLOCK_LEVEL;
+  return PRESTIGE_UNLOCK_LEVEL + (Math.floor((best - PRESTIGE_UNLOCK_LEVEL) / FLOORS_PER_RENOWN) + 1) * FLOORS_PER_RENOWN;
+}
 
 
 /** Minimum dungeon floor (highest_level) required to venture from dungeon 1. */
@@ -1497,7 +1505,7 @@ export class GameState {
 
   /** Calculates how many prestige points the player would earn if they prestiged right now. */
   prestigePointsPreview(): number {
-    return 1 + Math.floor(Math.max(0, this.highestLevel - PRESTIGE_UNLOCK_LEVEL) / 5);
+    return 1 + Math.floor(Math.max(0, this.highestLevel - PRESTIGE_UNLOCK_LEVEL) / FLOORS_PER_RENOWN);
   }
 
   /** Advances to the next dungeon, leaving companions behind as idle earners. Returns serialized JSON. */
@@ -1640,7 +1648,7 @@ export class GameState {
    * bible §5.5 "the world outlives the character"). Each entry is checked
    * against prestige() in tests/return-to-town.test.ts, so keep them in step.
    */
-  returnToTownSummary(): { renown: number; keep: SummaryLine[]; reset: SummaryLine[] } {
+  returnToTownSummary(): { renown: number; keep: SummaryLine[]; reset: SummaryLine[]; nextRenownFloor: number; best: number } {
     const lead = this.party.team[0];
     const hasSocketedRunes = this.party.team.some(c => Object.values(c.runes).some(Boolean));
     const companionSlots = [2, 3, 4, 5, 6].filter(n => (this.prestigeUpgrades[`party_slot_${n}`] ?? 0) > 0).length;
@@ -1666,7 +1674,7 @@ export class GameState {
       ...(Object.values(this.consumableCharges).some(n => (n ?? 0) > 0)
         ? [{ key: "consumables", label: "Quartermaster items still in effect" }] : []),
     ];
-    return { renown: this.prestigePointsPreview(), keep, reset };
+    return { renown: this.prestigePointsPreview(), keep, reset, nextRenownFloor: nextRenownFloor(this.highestLevel), best: this.highestLevel };
   }
 
   prestige(): string {

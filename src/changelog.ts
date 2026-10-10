@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.54.0";
+export const VERSION = "v2.55.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,18 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.55.0",
+    date: "2026-10-10",
+    changes: [
+      "See when your next renown comes: Return to Town and the Hall of Renown now say, for example, 'Reach floor 45 for 6 renown (1 floor to go)'. Renown goes up by one for every 5 floors past floor 20",
+      "The same line shows when you hover the Town button",
+      "Phones: Return to Town and Venture moved from the header to an 'End this run' card at the top of the Renown tab, next to the renown they earn, so the header is shorter",
+      "The Renown tab shows a dot whenever Return to Town or Venture is ready",
+      "Phones: the header stats fit on one row, with small icons for gold, dungeon, kills, deaths and damage; depth and best floor are in the enemy strip",
+      "Party damage per second reads like other big numbers (45.1k)",
+    ],
+  },
   {
     version: "v2.54.0",
     date: "2026-10-09",

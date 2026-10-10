@@ -21,6 +21,7 @@ import {
   type GameAction,
   GameState,
   type GameStateDict,
+  nextRenownFloor,
   type PartyDpsBreakdown,
   GUILD_HALL_COSTS,
   GUILD_HALL_DUNGEON_REQ,
@@ -103,6 +104,7 @@ import {
   welcomeBackLine,
   buildReturnToTownHTML,
   deviceClaimError,
+  renownNextLine,
   buildQuartermasterHTML,
   charGearRowHTML,
   skillButtonHTML,
@@ -458,7 +460,7 @@ function render(state: GameStateDict): void {
   const partyGoldEl = $("stat-party-gold-bonus");
   if (partyGoldEl) {
     const bonus = (state.party.length - 1) * 20;
-    partyGoldEl.textContent = bonus > 0 ? `+${bonus}% Gold` : "";
+    partyGoldEl.innerHTML = bonus > 0 ? `+${bonus}%<span class="stat-label"> gold</span>` : "";
     partyGoldEl.hidden = bonus === 0;
   }
   $("stat-dungeon-num").textContent = String(state.dungeon_index + 1);
@@ -488,7 +490,7 @@ function render(state: GameStateDict): void {
     return s + c.dps * (1 + DPS_UPGRADE_EFFECT * upgLevel);
   }, 0);
   $("stat-party-hp").textContent = `${totalHp}/${totalMaxHp}`;
-  $("stat-party-dps").textContent = totalDps < 10 ? totalDps.toFixed(1) : String(Math.round(totalDps));
+  $("stat-party-dps").textContent = formatNumber(totalDps);
 
   const hpPct = totalMaxHp > 0 ? totalHp / totalMaxHp : 1;
   (document.getElementById("mobile-party-hp-fill") as HTMLElement).style.width = `${hpPct * 100}%`;
@@ -2542,10 +2544,20 @@ function renderCompanionSkills(state: GameStateDict): void {
 
 /** Enables/disables the Prestige button and updates its label with the points preview. */
 function updatePrestigeButton(state: GameStateDict): void {
+  // The Hall of Renown says when the next renown comes, once Return to Town is open.
+  const next = $("renown-next");
+  next.hidden = !state.prestige_available;
+  $("run-end-lead").textContent = state.prestige_available
+    ? `You'll earn ${state.prestige_points_preview} renown.`
+    : "Return to Town opens at floor 20.";
+  if (state.prestige_available) {
+    next.textContent = renownNextLine(state.prestige_points_preview, nextRenownFloor(state.highest_level), state.highest_level);
+  }
   const btn = $("prestige-btn") as HTMLButtonElement;
   if (state.prestige_available) {
     btn.disabled = false;
     btn.innerHTML = `★ <span class="act-verb">Return to </span>Town (+${state.prestige_points_preview} rn)`;
+    btn.title = renownNextLine(state.prestige_points_preview, nextRenownFloor(state.highest_level), state.highest_level);
   } else {
     btn.disabled = true;
     btn.innerHTML = `★ <span class="act-verb">Return to </span>Town (need lv${20})`;
@@ -2622,7 +2634,8 @@ function updateShopBadge(state: GameStateDict): void {
     const dungeonReq = GUILD_HALL_DUNGEON_REQ[type] ?? 0;
     return owned < costs.length && state.dungeon_index >= dungeonReq && state.gold >= costs[owned];
   });
-  badge.hidden = !canBuyPrestige;
+  // Return to Town and Venture live in this tab on phones, so it flags them too.
+  badge.hidden = !(canBuyPrestige || state.prestige_available || state.venture_available);
   const upgradeTabBadge = document.getElementById("upgrade-tab-badge");
   if (upgradeTabBadge) upgradeTabBadge.hidden = !canBuyUpgrade;
   const stabPrestigeBadge = document.getElementById("stab-prestige-badge");
@@ -3098,6 +3111,29 @@ function placeAttackControls(): void {
   const place = () => {
     if (mq.matches) $("dock-attack").append(attackBtn, autoBtn);
     else $("attack-row").append(attackBtn, autoBtn);
+  };
+  place();
+  mq.addEventListener("change", place);
+}
+
+/**
+ * On phones Return to Town and Venture leave the header for a card at the top
+ * of the Renown tab, with the next-renown line; on wider screens they return.
+ * The same elements move, so their state and handlers are untouched.
+ */
+function placeRunControls(): void {
+  const mq = window.matchMedia("(max-width: 1023px)");
+  const actionBtns = $("action-btns");
+  const next = $("renown-next");
+  const headerSlot = actionBtns.parentElement!;
+  const place = () => {
+    if (mq.matches) {
+      $("run-end-actions").append(actionBtns);
+      $("run-end-lead").after(next);
+    } else {
+      headerSlot.append(actionBtns);
+      $("run-end-card").before(next);
+    }
   };
   place();
   mq.addEventListener("change", place);
@@ -3789,6 +3825,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initCombatSubTabs();
   initMobileTabs();
   placeAttackControls();
+  placeRunControls();
   initHeroArea();
   initRuneSlotPanel();
   initConstellationPanel();

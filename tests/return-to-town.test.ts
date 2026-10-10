@@ -150,3 +150,54 @@ describe("Return to Town dialog wiring", async () => {
     expect(html).toMatch(/<button id="return-town-cancel"[^>]*data-autofocus/);
   });
 });
+
+// When does Return to Town pay one more renown? (all sizes)
+describe("nextRenownFloor", async () => {
+  const { nextRenownFloor, PRESTIGE_UNLOCK_LEVEL } = await import("../src/engine.js");
+
+  it.each([
+    [1, 20], [19, 20], [20, 25], [24, 25], [25, 30], [39, 40], [44, 45],
+  ])("best floor %i → next renown at floor %i", (best, want) => {
+    expect(nextRenownFloor(best)).toBe(want);
+  });
+
+  it("is exactly where prestigePointsPreview goes up by one", () => {
+    for (let best = PRESTIGE_UNLOCK_LEVEL; best < 120; best++) {
+      const gs = new GameState("A", "fighter", mulberry32(1));
+      gs.highestLevel = best;
+      const now = gs.prestigePointsPreview();
+      gs.highestLevel = nextRenownFloor(best);
+      expect(gs.prestigePointsPreview()).toBe(now + 1);
+      gs.highestLevel = nextRenownFloor(best) - 1;
+      expect(gs.prestigePointsPreview()).toBe(now);
+    }
+  });
+
+  it("the summary carries it", () => {
+    const gs = new GameState("A", "fighter", mulberry32(1));
+    gs.highestLevel = 39;
+    expect(gs.returnToTownSummary().nextRenownFloor).toBe(40);
+  });
+});
+
+describe("renown progress copy", async () => {
+  const { buildReturnToTownHTML, renownNextLine } = await import("../src/ui/html.js");
+
+  it("says which floor pays the next renown, and how many floors away", () => {
+    expect(renownNextLine(4, 40, 39)).toBe("Reach floor 40 for 5 renown (1 floor to go).");
+    expect(renownNextLine(4, 40, 36)).toBe("Reach floor 40 for 5 renown (4 floors to go).");
+  });
+
+  it("the Return to Town dialog shows it under the renown earned", () => {
+    const html = buildReturnToTownHTML({ renown: 4, keep: [], reset: [], nextRenownFloor: 40, best: 39 });
+    expect(html).toContain("Reach floor 40 for 5 renown");
+    expect(html.indexOf("4 renown")).toBeLessThan(html.indexOf("Reach floor 40"));
+  });
+
+  it("main.ts shows it on the Town button's title and the Hall of Renown", () => {
+    const { readFileSync } = require("node:fs") as typeof import("node:fs");
+    const src = readFileSync(new URL("../src/main.ts", import.meta.url), "utf8");
+    expect(src).toMatch(/renownNextLine\(/);
+    expect(src).toMatch(/id="renown-next"|\$\("renown-next"\)/);
+  });
+});

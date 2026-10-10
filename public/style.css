@@ -6770,3 +6770,71 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
     main:not([data-hero="party"]) #upgrade-grid { display: none; }
     #upgrade-cards > .upgrade-card:not(.hero-selected) { display: none; }
 }
+
+/* When Return to Town pays one more renown. */
+.rtt-next, .renown-next {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--parchment-dim);
+    margin: 2px 0 0;
+}
+.renown-next { text-align: center; margin: -4px 0 10px; }
+
+#run-end-card { display: none; }
+
+/* ── Phone run-end ──
+   Return to Town and Venture, moved from the header into the Renown tab,
+   beside the renown they earn. */
+@media (max-width: 1023px) {
+    #run-end-card {
+        display: block;
+        margin: 0 0 14px;
+        padding: 12px;
+        border-radius: 8px;
+        background: var(--bg-2);
+        border: 1px solid color-mix(in srgb, var(--gold) 55%, transparent);
+    }
+    #run-end-card h3 {
+        font-family: var(--font-display);
+        font-size: 0.9rem;
+        font-weight: 400;
+        color: var(--parchment);
+        margin: 0 0 4px;
+    }
+    #run-end-lead { font-size: 0.85rem; color: var(--parchment); margin: 0; }
+    #run-end-card .renown-next { text-align: left; margin: 2px 0 10px; }
+    #run-end-card #action-btns { display: flex; gap: 8px; }
+    #run-end-card #action-btns button { flex: 1; min-height: 44px; }
+}
+
+/* Word labels in the header stats; icons stand in for them on phones. */
+.stat-label { color: var(--parchment-dim); font-weight: 400; }
+.stat-icon { display: none; }
+
+/* ── Phone stats row ──
+   One row: icon + number per stat. The words stay in the page for screen
+   readers. Depth and best are in the enemy strip's depth bar instead. */
+@media (max-width: 1023px) {
+    #stats-bar {
+        flex-wrap: nowrap;
+        justify-content: space-between;
+        gap: 6px;
+        font-size: 0.74rem;
+        overflow: hidden;
+    }
+    #stats-bar > div { display: flex; align-items: center; gap: 3px; min-width: 0; }
+    .stat-icon { display: inline-block; flex-shrink: 0; }
+    .stat-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+    /* Specific enough to beat `#stats-bar > div` above. */
+    #stats-bar > :is(#stat-depth-wrap, #stat-best-wrap, #stat-party-hp-wrap),
+    #stats-bar > [hidden] { display: none; }
+    #stat-gold { min-width: 0; }
+    #stat-party-gold-bonus { font-size: 0.9em; }
+}

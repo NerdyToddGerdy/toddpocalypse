@@ -166,3 +166,69 @@ describe("locked tabs", () => {
     expect(mainTs).toMatch(/aria-label", guildUnlocked \? "Guild" : "Guild, locked"/);
   });
 });
+
+// Return to Town and Venture live in the Renown tab on phones, not the header.
+describe("run-end card", () => {
+  const card = indexHtml.slice(indexHtml.indexOf('<div id="run-end-card"'), indexHtml.indexOf("</section>", indexHtml.indexOf('<div id="run-end-card"')));
+
+  it("sits at the top of the Hall of Renown", () => {
+    const panel = indexHtml.slice(indexHtml.indexOf('<section id="prestige-panel">'));
+    expect(panel.indexOf('id="run-end-card"')).toBeGreaterThan(-1);
+    expect(panel.indexOf('id="run-end-card"')).toBeLessThan(panel.indexOf('id="prestige-shop-items"'));
+    expect(card).toContain('id="run-end-actions"');
+    expect(card).toContain('id="run-end-lead"');
+  });
+
+  it("moves the real buttons and the next-renown line into it on phones, and back", () => {
+    expect(mainTs).toMatch(/function placeRunControls\(/);
+    expect(mainTs).toMatch(/\$\("run-end-actions"\)\.append\(actionBtns\)/);
+    expect(mainTs).toMatch(/placeRunControls\(\);/);
+  });
+
+  it("is hidden on desktop, where the buttons stay in the header", () => {
+    expect(css).toMatch(/#run-end-card\s*\{\s*display:\s*none;\s*\}/);
+    const phone = css.match(/\/\* ── Phone run-end[\s\S]*?@media \(max-width: 1023px\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+    expect(phone).toMatch(/#run-end-card\s*\{[^}]*display:\s*block/);
+  });
+
+  it("dots the Renown tab whenever Return to Town or Venture is available", () => {
+    expect(mainTs).toMatch(/badge\.hidden = !\(canBuyPrestige \|\| state\.prestige_available \|\| state\.venture_available\)/);
+  });
+});
+
+// Phones: the header stats fit one row, as icons with the words kept for screen readers.
+describe("one-row header stats", () => {
+  const bar = indexHtml.slice(indexHtml.indexOf('<div id="stats-bar">'), indexHtml.indexOf('<div id="action-btns">'));
+  const phone = css.match(/\/\* ── Phone stats row[\s\S]*?@media \(max-width: 1023px\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+
+  it.each([
+    ["stat-gold", "coin", "Gold"], ["stat-dungeon-num", "castle", "Dungeon"],
+    ["stat-kills", "dagger", "Kills"], ["stat-deaths", "skull", "Deaths"],
+  ])("%s has an icon and a word label", (id, icon, word) => {
+    const cell = bar.slice(bar.lastIndexOf("<div", bar.indexOf(`id="${id}"`)), bar.indexOf("</div>", bar.indexOf(`id="${id}"`)));
+    expect(cell).toContain(`spr-${icon} stat-icon`);
+    expect(cell).toContain(`<span class="stat-label">${word}: </span>`);
+  });
+
+  it("keeps everything on one row on phones", () => {
+    expect(phone).toMatch(/#stats-bar\s*\{[^}]*flex-wrap:\s*nowrap/);
+  });
+
+  it("hides the words visually but not from screen readers", () => {
+    expect(phone).toMatch(/\.stat-label\s*\{[^}]*clip-path:\s*inset\(50%\)/);
+    expect(phone).not.toMatch(/\.stat-label\s*\{[^}]*display:\s*none/);
+  });
+
+  it("drops Depth and Best, which the enemy strip's depth bar already shows", () => {
+    // Must out-rank `#stats-bar > div { display: flex }` in the same block.
+    expect(phone).toMatch(/#stats-bar > :is\(#stat-depth-wrap, #stat-best-wrap, #stat-party-hp-wrap\)/);
+  });
+
+  it("shows icons only on phones", () => {
+    expect(css).toMatch(/\.stat-icon\s*\{\s*display:\s*none;\s*\}/);
+  });
+
+  it("formats party DPS like every other big number", () => {
+    expect(mainTs).toMatch(/\$\("stat-party-dps"\)\.textContent = formatNumber\(totalDps\)/);
+  });
+});
