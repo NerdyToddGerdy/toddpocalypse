@@ -117,8 +117,11 @@
     --font-body: 'Spectral', Georgia, serif;
     --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
     /* Fixed bottom chrome on the phone layout: tab bar, then the party HP bar. */
-    --tabbar-h: 60px;
-    --hpbar-h: 36px;
+    --tabbar-h: 82px;
+    /* How far the dock's round Attack rises above the bar. */
+    --dock-raise: 26px;
+    /* The phone hero token row above the dock. */
+    --tokens-h: 62px;
 }
 
 
@@ -2368,7 +2371,7 @@ main {
         gap: 12px;
         padding: 12px;
         padding-left: 56px; /* 44px gauge + 12px gap */
-        padding-bottom: calc(var(--tabbar-h) + var(--hpbar-h) + var(--enemy-panel-h, 149px)); /* tracks live enemy panel height */
+        padding-bottom: calc(var(--tabbar-h) + var(--dock-raise) + 12px); /* clear the dock and its raised Attack */
         overflow-y: auto;
     }
 
@@ -2391,7 +2394,7 @@ main {
         flex-direction: column;
         align-items: center;
         /* top/bottom padding tracks live header + enemy panel heights via JS ResizeObserver */
-        padding: var(--header-h, 148px) 4px calc(var(--tabbar-h) + var(--hpbar-h) + var(--enemy-panel-h, 149px));
+        padding: var(--header-h, 148px) 4px calc(var(--tabbar-h) + 12px);
         gap: 4px;
         background: var(--bg-1);
         border-right: 1px solid var(--gold);
@@ -2405,34 +2408,8 @@ main {
 
     #depth-gauge #depth-title { display: none; }
 
-    #enemy-panel {
-        display: flex !important;
-        position: fixed;
-        bottom: calc(var(--tabbar-h) + var(--hpbar-h)); /* sit above the party HP bar */
-        left: 0; right: 0;
-        z-index: 50;
-        border-radius: 0;
-        border-left: none;
-        border-right: none;
-        border-bottom: none;
-        border-top: 1px solid var(--gold);
-        padding: 7px 10px;
-        gap: 4px;
-    }
     #enemy-content { gap: 3px; }
 
-    #mobile-party-hp-bar {
-        display: flex;
-        position: fixed;
-        bottom: var(--tabbar-h);
-        left: 0; right: 0;
-        height: var(--hpbar-h);
-        background: var(--bg-1);
-        border-top: 1px solid var(--gold);
-        z-index: 51;
-        align-items: center;
-        overflow: hidden;
-    }
     #mobile-party-hp-fill {
         position: absolute;
         top: 0; bottom: 0; left: 0;
@@ -2573,56 +2550,11 @@ main {
     main[data-combat-sub="party"] #loot-panel.tab-visible { display: none !important; }
     main[data-combat-sub="equipment"] #party-panel.tab-visible { display: none !important; }
 
-    #mobile-tabs {
-        display: flex;
-        position: fixed;
-        bottom: 0; left: 0; right: 0;
-        background: var(--bg-1);
-        border-top: 1px solid var(--gold);
-        z-index: 100;
-        height: var(--tabbar-h);
-    }
 
-    .mobile-tab-btn {
-        flex: 1;
-        padding: 8px 4px;
-        background: none;
-        border: none;
-        border-top: 3px solid transparent;
-        color: var(--parchment-dim);
-        font-size: 1rem;
-        cursor: pointer;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 2px;
-        transition: color 0.15s, border-color 0.15s;
-    }
 
-    .mobile-tab-btn span:not(.tab-badge) {
-        font-size: 0.6rem;
-        letter-spacing: 0.2px;
-    }
 
-    .mobile-tab-btn.active {
-        color: var(--parchment);
-        border-top-color: var(--torch-mid);
-    }
 
-    .mobile-tab-btn { position: relative; }
 
-    .tab-badge {
-        position: absolute;
-        top: 6px;
-        right: calc(50% - 18px);
-        width: 8px;
-        height: 8px;
-        background: var(--danger);
-        border-radius: 50%;
-        border: 1px solid var(--bg-0);
-        animation: badge-pulse 1.5s ease-in-out infinite;
-    }
 
     @keyframes badge-pulse {
         0%, 100% { opacity: 1; transform: scale(1); }
@@ -6065,13 +5997,13 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
    screen. Here the page scrolls as a whole, so the header scrolls away, and
    the fixed chrome along the bottom slims down. */
 @media (max-width: 1023px) and (max-height: 500px) {
-    :root { --tabbar-h: 44px; --hpbar-h: 24px; }
+    :root { --tabbar-h: 64px; --dock-raise: 10px; }
+    .mobile-tab-btn .tab-label { display: none; }
     body { height: auto; overflow: visible; }
     header { position: static; }
     main { overflow: visible; padding-left: 12px; }
     #depth-gauge { display: none; }
     #monster-portrait-wrap { display: none; }
-    .mobile-tab-btn { flex-direction: row; gap: 6px; }
     #attack-btn { padding: 4px 10px; }
 }
 
@@ -6097,7 +6029,7 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
     .gear-pdoll-label,
     .gear-pdoll-count,
     .ug-btn-meta { font-size: 0.6rem; }
-    .mobile-tab-btn span:not(.tab-badge) { font-size: 0.65rem; }
+    .mobile-tab-btn .tab-label { font-size: 0.65rem; }
     #enemy-hp-text { font-size: 0.7rem; }
     .wordmark small { font-size: 0.55em; }
 }
@@ -6377,3 +6309,444 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
 .char-gear-sq.set-piece { border: 2px solid; border-color: var(--gold-bright); }
 .char-gear-sq.filled:hover,
 .char-gear-sq.filled:focus-visible { transform: scale(1.25); }
+
+/* ── Mobile dock ──
+   Round tabs either side of a raised, round Attack whose rim is the enemy's
+   HP, so the fight's feedback sits under your thumb. The enemy strip and the
+   party's HP move to the top. Desktop is untouched. */
+@media (max-width: 1023px) {
+    #mobile-tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr 104px 1fr 1fr;
+        align-items: end;
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        height: var(--tabbar-h);
+        padding: 0 4px calc(6px + env(safe-area-inset-bottom, 0px));
+        background: var(--bg-1);
+        border-top: 1px solid var(--gold);
+        z-index: 100;
+    }
+    .mobile-tab-btn {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        padding: 0;
+        background: none;
+        border: none;
+        color: var(--parchment-dim);
+        cursor: pointer;
+    }
+    .mobile-tab-btn .tab-icon {
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        font-size: 1.1rem;
+        line-height: 1;
+        background: var(--bg-2);
+        border: 1px solid color-mix(in srgb, var(--gold) 55%, transparent);
+    }
+    .mobile-tab-btn.active { color: var(--parchment); }
+    .mobile-tab-btn.active .tab-icon {
+        border-color: var(--torch-mid);
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--torch-mid) 35%, transparent);
+    }
+    /* Locked: a dashed ring holds the place, so the dock never changes shape. */
+    .mobile-tab-btn.locked .tab-icon {
+        border-style: dashed;
+        background: transparent;
+        opacity: 0.55;
+    }
+    .mobile-tab-btn:disabled { cursor: not-allowed; }
+    .tab-badge {
+        position: absolute;
+        top: 0;
+        right: calc(50% - 24px);
+        width: 10px;
+        height: 10px;
+        background: var(--danger);
+        border-radius: 50%;
+        border: 2px solid var(--bg-1);
+    }
+
+    /* The raised Attack. Its padding is the HP ring: a conic gradient that
+       drains as the enemy does. */
+    .dock-attack {
+        position: relative;
+        justify-self: center;
+        width: 96px;
+        height: 96px;
+        margin-top: calc(-1 * var(--dock-raise));
+        margin-bottom: 2px;
+        padding: 6px;
+        border-radius: 50%;
+        background: conic-gradient(
+            var(--danger) calc(var(--enemy-hp, 1) * 360deg),
+            color-mix(in srgb, var(--danger) 18%, var(--bg-0)) 0
+        );
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+    }
+    .dock-attack #attack-btn {
+        width: 100%;
+        height: 100%;
+        flex: none;
+        margin: 0;
+        padding: 0;
+        border-radius: 50%;
+        display: grid;
+        place-content: center;
+        gap: 2px;
+        font-size: 0.78rem;
+        letter-spacing: 0.04em;
+    }
+    .dock-attack #auto-attack-btn {
+        position: absolute;
+        top: -4px;
+        right: -12px;
+        width: 38px;
+        height: 38px;
+        min-height: 0;
+        padding: 0;
+        border-radius: 50%;
+        font-size: 0.48rem;
+        line-height: 1.1;
+        letter-spacing: 0;
+        white-space: normal;
+        background: var(--bg-1);
+        z-index: 2;
+    }
+    .dock-attack #auto-attack-btn .spr { display: none; }
+    .companion-skill-cell { width: auto; }
+
+    /* The enemy strip, pinned to the top of the scrolling area. */
+    #enemy-panel {
+        display: flex !important;
+        order: -2;
+        position: sticky;
+        /* main has 12px top padding; stick flush to its edge, not inside it. */
+        top: -12px;
+        z-index: 50;
+        /* Sized by its content: an older rule's flex: 1 let it swell to fill short screens. */
+        flex: none;
+        margin: -12px -12px 0;
+        padding: 8px 12px;
+        gap: 6px;
+        border-radius: 0;
+        border: none;
+        border-bottom: 1px solid var(--gold);
+        background-color: var(--bg-1);
+    }
+    /* Grid, so the hero's skill and the companions' skills share one line. */
+    #enemy-content {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 4px 8px;
+    }
+    #enemy-content > * { grid-column: 1 / -1; }
+    #enemy-content > #skill-row { grid-column: 1; }
+    #enemy-content > #companion-skills { grid-column: 2; }
+    /* Attack and AUTO live in the dock on phones, so their old row stays empty. */
+    #enemy-content > #attack-row { display: none; }
+    #combat-subtabs { order: -1; top: calc(var(--enemy-panel-h, 0px) - 12px); }
+
+    /* The party's HP, inside the enemy strip. */
+    #mobile-party-hp-bar {
+        display: flex;
+        position: relative;
+        height: 18px;
+        align-items: center;
+        overflow: hidden;
+        border-radius: 4px;
+        background: var(--bg-2);
+        border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+    }
+    #mobile-party-hp-text { font-size: 0.7rem; padding: 0 8px; }
+
+    /* Skills: round icon buttons, named for screen readers by aria-label. */
+    #skill-row, #companion-skills { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
+    :is(#skill-btn, .companion-skill-btn) {
+        flex: 0 0 40px;
+        width: 40px;
+        height: 40px;
+        min-height: 0;
+        padding: 0;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-size: 1.1rem;
+    }
+    .skill-name { display: none; }
+    #auto-skill-btn { border-radius: 20px; padding: 0 10px; height: 40px; }
+}
+
+/* Header gear: Settings on phones, where it left the tab bar. */
+#header-settings-btn { display: none; }
+@media (max-width: 1023px) {
+    #header-settings-btn {
+        display: grid;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        margin-right: 8px;
+        padding: 0;
+        border-radius: 50%;
+        font-size: 1.1rem;
+        color: var(--parchment-dim);
+        background: transparent;
+        border: 1px solid color-mix(in srgb, var(--gold) 55%, transparent);
+    }
+    #header-avatar-area { display: flex; align-items: center; }
+    /* Keep the hero sheet's small lines on one line each at 360px. */
+    .char-class, .char-crit { white-space: nowrap; }
+}
+
+/* Landscape phones: a smaller Attack, centred in the bar, so nothing spills off
+   the bottom. After the dock block so these sizes win. */
+@media (max-width: 1023px) and (max-height: 500px) {
+    #mobile-tabs { align-items: center; padding-bottom: env(safe-area-inset-bottom, 0px); }
+    .dock-attack { width: 64px; height: 64px; padding: 4px; margin-bottom: 0; }
+    .dock-attack #attack-btn { font-size: 0.62rem; }
+    .dock-attack #auto-attack-btn { width: 30px; height: 30px; top: -6px; right: -10px; }
+    .mobile-tab-btn .tab-icon { width: 40px; height: 40px; }
+}
+
+#hero-bar, #hero-tokens, #depth-strip { display: none; }
+
+/* ── Phone heroes ──
+   One hero at a time. A row of hero tokens sits above the dock; the selected
+   one fills the Combat tab with that hero's Sheet, Gear, Runes or Artifacts,
+   and the party token opens Loot and Stars. It replaces three stacked tab
+   rows and the left depth gauge, so the hero gets the full width. */
+@media (max-width: 1023px) {
+    /* Retired on phones: the stacked tab rows and the left gauge. */
+    #combat-subtabs, #left-col-subtabs { display: none !important; }
+    #party-panel-header { display: none; }
+    #depth-gauge { display: none; }
+    main { padding-left: 12px; }
+
+    /* Only the selected hero. */
+    #party-cards > .char-card:not(.hero-selected),
+    #party-rune-panel > .prune-char-block:not(.hero-selected),
+    #party-artifact-panel > .artifact-char-block:not(.hero-selected) { display: none; }
+    #party-cards, #party-rune-panel, #party-artifact-panel { grid-template-columns: 1fr; }
+    #party-panel { padding: 10px; }
+
+    /* Sheet: stats, the gear boxes and abilities. Gear: the paperdoll. */
+    main[data-hero-screen="sheet"] #party-panel .gear-pdoll-grid { display: none; }
+    main[data-hero-screen="sheet"] #party-panel .char-gear-row { display: flex; }
+    main[data-hero-screen="gear"] #party-panel .gear-pdoll-grid { display: grid; }
+    main[data-hero-screen="gear"] #party-panel :is(.char-gear-row, .char-abilities, .char-rune-row) { display: none; }
+
+    /* Depth, folded into the enemy strip. */
+    #depth-strip {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--font-mono);
+        font-size: 0.66rem;
+        color: var(--parchment-dim);
+    }
+    .depth-strip-text { white-space: nowrap; }
+    .depth-strip-track {
+        position: relative;
+        flex: 1;
+        height: 6px;
+        border-radius: 3px;
+        background: var(--bg-2);
+        border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent);
+    }
+    .depth-strip-fill { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: var(--torch-mid); }
+    .depth-strip-best, .depth-strip-cp {
+        position: absolute;
+        top: -3px;
+        width: 2px;
+        height: 10px;
+        transform: translateX(-1px);
+    }
+    .depth-strip-best { background: var(--parchment); }
+    .depth-strip-cp { background: var(--secondary); }
+
+    /* The hero bar: ‹ name ›, then screen chips. Pinned under the enemy strip. */
+    body[data-mobile-tab="combat"] #hero-bar {
+        display: block;
+        order: -1;
+        position: sticky;
+        top: calc(var(--enemy-panel-h, 0px) - 12px);
+        z-index: 40;
+        margin: 0 -12px;
+        padding: 4px 12px 6px;
+        /* The panel surface, not the page: in Ledger that's paper, so the ink-coloured chips read. */
+        background: var(--bg-1);
+        border-bottom: 1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+    }
+    .hero-bar-head { display: flex; align-items: center; gap: 8px; }
+    .hero-bar-title { flex: 1; text-align: center; display: flex; align-items: baseline; justify-content: center; gap: 8px; }
+    .hero-bar-name { font-family: var(--font-display); font-size: 1rem; color: var(--parchment); }
+    .hero-bar-class { font-family: var(--font-mono); font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--parchment-dim); }
+    .hero-arrow {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        font-size: 1.4rem;
+        line-height: 1;
+        color: var(--parchment);
+        background: var(--bg-2);
+        border: 1px solid color-mix(in srgb, var(--gold) 55%, transparent);
+    }
+    .hero-screens { display: flex; justify-content: center; gap: 6px; margin-top: 4px; }
+    .hero-screen-chip {
+        padding: 6px 12px;
+        border-radius: 16px;
+        font-size: 0.72rem;
+        color: var(--parchment-dim);
+        background: transparent;
+        border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+    }
+    .hero-screen-chip[aria-pressed="true"] {
+        color: var(--parchment);
+        border-color: var(--torch-mid);
+        background: color-mix(in srgb, var(--torch-mid) 14%, transparent);
+    }
+
+    /* The token row, sitting above the dock and clear of the raised Attack. */
+    body[data-mobile-tab="combat"] #hero-tokens {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        position: fixed;
+        left: 0; right: 0;
+        bottom: var(--tabbar-h);
+        height: calc(var(--tokens-h) + var(--dock-raise));
+        padding: 4px 12px var(--dock-raise);
+        overflow-x: auto;
+        z-index: 90;
+        /* A solid shelf, so the tokens read as part of the dock, not floating over the sheet. */
+        background: var(--bg-1);
+        border-top: 1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+    }
+    body[data-mobile-tab="combat"] main {
+        padding-bottom: calc(var(--tabbar-h) + var(--dock-raise) + var(--tokens-h) + 12px);
+    }
+    .hero-token {
+        flex: 0 0 auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        padding: 0;
+        background: none;
+        border: none;
+        color: var(--parchment-dim);
+    }
+    .hero-token img, .party-token-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        image-rendering: pixelated;
+        border: 2px solid color-mix(in srgb, var(--gold) 55%, transparent);
+        background: var(--bg-2);
+    }
+    .party-token-icon { display: grid; place-items: center; font-size: 1.1rem; }
+    .hero-token-name { font-size: 0.6rem; max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .hero-token.selected { color: var(--parchment); }
+    .hero-token.selected :is(img, .party-token-icon) {
+        border-color: var(--torch-mid);
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--torch-mid) 35%, transparent);
+    }
+    .hero-token.fallen img { filter: grayscale(1); opacity: 0.55; }
+
+    /* The hero bar already names the hero, so the card doesn't repeat it. */
+    #party-cards .char-card :is(.char-class, .char-name),
+    :is(#party-rune-panel, #party-artifact-panel) :is(.char-mini-name, .char-mini-class) { display: none; }
+}
+
+/* On touch screens :hover sticks to whatever was last tapped, leaving ability
+   tips open. There, a tip shows only while its badge has focus. */
+@media (hover: none) {
+    .ability-badge[data-tip]:hover:not(:focus)::after { display: none; }
+}
+
+.loot-sq { display: none; }
+
+/* ── Phone loot ──
+   Loot as small squares, four across, styled like the Gear screen's slots: the
+   border is the quality, ▲ marks an upgrade, and a tap opens the item's card
+   with Equip, Sell and Stash. */
+@media (max-width: 1023px) {
+    #loot-items {
+        display: grid;
+        grid-template-columns: repeat(4, 48px);
+        justify-content: space-evenly;
+        gap: 12px 8px;
+        min-height: 0;
+        max-height: none;
+        padding: 4px 0;
+    }
+    #loot-items .loot-item {
+        display: contents;
+    }
+    .loot-item > :not(.loot-sq) { display: none; }
+    #loot-items .loot-empty { grid-column: 1 / -1; }
+    .loot-sq {
+        display: flex;
+        position: relative;
+    }
+    .loot-sq-up {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-size: 0.55rem;
+        color: #fff;
+        background: var(--q-fine);
+        border: 1px solid var(--bg-1);
+    }
+    /* The items come first; automation settings sit below them. */
+    #loot-equipment-sub { display: flex; flex-direction: column; }
+    #loot-header { order: 0; }
+    #loot-items { order: 1; }
+    #stash-section { order: 2; }
+    #loot-divider { order: 3; }
+    #auto-toggles-section { order: 4; }
+    #auto-seller-section { order: 5; }
+    .mic-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .mic-actions button { flex: 1; min-height: 40px; }
+}
+
+[data-theme="ledger"] #drop-chart-btn { color: var(--parchment); }
+
+/* Free loot slots: grey squares that hold the grid's shape. */
+@media (max-width: 1023px) {
+    .loot-sq-empty {
+        display: block;
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        border: 2px dashed color-mix(in srgb, var(--parchment-dim) 40%, transparent);
+        background: color-mix(in srgb, var(--parchment-dim) 10%, transparent);
+    }
+    /* The grid already shows an empty chest. */
+    #loot-items .loot-empty { display: none; }
+
+    /* Locked tabs: a lock badge on the ring, so "locked" doesn't rely on a dashed line alone. */
+    .tab-lock {
+        position: absolute;
+        top: 26px;
+        right: calc(50% - 26px);
+        font-size: 0.7rem;
+        line-height: 1;
+        padding: 2px;
+        border-radius: 50%;
+        background: var(--bg-1);
+    }
+    .mobile-tab-btn:not(.locked) .tab-lock { display: none; }
+}

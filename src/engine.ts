@@ -1,4 +1,4 @@
-import { defaultRng, type RNG } from "./rng.js";
+import { defaultRng, newId, type RNG } from "./rng.js";
 import { Character, type Rune } from "./character.js";
 import { getConstellationBonuses, CONSTELLATION_NODE_DEFS, type ConstellationBonuses } from "./constellations.js";
 export { CONSTELLATION_NODE_DEFS };
@@ -724,7 +724,7 @@ export class GameState {
    */
   private readonly rng: RNG;
   /** Unique ID for this save file — generated once on new game, survives prestiges. */
-  runId: string = crypto.randomUUID();
+  runId: string = newId();
   /** Unix-ms timestamp when the state was last serialized (used for offline catch-up). */
   savedAt = 0;
   /** Total gold ever earned across all runs (never resets). */
@@ -2860,7 +2860,7 @@ export class GameState {
       Object.entries(rawCooldowns).map(([k, v]) => [k, v > 1000 ? 0 : v])
     );
     gs.activeEffects = { ...(d.active_effects ?? {}) };
-    gs.runId = d.run_id ?? crypto.randomUUID();
+    gs.runId = d.run_id ?? newId();
     gs.savedAt = d.saved_at ?? 0;
     gs.achievementsUnlocked = new Set(d.achievements_unlocked ?? []);
     gs.earnedTitle = d.earned_title || "nobody";

@@ -686,3 +686,118 @@ export function charGearRowHTML(equipment: Partial<Record<string, GearItemDict |
     return `<button class="char-gear-sq filled ${qualityClass(item.quality)}${set}" data-action="gear-slot-click" data-char-idx="${charIdx}" data-slot="${slot}" data-item="${itemJson}" aria-label="${label}: ${esc(item.name)}"></button>`;
   }).join("");
 }
+
+/** A skill button's contents: icon and name in separate spans, so phones can show just the icon. */
+export function skillButtonHTML(label: string): string {
+  const m = label.match(/^(\S+)\s+(.+)$/u);
+  const iconLike = m && !/^[\p{L}\p{N}]/u.test(m[1]);
+  return iconLike
+    ? `<span class="skill-icon">${getSprite(m![1])}</span><span class="skill-name">${esc(m![2])}</span>`
+    : `<span class="skill-name">${esc(label)}</span>`;
+}
+
+/** What a screen reader hears for a skill button, since phones show only its icon. */
+export function skillAriaLabel(label: string, s: { remaining: number; isActive: boolean; onCooldown: boolean }): string {
+  const name = label.replace(/^[^\p{L}\p{N}]+\s*/u, "");
+  if (s.isActive) return `${name}, active`;
+  if (s.onCooldown) return `${name}, ready in ${s.remaining} kill${s.remaining === 1 ? "" : "s"}`;
+  return `${name}, ready`;
+}
+
+// ── Phone heroes: token row, hero bar, depth strip ──────────────────────────
+
+/** Which hero (or the party token) the phone's Combat tab shows, and which screen. */
+export type HeroScreen = "sheet" | "gear" | "runes" | "artifacts" | "loot" | "stars";
+export interface HeroView { hero: number | "party"; screen: HeroScreen }
+/** Screens that unlock during play. */
+export interface HeroScreensAvailable { runes: boolean; artifacts: boolean; stars: boolean }
+
+const HERO_SCREEN_LABELS: Record<HeroScreen, string> = {
+  sheet: "Sheet", gear: "Gear", runes: "Runes", artifacts: "Artifacts", loot: "Loot", stars: "Stars",
+};
+
+function screensFor(hero: number | "party", avail: HeroScreensAvailable): HeroScreen[] {
+  if (hero === "party") return avail.stars ? ["loot", "stars"] : ["loot"];
+  return ["sheet", "gear", ...(avail.runes ? ["runes" as const] : []), ...(avail.artifacts ? ["artifacts" as const] : [])];
+}
+
+/** A valid view: a hero who exists and a screen that's unlocked, else the nearest one that is. */
+export function resolveHeroView(v: HeroView, heroCount: number, avail: HeroScreensAvailable): HeroView {
+  const hero = v.hero === "party" ? "party" : (v.hero >= 0 && v.hero < heroCount ? v.hero : 0);
+  const screens = screensFor(hero, avail);
+  return { hero, screen: screens.includes(v.screen) ? v.screen : screens[0] };
+}
+
+/** The hero index after stepping ‹ (-1) or › (+1), wrapping; from the party token, into the heroes. */
+export function nextHeroIndex(from: number | "party", step: 1 | -1, heroCount: number): number {
+  if (from === "party") return step > 0 ? 0 : heroCount - 1;
+  return (from + step + heroCount) % heroCount;
+}
+
+/** The token row above the dock: a round portrait per hero, then the party token. */
+export function heroTokensHTML(party: CharDict[], selected: number | "party"): string {
+  const heroes = party.map((c, i) => {
+    const on = selected === i;
+    const fallen = c.health <= 0 ? " fallen" : "";
+    return `<button class="hero-token${on ? " selected" : ""}${fallen}" data-hero="${i}" aria-pressed="${on}" aria-label="${esc(c.name)}, ${c.character_class} level ${c.level}">
+      <img src="${HERO_IMG[c.character_class] ?? HERO_IMG.fighter}" alt="">
+      <span class="hero-token-name">${esc(c.name)}</span>
+    </button>`;
+  }).join("");
+  const on = selected === "party";
+  return heroes + `<button class="hero-token party-token${on ? " selected" : ""}" data-hero="party" aria-pressed="${on}" aria-label="Party: loot and stars">
+      <span class="party-token-icon" aria-hidden="true">🎒</span>
+      <span class="hero-token-name">Party</span>
+    </button>`;
+}
+
+/** The bar at the top of the hero area: ‹ name ›, then the screens this hero has. */
+export function heroBarHTML(party: CharDict[], v: HeroView, avail: HeroScreensAvailable): string {
+  const title = v.hero === "party"
+    ? `<span class="hero-bar-name">Party</span>`
+    : `<span class="hero-bar-name">${esc(party[v.hero]?.name ?? "")}</span><span class="hero-bar-class">${party[v.hero]?.character_class ?? ""} lv ${party[v.hero]?.level ?? ""}</span>`;
+  const arrows = party.length > 1;
+  const chips = screensFor(v.hero, avail).map((s) =>
+    `<button class="hero-screen-chip" data-action="hero-screen" data-screen="${s}" aria-pressed="${s === v.screen}">${HERO_SCREEN_LABELS[s]}</button>`).join("");
+  // The Party token already names this view, so it gets just its screens.
+  if (v.hero === "party") return `<div class="hero-screens">${chips}</div>`;
+  return `<div class="hero-bar-head">
+      ${arrows ? `<button class="hero-arrow" data-action="hero-prev" aria-label="Previous hero">‹</button>` : ""}
+      <div class="hero-bar-title">${title}</div>
+      ${arrows ? `<button class="hero-arrow" data-action="hero-next" aria-label="Next hero">›</button>` : ""}
+    </div>
+    <div class="hero-screens">${chips}</div>`;
+}
+
+/** The slim depth bar in the phone's enemy strip, in place of the left-hand gauge. */
+export function depthStripHTML(current: number, best: number, checkpoint: number): string {
+  const max = Math.max(best + 3, 10);
+  const pos = (f: number) => Math.min(100, ((f - 1) / (max - 1)) * 100).toFixed(1);
+  return `<span class="depth-strip-text">Floor ${current} · best ${best}${checkpoint > 1 ? ` · ⚑ ${checkpoint}` : ""}</span>
+    <span class="depth-strip-track" aria-hidden="true">
+      <span class="depth-strip-fill" style="width:${pos(current)}%"></span>
+      <span class="depth-strip-best" style="left:${pos(best)}%"></span>
+      ${checkpoint > 1 ? `<span class="depth-strip-cp" style="left:${pos(checkpoint)}%"></span>` : ""}
+    </span>`;
+}
+
+/** A loot item as a small square for phones, styled like a gear slot. Tap opens its card. */
+export function lootSquareHTML(item: GearItemDict, idx: number, icon: string, upgrade: boolean): string {
+  const set = item.set_name ? " set-piece" : "";
+  const label = `${item.name}, ${item.slot_display}${upgrade ? ", an upgrade" : ""}`;
+  return `<button class="gear-pdoll-slot filled ${qualityClass(item.quality)} loot-sq${set}" data-action="loot-card" data-idx="${idx}" aria-label="${esc(label)}"><span class="gear-pdoll-icon">${getSprite(icon)}</span>${upgrade ? `<span class="loot-sq-up" aria-hidden="true">▲</span>` : ""}</button>`;
+}
+
+/** The buttons under a loot item's card on phones: the same actions as its row on desktop. */
+export function lootCardActionsHTML(idx: number, sellValue: number, stash: { unlocked: boolean; full: boolean }): string {
+  return `<div class="mic-actions">
+      <button class="equip-btn" data-action="equip" data-idx="${idx}">Equip</button>
+      <button class="sell-btn" data-action="sell" data-idx="${idx}">Sell for ${formatGold(sellValue)}</button>
+      ${stash.unlocked ? `<button class="stash-loot-btn" data-action="stash-loot" data-idx="${idx}"${stash.full ? " disabled" : ""}>📦 Stash</button>` : ""}
+    </div>`;
+}
+
+/** Grey squares for the free slots in the loot chest, so the phone grid keeps its size. */
+export function emptyLootSquaresHTML(count: number): string {
+  return `<span class="loot-sq loot-sq-empty" aria-hidden="true"></span>`.repeat(Math.max(0, count));
+}

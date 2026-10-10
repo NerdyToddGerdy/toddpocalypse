@@ -105,6 +105,19 @@ import {
   deviceClaimError,
   buildQuartermasterHTML,
   charGearRowHTML,
+  skillButtonHTML,
+  skillAriaLabel,
+  lootSquareHTML,
+  lootCardActionsHTML,
+  emptyLootSquaresHTML,
+  heroTokensHTML,
+  heroBarHTML,
+  depthStripHTML,
+  nextHeroIndex,
+  resolveHeroView,
+  type HeroView,
+  type HeroScreen,
+  type HeroScreensAvailable,
 } from "./ui/html.js";
 import { initDialogs } from "./ui/dialogs.js";
 import { DEFAULT_THEME, resolveTheme, type Theme } from "./theme.js";
@@ -286,11 +299,20 @@ function call<K extends GameAction>(method: K, ...args: Parameters<GameState[K]>
 
 /** Full re-render of all UI panels from a GameStateDict snapshot. */
 let lastTitleKey = "";
+
+/** Whether the gear stash is unlocked, and whether it's full. Shared by the loot row and the phone item card. */
+function stashStatus(state: GameStateDict): { unlocked: boolean; full: boolean; stash: GameStateDict["gear_stash"] } {
+  const level = state.prestige_upgrades["stash"] ?? 0;
+  const stash = state.gear_stash ?? [];
+  const max = [3, 6, 10, 15][level - 1] ?? 15;
+  return { unlocked: level > 0, full: stash.length >= max, stash };
+}
 /** The latest damage breakdown, read by the DPS tooltip when it opens (#74). */
 let lastDpsBreakdown: PartyDpsBreakdown | undefined;
 
 function render(state: GameStateDict): void {
   lastDpsBreakdown = state.dps_breakdown;
+  renderHeroArea(state);
   // Rune squares mean nothing until the Rune Forge is built.
   document.getElementById("party-panel")?.classList.toggle("runes-locked", (state.guild_upgrades["rune_forge"] ?? 0) < 1);
   document.querySelectorAll<HTMLElement>(".char-crit").forEach((el, i) => {
@@ -348,6 +370,8 @@ function render(state: GameStateDict): void {
     }, 380);
   }
   const pct = Math.max(0, (enemy.hp / enemy.max_hp) * 100);
+  // The phone dock's Attack button wears the enemy's HP as its rim.
+  document.getElementById("dock-attack")?.style.setProperty("--enemy-hp", String(pct / 100));
   ($("enemy-hp-bar") as HTMLElement).style.width = pct + "%";
   $("enemy-hp-text").textContent = `${formatNumber(Math.ceil(enemy.hp))} / ${formatNumber(enemy.max_hp)}`;
   const stickyHpBar = document.getElementById("enemy-sticky-hp-bar") as HTMLElement | null;
@@ -536,10 +560,19 @@ function updateTabVisibility(state: GameStateDict): void {
   if (!constellationUnlocked) switchLeftColSub("party");
 
   // Mobile tabs
-  const mobilePrestige = document.querySelector<HTMLElement>(".mobile-tab-btn[data-tab='prestige']");
-  const mobileGuild    = document.querySelector<HTMLElement>(".mobile-tab-btn[data-tab='guild']");
-  if (mobilePrestige) mobilePrestige.hidden = !prestigeUnlocked;
-  if (mobileGuild)    mobileGuild.hidden    = !guildUnlocked;
+  const mobilePrestige = document.querySelector<HTMLButtonElement>(".mobile-tab-btn[data-tab='prestige']");
+  const mobileGuild    = document.querySelector<HTMLButtonElement>(".mobile-tab-btn[data-tab='guild']");
+  // Locked tabs stay in the dock as dashed rings, so its shape never changes.
+  if (mobilePrestige) {
+    mobilePrestige.disabled = !prestigeUnlocked;
+    mobilePrestige.classList.toggle("locked", !prestigeUnlocked);
+    mobilePrestige.setAttribute("aria-label", prestigeUnlocked ? "Renown" : "Renown, locked");
+  }
+  if (mobileGuild) {
+    mobileGuild.disabled    = !guildUnlocked;
+    mobileGuild.classList.toggle("locked", !guildUnlocked);
+    mobileGuild.setAttribute("aria-label", guildUnlocked ? "Guild" : "Guild, locked");
+  }
 
   $("prestige-panel").classList.toggle("prestige-locked", !prestigeUnlocked);
   $("guild-hall-panel").classList.toggle("guild-locked", !guildUnlocked);
@@ -588,6 +621,7 @@ function renderDepthGauge(state: GameStateDict): void {
   if (newKey === depthKey) return;
   depthKey = newKey;
 
+  $("depth-strip").innerHTML = depthStripHTML(current, highest, state.checkpoint_level);
   $("depth-label-top").textContent = "▲ 1";
   $("depth-label-bottom").textContent = `▼ ${maxDisplay}`;
 
@@ -952,12 +986,7 @@ function renderLoot(state: GameStateDict): void {
   const autoSellOwned    = (ups["auto_seller"]  ?? 0) > 0;
   const autoEquipOwned   = (ups["auto_equip"]   ?? 0) > 0;
   const autoUpgradeOwned = (ups["auto_upgrade"] ?? 0) > 0;
-  const stashUnlocked = (ups["stash"] ?? 0) > 0;
-  const stash = state.gear_stash ?? [];
-  const stashSizes = [3, 6, 10, 15];
-  const stashLevel = ups["stash"] ?? 0;
-  const stashMax = stashSizes[stashLevel - 1] ?? 15;
-  const stashFull = stash.length >= stashMax;
+  const { unlocked: stashUnlocked, full: stashFull, stash } = stashStatus(state);
 
   // Auto-action toggles
   const togglesSection = document.getElementById("auto-toggles-section")!;
@@ -992,7 +1021,7 @@ function renderLoot(state: GameStateDict): void {
     const sortedLoot = [...loot].sort((a, b) =>
       (QUAL as readonly string[]).indexOf(b.quality) - (QUAL as readonly string[]).indexOf(a.quality)
     );
-    lootEl.innerHTML = sortedLoot.length === 0
+    lootEl.innerHTML = (sortedLoot.length === 0
       ? `<div class="loot-empty">No drops yet…</div>`
       : sortedLoot.map((item) => {
           const i = loot.indexOf(item);
@@ -1004,6 +1033,7 @@ function renderLoot(state: GameStateDict): void {
           const displayName = setName ? `${setName} ${item.slot_display}` : (item.short_name ?? item.name);
           return `
 <div class="loot-item${setName ? " set-piece" : ""}" data-slot="${item.slot}" data-item="${itemJson}">
+  ${lootSquareHTML(item, i, SLOT_ICONS[item.slot] ?? "◻", tri === "▲")}
   <div class="loot-header">
     <span class="loot-name ${qc}">${displayName}</span>
     <span class="loot-slot-badge">${item.slot_display}</span>
@@ -1018,7 +1048,7 @@ function renderLoot(state: GameStateDict): void {
     </div>
   </div>
 </div>`;
-        }).join("");
+        }).join("")) + emptyLootSquaresHTML(state.loot_max - sortedLoot.length);
   }
 
   const section = document.getElementById("auto-seller-section")!;
@@ -2473,7 +2503,9 @@ function renderSkillButton(state: GameStateDict): void {
   const isActive = expiry > 0;
   const onCooldown = remaining > 0 && !isActive;
 
-  btn.textContent = SKILL_NAMES[skillId] ?? skillId;
+  const skillLabel = SKILL_NAMES[skillId] ?? skillId;
+  btn.innerHTML = skillButtonHTML(skillLabel);
+  btn.setAttribute("aria-label", skillAriaLabel(skillLabel, { remaining, isActive, onCooldown }));
   btn.dataset.activeSkill = skillId;
   btn.dataset.skillState = encodeURIComponent(JSON.stringify({ remaining, expiry, totalCooldown, isActive, onCooldown }));
   btn.disabled = onCooldown;
@@ -2503,7 +2535,7 @@ function renderCompanionSkills(state: GameStateDict): void {
     const onCooldown = remaining > 0 && !isActive;
     const label = SKILL_NAMES[skillId] ?? skillId;
     return `<div class="companion-skill-cell">
-      <button class="companion-skill-btn${isActive ? " active" : ""}" data-action="activate-companion-skill" data-skill="${skillId}" data-active-skill="${skillId}" data-skill-state="${encodeURIComponent(JSON.stringify({ remaining, expiry, totalCooldown, isActive, onCooldown }))}"${onCooldown ? " disabled" : ""}>${label}</button>
+      <button class="companion-skill-btn${isActive ? " active" : ""}" data-action="activate-companion-skill" data-skill="${skillId}" data-active-skill="${skillId}" data-skill-state="${encodeURIComponent(JSON.stringify({ remaining, expiry, totalCooldown, isActive, onCooldown }))}" aria-label="${skillAriaLabel(label, { remaining, isActive, onCooldown })}"${onCooldown ? " disabled" : ""}>${skillButtonHTML(label)}</button>
     </div>`;
   }).join("");
 }
@@ -2970,12 +3002,104 @@ function initCombatSubTabs(): void {
   }
 
   applyCombatSubTab = () => switchSub(mainEl.dataset.combatSub ?? saved);
+  switchCombatSub = switchSub;
 
   bar.querySelectorAll<HTMLElement>(".combat-stab").forEach(btn =>
     btn.addEventListener("click", () => switchSub(btn.dataset.combatStab!))
   );
 
   switchSub(saved);
+}
+
+// ── Phone heroes ─────────────────────────────────────────────────────────────
+// A token per hero above the dock; the selected one fills the Combat tab with
+// that hero's screens. It drives the existing sub-tab switches, so the
+// desktop layout and its renderers are untouched.
+
+const PHONE = window.matchMedia("(max-width: 1023px)");
+let heroView: HeroView = (() => {
+  try { return JSON.parse(localStorage.getItem("hero-view") ?? "") as HeroView; } catch { return { hero: 0, screen: "sheet" }; }
+})();
+let heroAreaKey = "";
+
+function heroScreensAvailable(state: GameStateDict): HeroScreensAvailable {
+  return {
+    runes: (state.guild_upgrades["rune_forge"] ?? 0) >= 1,
+    artifacts: (state.artifact_inventory?.length ?? 0) > 0 || state.party.some(c => c.artifact_slots?.some(Boolean)),
+    stars: (state.guild_upgrades["constellation_access"] ?? 0) > 0,
+  };
+}
+
+/** Shows only the selected hero's card, rune block and artifact block (phones; CSS gates it). */
+function markSelectedHero(): void {
+  const i = heroView.hero;
+  for (const sel of ["#party-cards > .char-card", "#party-rune-panel > .prune-char-block", "#party-artifact-panel > .artifact-char-block"]) {
+    document.querySelectorAll(sel).forEach((el, idx) => el.classList.toggle("hero-selected", idx === i));
+  }
+}
+
+function renderHeroArea(state: GameStateDict): void {
+  const avail = heroScreensAvailable(state);
+  heroView = resolveHeroView(heroView, state.party.length, avail);
+  const key = JSON.stringify([heroView, avail, state.party.map(c => [c.name, c.character_class, c.level, c.health > 0])]);
+  if (key !== heroAreaKey) {
+    heroAreaKey = key;
+    $("hero-tokens").innerHTML = heroTokensHTML(state.party, heroView.hero);
+    $("hero-bar").innerHTML = heroBarHTML(state.party, heroView, avail);
+    document.querySelector("main")!.dataset.heroScreen = heroView.screen;
+    if (PHONE.matches) {
+      const s = heroView.screen;
+      switchPartyTab(s === "runes" ? "runes" : s === "artifacts" ? "artifacts" : "party");
+      switchCombatSub(s === "loot" ? "equipment" : "party");
+      switchLeftColSub(s === "stars" ? "stars" : "party");
+    }
+  }
+  markSelectedHero();
+}
+
+function setHeroView(v: HeroView): void {
+  heroView = v;
+  localStorage.setItem("hero-view", JSON.stringify(v));
+  if (game) render(game.getState());
+}
+
+function initHeroArea(): void {
+  $("hero-tokens").addEventListener("click", (e) => {
+    const t = (e.target as HTMLElement).closest<HTMLElement>("[data-hero]");
+    if (!t) return;
+    const hero = t.dataset.hero === "party" ? "party" : Number(t.dataset.hero);
+    setHeroView({ hero, screen: hero === "party" ? "loot" : heroView.hero === "party" ? "sheet" : heroView.screen });
+  });
+  $("hero-bar").addEventListener("click", (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>("[data-action]");
+    if (!b || !game) return;
+    const count = game.party.team.length;
+    if (b.dataset.action === "hero-prev" || b.dataset.action === "hero-next") {
+      const step = b.dataset.action === "hero-next" ? 1 : -1;
+      setHeroView({ hero: nextHeroIndex(heroView.hero, step, count), screen: heroView.hero === "party" ? "sheet" : heroView.screen });
+    } else if (b.dataset.action === "hero-screen") {
+      setHeroView({ ...heroView, screen: b.dataset.screen as HeroScreen });
+    }
+  });
+  // Crossing the breakpoint re-applies the sub-tabs for the new layout.
+  PHONE.addEventListener("change", () => { heroAreaKey = ""; if (game) render(game.getState()); });
+}
+
+/**
+ * On phones the Attack and AUTO buttons live in the dock's raised centre slot;
+ * on wider screens they return to the enemy panel. The same two elements move,
+ * so their state and click handling are untouched.
+ */
+function placeAttackControls(): void {
+  const mq = window.matchMedia("(max-width: 1023px)");
+  const attackBtn = $("attack-btn");
+  const autoBtn = $("auto-attack-btn");
+  const place = () => {
+    if (mq.matches) $("dock-attack").append(attackBtn, autoBtn);
+    else $("attack-row").append(attackBtn, autoBtn);
+  };
+  place();
+  mq.addEventListener("change", place);
 }
 
 function initMobileTabs(): void {
@@ -2989,6 +3113,7 @@ function initMobileTabs(): void {
     tabs.forEach(btn => btn.classList.toggle("active", btn.dataset.tab === tab));
     const isMobile = window.matchMedia("(max-width: 1023px)").matches;
     combatSubBar.style.display = isMobile && tab === "combat" ? "flex" : "none";
+    document.body.dataset.mobileTab = tab;
     if (tab === "combat") applyCombatSubTab?.();
   }
 
@@ -3020,6 +3145,8 @@ const LOOT_TO_PTAB: Record<string, string> = {
 
 let switchPartyTab: (which: string) => void = () => {};
 let switchLeftColSub: (which: string) => void = () => {};
+let switchCombatSub: (which: string) => void = () => {};
+let openItemCard: (html: string) => void = () => {};
 
 function initLootSubtabs(): void {
   const btns = document.querySelectorAll<HTMLElement>(".loot-stab");
@@ -3141,6 +3268,11 @@ function initMobileItemCard(): void {
     overlay.setAttribute("aria-hidden", "false");
     overlay.classList.add("open");
   }
+  openItemCard = openCard;
+  // An action taken from the card (Equip, Sell, Stash) closes it.
+  content.addEventListener("click", (e) => {
+    if ((e.target as HTMLElement).closest("[data-action]")) setTimeout(closeCard, 0);
+  });
 
   function closeCard(): void {
     overlay.classList.remove("open");
@@ -3655,6 +3787,8 @@ document.addEventListener("DOMContentLoaded", () => {
   initSaveBackup();
   initCombatSubTabs();
   initMobileTabs();
+  placeAttackControls();
+  initHeroArea();
   initRuneSlotPanel();
   initConstellationPanel();
   initLeftColSubTabs();
@@ -3829,6 +3963,13 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
     else if (action === "equip") call("equipLoot", idx);
+    else if (action === "loot-card") {
+      // Phones: a loot square opens the item's details with its actions.
+      const state = game.getState();
+      const item = state.loot_pool[idx];
+      if (!item) return;
+      openItemCard(buildTooltipHTML(item) + lootCardActionsHTML(idx, item.sell_value, stashStatus(state)));
+    }
     else if (action === "equip-loot-on-char") {
       const row = btn.closest(".gear-row-equip")!;
       const sel = row.querySelector(".gear-loot-select") as HTMLSelectElement;
@@ -4094,7 +4235,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function closeSettings(): void { settingsModal.classList.remove("open"); }
   $("settings-modal-close").addEventListener("click", closeSettings);
   settingsModal.addEventListener("click", (e) => { if (e.target === settingsModal) closeSettings(); });
-  document.getElementById("mobile-settings-tab-btn")?.addEventListener("click", openSettings);
+  document.getElementById("header-settings-btn")?.addEventListener("click", openSettings);
 
   // Customize modal
   let customizeModal: HTMLElement = $("customize-modal");

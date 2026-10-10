@@ -89,6 +89,7 @@
     </div>
   </div>
   <div id="header-avatar-area">
+    <button id="header-settings-btn" class="icon-btn" aria-label="Settings" title="Settings">⚙</button>
     <button id="header-avatar-btn" data-action="open-profile-picker" title="Profile"></button>
     <div id="profile-picker-dropdown" hidden>
       <button class="profile-menu-item" data-action="open-customize-modal">🎨 Customize</button>
@@ -145,6 +146,9 @@
     <button class="combat-stab" data-combat-stab="equipment">🎒 Equipment</button>
   </div>
 
+  <!-- Phones: the selected hero's name, ‹ ›, and its screens -->
+  <div id="hero-bar"></div>
+
   <!-- Left column wrapper -->
   <div id="left-col">
 
@@ -171,6 +175,7 @@
             <div id="enemy-hp-bar" style="width:100%"></div>
             <div id="enemy-hp-text"></div>
           </div>
+          <div id="depth-strip"></div>
           <div id="floor-progress">
             <div id="enemy-enrage-bar-wrap">
               <div id="enemy-enrage-bar"></div>
@@ -180,6 +185,11 @@
             <div id="floor-pip-row"></div>
             <span id="checkpoint-display"></span>
           </div>
+          <div id="mobile-party-hp-bar">
+            <div id="mobile-party-hp-fill"></div>
+            <span id="mobile-party-hp-text"><span class="spr spr-heart" aria-hidden="true"></span> 0/0</span>
+          </div>
+
           <div id="attack-row">
             <button id="attack-btn" data-action="attack"><span class="spr spr-sword" aria-hidden="true"></span> Attack</button>
             <button id="auto-attack-btn" data-action="toggle-auto-attack" title="Toggle auto-attack (fires every second)">AUTO</button>
@@ -301,11 +311,6 @@
 
 </main>
 
-<div id="mobile-party-hp-bar">
-  <div id="mobile-party-hp-fill"></div>
-  <span id="mobile-party-hp-text"><span class="spr spr-heart" aria-hidden="true"></span> 0/0</span>
-</div>
-
 <footer>
   <button id="stats-btn">Kill Details</button>
   <button id="version-btn"></button>
@@ -332,6 +337,8 @@
     </div>
   </div>
 </div>
+
+
 
 <div id="party-class-modal" aria-modal="true" role="dialog">
   <div id="party-class-box">
@@ -389,12 +396,14 @@
   </div>
 </div>
 
-<nav id="mobile-tabs">
-  <button class="mobile-tab-btn active" data-tab="combat">⚔<span>Combat</span></button>
-  <button class="mobile-tab-btn" data-tab="upgrade">📈<span>Upgrade</span><span id="upgrade-tab-badge" class="tab-badge" hidden></span></button>
-  <button class="mobile-tab-btn" data-tab="prestige" hidden>✦<span>Prestige</span><span id="shop-tab-badge" class="tab-badge" hidden></span></button>
-  <button class="mobile-tab-btn" data-tab="guild" hidden>🏰<span>Guild</span><span id="guild-tab-badge" class="tab-badge" hidden></span></button>
-  <button class="mobile-tab-btn" id="mobile-settings-tab-btn">⚙<span>Settings</span></button>
+<nav id="hero-tokens" aria-label="Heroes"></nav>
+
+<nav id="mobile-tabs" aria-label="Game sections">
+  <button class="mobile-tab-btn active" data-tab="combat"><span class="tab-icon" aria-hidden="true">⚔</span><span class="tab-label">Combat</span></button>
+  <button class="mobile-tab-btn" data-tab="upgrade"><span class="tab-icon" aria-hidden="true">📈</span><span class="tab-label">Upgrade</span><span id="upgrade-tab-badge" class="tab-badge" hidden></span></button>
+  <div id="dock-attack" class="dock-attack"></div>
+  <button class="mobile-tab-btn locked" data-tab="prestige" disabled title="Renown unlocks when you reach floor 20"><span class="tab-icon" aria-hidden="true">✦</span><span class="tab-lock" aria-hidden="true">🔒</span><span class="tab-label">Renown</span><span id="shop-tab-badge" class="tab-badge" hidden></span></button>
+  <button class="mobile-tab-btn locked" data-tab="guild" disabled title="The Guild unlocks from the Renown shop"><span class="tab-icon" aria-hidden="true">🏰</span><span class="tab-lock" aria-hidden="true">🔒</span><span class="tab-label">Guild</span><span id="guild-tab-badge" class="tab-badge" hidden></span></button>
 </nav>
 
 <div id="item-tooltip" class="item-tooltip" aria-hidden="true"></div>

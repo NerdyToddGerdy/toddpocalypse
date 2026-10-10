@@ -4,6 +4,22 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.53.0 — 2026-10-09
+
+- New phone layout: a big round Attack button in the middle of the bottom bar, its rim draining with the enemy's HP, with AUTO on its edge
+- Round tabs either side of it: Combat, Upgrade, Renown and Guild. Renown and Guild show as dashed rings until you unlock them
+- The enemy, your party's HP and your skills now sit at the top of the screen and stay there as you scroll
+- Skills are round icon buttons on one line; Settings moved to a gear in the header
+- Heroes on phones: a row of hero tokens above the bottom bar. Tap one to see that hero, and use ‹ › to step through your party
+- Each hero has its own Sheet, Gear, Runes and Artifacts screens; the Party token at the end opens Loot and Stars
+- Depth now shows as a slim bar in the enemy strip, giving heroes the full width of the screen
+- Fixed: on touch screens, an ability's tip no longer stays stuck open after you tap it
+- Fixed: the game no longer fails to start on older browsers, or when opened from a plain http:// address
+- Loot on phones shows as small squares, four across, coloured by quality with ▲ on upgrades. Tap one to see the item, then equip, sell or stash it
+- On phones the loot comes first, above the auto-equip and auto-sell settings, and the Party view drops its extra title row
+- The loot grid always shows every slot, with grey squares for empty ones, so it doesn't jump as items come and go
+- Renown and Guild show a lock until you unlock them
+
 ## v2.52.0 — 2026-10-09
 
 - With your party's gear hidden, each hero now shows a row of small boxes for their equipped items, coloured by quality, with a gold border for set pieces

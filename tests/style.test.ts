@@ -204,7 +204,7 @@ function bodiesFor(selector: string): string[] {
 describe("active states (#69)", () => {
   // Navigation switches the view: underline in --torch-mid, label in --parchment, no fill.
   const NAV = [
-    ".stab-btn.active", ".loot-stab.active", ".combat-stab.active", ".mobile-tab-btn.active",
+    ".stab-btn.active", ".loot-stab.active", ".combat-stab.active",
     ".lcol-stab.active", ".ptab-btn.active", ".profile-tab-btn.active",
   ];
   // A choice picks a value: --torch-mid outline over a faint --torch-mid wash.
@@ -320,11 +320,10 @@ describe("breakpoints (mobile/tablet audit)", () => {
 });
 
 describe("bottom chrome", () => {
-  it("is sized by two variables instead of hard-coded offsets", () => {
+  it("is sized by variables instead of hard-coded offsets", () => {
     expect(styleCss).not.toMatch(/calc\(96px/);
-    expect(bodiesFor("#enemy-panel").join(";")).toMatch(/bottom:\s*calc\(var\(--tabbar-h\) \+ var\(--hpbar-h\)\)/);
-    expect(bodiesFor("#mobile-party-hp-bar").join(";")).toMatch(/bottom:\s*var\(--tabbar-h\)/);
     expect(bodiesFor("#mobile-tabs").join(";")).toMatch(/height:\s*var\(--tabbar-h\)/);
+    expect(styleCss).toMatch(/padding-bottom:\s*calc\(var\(--tabbar-h\) \+ var\(--dock-raise\) \+ 12px\)/);
   });
 });
 
@@ -341,7 +340,7 @@ describe("landscape phones (#1)", () => {
     expect(body).toMatch(/header\s*\{[^}]*position:\s*static/);
     expect(body).toMatch(/body\s*\{[^}]*overflow:\s*visible/);
     expect(body).toMatch(/--tabbar-h:\s*\d+px/);
-    expect(body).toMatch(/--hpbar-h:\s*\d+px/);
+    expect(body).toMatch(/--dock-raise:\s*\d+px/);
     expect(body).toMatch(/#monster-portrait-wrap\s*\{[^}]*display:\s*none/);
   });
 });
@@ -366,9 +365,10 @@ describe("touch targets (#5)", () => {
 });
 
 describe("tab bar (#6)", () => {
-  // Prestige and Guild flashed in the bar during character creation, then vanished.
-  it.each(["prestige", "guild"])("the %s tab starts hidden until unlocked", (tab) => {
-    expect(indexHtml).toMatch(new RegExp(`<button class="mobile-tab-btn" data-tab="${tab}" hidden>`));
+  // Prestige and Guild used to flash in the bar during character creation, then
+  // vanish. Since the dock revamp they start as locked rings instead.
+  it.each(["prestige", "guild"])("the %s tab starts locked until unlocked", (tab) => {
+    expect(indexHtml).toMatch(new RegExp(`<button class="mobile-tab-btn locked" data-tab="${tab}" disabled`));
   });
 });
 
@@ -434,7 +434,7 @@ describe("phone type size", () => {
   // The labels that would still render under 11px after the root scale.
   it.each([
     ".depth-tick-label", ".gear-pdoll-label", ".gear-pdoll-count", ".ug-btn-meta",
-    ".mobile-tab-btn span:not(.tab-badge)", "#enemy-hp-text",
+    ".mobile-tab-btn .tab-label", "#enemy-hp-text",
   ])("%s has a floor of 11px", (sel) => {
     const rule = [...m![1].matchAll(/([^{}]+)\{([^{}]*)\}/g)].find((r) =>
       r[1].split(",").map((s) => s.trim()).includes(sel));

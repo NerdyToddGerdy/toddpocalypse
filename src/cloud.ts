@@ -1,3 +1,4 @@
+import { newId } from "./rng.js";
 /** Base URL of the save API (AWS API Gateway stage). */
 export const API_URL = "https://r4nh7p0l56.execute-api.us-east-1.amazonaws.com";
 
@@ -63,7 +64,7 @@ export function clearToken(): void {
 export function getOrCreateSessionId(): string {
     let id = localStorage.getItem(SESSION_KEY);
     if (!id) {
-        id = crypto.randomUUID();
+        id = newId();
         localStorage.setItem(SESSION_KEY, id);
     }
     return id;

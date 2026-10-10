@@ -193,3 +193,35 @@ describe("§6 — the UI layer holds no rolls", () => {
     }
   });
 });
+
+// crypto.randomUUID exists only in secure contexts (HTTPS, localhost) and newer
+// browsers. Over a LAN address the game crashed on start without it.
+describe("newId", async () => {
+  const { newId } = await import("../src/rng.js");
+  const V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+  it("returns a v4 UUID", () => {
+    expect(newId()).toMatch(V4);
+  });
+
+  it("still works where crypto.randomUUID is missing", () => {
+    const original = crypto.randomUUID;
+    Object.defineProperty(crypto, "randomUUID", { value: undefined, configurable: true });
+    try {
+      const a = newId(), b = newId();
+      expect(a).toMatch(V4);
+      expect(a).not.toBe(b);
+    } finally {
+      Object.defineProperty(crypto, "randomUUID", { value: original, configurable: true });
+    }
+  });
+
+  it("is the only way the game makes ids", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    for (const f of ["engine.ts", "cloud.ts", "main.ts"]) {
+      const src = readFileSync(fileURLToPath(new URL(`../src/${f}`, import.meta.url)), "utf8");
+      expect(src, f).not.toContain("crypto.randomUUID()");
+    }
+  });
+});
