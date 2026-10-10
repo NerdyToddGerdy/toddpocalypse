@@ -4,6 +4,11 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.54.0 — 2026-10-09
+
+- Set pieces keep their quality colour in the small gear boxes and loot squares, with a gold ring around them to mark the set
+- Phones: the hero tokens now work on the Upgrade tab too. Tap a hero to see just their upgrades, or Party to see everyone side by side
+
 ## v2.53.0 — 2026-10-09
 
 - New phone layout: a big round Attack button in the middle of the bottom bar, its rim draining with the enemy's HP, with AUTO on its edge

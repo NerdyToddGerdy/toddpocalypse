@@ -676,7 +676,27 @@ describe("condensed party view", () => {
     expect(mainTs2).toMatch(/TOOLTIP_SELECTORS = "[^"]*\.char-gear-sq\[data-item\]/);
   });
 
-  it("set pieces get a gold border", () => {
-    expect(bodiesFor(".char-gear-sq.set-piece").join(";")).toMatch(/border-color:\s*var\(--gold-bright\)/);
+  it("set pieces get a gold ring on top of their colour", () => {
+    expect(bodiesFor(".char-gear-sq.set-piece").join(";")).toMatch(/outline:\s*2px solid var\(--gold-bright\)/);
+  });
+});
+
+describe("set pieces keep their quality colour", () => {
+  // A blanket `.set-piece { border-color/background !important }` used to wipe
+  // the quality fill off the small gear boxes, leaving set items as bare gold rings.
+  it("the blanket set-piece rule skips the gear boxes and loot squares", () => {
+    expect(styleCss).not.toMatch(/\n\.set-piece\s*\{/);
+    expect(styleCss).toMatch(/\.set-piece:not\(\.char-gear-sq, \.loot-sq\)\s*\{/);
+  });
+
+  it("a set gear box keeps its fill and gets a gold ring on top", () => {
+    const set = bodiesFor(".char-gear-sq.set-piece").join(";");
+    expect(set).toMatch(/outline:\s*2px solid var\(--gold-bright\)/);
+    expect(set).not.toMatch(/(^|[;\s])border:/);
+    expect(set).not.toMatch(/background/);
+  });
+
+  it("so does a set loot square", () => {
+    expect(bodiesFor(".loot-sq.set-piece").join(";")).toMatch(/outline:\s*2px solid var\(--gold-bright\)/);
   });
 });

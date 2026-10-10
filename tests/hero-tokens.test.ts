@@ -252,3 +252,29 @@ describe("full-size loot grid wiring", () => {
     expect(css).toMatch(/\.loot-sq-empty\s*\{[^}]*border:[^;]*dashed/);
   });
 });
+
+// The Upgrade tab picks heroes the same way the Combat tab does.
+describe("hero tokens on the Upgrade tab", () => {
+  const phone = css.match(/\/\* ── Phone heroes[\s\S]*?@media \(max-width: 1023px\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+  const upg = css.match(/\/\* ── Phone upgrades[\s\S]*?@media \(max-width: 1023px\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+
+  it("shows the token row and hero bar on Upgrade as well as Combat", () => {
+    expect(phone).toMatch(/body:is\(\[data-mobile-tab="combat"\], \[data-mobile-tab="upgrade"\]\) #hero-tokens/);
+    expect(phone).toMatch(/body:is\(\[data-mobile-tab="combat"\], \[data-mobile-tab="upgrade"\]\) #hero-bar/);
+  });
+
+  it("shows only the selected hero's upgrade card", () => {
+    expect(mainTs).toMatch(/"#upgrade-cards > \.upgrade-card"/);
+    expect(upg).toMatch(/main:not\(\[data-hero="party"\]\) #upgrade-cards\s*\{\s*display:\s*block/);
+    expect(upg).toMatch(/#upgrade-cards > \.upgrade-card:not\(\.hero-selected\)\s*\{\s*display:\s*none/);
+  });
+
+  it("the Party token shows the whole-party grid there", () => {
+    expect(upg).toMatch(/main:not\(\[data-hero="party"\]\) #upgrade-grid\s*\{\s*display:\s*none/);
+    expect(mainTs).toMatch(/dataset\.hero = String\(heroView\.hero\)/);
+  });
+
+  it("drops the Sheet/Gear chips there, which mean nothing on Upgrade", () => {
+    expect(upg).toMatch(/body\[data-mobile-tab="upgrade"\] \.hero-screens\s*\{\s*display:\s*none/);
+  });
+});

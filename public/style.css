@@ -4874,7 +4874,9 @@ footer {
 }
 
 /* ── Named Gear Sets ─────────────────────────────────────── */
-.set-piece {
+/* Loot rows and the like. The small gear boxes and loot squares keep their
+   quality colour and get a gold ring instead (below). */
+.set-piece:not(.char-gear-sq, .loot-sq) {
     border-color: #c9a227 !important;
     background: rgba(201,162,39,0.06) !important;
 }
@@ -6291,7 +6293,8 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
 /* ── Condensed party view: equipped gear at a glance ── */
 #party-panel.runes-locked .char-rune-row { display: none; }
 #party-panel:not(.gear-hidden) .char-gear-row { display: none; }
-.char-gear-row { display: flex; gap: 4px; margin: 3px 0 0; }
+/* 6px apart, so a set piece's ring doesn't touch its neighbours. */
+.char-gear-row { display: flex; gap: 6px; margin: 4px 0 0; padding-left: 2px; }
 /* Same footprint as the rune squares beneath it. */
 .char-gear-sq {
     width: 11px;
@@ -6306,7 +6309,8 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
 .char-gear-sq.empty { opacity: 1; border-style: dashed; cursor: default; }
 /* The fill is the quality colour; each q-* class already sets `color`. */
 .char-gear-sq.filled { background: currentColor; border-color: color-mix(in srgb, currentColor 60%, #000); }
-.char-gear-sq.set-piece { border: 2px solid; border-color: var(--gold-bright); }
+/* A set piece keeps its quality colour; the set is a gold ring added on top. */
+.char-gear-sq.set-piece { outline: 2px solid var(--gold-bright); outline-offset: 1px; }
 .char-gear-sq.filled:hover,
 .char-gear-sq.filled:focus-visible { transform: scale(1.25); }
 
@@ -6571,7 +6575,7 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
     .depth-strip-cp { background: var(--secondary); }
 
     /* The hero bar: ‹ name ›, then screen chips. Pinned under the enemy strip. */
-    body[data-mobile-tab="combat"] #hero-bar {
+    body:is([data-mobile-tab="combat"], [data-mobile-tab="upgrade"]) #hero-bar {
         display: block;
         order: -1;
         position: sticky;
@@ -6613,7 +6617,7 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
     }
 
     /* The token row, sitting above the dock and clear of the raised Attack. */
-    body[data-mobile-tab="combat"] #hero-tokens {
+    body:is([data-mobile-tab="combat"], [data-mobile-tab="upgrade"]) #hero-tokens {
         display: flex;
         justify-content: center;
         gap: 10px;
@@ -6628,7 +6632,7 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
         background: var(--bg-1);
         border-top: 1px solid color-mix(in srgb, var(--gold) 45%, transparent);
     }
-    body[data-mobile-tab="combat"] main {
+    body:is([data-mobile-tab="combat"], [data-mobile-tab="upgrade"]) main {
         padding-bottom: calc(var(--tabbar-h) + var(--dock-raise) + var(--tokens-h) + 12px);
     }
     .hero-token {
@@ -6696,6 +6700,7 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
         display: flex;
         position: relative;
     }
+    .loot-sq.set-piece { outline: 2px solid var(--gold-bright); outline-offset: 2px; }
     .loot-sq-up {
         position: absolute;
         top: -6px;
@@ -6749,4 +6754,19 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
         background: var(--bg-1);
     }
     .mobile-tab-btn:not(.locked) .tab-lock { display: none; }
+}
+
+
+/* ── Phone upgrades ──
+   The Upgrade tab picks heroes with the same tokens as Combat: a hero token
+   shows that hero's upgrades, the Party token shows everyone side by side. */
+@media (max-width: 1023px) {
+    body[data-mobile-tab="upgrade"] .hero-screens { display: none; }
+    /* No enemy strip on this tab, so the bar pins to the top. */
+    body[data-mobile-tab="upgrade"] #hero-bar { top: -12px; }
+    /* The Party view has no bar here: its chips are combat screens. */
+    body[data-mobile-tab="upgrade"] main[data-hero="party"] #hero-bar { display: none; }
+    main:not([data-hero="party"]) #upgrade-cards { display: block; }
+    main:not([data-hero="party"]) #upgrade-grid { display: none; }
+    #upgrade-cards > .upgrade-card:not(.hero-selected) { display: none; }
 }

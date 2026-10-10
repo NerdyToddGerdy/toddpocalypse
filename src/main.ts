@@ -3033,7 +3033,7 @@ function heroScreensAvailable(state: GameStateDict): HeroScreensAvailable {
 /** Shows only the selected hero's card, rune block and artifact block (phones; CSS gates it). */
 function markSelectedHero(): void {
   const i = heroView.hero;
-  for (const sel of ["#party-cards > .char-card", "#party-rune-panel > .prune-char-block", "#party-artifact-panel > .artifact-char-block"]) {
+  for (const sel of ["#party-cards > .char-card", "#party-rune-panel > .prune-char-block", "#party-artifact-panel > .artifact-char-block", "#upgrade-cards > .upgrade-card"]) {
     document.querySelectorAll(sel).forEach((el, idx) => el.classList.toggle("hero-selected", idx === i));
   }
 }
@@ -3047,6 +3047,7 @@ function renderHeroArea(state: GameStateDict): void {
     $("hero-tokens").innerHTML = heroTokensHTML(state.party, heroView.hero);
     $("hero-bar").innerHTML = heroBarHTML(state.party, heroView, avail);
     document.querySelector("main")!.dataset.heroScreen = heroView.screen;
+    document.querySelector("main")!.dataset.hero = String(heroView.hero);
     if (PHONE.matches) {
       const s = heroView.screen;
       switchPartyTab(s === "runes" ? "runes" : s === "artifacts" ? "artifacts" : "party");
