@@ -394,3 +394,34 @@ describe("enemy names are flavour", () => {
     expect(stats(a)).toEqual(stats(b));
   });
 });
+
+// Every enemy has a portrait, so the enemy panel keeps one shape (no column
+// opening and closing as bosses come and go).
+describe("enemyPortraitSrc", async () => {
+  const { enemyPortraitSrc } = await import("../src/ui/html.js");
+  const { existsSync } = await import("node:fs");
+  const { fileURLToPath } = await import("node:url");
+  const { mulberry32 } = await import("../src/rng.js");
+  const art = (src: string) => existsSync(fileURLToPath(new URL(`../public/${src}`, import.meta.url)));
+
+  it.each([
+    ["Wretched Spider", "monster_spider.png"],
+    ["Elite Wretched Spider", "monster_spider.png"],
+    ["The Ancient Ogre Lord", "monster_ogre.png"],
+    ["The Ancient Ogre Lord Guardian", "monster_ogre.png"],
+  ])("%s → %s", (name, want) => {
+    expect(enemyPortraitSrc(name)).toBe(want);
+  });
+
+  it("finds real art for every generated enemy, elite and boss", () => {
+    const rng = mulberry32(42);
+    for (let i = 0; i < 300; i++) {
+      const lvl = 1 + (i % 60);
+      for (const e of [generateEnemy(lvl, i % 3, rng), generateBoss(lvl, i % 3, 1, i % 2 === 0, rng), generateEliteEnemy(lvl, i % 3, rng)]) {
+        const src = enemyPortraitSrc(e.name);
+        expect(src, e.name).not.toBe("");
+        expect(art(src), src).toBe(true);
+      }
+    }
+  });
+});

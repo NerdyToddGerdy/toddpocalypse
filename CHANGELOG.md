@@ -4,6 +4,12 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.56.0 — 2026-10-10
+
+- Every enemy now has a portrait, not just bosses and elites, so the enemy panel keeps one shape and the HP bar stays put
+- A boss's enrage stacks show as segments along its enrage bar instead of making the panel taller
+- Long boss names are trimmed with … on small screens instead of pushing the level onto a second line; the full name shows on hover
+
 ## v2.55.0 — 2026-10-10
 
 - See when your next renown comes: Return to Town and the Hall of Renown now say, for example, 'Reach floor 45 for 6 renown (1 floor to go)'. Renown goes up by one for every 5 floors past floor 20

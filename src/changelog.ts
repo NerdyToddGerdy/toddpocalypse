@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.55.0";
+export const VERSION = "v2.56.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.56.0",
+    date: "2026-10-10",
+    changes: [
+      "Every enemy now has a portrait, not just bosses and elites, so the enemy panel keeps one shape and the HP bar stays put",
+      "A boss's enrage stacks show as segments along its enrage bar instead of making the panel taller",
+      "Long boss names are trimmed with … on small screens instead of pushing the level onto a second line; the full name shows on hover",
+    ],
+  },
   {
     version: "v2.55.0",
     date: "2026-10-10",

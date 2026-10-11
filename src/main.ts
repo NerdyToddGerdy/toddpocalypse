@@ -104,6 +104,7 @@ import {
   welcomeBackLine,
   buildReturnToTownHTML,
   deviceClaimError,
+  enemyPortraitSrc,
   renownNextLine,
   buildQuartermasterHTML,
   charGearRowHTML,
@@ -256,7 +257,6 @@ let lastDeathCount: number | null = null;
 let lastEnrageStacks = -1;
 const fullLog: string[] = []; // persistent combat log history (last 200 entries)
 const flashStartTimes = new Map<string, number>(); // "ci:slot" → ms timestamp when flash began
-let bossPortraitShowing = false;
 let autoAttackEnabled = localStorage.getItem("autoAttack") === "1";
 let autoAttackIntervalId: number | undefined;
 let lastTickSaveTime = 0;
@@ -266,7 +266,6 @@ const TICK_SAVE_INTERVAL_MS = 5000;
 // return Timeout. This form is correct under both lib sets.
 let gameLoopId: ReturnType<typeof setInterval> | undefined;
 let portraitEnterTimer: ReturnType<typeof setTimeout> | undefined;
-let portraitExitTimer: ReturnType<typeof setTimeout> | undefined;
 let featsBadgeTimer: ReturnType<typeof setTimeout> | undefined;
 
 /** Typed getElementById helper — throws if the element is missing rather than returning null. */
@@ -301,6 +300,7 @@ function call<K extends GameAction>(method: K, ...args: Parameters<GameState[K]>
 
 /** Full re-render of all UI panels from a GameStateDict snapshot. */
 let lastTitleKey = "";
+let lastPortraitKey = "";
 
 /** Whether the gear stash is unlocked, and whether it's full. Shared by the loot row and the phone item card. */
 function stashStatus(state: GameStateDict): { unlocked: boolean; full: boolean; stash: GameStateDict["gear_stash"] } {
@@ -333,6 +333,7 @@ function render(state: GameStateDict): void {
 
   const enemy = state.enemy;
   $("enemy-name").textContent = enemy.name;
+  $("enemy-name").title = enemy.name; // full name when a long one is cut short
   $("enemy-level").textContent = `Level ${enemy.level}`;
   const stickyNameEl = document.getElementById("enemy-sticky-name");
   if (stickyNameEl) stickyNameEl.textContent = `${enemy.name} · Lv ${enemy.level}`;
@@ -341,35 +342,31 @@ function render(state: GameStateDict): void {
   enemyPanel.classList.toggle("boss-enemy", enemy.is_boss);
   const portraitWrap = document.getElementById("monster-portrait-wrap")!;
   const portraitInner = document.getElementById("portrait-inner")!;
-  const wantsPortrait = enemy.is_boss || !!enemy.is_elite;
-  if (wantsPortrait && !bossPortraitShowing) {
-    bossPortraitShowing = true;
-    const eWords = enemy.name.split(" ");
-    ($("monster-portrait") as HTMLImageElement).src = `monster_${eWords[2].toLowerCase()}.png`;
+  // Every enemy has a portrait, so the panel keeps one shape. Bosses add their
+  // ornate border, elites their arcane frame; a boss's arrival still animates.
+  const kind = enemy.is_boss ? "boss" : enemy.is_elite ? "elite" : "normal";
+  const portraitKey = `${enemy.name}|${kind}`;
+  if (portraitKey !== lastPortraitKey) {
+    const bossArrives = kind === "boss" && !lastPortraitKey.endsWith("|boss");
+    lastPortraitKey = portraitKey;
+    ($("monster-portrait") as HTMLImageElement).src = enemyPortraitSrc(enemy.name);
     const borderEl = $("monster-border") as HTMLImageElement;
-    if (enemy.is_boss) {
-      borderEl.src = `border_${eWords[1].toLowerCase()}.png`;
+    if (kind === "boss") {
+      borderEl.src = `border_${enemy.name.split(" ")[1].toLowerCase()}.png`;
       borderEl.removeAttribute("hidden");
-      portraitInner.classList.remove("elite-portrait-frame");
     } else {
       borderEl.removeAttribute("src");
       borderEl.setAttribute("hidden", "");
-      portraitInner.classList.add("elite-portrait-frame");
     }
-    portraitWrap.classList.remove("boss-exiting");
-    void portraitWrap.offsetWidth;
-    portraitWrap.classList.add("boss-visible", "boss-entering");
-    clearTimeout(portraitEnterTimer);
-    portraitEnterTimer = setTimeout(() => portraitWrap.classList.remove("boss-entering"), 750);
-  } else if (!wantsPortrait && bossPortraitShowing) {
-    bossPortraitShowing = false;
-    portraitInner.classList.remove("elite-portrait-frame");
-    portraitWrap.classList.add("boss-exiting");
-    clearTimeout(portraitExitTimer);
-    portraitExitTimer = setTimeout(() => {
-      portraitWrap.classList.remove("boss-visible");
-      setTimeout(() => portraitWrap.classList.remove("boss-exiting"), 600);
-    }, 380);
+    portraitInner.classList.toggle("elite-portrait-frame", kind === "elite");
+    portraitInner.classList.toggle("normal-portrait-frame", kind === "normal");
+    if (bossArrives) {
+      portraitWrap.classList.remove("boss-entering");
+      void portraitWrap.offsetWidth;
+      portraitWrap.classList.add("boss-entering");
+      clearTimeout(portraitEnterTimer);
+      portraitEnterTimer = setTimeout(() => portraitWrap.classList.remove("boss-entering"), 750);
+    }
   }
   const pct = Math.max(0, (enemy.hp / enemy.max_hp) * 100);
   // The phone dock's Attack button wears the enemy's HP as its rim.

@@ -679,9 +679,7 @@ main {
     align-self: flex-start;
 }
 
-/* Bosses and elites only. For everything else the column leaves the layout,
-   rather than holding 130px of invisible space (#68). */
-#monster-portrait-wrap:not(.boss-visible):not(.boss-exiting) { display: none; }
+/* Always present: every enemy has a portrait, so the panel never changes shape. */
 
 /* Fixed-size inner so absolutely-positioned images have a real containing block */
 #portrait-inner {
@@ -689,12 +687,11 @@ main {
     width: 130px;
     height: 200px;
     transform-origin: center center;
-    visibility: hidden;
 }
-
-#monster-portrait-wrap.boss-visible #portrait-inner,
-#monster-portrait-wrap.boss-exiting #portrait-inner {
-    visibility: visible;
+/* Ordinary enemies: a plain frame (bosses have their border art, elites the arcane frame). */
+#portrait-inner.normal-portrait-frame {
+    border: 2px solid color-mix(in srgb, var(--gold) 60%, transparent);
+    border-radius: 6px;
 }
 
 #monster-portrait {
@@ -742,19 +739,10 @@ main {
     100% { transform: translateX(0) scale(1); opacity: 1; }
 }
 
-/* Collapse to a centre point */
-@keyframes bossPortraitOut {
-    0%   { transform: scale(1);    opacity: 1; }
-    25%  { transform: scale(1.04); opacity: 1; }
-    100% { transform: scale(0);    opacity: 0; }
-}
-
 #monster-portrait-wrap.boss-entering #portrait-inner {
     animation: bossPortraitIn 0.55s 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-#monster-portrait-wrap.boss-exiting #portrait-inner {
-    animation: bossPortraitOut 0.38s ease-in forwards;
-}
+
 
 
 #enemy-header {
@@ -770,6 +758,7 @@ main {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-width: 0;
 }
 
 /* Comes first in the markup so it can be an eyebrow on desktop; on phones it
@@ -804,14 +793,21 @@ main {
     transition: width 0.2s linear, background 0.4s;
     border-radius: 3px 3px 0 0;
 }
+/* Enrage stacks: segments along the bar's bottom edge, so the bar (and the
+   enemy panel) keeps one height however many stacks a boss builds. */
 #enemy-enrage-layers {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    gap: 1px;
 }
 .enrage-layer {
-    height: 5px;
-    width: 100%;
-    margin-top: 1px;
+    flex: 1;
+    height: 100%;
 }
 #enemy-enrage-label {
     position: absolute;
@@ -2093,6 +2089,7 @@ main {
     align-items: center;
     gap: 8px;
     min-height: 18px;
+    height: 18px;
 }
 #floor-progress:has(#enemy-enrage-bar-wrap.active) #floor-pip-row { flex: 0 0 auto; }
 #checkpoint-display:empty { display: none; }
@@ -6838,3 +6835,6 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
     #stat-gold { min-width: 0; }
     #stat-party-gold-bonus { font-size: 0.9em; }
 }
+
+/* "Level 39" never wraps; a long boss name gives way with "…" instead. */
+#enemy-level { white-space: nowrap; flex-shrink: 0; }

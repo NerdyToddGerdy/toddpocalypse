@@ -35,6 +35,7 @@ import {
   qualityClass,
 } from "../gear.js";
 import { CLASS_ABILITIES, type Rune } from "../character.js";
+import { ENEMY_NOUNS } from "../dungeon.js";
 
 /** Serialized character snapshot as rendered by the UI. */
 export type CharDict = GameStateDict["party"][number];
@@ -807,4 +808,10 @@ export function emptyLootSquaresHTML(count: number): string {
 export function renownNextLine(renown: number, nextFloor: number, best: number): string {
   const togo = Math.max(1, nextFloor - best);
   return `Reach floor ${nextFloor} for ${renown + 1} renown (${togo} floor${togo === 1 ? "" : "s"} to go).`;
+}
+
+/** The portrait for any enemy, from the creature word in its name (normal, elite or boss). */
+export function enemyPortraitSrc(name: string): string {
+  const noun = name.split(" ").find((w) => (ENEMY_NOUNS as readonly string[]).includes(w));
+  return noun ? `monster_${noun.toLowerCase()}.png` : "";
 }

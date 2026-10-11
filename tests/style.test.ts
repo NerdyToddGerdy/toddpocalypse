@@ -232,15 +232,6 @@ describe("active states (#69)", () => {
   });
 });
 
-describe("enemy portrait column (#68)", () => {
-  // The portrait is boss/elite only; for everything else the column must leave
-  // the layout rather than sit there invisible.
-  it("drops out of the layout when no boss or elite portrait is showing", () => {
-    const body = bodiesFor("#monster-portrait-wrap:not(.boss-visible):not(.boss-exiting)").join(";");
-    expect(body).toMatch(/display:\s*none/);
-  });
-});
-
 describe("wordmark (#55)", () => {
   it("styles the series prefix small, uppercase and letter-spaced", () => {
     const body = bodiesFor(".wordmark small").join(";");
@@ -698,5 +689,42 @@ describe("set pieces keep their quality colour", () => {
 
   it("so does a set loot square", () => {
     expect(bodiesFor(".loot-sq.set-piece").join(";")).toMatch(/outline:\s*2px solid var\(--gold-bright\)/);
+  });
+});
+
+describe("steady enemy panel", () => {
+  it("never collapses the portrait column", () => {
+    expect(styleCss).not.toMatch(/#monster-portrait-wrap:not\(\.boss-visible\)/);
+  });
+
+  it("always shows the portrait", () => {
+    expect(bodiesFor("#portrait-inner").join(";")).not.toMatch(/visibility:\s*hidden/);
+  });
+
+  it("sets a portrait for every enemy, not only bosses and elites", () => {
+    expect(mainTs).toMatch(/\(\$\("monster-portrait"\) as HTMLImageElement\)\.src = enemyPortraitSrc\(enemy\.name\)/);
+    expect(mainTs).not.toMatch(/const wantsPortrait = enemy\.is_boss \|\| !!enemy\.is_elite/);
+  });
+});
+
+describe("steady enemy panel: rows that used to grow", () => {
+  // Each enrage stack stacked a new 6px strip under the bar, growing the panel.
+  it("draws enrage stacks along the bar's bottom edge, not under it", () => {
+    const layers = bodiesFor("#enemy-enrage-layers").join(";");
+    expect(layers).toMatch(/position:\s*absolute/);
+    expect(layers).toMatch(/flex-direction:\s*row/);
+    expect(bodiesFor("#floor-progress").join(";")).toMatch(/(^|[;\s])height:\s*\d+px/);
+  });
+
+  // Long boss names wrapped to a second line on phones.
+  it("keeps the enemy name to one line on every size", () => {
+    const name = bodiesFor("#enemy-name").join(";");
+    expect(name).toMatch(/white-space:\s*nowrap/);
+    expect(name).toMatch(/text-overflow:\s*ellipsis/);
+    expect(styleCss).not.toMatch(/#enemy-name\s*\{[^}]*white-space:\s*normal/);
+  });
+
+  it("keeps the full name available when it's cut short", () => {
+    expect(mainTs).toMatch(/\$\("enemy-name"\)\.title = enemy\.name/);
   });
 });
