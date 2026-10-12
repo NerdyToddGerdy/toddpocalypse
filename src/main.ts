@@ -53,8 +53,14 @@ import {CLASS_ABILITIES, type Rune} from "./character.js";
 import {
   clearToken,
   cloudClaimSession,
+  cloudCopyToSlot,
+  cloudDeleteSlot,
+  cloudListSlots,
   cloudLoad,
+  cloudRenameSlot,
   cloudSave,
+  getActiveSlot,
+  setActiveSlot,
   getLoginUrl,
   getOrCreateSessionId,
   getStoredToken,
@@ -115,6 +121,7 @@ import {
   lootCardActionsHTML,
   emptyLootSquaresHTML,
   heroTokensHTML,
+  saveSlotsHTML,
   heroBarHTML,
   depthStripHTML,
   nextHeroIndex,
@@ -3407,9 +3414,12 @@ function hideSessionConflictBanner(): void {
   $("session-conflict-banner").hidden = true;
 }
 
+/** Set while switching cloud slots, so a pending autosave can't overwrite the slot being loaded. */
+let switchingSlot = false;
+
 /** Serializes game state to localStorage every tick; writes to DynamoDB at most once per 30 seconds. */
 async function saveGame(): Promise<void> {
-  if (!game) return;
+  if (!game || switchingSlot) return;
   const data = game.saveJson();
   localStorage.setItem(SAVE_KEY, data);
   const token = getStoredToken();
@@ -3491,6 +3501,133 @@ async function pullCloudSave(): Promise<void> {
   }
 }
 
+// ── Save slots ── five named cloud slots; this browser plays one of them.
+
+/** Fills the slot list in Settings from the API. */
+async function renderSaveSlots(): Promise<void> {
+  const list = document.getElementById("save-slots");
+  const token = getStoredToken();
+  if (!list || !token) return;
+  const result = await cloudListSlots(token);
+  list.innerHTML = result.status === "ok"
+    ? saveSlotsHTML(result.slots, getActiveSlot())
+    : `<li class="save-slot-error">Couldn't load your save slots. ${result.status === "network" ? "Check your connection" : `The server answered ${result.code}`}, then reopen Settings.</li>`;
+}
+
+/** Saves this game to the slot it's playing, before leaving that slot. False if the cloud didn't take it. */
+async function saveBeforeSwitching(token: string): Promise<boolean> {
+  if (!game) return true;
+  const data = game.saveJson();
+  localStorage.setItem(SAVE_KEY, data);
+  const result = await cloudSave(token, data);
+  if (result === "ok") return true;
+  showCloudStatus(result === "conflict"
+    ? "⚠ Another device is playing this slot, so this game couldn't be saved first. Nothing was switched."
+    : "✗ Couldn't save this game to the cloud first, so nothing was switched. Check your connection.", true);
+  return false;
+}
+
+/** Leaves the current slot for `slot`, starting from `data` (or a new game when null), and reloads. */
+function enterSlot(slot: number, data: string | null): void {
+  switchingSlot = true;
+  setActiveSlot(slot);
+  if (data) localStorage.setItem(SAVE_KEY, data);
+  else deleteSave();
+  window.location.reload();
+}
+
+/** Swaps a slot's name for an inline text field. */
+function startSlotRename(row: HTMLElement): void {
+  const nameEl = row.querySelector<HTMLElement>(".save-slot-name");
+  if (!nameEl || row.querySelector(".save-slot-rename")) return;
+  const form = document.createElement("form");
+  form.className = "save-slot-rename";
+  form.innerHTML = `<input type="text" maxlength="32" required aria-label="Slot name">
+    <button type="submit" class="secondary-btn save-slot-play">Save</button>
+    <button type="button" class="secondary-btn" data-action="slot-rename-cancel">Cancel</button>`;
+  const input = form.querySelector("input")!;
+  input.value = nameEl.textContent ?? "";
+  nameEl.replaceWith(form);
+  input.focus();
+  input.select();
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const token = getStoredToken();
+    const name = input.value.trim();
+    if (!token || !name) return;
+    const ok = await cloudRenameSlot(token, Number(row.dataset.slot), name) === "ok";
+    if (!ok) showCloudStatus("✗ Couldn't rename that slot. Check your connection.", true);
+    await renderSaveSlots();
+  });
+}
+
+/** Asks, in place of a slot's buttons, whether to delete it. */
+function confirmSlotDelete(row: HTMLElement): void {
+  const actions = row.querySelector<HTMLElement>(".save-slot-actions");
+  if (!actions) return;
+  const slot = row.dataset.slot;
+  actions.innerHTML = `<span class="settings-warn">Delete this slot for good?</span>
+    <button class="danger-btn" data-action="slot-delete-yes" data-slot="${slot}">Delete</button>
+    <button class="secondary-btn" data-action="slot-delete-no" data-slot="${slot}" data-autofocus>Keep</button>`;
+  actions.querySelector<HTMLElement>("[data-autofocus]")?.focus();
+}
+
+function initSaveSlots(): void {
+  const list = document.getElementById("save-slots");
+  if (!list) return;
+  list.addEventListener("click", async (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("button[data-action]");
+    const row = btn?.closest<HTMLElement>(".save-slot");
+    const token = getStoredToken();
+    if (!btn || !row || !token) return;
+    const slot = Number(row.dataset.slot);
+    switch (btn.dataset.action) {
+      case "slot-play": {
+        btn.disabled = true;
+        if (!await saveBeforeSwitching(token)) { btn.disabled = false; return; }
+        const result = await cloudLoad(token, slot);
+        if (result.status !== "ok") {
+          showCloudStatus("✗ Couldn't load that slot. Check your connection.", true);
+          btn.disabled = false;
+          return;
+        }
+        enterSlot(slot, result.data);
+        break;
+      }
+      case "slot-new":
+        btn.disabled = true;
+        if (await saveBeforeSwitching(token)) enterSlot(slot, null);
+        else btn.disabled = false;
+        break;
+      case "slot-copy": {
+        if (!game) return;
+        btn.disabled = true;
+        const result = await cloudCopyToSlot(token, slot, game.saveJson());
+        showCloudStatus(result === "ok" ? `✓ Copied this game into slot ${slot}.` : "✗ Couldn't copy this game. Check your connection.", result !== "ok");
+        await renderSaveSlots();
+        break;
+      }
+      case "slot-rename":
+        startSlotRename(row);
+        break;
+      case "slot-rename-cancel":
+      case "slot-delete-no":
+        await renderSaveSlots();
+        break;
+      case "slot-delete":
+        confirmSlotDelete(row);
+        break;
+      case "slot-delete-yes": {
+        btn.disabled = true;
+        const ok = await cloudDeleteSlot(token, slot) === "ok";
+        if (!ok) showCloudStatus("✗ Couldn't delete that slot. Check your connection.", true);
+        await renderSaveSlots();
+        break;
+      }
+    }
+  });
+}
+
 /** Reads and parses the save from localStorage; returns null if absent or corrupt. */
 function loadSave(): GameStateDict | null {
   try {
@@ -3506,9 +3643,27 @@ function deleteSave(): void {
   localStorage.removeItem(SAVE_KEY);
 }
 
+/** Explains, under a sign-in button, why this address can't sign in. */
+function showSignInUnavailable(btn: HTMLElement): void {
+  if (btn.nextElementSibling?.classList.contains("signin-note")) return;
+  btn.insertAdjacentHTML("afterend",
+    `<p class="signin-note cloud-status cloud-status-error" role="status">Sign-in can't return to this address. Use the live game, or open <strong>http://localhost:8000</strong> on this computer.</p>`);
+}
+
+/** Sends you to Google sign-in, or explains why this address can't. */
+function startSignIn(btn: HTMLElement): void {
+  const url = getLoginUrl();
+  if (url) window.location.href = url;
+  else showSignInUnavailable(btn);
+}
+
 /** Shows/hides the sign-in and sign-out UI elements based on whether a valid token is stored. */
 function updateAuthUI(): void {
   const token = getStoredToken();
+  const signedIn = !!token;
+  $("pdd-signin-btn").hidden = signedIn;
+  $("pdd-slots-btn").hidden = !signedIn;
+  $("pdd-signout-btn").hidden = !signedIn;
   document.querySelectorAll<HTMLElement>("#cloud-signin-btn").forEach(btn => {
     btn.hidden = !!token;
   });
@@ -3832,6 +3987,7 @@ document.addEventListener("DOMContentLoaded", () => {
   placeAttackControls();
   placeRunControls();
   initHeroArea();
+  initSaveSlots();
   wireToastDismiss();
   initRuneSlotPanel();
   initConstellationPanel();
@@ -3943,7 +4099,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Wire up cloud auth UI — two sign-in buttons share the same id (creation overlay + settings)
   document.querySelectorAll<HTMLElement>("#cloud-signin-btn").forEach(btn => {
-    btn.addEventListener("click", () => { window.location.href = getLoginUrl(); });
+    btn.addEventListener("click", () => startSignIn(btn));
   });
   document.getElementById("cloud-signout-btn")?.addEventListener("click", () => {
     clearToken();
@@ -4217,6 +4373,24 @@ document.addEventListener("DOMContentLoaded", () => {
         if (profilePickerOpen) updateProfileDropdownStats(s);
       }
     }
+    else if (action === "cloud-sign-in") {
+      startSignIn(btn);
+    }
+    else if (action === "cloud-sign-out") {
+      profilePickerOpen = false;
+      profileWidgetKey = "";
+      clearToken();
+      updateAuthUI();
+      if (game) renderProfileWidget(JSON.parse(game.respond()) as GameStateDict);
+    }
+    else if (action === "open-save-slots") {
+      profilePickerOpen = false;
+      profileWidgetKey = "";
+      if (game) renderProfileWidget(JSON.parse(game.respond()) as GameStateDict);
+      openSettings();
+      // Land on the slot list rather than the top of Settings.
+      document.getElementById("save-slots")?.closest(".settings-row")?.scrollIntoView({ block: "start" });
+    }
     else if (action === "open-customize-modal") {
       profilePickerOpen = false;
       profileWidgetKey = "";
@@ -4275,7 +4449,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Settings modal
   let settingsModal = $("settings-modal")
-  function openSettings(): void { settingsModal.classList.add("open"); }
+  function openSettings(): void {
+    settingsModal.classList.add("open");
+    renderSaveSlots().catch(e => console.error("renderSaveSlots:", e));
+  }
   function closeSettings(): void { settingsModal.classList.remove("open"); }
   $("settings-modal-close").addEventListener("click", closeSettings);
   settingsModal.addEventListener("click", (e) => { if (e.target === settingsModal) closeSettings(); });

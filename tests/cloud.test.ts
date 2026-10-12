@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   parseAuthHash, isTokenExpired, clearSessionId, resetSessionId, cloudClaimSession,
   getStoredToken, storeToken, clearToken, getLoginUrl, cloudLoad, cloudSave,
-  COGNITO_CLIENT_ID,
+  COGNITO_CLIENT_ID, COGNITO_DOMAIN,
 } from "../src/cloud.js";
 
 // Minimal localStorage stub for Node test environment
@@ -131,19 +131,51 @@ describe("getLoginUrl", () => {
     vi.stubGlobal("crypto", { randomUUID: () => "new-uuid-1234" });
   });
 
-  it("uses the localhost redirect when running locally", () => {
-    vi.stubGlobal("window", { location: { hostname: "localhost" } });
-    expect(getLoginUrl()).toContain(encodeURIComponent("http://localhost:8080"));
+  it("returns to the local port you signed in from", () => {
+    vi.stubGlobal("window", { location: { hostname: "localhost", origin: "http://localhost:8000" } });
+    expect(getLoginUrl()!.endsWith(`redirect_uri=${encodeURIComponent("http://localhost:8000")}`)).toBe(true);
+    vi.stubGlobal("window", { location: { hostname: "localhost", origin: "http://localhost:8080" } });
+    expect(getLoginUrl()!.endsWith(`redirect_uri=${encodeURIComponent("http://localhost:8080")}`)).toBe(true);
   });
 
-  it("uses the GitHub Pages redirect on other hosts", () => {
-    vi.stubGlobal("window", { location: { hostname: "nerdytoddgerdy.github.io" } });
+  it("uses the GitHub Pages redirect on the live site", () => {
+    vi.stubGlobal("window", { location: { hostname: "nerdytoddgerdy.github.io", origin: "https://nerdytoddgerdy.github.io" } });
     expect(getLoginUrl()).toContain(encodeURIComponent("https://nerdytoddgerdy.github.io/toddpocalypse"));
   });
 
+  // Sign-in only returns to registered addresses, and plain http only to localhost,
+  // so a LAN address or 127.0.0.1 can't sign in. Say so instead of sending you to GitHub.
+  it.each([
+    ["192.168.86.112", "http://192.168.86.112:8000"],
+    ["127.0.0.1", "http://127.0.0.1:8000"],
+    ["localhost", "http://localhost:3000"],
+  ])("has no sign-in for %s", (hostname, origin) => {
+    vi.stubGlobal("window", { location: { hostname, origin } });
+    expect(getLoginUrl()).toBeNull();
+  });
+
+  it("every local return address is registered in the infra", async () => {
+    const { LOCAL_REDIRECTS } = await import("../src/cloud.js");
+    const { readFileSync } = await import("node:fs");
+    const infra = readFileSync(new URL("../infra/index.ts", import.meta.url), "utf8");
+    const block = (name: string) => infra.slice(infra.indexOf(`const ${name} = [`), infra.indexOf("];", infra.indexOf(`const ${name} = [`)));
+    for (const o of LOCAL_REDIRECTS) {
+      expect(block("gameOrigins")).toContain(`"${o}"`);
+      expect(block("corsOrigins")).toContain(`"${o}"`);
+    }
+  });
+
+  // Straight to Google's own sign-in page, skipping Cognito's unstyled chooser.
+  it("goes straight to Google, past Cognito's own sign-in page", () => {
+    vi.stubGlobal("window", { location: { hostname: "localhost", origin: "http://localhost:8000" } });
+    const url = getLoginUrl()!;
+    expect(url.startsWith(`${COGNITO_DOMAIN}/oauth2/authorize?`)).toBe(true);
+    expect(url).toContain("identity_provider=Google");
+  });
+
   it("includes client_id and implicit-grant response_type", () => {
-    vi.stubGlobal("window", { location: { hostname: "localhost" } });
-    const url = getLoginUrl();
+    vi.stubGlobal("window", { location: { hostname: "localhost", origin: "http://localhost:8080" } });
+    const url = getLoginUrl()!;
     expect(url).toContain(`client_id=${COGNITO_CLIENT_ID}`);
     expect(url).toContain("response_type=token");
   });
@@ -298,5 +330,96 @@ describe("cloudClaimSession", () => {
     fetchSpy.mockRejectedValue(new Error("network"));
     const result = await cloudClaimSession("tok", "data");
     expect(result).toBe("error");
+  });
+});
+// Five named cloud save slots per player.
+describe("save slots", async () => {
+  const { getActiveSlot, setActiveSlot, cloudListSlots, cloudRenameSlot, cloudDeleteSlot, cloudCopyToSlot, API_URL } = await import("../src/cloud.js");
+  let fetchSpy: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    delete store["toddpocalypse-cloud-slot"];
+    store["toddpocalypse-session"] = "my-session";
+    fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.stubGlobal("localStorage", localStorageMock);
+    vi.stubGlobal("crypto", { randomUUID: () => "new-uuid-1234" });
+  });
+
+  it("plays slot 1 until you pick another, and remembers the pick", () => {
+    expect(getActiveSlot()).toBe(1);
+    setActiveSlot(3);
+    expect(getActiveSlot()).toBe(3);
+  });
+
+  it("ignores a stored slot that's out of range", () => {
+    store["toddpocalypse-cloud-slot"] = "9";
+    expect(getActiveSlot()).toBe(1);
+  });
+
+  it("loads and saves the active slot", async () => {
+    setActiveSlot(2);
+    fetchSpy.mockResolvedValue({ ok: true, status: 200, text: async () => "x" });
+    await cloudLoad("tok");
+    await cloudSave("tok", "data");
+    expect(fetchSpy.mock.calls[0][0]).toBe(`${API_URL}/save?slot=2`);
+    expect(fetchSpy.mock.calls[1][0]).toBe(`${API_URL}/save?slot=2`);
+  });
+
+  it("a forced claim still names the slot", async () => {
+    setActiveSlot(4);
+    fetchSpy.mockResolvedValue({ ok: true, status: 200 });
+    await cloudClaimSession("tok", "data", true);
+    expect(fetchSpy.mock.calls[0][0]).toBe(`${API_URL}/save?slot=4&force=true`);
+  });
+
+  it("lists the slots", async () => {
+    const slots = [{ slot: 1, name: "Main", updatedAt: "2026-10-01T00:00:00Z", summary: null }, { slot: 2, empty: true }];
+    fetchSpy.mockResolvedValue({ ok: true, status: 200, json: async () => slots });
+    expect(await cloudListSlots("tok")).toEqual({ status: "ok", slots });
+    expect(fetchSpy.mock.calls[0][0]).toBe(`${API_URL}/saves`);
+  });
+
+  it("reports a failed list as network or http", async () => {
+    fetchSpy.mockRejectedValue(new Error("x"));
+    expect(await cloudListSlots("tok")).toEqual({ status: "network" });
+    fetchSpy.mockResolvedValue({ ok: false, status: 500 });
+    expect(await cloudListSlots("tok")).toEqual({ status: "http", code: 500 });
+  });
+
+  it("renames with PATCH and the name in the body", async () => {
+    fetchSpy.mockResolvedValue({ ok: true, status: 200 });
+    expect(await cloudRenameSlot("tok", 2, "Speed run")).toBe("ok");
+    const [url, init] = fetchSpy.mock.calls[0];
+    expect(url).toBe(`${API_URL}/save?slot=2`);
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body)).toEqual({ name: "Speed run" });
+  });
+
+  it("deletes with DELETE", async () => {
+    fetchSpy.mockResolvedValue({ ok: true, status: 200 });
+    expect(await cloudDeleteSlot("tok", 5)).toBe("ok");
+    expect(fetchSpy.mock.calls[0][0]).toBe(`${API_URL}/save?slot=5`);
+    expect(fetchSpy.mock.calls[0][1].method).toBe("DELETE");
+  });
+
+  it("copies this game into another slot without touching the active one", async () => {
+    setActiveSlot(1);
+    fetchSpy.mockResolvedValue({ ok: true, status: 200 });
+    expect(await cloudCopyToSlot("tok", 3, "data")).toBe("ok");
+    expect(fetchSpy.mock.calls[0][0]).toBe(`${API_URL}/save?slot=3`);
+    expect(fetchSpy.mock.calls[0][1].method).toBe("PUT");
+    expect(getActiveSlot()).toBe(1);
+  });
+
+  it("rename and delete report errors", async () => {
+    fetchSpy.mockResolvedValue({ ok: false, status: 404 });
+    expect(await cloudRenameSlot("tok", 2, "x")).toBe("error");
+    fetchSpy.mockRejectedValue(new Error("x"));
+    expect(await cloudDeleteSlot("tok", 2)).toBe("error");
   });
 });

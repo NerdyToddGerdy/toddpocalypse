@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.61.0";
+export const VERSION = "v2.62.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,17 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.62.0",
+    date: "2026-10-11",
+    changes: [
+      "Cloud save: fixed \"Could not reach the server\" on the live site while signed in. The save server only accepted requests from the local test address, so it turned every request from the game away",
+      "Cloud save now has five save slots. Name them, play any of them, start a new game in an empty one, copy the game you're playing into one, or delete one. Your existing cloud save becomes slot 1",
+      "Sign in with Google from the header menu, which also has Save slots and Sign out once you're signed in. Signing in now goes straight to Google's sign-in page",
+      "Signing in on this computer at localhost:8000 now brings you back there instead of to the live site",
+      "Internal: the save API is one Lambda with its routes in infra/lambda/saves-core.mjs, covered by tests",
+    ],
+  },
   {
     version: "v2.61.0",
     date: "2026-10-11",

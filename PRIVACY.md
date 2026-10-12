@@ -18,7 +18,7 @@ When you sign in with Google, your email address is used as your account identif
 **Why:** To uniquely identify your account so your save can be stored and retrieved.
 
 ### 2. Game save data
-Your game state — characters, levels, inventory, gold, upgrades, settings, and other progress — is stored in a database linked to your account.
+Your game state — characters, levels, inventory, gold, upgrades, settings, and other progress — is stored in a database linked to your account. You can keep up to five saves ("save slots"). For each one we store the name you give it and a short summary read from the save (lead hero's name, class and level, and best floor), so the slot list can show what's in it. Deleting a slot removes that save.
 
 **Why:** To sync your save across devices and browsers.
 

@@ -36,6 +36,7 @@ import {
 } from "../gear.js";
 import { CLASS_ABILITIES, type Rune } from "../character.js";
 import { ENEMY_NOUNS } from "../dungeon.js";
+import type { SlotInfo } from "../cloud.js";
 
 /** Serialized character snapshot as rendered by the UI. */
 export type CharDict = GameStateDict["party"][number];
@@ -855,4 +856,46 @@ export function renownNextLine(renown: number, nextFloor: number, best: number):
 export function enemyPortraitSrc(name: string): string {
   const noun = name.split(" ").find((w) => (ENEMY_NOUNS as readonly string[]).includes(w));
   return noun ? `monster_${noun.toLowerCase()}.png` : "";
+}
+
+/** "Aldric, level 29 fighter, best floor 44" — what a slot holds, in words. */
+function slotMeta(s: Extract<SlotInfo, { name: string }>): string {
+  const parts: string[] = [];
+  if (s.summary) parts.push(`${esc(s.summary.hero)}, level ${s.summary.level} ${esc(s.summary.cls)}, best floor ${s.summary.best}`);
+  if (s.updatedAt) parts.push(`Saved ${new Date(s.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`);
+  return parts.join(". ");
+}
+
+/**
+ * Settings → Cloud Save: the five slots. The one you're playing can be renamed;
+ * another filled slot can be played, renamed or deleted; an empty one can hold
+ * a new game or a copy of this one.
+ */
+export function saveSlotsHTML(slots: SlotInfo[], active: number): string {
+  const btn = (action: string, slot: number, text: string, label: string, cls = "secondary-btn") =>
+    `<button class="${cls}" data-action="${action}" data-slot="${slot}" aria-label="${esc(label)}">${text}</button>`;
+  return slots.map((s) => {
+    if (s.empty) {
+      return `<li class="save-slot empty" data-slot="${s.slot}">
+        <div class="save-slot-info"><span class="save-slot-name">Empty slot</span></div>
+        <div class="save-slot-actions">
+          ${btn("slot-new", s.slot, "New game", `Start a new game in slot ${s.slot}`)}
+          ${btn("slot-copy", s.slot, "Copy this game here", `Copy this game into slot ${s.slot}`)}
+        </div>
+      </li>`;
+    }
+    const playing = s.slot === active;
+    const name = esc(s.name);
+    return `<li class="save-slot${playing ? " playing" : ""}" data-slot="${s.slot}">
+        <div class="save-slot-info">
+          <span class="save-slot-name">${name}</span>${playing ? `<span class="save-slot-tag">Playing</span>` : ""}
+          <span class="save-slot-meta">${slotMeta(s)}</span>
+        </div>
+        <div class="save-slot-actions">
+          ${playing ? "" : btn("slot-play", s.slot, "Play", `Play ${s.name}`, "secondary-btn save-slot-play")}
+          ${btn("slot-rename", s.slot, "Rename", `Rename ${s.name}`)}
+          ${playing ? "" : btn("slot-delete", s.slot, "Delete", `Delete ${s.name}`, "danger-btn")}
+        </div>
+      </li>`;
+  }).join("");
 }

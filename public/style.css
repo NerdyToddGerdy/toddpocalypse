@@ -230,6 +230,43 @@ body {
     padding: 3px 6px;
     border-radius: 4px;
 }
+/* Settings → Cloud Save: the five slots. */
+.save-slots-head { margin-top: 14px; }
+.save-slots { list-style: none; display: grid; gap: 6px; margin-top: 6px; }
+.save-slot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 10px;
+    padding: 8px 10px;
+    border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+    border-radius: 6px;
+    background: var(--bg-2);
+}
+.save-slot.playing { border-color: var(--torch-mid); }
+.save-slot.empty { border-style: dashed; background: transparent; }
+.save-slot.empty .save-slot-name { color: var(--parchment-dim); font-style: italic; }
+.save-slot-info { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; min-width: 0; flex: 1 1 180px; }
+.save-slot-name { font-weight: 700; color: var(--parchment); overflow-wrap: anywhere; }
+.save-slot-tag { font-size: 0.7rem; color: var(--torch-mid); }
+.save-slot-meta { flex-basis: 100%; font-size: 0.75rem; color: var(--parchment-dim); }
+.save-slot-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.save-slot-actions button, .save-slot-rename button { padding: 4px 10px; font-size: 0.78rem; }
+.save-slot-rename { display: flex; flex-wrap: wrap; gap: 6px; flex-basis: 100%; }
+.save-slot-rename input {
+    flex: 1 1 140px;
+    min-width: 0;
+    padding: 4px 8px;
+    font: inherit;
+    color: var(--parchment);
+    background: var(--bg-1);
+    border: 1px solid var(--gold);
+    border-radius: 4px;
+}
+.save-slot-play { color: var(--parchment); border-color: var(--torch-mid); }
+.save-slot-error { font-size: 0.8rem; color: var(--danger); }
+
 .cloud-status-ok  { color: var(--hp); }
 .cloud-status-error { color: var(--danger); }
 .small-btn {
@@ -463,6 +500,15 @@ header h1 {
     width: 100%;
     transition: background 0.1s;
 }
+/* The account item leads the menu: sign-in is one tap from the header. */
+.profile-menu-item.pdd-account { color: var(--torch-mid); font-weight: 700; }
+/* A hairline under whichever closes the account group: Sign in, or Sign out. */
+:is(#pdd-signin-btn, #pdd-signout-btn) {
+    border-bottom: 1px solid color-mix(in srgb, var(--gold) 35%, transparent);
+    border-radius: 6px 6px 0 0;
+    margin-bottom: 4px;
+}
+
 .profile-menu-item:hover { background: rgba(255,255,255,0.08); }
 
 #settings-open-btn {

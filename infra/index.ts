@@ -6,9 +6,19 @@ const googleClientId = config.requireSecret("googleClientId");
 const googleClientSecret = config.requireSecret("googleClientSecret");
 
 const region = aws.config.region ?? "us-east-1";
+// Full URLs: where sign-in may redirect back to.
 const gameOrigins = [
+    "http://localhost:8000",
     "http://localhost:8080",
     "https://nerdytoddgerdy.github.io/toddpocalypse",
+];
+// Bare origins for CORS. A browser's Origin header never carries a path, so
+// "https://nerdytoddgerdy.github.io/toddpocalypse" never matched and the live
+// game's every request was blocked as "Could not reach the server".
+const corsOrigins = [
+    "http://localhost:8000",
+    "http://localhost:8080",
+    "https://nerdytoddgerdy.github.io",
 ];
 
 // ── DynamoDB ────────────────────────────────────────────────────────────────
@@ -40,6 +50,17 @@ const googleIdp = new aws.cognito.IdentityProvider("google-idp", {
         email: "email",
         username: "sub",
     },
+}, {
+    // Cognito fills these Google defaults in after creation; leave them be so
+    // unrelated deploys don't touch sign-in.
+    ignoreChanges: [
+        "providerDetails.attributes_url",
+        "providerDetails.attributes_url_add_attributes",
+        "providerDetails.authorize_url",
+        "providerDetails.oidc_issuer",
+        "providerDetails.token_request_method",
+        "providerDetails.token_url",
+    ],
 });
 
 const userPoolDomain = new aws.cognito.UserPoolDomain("toddpocalypse-domain", {
@@ -76,7 +97,7 @@ const dynamoPolicy = new aws.iam.Policy("toddpocalypse-dynamo-policy", {
         Version: "2012-10-17",
         Statement: [{
             Effect: "Allow",
-            Action: ["dynamodb:GetItem", "dynamodb:PutItem"],
+            Action: ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:DeleteItem", "dynamodb:BatchGetItem"],
             Resource: arn,
         }],
     })),
@@ -87,112 +108,16 @@ new aws.iam.RolePolicyAttachment("lambda-dynamo-attach", {
     policyArn: dynamoPolicy.arn,
 });
 
-// ── Lambda: GET /save ────────────────────────────────────────────────────────
-const getSaveFn = new aws.lambda.Function("toddpocalypse-getSave", {
-    reservedConcurrentExecutions: 5,
-    name: "toddpocalypse-getSave",
+// ── Lambda: the save API (five named slots per player) ─────────────────────
+// The routes live in lambda/saves-core.mjs, which the game's tests cover.
+const savesFn = new aws.lambda.Function("toddpocalypse-saves", {
+    reservedConcurrentExecutions: 10,
+    name: "toddpocalypse-saves",
     runtime: aws.lambda.Runtime.NodeJS20dX,
     role: lambdaRole.arn,
-    handler: "index.handler",
-    code: new pulumi.asset.AssetArchive({
-        "index.js": new pulumi.asset.StringAsset(`
-const { DynamoDBClient, GetItemCommand } = require("@aws-sdk/client-dynamodb");
-const client = new DynamoDBClient({});
-const ALLOWED = new Set((process.env.ALLOWED_ORIGINS || "").split(","));
-function corsOrigin(event) {
-    const o = (event.headers && (event.headers.origin || event.headers.Origin)) || "";
-    return ALLOWED.has(o) ? o : [...ALLOWED][0];
-}
-
-exports.handler = async (event) => {
-    const userId = event.requestContext?.authorizer?.jwt?.claims?.sub;
-    if (!userId) return { statusCode: 401, body: "Unauthorized" };
-    try {
-        const result = await client.send(new GetItemCommand({
-            TableName: process.env.TABLE_NAME,
-            Key: { userId: { S: userId } },
-        }));
-        return {
-            statusCode: 200,
-            headers: {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": corsOrigin(event),
-            },
-            body: result.Item?.data?.S ?? null,
-        };
-    } catch (e) {
-        console.error(e);
-        return { statusCode: 500, body: "Internal error" };
-    }
-};
-        `),
-    }),
-    environment: { variables: { TABLE_NAME: saveTable.name, ALLOWED_ORIGINS: gameOrigins.join(",") } },
-    timeout: 10,
-});
-
-// ── Lambda: PUT /save ────────────────────────────────────────────────────────
-const putSaveFn = new aws.lambda.Function("toddpocalypse-putSave", {
-    reservedConcurrentExecutions: 5,
-    name: "toddpocalypse-putSave",
-    runtime: aws.lambda.Runtime.NodeJS20dX,
-    role: lambdaRole.arn,
-    handler: "index.handler",
-    code: new pulumi.asset.AssetArchive({
-        "index.js": new pulumi.asset.StringAsset(`
-const { DynamoDBClient, PutItemCommand } = require("@aws-sdk/client-dynamodb");
-const client = new DynamoDBClient({});
-const SESSION_TTL_MS = 90_000;
-const ALLOWED = new Set((process.env.ALLOWED_ORIGINS || "").split(","));
-function corsOrigin(event) {
-    const o = (event.headers && (event.headers.origin || event.headers.Origin)) || "";
-    return ALLOWED.has(o) ? o : [...ALLOWED][0];
-}
-
-exports.handler = async (event) => {
-    const userId = event.requestContext?.authorizer?.jwt?.claims?.sub;
-    if (!userId) return { statusCode: 401, body: "Unauthorized" };
-    const body = event.body;
-    if (!body) return { statusCode: 400, body: "Missing body" };
-    const sessionId = event.headers?.["x-session-id"] ?? "unknown";
-    const forceSession = event.queryStringParameters?.force === "true";
-    const now = Date.now();
-    try {
-        const putParams = {
-            TableName: process.env.TABLE_NAME,
-            Item: {
-                userId:        { S: userId },
-                data:          { S: body },
-                updatedAt:     { S: new Date().toISOString() },
-                sessionId:     { S: sessionId },
-                sessionExpiry: { N: String(now + SESSION_TTL_MS) },
-            },
-        };
-        if (!forceSession) {
-            putParams.ConditionExpression =
-                "attribute_not_exists(sessionId) OR sessionId = :sid OR sessionExpiry < :now";
-            putParams.ExpressionAttributeValues = {
-                ":sid": { S: sessionId },
-                ":now": { N: String(now) },
-            };
-        }
-        await client.send(new PutItemCommand(putParams));
-        return {
-            statusCode: 200,
-            headers: { "Access-Control-Allow-Origin": corsOrigin(event) },
-            body: "OK",
-        };
-    } catch (e) {
-        if (e.name === "ConditionalCheckFailedException") {
-            return { statusCode: 409, headers: { "Access-Control-Allow-Origin": corsOrigin(event) }, body: "Session conflict" };
-        }
-        console.error(e);
-        return { statusCode: 500, body: "Internal error" };
-    }
-};
-        `),
-    }),
-    environment: { variables: { TABLE_NAME: saveTable.name, ALLOWED_ORIGINS: gameOrigins.join(",") } },
+    handler: "saves.handler",
+    code: new pulumi.asset.FileArchive("./lambda"),
+    environment: { variables: { TABLE_NAME: saveTable.name, ALLOWED_ORIGINS: corsOrigins.join(",") } },
     timeout: 10,
 });
 
@@ -201,8 +126,8 @@ const api = new aws.apigatewayv2.Api("toddpocalypse-api", {
     name: "toddpocalypse-api",
     protocolType: "HTTP",
     corsConfiguration: {
-        allowOrigins: gameOrigins,
-        allowMethods: ["GET", "PUT", "OPTIONS"],
+        allowOrigins: corsOrigins,
+        allowMethods: ["GET", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allowHeaders: ["Authorization", "Content-Type", "X-Session-Id", "X-Force-Session"],
     },
 });
@@ -217,35 +142,30 @@ const authorizer = new aws.apigatewayv2.Authorizer("cognito-jwt", {
     },
 });
 
-const getSaveIntegration = new aws.apigatewayv2.Integration("getSave-int", {
+const savesIntegration = new aws.apigatewayv2.Integration("saves-int", {
     apiId: api.id,
     integrationType: "AWS_PROXY",
-    integrationUri: getSaveFn.arn,
+    integrationUri: savesFn.arn,
     payloadFormatVersion: "2.0",
 });
 
-const putSaveIntegration = new aws.apigatewayv2.Integration("putSave-int", {
-    apiId: api.id,
-    integrationType: "AWS_PROXY",
-    integrationUri: putSaveFn.arn,
-    payloadFormatVersion: "2.0",
-});
-
-new aws.apigatewayv2.Route("get-save-route", {
-    apiId: api.id,
-    routeKey: "GET /save",
-    authorizationType: "JWT",
-    authorizerId: authorizer.id,
-    target: pulumi.interpolate`integrations/${getSaveIntegration.id}`,
-});
-
-new aws.apigatewayv2.Route("put-save-route", {
-    apiId: api.id,
-    routeKey: "PUT /save",
-    authorizationType: "JWT",
-    authorizerId: authorizer.id,
-    target: pulumi.interpolate`integrations/${putSaveIntegration.id}`,
-});
+// Resource names of the first two routes predate the slots; keeping them updates in place.
+const saveRoutes: [string, string][] = [
+    ["get-save-route", "GET /save"],
+    ["put-save-route", "PUT /save"],
+    ["patch-save-route", "PATCH /save"],
+    ["delete-save-route", "DELETE /save"],
+    ["list-saves-route", "GET /saves"],
+];
+for (const [name, routeKey] of saveRoutes) {
+    new aws.apigatewayv2.Route(name, {
+        apiId: api.id,
+        routeKey,
+        authorizationType: "JWT",
+        authorizerId: authorizer.id,
+        target: pulumi.interpolate`integrations/${savesIntegration.id}`,
+    });
+}
 
 const stage = new aws.apigatewayv2.Stage("default-stage", {
     apiId: api.id,
@@ -257,16 +177,9 @@ const stage = new aws.apigatewayv2.Stage("default-stage", {
     },
 });
 
-new aws.lambda.Permission("getSave-apigw", {
+new aws.lambda.Permission("saves-apigw", {
     action: "lambda:InvokeFunction",
-    function: getSaveFn.name,
-    principal: "apigateway.amazonaws.com",
-    sourceArn: pulumi.interpolate`${api.executionArn}/*/*`,
-});
-
-new aws.lambda.Permission("putSave-apigw", {
-    action: "lambda:InvokeFunction",
-    function: putSaveFn.name,
+    function: savesFn.name,
     principal: "apigateway.amazonaws.com",
     sourceArn: pulumi.interpolate`${api.executionArn}/*/*`,
 });

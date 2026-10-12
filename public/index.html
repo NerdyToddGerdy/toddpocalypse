@@ -96,6 +96,9 @@
     <button id="header-settings-btn" class="icon-btn" aria-label="Settings" title="Settings">⚙</button>
     <button id="header-avatar-btn" data-action="open-profile-picker" title="Profile"></button>
     <div id="profile-picker-dropdown" hidden>
+      <button class="profile-menu-item pdd-account" id="pdd-signin-btn" data-action="cloud-sign-in">☁ Sign in with Google</button>
+      <button class="profile-menu-item pdd-account" id="pdd-slots-btn" data-action="open-save-slots" hidden>☁ Save slots</button>
+      <button class="profile-menu-item" id="pdd-signout-btn" data-action="cloud-sign-out" hidden>Sign out</button>
       <button class="profile-menu-item" data-action="open-customize-modal">🎨 Customize</button>
       <button class="profile-menu-item" data-action="open-settings-modal">⚙ Settings</button>
       <button class="profile-menu-item" data-action="open-about-modal"><span class="spr spr-book" aria-hidden="true"></span> About</button>
@@ -449,6 +452,8 @@
             <button id="claim-device-btn" class="secondary-btn">Set Active Device</button>
             <button id="cloud-signout-btn" class="secondary-btn">Sign out</button>
           </div>
+          <div class="settings-label save-slots-head">Save slots</div>
+          <ul id="save-slots" class="save-slots" aria-label="Save slots"></ul>
           <div id="cloud-status-msg" class="cloud-status" hidden></div>
         </div>
       </div>
