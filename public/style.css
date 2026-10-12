@@ -7006,3 +7006,56 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
     #party-panel.gear-hidden #party-cards > .char-card { grid-template-columns: 84px 1fr 120px; }
     #party-cards .char-card :is(.char-class, .char-dps, .char-crit) { white-space: nowrap; }
 }
+
+/* ── Music: header mute button and the Settings row ── */
+#header-music-btn {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    margin-right: 8px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 1.05rem;
+    line-height: 1;
+    color: var(--parchment-dim);
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--gold) 55%, transparent);
+    cursor: pointer;
+}
+#header-music-btn:hover { color: var(--parchment); }
+/* Muted: the note is struck through. */
+#header-music-btn.muted { opacity: 0.7; }
+#header-music-btn.muted::after {
+    content: "";
+    position: absolute;
+    left: 22%;
+    right: 22%;
+    top: 50%;
+    height: 2px;
+    background: currentColor;
+    transform: rotate(-45deg);
+}
+@media (max-width: 1023px) {
+    #header-music-btn { width: 40px; height: 40px; }
+}
+.music-volume-row,
+.music-bg-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--parchment);
+    font-size: 0.85rem;
+}
+.music-bg-row { margin-top: 8px; gap: 8px; }
+.music-volume-row input[type="range"] {
+    width: min(220px, 100%);
+    accent-color: var(--torch-mid);
+}
+.music-volume-row output {
+    min-width: 3.5ch;
+    font-family: var(--font-mono);
+    color: var(--parchment-dim);
+}
+.music-bg-row input { accent-color: var(--torch-mid); }

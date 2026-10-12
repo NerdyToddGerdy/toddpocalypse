@@ -132,6 +132,7 @@ import {
 } from "./ui/html.js";
 import { initDialogs } from "./ui/dialogs.js";
 import { DEFAULT_THEME, resolveTheme, type Theme } from "./theme.js";
+import { loadMusicSettings, MusicPlayer, MUSIC_URL, saveMusicSettings, type MusicAudioContext } from "./audio.js";
 
 // Record: Descriptions for the Heroes
 const CLASS_DESCS: Record<string, string> = {
@@ -3574,6 +3575,53 @@ function confirmSlotDelete(row: HTMLElement): void {
   actions.querySelector<HTMLElement>("[data-autofocus]")?.focus();
 }
 
+/** Background music: starts on the first tap or key, muted from the header, set in Settings. */
+function initMusic(): void {
+  const btn = document.getElementById("header-music-btn") as HTMLButtonElement | null;
+  if (!btn) return;
+  if (typeof AudioContext === "undefined") { btn.hidden = true; return; }
+  let settings = loadMusicSettings(localStorage);
+  const player = new MusicPlayer({
+    createContext: () => new AudioContext() as unknown as MusicAudioContext,
+    fetchTrack: () => fetch(MUSIC_URL).then((r) => (r.ok ? r.arrayBuffer() : null)),
+    setTimer: (fn, ms) => window.setInterval(fn, ms),
+    clearTimer: (id) => window.clearInterval(id),
+    fadeMs: 600,
+  }, settings);
+  const volume = document.getElementById("music-volume") as HTMLInputElement;
+  const volumeOut = document.getElementById("music-volume-out")!;
+  const background = document.getElementById("music-background") as HTMLInputElement;
+
+  const sync = (): void => {
+    btn.setAttribute("aria-pressed", String(settings.muted));
+    btn.classList.toggle("muted", settings.muted);
+    volume.value = String(Math.round(settings.volume * 100));
+    volumeOut.textContent = `${volume.value}%`;
+    background.checked = settings.background;
+  };
+  const apply = (next: typeof settings): void => {
+    settings = next;
+    saveMusicSettings(localStorage, settings);
+    sync();
+    void player.update(settings, document.hidden);
+  };
+  sync();
+
+  const begin = (): void => {
+    document.removeEventListener("pointerdown", begin, true);
+    document.removeEventListener("keydown", begin, true);
+    void player.start();
+  };
+  document.addEventListener("pointerdown", begin, true);
+  document.addEventListener("keydown", begin, true);
+  document.addEventListener("visibilitychange", () => void player.update(settings, document.hidden));
+
+  btn.addEventListener("click", () => apply({ ...settings, muted: !settings.muted }));
+  // Moving the slider is a request to hear it, so it unmutes.
+  volume.addEventListener("input", () => apply({ ...settings, volume: Number(volume.value) / 100, muted: false }));
+  background.addEventListener("change", () => apply({ ...settings, background: background.checked }));
+}
+
 function initSaveSlots(): void {
   const list = document.getElementById("save-slots");
   if (!list) return;
@@ -3990,6 +4038,7 @@ document.addEventListener("DOMContentLoaded", () => {
   placeRunControls();
   initHeroArea();
   initSaveSlots();
+  initMusic();
   wireToastDismiss();
   initRuneSlotPanel();
   initConstellationPanel();

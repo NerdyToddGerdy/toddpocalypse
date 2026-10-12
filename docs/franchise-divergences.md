@@ -52,6 +52,7 @@ The bible does not say where per-title divergences get recorded. This is that pl
 | §6 | No `src/data/` | 🟡 Owed | #61 |
 | §6 | Changelog is generated `.md` from a typed `.ts` source | 🔵 Conformant | #62 |
 | §6 | No Playwright; failing-test-first rule unadopted | 🟡 Owed | #63 |
+| — | Audio: one looping AI-generated track; the bible has no audio section | ⚪ Open | — |
 
 ---
 
@@ -458,6 +459,12 @@ Each is tracked; this section is a pointer, not a duplicate of the issue.
   maintain a `PRIVACY.md` because of it. A considered trade for cross-device sync — but the
   argument isn't on the record, and #46's save-code system is the anonymous alternative already on
   the backlog.
+- **Audio** — the bible says nothing about sound. Since v2.64.0 the game plays one looping
+  background track (`public/audio/theme.mp3`, `src/audio.ts`): on and quiet by default, muted from
+  the header, silent while the tab is hidden unless the player opts in. The owner chose to generate
+  the track with AI. **Before shipping it, record here the tool, plan, date and prompt, and confirm
+  the plan grants commercial rights** (§1). Until the file exists, a generated drone plays instead.
+  Propose an audio section for the bible once the track is settled.
 - **§2 name** — `Idle Depths` collides with a live idle game, a registered `idledepths.com`, and a
   Steam subtitle (#51). Knowingly kept on the strength of the `GerdQuest:` prefix as disambiguator.
   **Re-run the §2 check before publishing to any storefront** (#33, #45) — that's the point of no

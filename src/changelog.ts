@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.63.0";
+export const VERSION = "v2.64.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.64.0",
+    date: "2026-10-12",
+    changes: [
+      "Background music. It starts quietly after your first tap or key press and loops without a gap. A placeholder drone plays until the real track is added",
+      "The ♪ button in the header mutes or unmutes the music",
+      "Settings → Music: a volume slider, and \"Keep playing in the background\". Otherwise the music fades out while the tab is hidden and back in when you return",
+    ],
+  },
   {
     version: "v2.63.0",
     date: "2026-10-12",

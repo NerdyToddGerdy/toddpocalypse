@@ -93,6 +93,7 @@
     </div>
   </div>
   <div id="header-avatar-area">
+    <button id="header-music-btn" class="icon-btn" aria-label="Mute music" aria-pressed="false" title="Mute music">♪</button>
     <button id="header-settings-btn" class="icon-btn" aria-label="Settings" title="Settings">⚙</button>
     <button id="header-avatar-btn" data-action="open-profile-picker" title="Profile"></button>
     <div id="profile-picker-dropdown" hidden>
@@ -440,6 +441,15 @@
         <div class="settings-label">Changelog</div>
         <div class="settings-desc">See what's new in this version.</div>
         <button id="mobile-changelog-btn" class="secondary-btn">View Changelog</button>
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Music</div>
+        <div class="settings-desc">Starts after your first tap or key press. The ♪ button in the header mutes it.</div>
+        <label class="music-volume-row">Volume
+          <input id="music-volume" type="range" min="0" max="100" step="1" value="25">
+          <output id="music-volume-out" for="music-volume">25%</output>
+        </label>
+        <label class="music-bg-row"><input type="checkbox" id="music-background"> Keep playing in the background</label>
       </div>
       <div class="settings-row">
         <div class="settings-label">Cloud Save</div>

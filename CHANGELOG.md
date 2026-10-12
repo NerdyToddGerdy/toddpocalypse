@@ -4,6 +4,12 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.64.0 — 2026-10-12
+
+- Background music. It starts quietly after your first tap or key press and loops without a gap. A placeholder drone plays until the real track is added
+- The ♪ button in the header mutes or unmutes the music
+- Settings → Music: a volume slider, and "Keep playing in the background". Otherwise the music fades out while the tab is hidden and back in when you return
+
 ## v2.63.0 — 2026-10-12
 
 - Two or more heroes of the same class strengthen that class's skill. Each extra hero cuts its cooldown by 15% and makes it 50% stronger, for up to three extra heroes. Two fighters' Battle Cry is ×2.5 on a 17-kill cooldown; two paladins' Consecrate heals 75%; extra druids make Entangle weaken the enemy further
