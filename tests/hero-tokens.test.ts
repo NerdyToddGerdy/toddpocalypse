@@ -184,6 +184,22 @@ describe("depthStripHTML", () => {
   });
 });
 
+// The ⚑ beside "best" (phones) and the depth gauge's marker (desktop) both show
+// the checkpoint, so the old "Checkpoint: Floor N" line is gone. On phones it
+// sat in the floor row and squeezed the enrage bar.
+describe("checkpoint line", () => {
+  it("is gone from the page, the code and the styles", () => {
+    expect(indexHtml).not.toContain("checkpoint-display");
+    expect(mainTs).not.toContain("checkpoint-display");
+    expect(css).not.toContain("checkpoint-display");
+    expect(css).not.toMatch(/\.checkpoint-active\b/);
+  });
+
+  it("the desktop depth gauge still marks the checkpoint", () => {
+    expect(indexHtml).toContain('id="depth-checkpoint-marker"');
+  });
+});
+
 describe("wiring", () => {
   it("has the token row and hero bar in the page", () => {
     expect(indexHtml).toContain('<nav id="hero-tokens"');

@@ -4,6 +4,10 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.60.0 — 2026-10-11
+
+- Removed the separate "Checkpoint: Floor N" line. The checkpoint already shows as ⚑ beside your best floor on phones and on the depth gauge on desktop, and on phones the extra line squeezed the enrage bar
+
 ## v2.59.0 — 2026-10-11
 
 - Click or tap an alert (feat unlocked, defeated, returned to town) to dismiss it, on every screen size

@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.59.0";
+export const VERSION = "v2.60.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.60.0",
+    date: "2026-10-11",
+    changes: [
+      "Removed the separate \"Checkpoint: Floor N\" line. The checkpoint already shows as ⚑ beside your best floor on phones and on the depth gauge on desktop, and on phones the extra line squeezed the enrage bar",
+    ],
+  },
   {
     version: "v2.59.0",
     date: "2026-10-11",

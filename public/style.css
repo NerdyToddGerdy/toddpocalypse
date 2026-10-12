@@ -2093,7 +2093,6 @@ main {
     height: 18px;
 }
 #floor-progress:has(#enemy-enrage-bar-wrap.active) #floor-pip-row { flex: 0 0 auto; }
-#checkpoint-display:empty { display: none; }
 
 #floor-pip-row {
     flex: 1;
@@ -2495,7 +2494,6 @@ main {
     #floor-progress { gap: 6px; }
     #floor-pip-row { flex: 1; justify-content: center; gap: 2px; }
     .floor-pip { width: 7px; height: 4px; }
-    #checkpoint-display { display: none; }
     #attack-btn { padding: 6px 10px; font-size: 0.9rem; margin-top: 0; }
     #attack-row { margin-top: 0; gap: 5px; }
 
@@ -3392,18 +3390,6 @@ footer {
 }
 
 #drop-chart-btn:hover { opacity: 1; }
-
-/* Checkpoint indicator */
-#checkpoint-display {
-    display: block;
-    font-size: 0.8rem;
-    margin-top: 4px;
-}
-
-.checkpoint-active {
-    color: var(--torch-mid);
-    font-weight: 600;
-}
 
 /* Auto Seller config */
 #auto-seller-section {
