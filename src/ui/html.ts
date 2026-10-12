@@ -22,6 +22,9 @@ import {
   type GameStateDict,
   HP_UPGRADE_EFFECT,
   SKILL_DEFS,
+  SKILL_STACK_COOLDOWN_CUT,
+  SKILL_STACK_POWER,
+  skillExtraHeroes,
   startingGoldForLevel,
   UPGRADE_EFFECTS,
 } from "../engine.js";
@@ -423,7 +426,7 @@ export function buildSkillTooltipHTML(a: AbilityCardData): string {
     <div class="tt-stat-row"><span class="tt-stat-label">${a.desc}</span></div>`;
 }
 
-export function buildActiveSkillTooltipHTML(skillId: string, skillState?: { remaining: number; expiry: number; totalCooldown: number; isActive: boolean; onCooldown: boolean }): string {
+export function buildActiveSkillTooltipHTML(skillId: string, skillState?: { remaining: number; expiry: number; totalCooldown: number; isActive: boolean; onCooldown: boolean; heroes?: number }): string {
   const name = SKILL_NAMES[skillId] ?? skillId;
   const desc = SKILL_DESCS[skillId] ?? "";
   let cooldownKills: number;
@@ -438,7 +441,11 @@ export function buildActiveSkillTooltipHTML(skillId: string, skillState?: { rema
   } else {
     statusLine = `<div class="skill-tooltip-status skill-status-ready">✓ Ready</div>`;
   }
-  return `<div class="skill-tooltip"><div class="skill-tooltip-name">${name}</div><div class="skill-tooltip-desc">${desc}</div><div class="skill-tooltip-cd">Cooldown: ${cooldownKills} kills</div>${statusLine}</div>`;
+  const extra = skillExtraHeroes(skillState?.heroes ?? 1);
+  const stackLine = extra > 0
+    ? `<div class="skill-tooltip-stack">${skillState!.heroes} ${SKILL_DEFS[skillId]?.class}s: ${Math.round(extra * SKILL_STACK_COOLDOWN_CUT * 100)}% shorter cooldown, ${Math.round(extra * SKILL_STACK_POWER * 100)}% stronger</div>`
+    : "";
+  return `<div class="skill-tooltip"><div class="skill-tooltip-name">${name}</div><div class="skill-tooltip-desc">${desc}</div><div class="skill-tooltip-cd">Cooldown: ${cooldownKills} kills</div>${stackLine}${statusLine}</div>`;
 }
 
 /** Escapes text for HTML. */

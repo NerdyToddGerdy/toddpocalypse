@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.62.0";
+export const VERSION = "v2.63.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.63.0",
+    date: "2026-10-12",
+    changes: [
+      "Two or more heroes of the same class strengthen that class's skill. Each extra hero cuts its cooldown by 15% and makes it 50% stronger, for up to three extra heroes. Two fighters' Battle Cry is ×2.5 on a 17-kill cooldown; two paladins' Consecrate heals 75%; extra druids make Entangle weaken the enemy further",
+      "The skill tooltip shows the bonus, for example \"2 fighters: 15% shorter cooldown, 50% stronger\"",
+      "Hero cards: each rune square now sits directly under the gear piece it belongs to",
+    ],
+  },
   {
     version: "v2.62.0",
     date: "2026-10-11",

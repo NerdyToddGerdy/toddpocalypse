@@ -2479,7 +2479,7 @@ function findCombinePairs(runeInv: Rune[], maxTier: Rune["tier"] = "lesser"): { 
 /** Shows/hides the active skill button and updates its cooldown drain bar. */
 function renderSkillButton(state: GameStateDict): void {
   const skillId = state.skill_available;
-  const newKey = skillId + "|" + (skillId ? (state.skill_cooldowns[skillId] ?? 0) : 0) + "|" + (skillId ? (state.active_effects[skillId] ?? 0) : 0) + "|" + (state.all_skills_unlocked ? "1" : "0") + "|" + (state.auto_skill_enabled ? "1" : "0");
+  const newKey = skillId + "|" + (skillId ? (state.skill_cooldowns[skillId] ?? 0) : 0) + "|" + (skillId ? (state.active_effects[skillId] ?? 0) : 0) + "|" + (state.all_skills_unlocked ? "1" : "0") + "|" + (state.auto_skill_enabled ? "1" : "0") + "|" + (skillId ? (state.skill_class_counts[skillId] ?? 1) : 0);
   if (newKey === skillKey) return;
   skillKey = newKey;
 
@@ -2495,7 +2495,8 @@ function renderSkillButton(state: GameStateDict): void {
   btn.hidden = false;
   const remaining = state.skill_cooldowns[skillId] ?? 0;
   const expiry = state.active_effects[skillId] ?? 0;
-  const totalCooldown = SKILL_DEFS[skillId]?.cooldownKills ?? 30;
+  const totalCooldown = state.skill_cooldown_totals[skillId] ?? SKILL_DEFS[skillId]?.cooldownKills ?? 30;
+  const heroes = state.skill_class_counts[skillId] ?? 1;
   const isActive = expiry > 0;
   const onCooldown = remaining > 0 && !isActive;
 
@@ -2503,7 +2504,7 @@ function renderSkillButton(state: GameStateDict): void {
   btn.innerHTML = skillButtonHTML(skillLabel);
   btn.setAttribute("aria-label", skillAriaLabel(skillLabel, { remaining, isActive, onCooldown }));
   btn.dataset.activeSkill = skillId;
-  btn.dataset.skillState = encodeURIComponent(JSON.stringify({ remaining, expiry, totalCooldown, isActive, onCooldown }));
+  btn.dataset.skillState = encodeURIComponent(JSON.stringify({ remaining, expiry, totalCooldown, isActive, onCooldown, heroes }));
   btn.disabled = onCooldown;
   btn.className = isActive ? "active" : "";
 
@@ -2515,7 +2516,7 @@ function renderSkillButton(state: GameStateDict): void {
 function renderCompanionSkills(state: GameStateDict): void {
   const skills = state.companion_skills_available;
   const newKey = JSON.stringify(skills) + "|" + skills.map(id =>
-    (state.skill_cooldowns[id] ?? 0) + ":" + (state.active_effects[id] ?? 0)
+    (state.skill_cooldowns[id] ?? 0) + ":" + (state.active_effects[id] ?? 0) + ":" + (state.skill_class_counts[id] ?? 1)
   ).join(",");
   if (newKey === companionSkillKey) return;
   companionSkillKey = newKey;
@@ -2526,12 +2527,13 @@ function renderCompanionSkills(state: GameStateDict): void {
   container.innerHTML = skills.map(skillId => {
     const remaining = state.skill_cooldowns[skillId] ?? 0;
     const expiry = state.active_effects[skillId] ?? 0;
-    const totalCooldown = SKILL_DEFS[skillId]?.cooldownKills ?? 30;
+    const totalCooldown = state.skill_cooldown_totals[skillId] ?? SKILL_DEFS[skillId]?.cooldownKills ?? 30;
+    const heroes = state.skill_class_counts[skillId] ?? 1;
     const isActive = expiry > 0;
     const onCooldown = remaining > 0 && !isActive;
     const label = SKILL_NAMES[skillId] ?? skillId;
     return `<div class="companion-skill-cell">
-      <button class="companion-skill-btn${isActive ? " active" : ""}" data-action="activate-companion-skill" data-skill="${skillId}" data-active-skill="${skillId}" data-skill-state="${encodeURIComponent(JSON.stringify({ remaining, expiry, totalCooldown, isActive, onCooldown }))}" aria-label="${skillAriaLabel(label, { remaining, isActive, onCooldown })}"${onCooldown ? " disabled" : ""}>${skillButtonHTML(label)}</button>
+      <button class="companion-skill-btn${isActive ? " active" : ""}" data-action="activate-companion-skill" data-skill="${skillId}" data-active-skill="${skillId}" data-skill-state="${encodeURIComponent(JSON.stringify({ remaining, expiry, totalCooldown, isActive, onCooldown, heroes }))}" aria-label="${skillAriaLabel(label, { remaining, isActive, onCooldown })}"${onCooldown ? " disabled" : ""}>${skillButtonHTML(label)}</button>
     </div>`;
   }).join("");
 }

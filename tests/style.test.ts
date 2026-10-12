@@ -667,6 +667,17 @@ describe("condensed party view", () => {
     expect(mainTs2).toMatch(/TOOLTIP_SELECTORS = "[^"]*\.char-gear-sq\[data-item\]/);
   });
 
+  it("each rune square sits under the gear square it belongs to", () => {
+    const decl = (sel: string, prop: string) =>
+      bodiesFor(sel).join(";").match(new RegExp(`(?:^|[;{\\s])${prop}:\\s*([^;]+)`))?.[1].trim();
+    for (const prop of ["gap", "padding-left"]) {
+      expect(decl(".char-rune-row", prop), prop).toBeDefined();
+      expect(decl(".char-rune-row", prop), prop).toBe(decl(".char-gear-row", prop));
+    }
+    expect(bodiesFor(".tt-rune-slot").join(";")).toMatch(/width:\s*11px/);
+    expect(bodiesFor(".char-gear-sq").join(";")).toMatch(/width:\s*11px/);
+  });
+
   it("set pieces get a gold ring on top of their colour", () => {
     expect(bodiesFor(".char-gear-sq.set-piece").join(";")).toMatch(/outline:\s*2px solid var\(--gold-bright\)/);
   });

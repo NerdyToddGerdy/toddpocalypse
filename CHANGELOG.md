@@ -4,6 +4,12 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.63.0 — 2026-10-12
+
+- Two or more heroes of the same class strengthen that class's skill. Each extra hero cuts its cooldown by 15% and makes it 50% stronger, for up to three extra heroes. Two fighters' Battle Cry is ×2.5 on a 17-kill cooldown; two paladins' Consecrate heals 75%; extra druids make Entangle weaken the enemy further
+- The skill tooltip shows the bonus, for example "2 fighters: 15% shorter cooldown, 50% stronger"
+- Hero cards: each rune square now sits directly under the gear piece it belongs to
+
 ## v2.62.0 — 2026-10-11
 
 - Cloud save: fixed "Could not reach the server" on the live site while signed in. The save server only accepted requests from the local test address, so it turned every request from the game away

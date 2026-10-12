@@ -355,6 +355,40 @@ export const BATTLE_CRY_MULT    = 2.0;
 export const SHADOW_STRIKE_MULT = 3.0;
 export const ARCANE_SURGE_MULT  = 3.0;
 export const VOLLEY_MULT        = 2.5;
+/** Fraction of max HP Consecrate heals. */
+export const CONSECRATE_HEAL    = 0.50;
+
+/** Extra heroes of a skill's class that strengthen it; more than this adds nothing. */
+export const SKILL_STACK_MAX_EXTRA = 3;
+/** Cooldown cut per extra hero of the skill's class. */
+export const SKILL_STACK_COOLDOWN_CUT = 0.15;
+/** Each extra hero adds this share of the skill's bonus again. */
+export const SKILL_STACK_POWER = 0.5;
+
+/** Heroes of a class beyond the first, capped at {@link SKILL_STACK_MAX_EXTRA}. */
+export function skillExtraHeroes(count: number): number {
+  return Math.min(SKILL_STACK_MAX_EXTRA, Math.max(0, count - 1));
+}
+
+/** A skill's cooldown in kills with `count` heroes of its class. */
+export function stackedCooldown(base: number, count: number): number {
+  return Math.round(base * (1 - SKILL_STACK_COOLDOWN_CUT * skillExtraHeroes(count)));
+}
+
+/** A damage multiplier with `count` heroes of its class: the bonus over ×1 grows. */
+export function stackedMult(mult: number, count: number): number {
+  return 1 + (mult - 1) * (1 + SKILL_STACK_POWER * skillExtraHeroes(count));
+}
+
+/** Fraction of max HP Consecrate heals with `count` paladins. */
+export function stackedHeal(count: number): number {
+  return Math.min(1, CONSECRATE_HEAL * (1 + SKILL_STACK_POWER * skillExtraHeroes(count)));
+}
+
+/** How much Entangle cuts enemy attack with `count` druids: the damage let through shrinks. */
+export function stackedEntangle(count: number): number {
+  return 1 - (1 - ENTANGLE_REDUCTION) / (1 + SKILL_STACK_POWER * skillExtraHeroes(count));
+}
 
 export const SKILL_DEFS: Record<string, { cooldownKills: number; durationKills: number; class: string }> = {
   skill_battle_cry:    { cooldownKills: 20, durationKills: 8, class: "fighter" },
@@ -605,6 +639,10 @@ export interface GameStateDict {
   skill_available: string | null;
   companion_skills_available: string[];
   skill_cooldowns: Record<string, number>;
+  /** Each skill's full cooldown in kills, after the same-class bonus. */
+  skill_cooldown_totals: Record<string, number>;
+  /** Heroes in the party of each skill's class. */
+  skill_class_counts: Record<string, number>;
   active_effects: Record<string, number>;
   loot_max: number;
   saved_at: number;
@@ -1061,7 +1099,7 @@ export class GameState {
    */
   private partyFactors(scan: PartyScan): { pre: Factor[]; dmg: Factor[] } {
     const cb = this.constellationBonuses;
-    const active = (id: string, mult: number) => ((this.activeEffects[id] ?? 0) > 0 ? mult : 1.0);
+    const active = (id: string, mult: number) => ((this.activeEffects[id] ?? 0) > 0 ? this.skillMult(id, mult) : 1.0);
     return {
       pre: [
         { label: "Haste", value: 1 + scan.partyHaste * cb.hasteMultiplier },
@@ -1181,7 +1219,7 @@ export class GameState {
       const coreSlot = target.artifactSlots.find(s => s?.id === "wardens_core");
       if (coreSlot) artifactDmgReduction = ARTIFACT_DEFS[coreSlot.id].effectValue * (coreSlot.level + 1);
       const totalDmgReduction = Math.min(0.50, target.damageReduction + artifactDmgReduction) + Math.min(0.35, cb.defenseBonus / 100);
-      const entangleMult = (this.activeEffects["skill_entangle"] ?? 0) > 0 ? (1 - ENTANGLE_REDUCTION) : 1.0;
+      const entangleMult = (this.activeEffects["skill_entangle"] ?? 0) > 0 ? (1 - stackedEntangle(this.skillHeroes("skill_entangle"))) : 1.0;
       const phaseReduction = cb.phaseStepActive ? 0.85 : 1.0;
       target.health -= this.enemy.attack_dps * entangleMult * this.bossEnrageMult * partySizeMult * dt * (1 - totalDmgReduction) * phaseReduction;
       target.health = Math.max(0, target.health);
@@ -1207,7 +1245,7 @@ export class GameState {
     let damage = Math.max(1.0, totalDps * CLICK_DAMAGE_MULTIPLIER * 0.1 + clickBonus) * this.clickUpgradeMult() * clickCb.clickDpsMultiplier;
     if (this.party.team.some(c => c.isAlive() && c.abilities.includes("empower"))) damage *= EMPOWER_MULTIPLIER;
     const shadowStrikeActive = (this.activeEffects["skill_shadow_strike"] ?? 0) > 0;
-    if (shadowStrikeActive) damage *= SHADOW_STRIKE_MULT;
+    if (shadowStrikeActive) damage *= this.skillMult("skill_shadow_strike", SHADOW_STRIKE_MULT);
     const hasLuckyStrike = this.party.team.some(c => c.isAlive() && c.abilities.includes("lucky_strike"));
     const hasEagleEye = this.party.team.some(c => c.isAlive() && c.abilities.includes("eagle_eye"));
     const clickCritMult = clickCb.perfectKillActive ? 3 : 2;
@@ -2099,17 +2137,34 @@ export class GameState {
     const caster = this.party.team.find(c => c.characterClass === def.class);
     if (!caster) return false;
     if ((this.skillCooldowns[skillId] ?? 0) > 0) return false;
-    this.skillCooldowns[skillId] = def.cooldownKills;
+    this.skillCooldowns[skillId] = this.skillCooldownTotal(skillId);
     if (def.durationKills > 0) this.activeEffects[skillId] = def.durationKills;
     this.lifetimeSkillActivations += 1;
     this.addLog(`${caster.name} uses ${skillId.replace("skill_", "").replace(/_/g, " ")}.`);
     if (skillId === "skill_consecrate") {
+      const heal = stackedHeal(this.skillHeroes(skillId));
       for (const c of this.party.team) {
-        if (c.isAlive()) c.health = Math.min(c.maxHealth, c.health + c.maxHealth * 0.50);
+        if (c.isAlive()) c.health = Math.min(c.maxHealth, c.health + c.maxHealth * heal);
       }
-      this.addLog(`Holy light — the party heals 50% of its max HP.`);
+      this.addLog(`Holy light — the party heals ${Math.round(heal * 100)}% of its max HP.`);
     }
     return true;
+  }
+
+  /** Heroes in the party of the skill's class; two or more strengthen it. */
+  skillHeroes(skillId: string): number {
+    const cls = SKILL_DEFS[skillId]?.class;
+    return this.party.team.filter(c => c.characterClass === cls).length;
+  }
+
+  /** The skill's cooldown in kills, shortened by extra heroes of its class. */
+  skillCooldownTotal(skillId: string): number {
+    return stackedCooldown(SKILL_DEFS[skillId]?.cooldownKills ?? 0, this.skillHeroes(skillId));
+  }
+
+  /** A skill's damage multiplier, raised by extra heroes of its class. */
+  private skillMult(skillId: string, mult: number): number {
+    return stackedMult(mult, this.skillHeroes(skillId));
   }
 
   activateSkill(skillId: string): string {
@@ -2246,6 +2301,8 @@ export class GameState {
       skill_available: this.computeSkillAvailable(),
       companion_skills_available: this.computeCompanionSkillsAvailable(),
       skill_cooldowns: { ...this.skillCooldowns },
+      skill_cooldown_totals: Object.fromEntries(Object.keys(SKILL_DEFS).map(id => [id, this.skillCooldownTotal(id)])),
+      skill_class_counts: Object.fromEntries(Object.keys(SKILL_DEFS).map(id => [id, this.skillHeroes(id)])),
       active_effects: { ...this.activeEffects },
       run_id: this.runId,
       loot_max: this.lootMax,

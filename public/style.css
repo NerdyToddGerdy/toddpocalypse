@@ -1209,10 +1209,12 @@ main {
   grid-column: 1 / -1;
 }
 
+/* Same spacing as .char-gear-row, so each rune sits under its gear piece. */
 .char-rune-row {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   margin: 3px 0 0;
+  padding-left: 2px;
 }
 .tt-rune-slot[data-rune] { cursor: help; }
 
@@ -4070,6 +4072,11 @@ footer {
 .skill-tooltip-cd {
     font-size: 0.75rem;
     color: var(--parchment-dim);
+}
+.skill-tooltip-stack {
+    font-size: 0.75rem;
+    color: var(--torch-mid);
+    margin-top: 2px;
 }
 .skill-tooltip-status {
     font-size: 0.78rem;
