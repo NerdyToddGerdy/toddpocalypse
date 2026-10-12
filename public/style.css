@@ -4087,7 +4087,7 @@ footer {
 .mic-overlay {
     display: none;
 }
-@media (max-width: 1023px) {
+@media (max-width: 1023px), (hover: none) {
     .mic-overlay {
         display: block;
         position: fixed;
@@ -6838,3 +6838,51 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
 
 /* "Level 39" never wraps; a long boss name gives way with "…" instead. */
 #enemy-level { white-space: nowrap; flex-shrink: 0; }
+
+/* ── Portrait tablets ──
+   The phone layout on a big screen: everything a size up, and the Sheet shows
+   the gear beside the stats, as a lone hero does on a wide desktop. */
+@media (min-width: 600px) and (max-width: 1023px) {
+    html { font-size: 125%; }
+    #monster-portrait-wrap { width: 96px; }
+    #portrait-inner { width: 96px; height: 146px; }
+    .hero-token :is(img, .party-token-icon) { width: 52px; height: 52px; }
+    .hero-token-name { max-width: 72px; }
+    :root { --tokens-h: 74px; }
+    #loot-items { grid-template-columns: repeat(6, 48px); }
+
+    main[data-hero-screen="sheet"] #party-panel .gear-pdoll-grid { display: grid; }
+    #party-cards > .char-card {
+        grid-template-columns: 84px 1fr 120px minmax(260px, 1.2fr);
+        grid-template-rows: auto auto 1fr;
+        column-gap: 16px;
+    }
+    #party-cards > .char-card .gear-pdoll-grid {
+        grid-column: 4;
+        grid-row: 1 / span 3;
+        padding: 0;
+    }
+    #party-cards > .char-card :is(.char-abilities, .char-gear, .char-set-bonuses) { grid-column: 1 / 4; }
+}
+
+/* ── Landscape tablets ──
+   1024–1279px: two hero cards side by side were too narrow (names, DPS and
+   class wrapped). One hero per row, with the gear beside the stats. */
+@media (min-width: 1024px) and (max-width: 1279px) {
+    #party-cards { grid-template-columns: 1fr; }
+    #party-cards > .char-card {
+        grid-column: 1 / -1;
+        /* The gear needs ~200px; give the rest to the stats so nothing wraps. */
+        grid-template-columns: 84px 1fr 100px minmax(200px, 0.8fr);
+        grid-template-rows: auto auto 1fr;
+        column-gap: 16px;
+    }
+    #party-cards > .char-card .gear-pdoll-grid {
+        grid-column: 4;
+        grid-row: 1 / span 3;
+        padding: 0;
+    }
+    #party-cards > .char-card :is(.char-abilities, .char-gear, .char-set-bonuses) { grid-column: 1 / 4; }
+    #party-panel.gear-hidden #party-cards > .char-card { grid-template-columns: 84px 1fr 120px; }
+    #party-cards .char-card :is(.char-class, .char-dps, .char-crit) { white-space: nowrap; }
+}

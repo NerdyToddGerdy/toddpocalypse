@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.56.0";
+export const VERSION = "v2.57.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.57.0",
+    date: "2026-10-11",
+    changes: [
+      "Tablets: tapping a hero's name, DPS, an ability or an item now opens its details on every touch screen. Before, it only worked on screens 768px wide or narrower",
+      "Tablets held upright: larger text, a bigger enemy portrait and hero tokens, six loot slots per row, and the hero sheet shows your gear beside your stats",
+      "Tablets held sideways: one hero per row with the gear beside their stats, so names, damage and crit no longer wrap",
+    ],
+  },
   {
     version: "v2.56.0",
     date: "2026-10-10",

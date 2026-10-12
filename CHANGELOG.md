@@ -4,6 +4,12 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.57.0 — 2026-10-11
+
+- Tablets: tapping a hero's name, DPS, an ability or an item now opens its details on every touch screen. Before, it only worked on screens 768px wide or narrower
+- Tablets held upright: larger text, a bigger enemy portrait and hero tokens, six loot slots per row, and the hero sheet shows your gear beside your stats
+- Tablets held sideways: one hero per row with the gear beside their stats, so names, damage and crit no longer wrap
+
 ## v2.56.0 — 2026-10-10
 
 - Every enemy now has a portrait, not just bosses and elites, so the enemy panel keeps one shape and the HP bar stays put

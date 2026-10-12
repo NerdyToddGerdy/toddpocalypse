@@ -3317,7 +3317,8 @@ function initMobileItemCard(): void {
   backdrop.addEventListener("click", closeCard);
 
   document.addEventListener("click", (e) => {
-    if (!window.matchMedia("(max-width: 768px)").matches) return;
+    // Any touch screen: there's no hover to show these details otherwise.
+    if (!window.matchMedia("(hover: none)").matches) return;
     const target = e.target as HTMLElement;
     if (target.closest("button")) return;
 
