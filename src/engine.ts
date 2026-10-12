@@ -199,6 +199,13 @@ export function nextRenownFloor(best: number): number {
   return PRESTIGE_UNLOCK_LEVEL + (Math.floor((best - PRESTIGE_UNLOCK_LEVEL) / FLOORS_PER_RENOWN) + 1) * FLOORS_PER_RENOWN;
 }
 
+/** How far `best` is toward nextRenownFloor, from 0 up to (not including) 1. Before the unlock, toward floor 20. */
+export function renownProgress(best: number): number {
+  const next = nextRenownFloor(best);
+  const from = best < PRESTIGE_UNLOCK_LEVEL ? 0 : next - FLOORS_PER_RENOWN;
+  return (best - from) / (next - from);
+}
+
 
 /** Minimum dungeon floor (highest_level) required to venture from dungeon 1. */
 export const VENTURE_UNLOCK_LEVEL = 40;

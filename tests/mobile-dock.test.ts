@@ -192,8 +192,20 @@ describe("run-end card", () => {
     expect(phone).toMatch(/#run-end-card\s*\{[^}]*display:\s*block/);
   });
 
-  it("dots the Renown tab whenever Return to Town or Venture is available", () => {
-    expect(mainTs).toMatch(/badge\.hidden = !\(canBuyPrestige \|\| state\.prestige_available \|\| state\.venture_available\)/);
+  // The dot became a count: the renown Return to Town would pay right now.
+  it("shows on the Renown tab how much renown you'd collect now", () => {
+    expect(mainTs).toMatch(/badge\.textContent = String\(state\.prestige_points_preview\)/);
+    expect(mainTs).toMatch(/badge\.hidden = !state\.prestige_available/);
+    expect(indexHtml).toMatch(/<span id="shop-tab-badge" class="tab-badge tab-count"/);
+  });
+
+  it("rings the Renown icon with the progress to the next point", () => {
+    expect(mainTs).toMatch(/style\.setProperty\("--renown-progress", String\(renownProgress\(state\.highest_level\)\)\)/);
+    expect(dockCss).toMatch(/\.mobile-tab-btn\[data-tab="prestige"\] \.tab-icon::before\s*\{[^}]*conic-gradient\([^;]*var\(--renown-progress/);
+  });
+
+  it("the count reads as a number, not a dot", () => {
+    expect(dockCss).toMatch(/\.tab-badge\.tab-count\s*\{[^}]*width:\s*auto/);
   });
 });
 

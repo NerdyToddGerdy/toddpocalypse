@@ -746,6 +746,8 @@ function ringArc(from: number, to: number, r = 45): string {
 }
 
 const GEAR_SEG_GAP = 7;
+/** Qualities whose names glow in text; their ring segments glow to match. */
+const GLOW_FROM = QUAL.indexOf("mythic");
 
 /**
  * A hero's nine slots as a segmented ring round their token, clockwise from
@@ -758,7 +760,10 @@ function gearRingSVG(equipment: Partial<Record<string, GearItemDict | null>> | u
     const d = ringArc(i * step + GEAR_SEG_GAP / 2, (i + 1) * step - GEAR_SEG_GAP / 2);
     if (!item) return `<path class="gear-seg empty" data-slot="${slot}" d="${d}"/>`;
     const set = item.set_name ? `<path class="gear-seg-set" data-slot="${slot}" d="${d}"/>` : "";
-    return `${set}<path class="gear-seg filled ${qualityClass(item.quality)}" data-slot="${slot}" d="${d}"/>`;
+    const q = qualityClass(item.quality);
+    const glow = (QUAL as readonly string[]).indexOf(item.quality) >= GLOW_FROM
+      ? `<path class="gear-seg-glow ${q}" data-slot="${slot}" d="${d}" filter="url(#gear-glow)"/>` : "";
+    return `${glow}${set}<path class="gear-seg filled ${qualityClass(item.quality)}" data-slot="${slot}" d="${d}"/>`;
   }).join("");
   return `<svg class="hero-token-gear" viewBox="0 0 100 100" aria-hidden="true">${segs}</svg>`;
 }

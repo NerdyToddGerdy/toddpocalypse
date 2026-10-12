@@ -6141,6 +6141,7 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
     text-shadow: none;
     animation: none;
 }
+[data-theme="ledger"] .gear-seg-glow { display: none; }
 
 /* Colours written for a dark ground, reprinted for paper. */
 [data-theme="ledger"] .ind-up { color: var(--q-fine); }
@@ -6352,6 +6353,23 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
         opacity: 0.55;
     }
     .mobile-tab-btn:disabled { cursor: not-allowed; }
+    /* Renown: a ring round the icon fills toward the next point, built like a
+       hero token's HP ring, in renown gold. */
+    .mobile-tab-btn[data-tab="prestige"] .tab-icon { position: relative; }
+    .mobile-tab-btn[data-tab="prestige"] .tab-icon::before {
+        content: "";
+        position: absolute;
+        inset: -4px;
+        border-radius: 50%;
+        padding: 3px;
+        background: conic-gradient(
+            var(--gold-bright) calc(var(--renown-progress, 0) * 360deg),
+            color-mix(in srgb, var(--gold) 30%, var(--bg-1)) 0
+        );
+        -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+        mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+        pointer-events: none;
+    }
     .tab-badge {
         position: absolute;
         top: 0;
@@ -6362,6 +6380,25 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
         border-radius: 50%;
         border: 2px solid var(--bg-1);
     }
+    /* The Renown count: a gold number where other tabs have a dot. */
+    .tab-badge.tab-count {
+        top: -4px;
+        right: calc(50% - 34px);
+        width: auto;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 5px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        background: var(--gold-bright);
+        color: var(--bg-1);
+        font-size: 0.68rem;
+        font-weight: 700;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+    }
+    .tab-badge.tab-count[hidden] { display: none; }
 
     /* The raised Attack, in a plain brass rim. (The enemy's HP is in the strip
        at the top; HP rings belong to the hero tokens.) */
@@ -6648,6 +6685,14 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
     /* The set edge sits under the segment and shows past both sides of it, as
        the gold outline does on the gear boxes. */
     .gear-seg-set { stroke: var(--gold-bright); stroke-width: 15; }
+    /* Mythic and up glow in text; their segments glow in the same colours. */
+    .gear-seg-glow { fill: none; stroke-width: 12; }
+    .gear-seg-glow.q-mythic    { stroke: rgba(232,121,249,0.55); }
+    .gear-seg-glow.q-ancient   { stroke: rgba(52,211,153,0.7); }
+    .gear-seg-glow.q-celestial { stroke: rgba(103,232,249,0.75); }
+    .gear-seg-glow.q-void      { stroke: rgba(192,132,252,0.85); stroke-width: 14; }
+    .gear-seg-glow.q-divine    { stroke: #818cf8; stroke-width: 15; animation: gear-glow-pulse 2s ease-in-out infinite; }
+    @keyframes gear-glow-pulse { 0%, 100% { opacity: 0.65; } 50% { opacity: 1; } }
     /* The HP ring drains clockwise, as the Attack rim used to for the enemy,
        in the party HP bar's green. */
     .hero-token-hp {

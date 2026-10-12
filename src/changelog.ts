@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.60.0";
+export const VERSION = "v2.61.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,16 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.61.0",
+    date: "2026-10-11",
+    changes: [
+      "Phones: the Renown tab shows how much renown you'd collect if you returned to town now, in place of the dot",
+      "Phones: a gold ring round the Renown icon fills as you near the next renown point, and before floor 20 it fills toward floor 20",
+      "Phones: Combat now opens on the party's loot every time you start the game",
+      "Phones and tablets: mythic gear and better now glows on the hero tokens' gear rings, in the same colours as the item names. Divine pulses",
+    ],
+  },
   {
     version: "v2.60.0",
     date: "2026-10-11",

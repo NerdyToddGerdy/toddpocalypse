@@ -4,6 +4,13 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.61.0 — 2026-10-11
+
+- Phones: the Renown tab shows how much renown you'd collect if you returned to town now, in place of the dot
+- Phones: a gold ring round the Renown icon fills as you near the next renown point, and before floor 20 it fills toward floor 20
+- Phones: Combat now opens on the party's loot every time you start the game
+- Phones and tablets: mythic gear and better now glows on the hero tokens' gear rings, in the same colours as the item names. Divine pulses
+
 ## v2.60.0 — 2026-10-11
 
 - Removed the separate "Checkpoint: Floor N" line. The checkpoint already shows as ⚑ beside your best floor on phones and on the depth gauge on desktop, and on phones the extra line squeezed the enrage bar

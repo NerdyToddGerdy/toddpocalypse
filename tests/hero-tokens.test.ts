@@ -81,6 +81,30 @@ describe("hero token medallion", () => {
     expect(t.indexOf('gear-seg-set" data-slot="helmet"')).toBeLessThan(t.indexOf('q-legendary" data-slot="helmet"'));
   });
 
+  // Mythic and up glow in text; their segments glow too, with the same colours.
+  it("glows a segment for mythic gear and up, not below", () => {
+    const glowing = (quality: string) =>
+      heroTokensHTML([{ ...party[0], equipment: { main_hand: { name: "X", quality, slot_display: "Main Hand" } } }] as never, 0);
+    expect(glowing("legendary")).not.toContain("gear-seg-glow");
+    for (const q of ["mythic", "ancient", "celestial", "void", "divine"]) {
+      const t = glowing(q);
+      expect(t).toMatch(new RegExp(`class="gear-seg-glow q-${q}" data-slot="main_hand" d="[^"]+" filter="url\\(#gear-glow\\)"`));
+      expect(t.indexOf("gear-seg-glow")).toBeLessThan(t.indexOf(`gear-seg filled q-${q}`));
+    }
+  });
+
+  it("the blur is defined once in the page, and each tier has its glow colour", () => {
+    expect(indexHtml).toMatch(/<filter id="gear-glow"[\s\S]*?feGaussianBlur/);
+    for (const q of ["mythic", "ancient", "celestial", "void", "divine"]) {
+      expect(css).toMatch(new RegExp(`\\.gear-seg-glow\\.q-${q}\\s*\\{[^}]*stroke:`));
+    }
+    expect(css).toMatch(/\.gear-seg-glow\.q-divine\s*\{[^}]*animation:\s*gear-glow-pulse/);
+  });
+
+  it("prints flat on paper, as rarity text does", () => {
+    expect(css).toMatch(/\[data-theme="ledger"\] \.gear-seg-glow\s*\{\s*display:\s*none/);
+  });
+
   it("gives each segment its own arc", () => {
     const ds = [...tokenHtml(0).matchAll(/class="gear-seg (?:filled|empty)[^"]*" data-slot="[^"]+" d="([^"]+)"/g)].map((m) => m[1]);
     expect(new Set(ds).size).toBe(9);
@@ -212,8 +236,16 @@ describe("wiring", () => {
     expect(mainTs).toMatch(/#party-cards > \.char-card/);
   });
 
-  it("remembers the view between visits", () => {
-    expect(mainTs).toMatch(/localStorage\.setItem\("hero-view"/);
+  // Combat opens on the party's loot every visit; within a visit, your pick stays.
+  it("opens on Party → Loot, not on the last view", () => {
+    expect(mainTs).toMatch(/const DEFAULT_HERO_VIEW: HeroView = \{ hero: "party", screen: "loot" \}/);
+    expect(mainTs).toMatch(/let heroView: HeroView = DEFAULT_HERO_VIEW;/);
+    expect(mainTs).not.toMatch(/localStorage\.(?:get|set)Item\("hero-view"/);
+  });
+
+  it("Party → Loot is a valid view whatever is unlocked", () => {
+    const none = { runes: false, artifacts: false, stars: false };
+    expect(resolveHeroView({ hero: "party", screen: "loot" }, 1, none)).toEqual({ hero: "party", screen: "loot" });
   });
 
   const phone = css.match(/\/\* ── Phone heroes[\s\S]*?@media \(max-width: 1023px\)\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";

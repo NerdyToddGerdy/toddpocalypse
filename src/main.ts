@@ -22,6 +22,7 @@ import {
   GameState,
   type GameStateDict,
   nextRenownFloor,
+  renownProgress,
   type PartyDpsBreakdown,
   GUILD_HALL_COSTS,
   GUILD_HALL_DUNGEON_REQ,
@@ -2620,8 +2621,13 @@ function updateShopBadge(state: GameStateDict): void {
     const dungeonReq = GUILD_HALL_DUNGEON_REQ[type] ?? 0;
     return owned < costs.length && state.dungeon_index >= dungeonReq && state.gold >= costs[owned];
   });
-  // Return to Town and Venture live in this tab on phones, so it flags them too.
-  badge.hidden = !(canBuyPrestige || state.prestige_available || state.venture_available);
+  // Phones: the Renown tab counts the renown Return to Town would pay now, and
+  // its icon's ring fills toward the next point.
+  badge.textContent = String(state.prestige_points_preview);
+  badge.hidden = !state.prestige_available;
+  const tab = badge.closest<HTMLElement>(".mobile-tab-btn");
+  tab?.querySelector<HTMLElement>(".tab-icon")?.style.setProperty("--renown-progress", String(renownProgress(state.highest_level)));
+  if (tab && state.prestige_available) tab.setAttribute("aria-label", `Renown: ${state.prestige_points_preview} to collect`);
   const upgradeTabBadge = document.getElementById("upgrade-tab-badge");
   if (upgradeTabBadge) upgradeTabBadge.hidden = !canBuyUpgrade;
   const stabPrestigeBadge = document.getElementById("stab-prestige-badge");
@@ -3023,9 +3029,9 @@ function initCombatSubTabs(): void {
 // desktop layout and its renderers are untouched.
 
 const PHONE = window.matchMedia("(max-width: 1023px)");
-let heroView: HeroView = (() => {
-  try { return JSON.parse(localStorage.getItem("hero-view") ?? "") as HeroView; } catch { return { hero: 0, screen: "sheet" }; }
-})();
+/** Combat opens on the party's loot each visit; within a visit, the view you pick stays. */
+const DEFAULT_HERO_VIEW: HeroView = { hero: "party", screen: "loot" };
+let heroView: HeroView = DEFAULT_HERO_VIEW;
 let heroAreaKey = "";
 
 function heroScreensAvailable(state: GameStateDict): HeroScreensAvailable {
@@ -3072,7 +3078,6 @@ function renderHeroArea(state: GameStateDict): void {
 
 function setHeroView(v: HeroView): void {
   heroView = v;
-  localStorage.setItem("hero-view", JSON.stringify(v));
   if (game) render(game.getState());
 }
 

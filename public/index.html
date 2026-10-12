@@ -24,6 +24,10 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 </head>
 <body>
+<!-- The soft blur behind mythic-and-up segments on the hero tokens' gear rings. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <filter id="gear-glow" filterUnits="userSpaceOnUse" x="-25" y="-25" width="150" height="150"><feGaussianBlur stdDeviation="2.5"/></filter>
+</svg>
 <div id="achievement-toast-container" role="status" aria-live="polite"></div>
 
 <div id="creation-overlay">
@@ -407,7 +411,7 @@
   <button class="mobile-tab-btn active" data-tab="combat"><span class="tab-icon" aria-hidden="true">⚔</span><span class="tab-label">Combat</span></button>
   <button class="mobile-tab-btn" data-tab="upgrade"><span class="tab-icon" aria-hidden="true">📈</span><span class="tab-label">Upgrade</span><span id="upgrade-tab-badge" class="tab-badge" hidden></span></button>
   <div id="dock-attack" class="dock-attack"></div>
-  <button class="mobile-tab-btn locked" data-tab="prestige" disabled title="Renown unlocks when you reach floor 20"><span class="tab-icon" aria-hidden="true">✦</span><span class="tab-lock" aria-hidden="true">🔒</span><span class="tab-label">Renown</span><span id="shop-tab-badge" class="tab-badge" hidden></span></button>
+  <button class="mobile-tab-btn locked" data-tab="prestige" disabled title="Renown unlocks when you reach floor 20"><span class="tab-icon" aria-hidden="true">✦</span><span class="tab-lock" aria-hidden="true">🔒</span><span class="tab-label">Renown</span><span id="shop-tab-badge" class="tab-badge tab-count" hidden></span></button>
   <button class="mobile-tab-btn locked" data-tab="guild" disabled title="The Guild unlocks from the Renown shop"><span class="tab-icon" aria-hidden="true">🏰</span><span class="tab-lock" aria-hidden="true">🔒</span><span class="tab-label">Guild</span><span id="guild-tab-badge" class="tab-badge" hidden></span></button>
 </nav>
 

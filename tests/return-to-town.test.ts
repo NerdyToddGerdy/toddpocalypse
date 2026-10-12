@@ -201,3 +201,24 @@ describe("renown progress copy", async () => {
     expect(src).toMatch(/id="renown-next"|\$\("renown-next"\)/);
   });
 });
+
+// How far the best floor is toward the next renown point, for the phone's ring.
+describe("renownProgress", async () => {
+  const { renownProgress, nextRenownFloor } = await import("../src/engine.js");
+
+  it.each([
+    [20, 0], [21, 0.2], [24, 0.8], [25, 0], [43, 0.6],
+    [1, 0.05], [10, 0.5], [19, 0.95],
+  ])("best floor %i → %f of the way", (best, want) => {
+    expect(renownProgress(best)).toBeCloseTo(want, 12);
+  });
+
+  it("reaches 1 only by turning over at the next renown floor", () => {
+    for (let best = 1; best < 80; best++) {
+      const p = renownProgress(best);
+      expect(p).toBeGreaterThanOrEqual(0);
+      expect(p).toBeLessThan(1);
+      expect(renownProgress(nextRenownFloor(best))).toBe(0);
+    }
+  });
+});
