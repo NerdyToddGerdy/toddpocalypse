@@ -53,9 +53,10 @@ describe("dock behaviour", () => {
     expect(mainTs).toMatch(/\$\("attack-row"\)\.append\(attackBtn, autoBtn\)/);
   });
 
-  it("drives the HP ring from the enemy's HP", () => {
-    expect(mainTs).toMatch(/style\.setProperty\("--enemy-hp", String\(/);
-    expect(dockCss).toMatch(/conic-gradient\([^;]*var\(--enemy-hp/);
+  // The enemy's HP lives in the strip at the top; the rim moved to the hero tokens.
+  it("no longer rings Attack with the enemy's HP", () => {
+    expect(mainTs).not.toMatch(/--enemy-hp/);
+    expect(dockCss).not.toMatch(/var\(--enemy-hp/);
   });
 
   it("unlocks Renown and Guild by enabling them, not by revealing them", () => {

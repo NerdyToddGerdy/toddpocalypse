@@ -29,7 +29,7 @@ describe("portrait tablets (600–1023px)", () => {
   it("scales up for the bigger screen", () => {
     expect(t).toMatch(/html\s*\{\s*font-size:\s*125%/);
     expect(t).toMatch(/#monster-portrait-wrap\s*\{[^}]*width:\s*96px/);
-    expect(t).toMatch(/\.hero-token :is\(img, \.party-token-icon\)\s*\{[^}]*width:\s*52px/);
+    expect(t).toMatch(/--token-medal:\s*74px/);
     expect(t).toMatch(/#loot-items\s*\{[^}]*grid-template-columns:\s*repeat\(6,/);
   });
 

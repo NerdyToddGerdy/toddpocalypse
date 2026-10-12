@@ -4,6 +4,11 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.58.0 — 2026-10-11
+
+- Phones and tablets: each hero token now shows that hero's health as a green ring round their portrait, and their nine gear slots as a ring outside it, each segment in its item's colour, with a gold edge for set pieces
+- Phones and tablets: the Attack button has a plain rim. The enemy's health is still shown in the bar at the top
+
 ## v2.57.0 — 2026-10-11
 
 - Tablets: tapping a hero's name, DPS, an ability or an item now opens its details on every touch screen. Before, it only worked on screens 768px wide or narrower

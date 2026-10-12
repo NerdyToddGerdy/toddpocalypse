@@ -121,7 +121,8 @@
     /* How far the dock's round Attack rises above the bar. */
     --dock-raise: 26px;
     /* The phone hero token row above the dock. */
-    --tokens-h: 62px;
+    --tokens-h: 82px;
+    --token-medal: 58px;
 }
 
 
@@ -6374,8 +6375,8 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
         border: 2px solid var(--bg-1);
     }
 
-    /* The raised Attack. Its padding is the HP ring: a conic gradient that
-       drains as the enemy does. */
+    /* The raised Attack, in a plain brass rim. (The enemy's HP is in the strip
+       at the top; HP rings belong to the hero tokens.) */
     .dock-attack {
         position: relative;
         justify-self: center;
@@ -6385,10 +6386,8 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
         margin-bottom: 2px;
         padding: 6px;
         border-radius: 50%;
-        background: conic-gradient(
-            var(--danger) calc(var(--enemy-hp, 1) * 360deg),
-            color-mix(in srgb, var(--danger) 18%, var(--bg-0)) 0
-        );
+        background: var(--bg-1);
+        border: 1px solid var(--gold);
         box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
     }
     .dock-attack #attack-btn {
@@ -6643,21 +6642,57 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
         border: none;
         color: var(--parchment-dim);
     }
-    .hero-token img, .party-token-icon {
-        width: 40px;
-        height: 40px;
+    /* A medallion: the portrait, ringed by the hero's HP, ringed by their nine
+       gear slots. */
+    .hero-token-medal {
+        position: relative;
+        flex: none;
+        display: grid;
+        place-items: center;
+        width: var(--token-medal);
+        height: var(--token-medal);
+        border-radius: 50%;
+    }
+    .hero-token-gear { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+    .gear-seg, .gear-seg-set { fill: none; stroke-width: 8; }
+    .gear-seg.empty { stroke: color-mix(in srgb, var(--parchment-dim) 22%, transparent); }
+    .gear-seg.filled { stroke: currentColor; }
+    /* The set edge sits under the segment and shows past both sides of it, as
+       the gold outline does on the gear boxes. */
+    .gear-seg-set { stroke: var(--gold-bright); stroke-width: 15; }
+    /* The HP ring drains clockwise, as the Attack rim used to for the enemy,
+       in the party HP bar's green. */
+    .hero-token-hp {
+        position: absolute;
+        inset: calc(var(--token-medal) * 0.13);
+        padding: 3px;
+        border-radius: 50%;
+        background: conic-gradient(
+            var(--hp) calc(var(--hero-hp, 1) * 360deg),
+            color-mix(in srgb, var(--danger) 30%, var(--bg-0)) 0
+        );
+    }
+    .hero-token-hp img { display: block; }
+    .hero-token-hp img, .party-token-icon {
+        width: 100%;
+        height: 100%;
         border-radius: 50%;
         object-fit: cover;
         image-rendering: pixelated;
-        border: 2px solid color-mix(in srgb, var(--gold) 55%, transparent);
         background: var(--bg-2);
     }
-    .party-token-icon { display: grid; place-items: center; font-size: 1.1rem; }
-    .hero-token-name { font-size: 0.6rem; max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .party-token-icon {
+        display: grid;
+        place-items: center;
+        width: calc(var(--token-medal) * 0.74);
+        height: calc(var(--token-medal) * 0.74);
+        font-size: 1.1rem;
+        border: 2px solid color-mix(in srgb, var(--gold) 55%, transparent);
+    }
+    .hero-token-name { font-size: 0.6rem; max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .hero-token.selected { color: var(--parchment); }
-    .hero-token.selected :is(img, .party-token-icon) {
-        border-color: var(--torch-mid);
-        box-shadow: 0 0 0 2px color-mix(in srgb, var(--torch-mid) 35%, transparent);
+    .hero-token.selected .hero-token-medal {
+        box-shadow: 0 0 0 2px var(--torch-mid), 0 0 10px color-mix(in srgb, var(--torch-mid) 45%, transparent);
     }
     .hero-token.fallen img { filter: grayscale(1); opacity: 0.55; }
 
@@ -6846,9 +6881,8 @@ main[data-left-sub="stars"] #party-panel { display: none !important; }
     html { font-size: 125%; }
     #monster-portrait-wrap { width: 96px; }
     #portrait-inner { width: 96px; height: 146px; }
-    .hero-token :is(img, .party-token-icon) { width: 52px; height: 52px; }
-    .hero-token-name { max-width: 72px; }
-    :root { --tokens-h: 74px; }
+    :root { --token-medal: 74px; --tokens-h: 102px; }
+    .hero-token-name { max-width: 80px; }
     #loot-items { grid-template-columns: repeat(6, 48px); }
 
     main[data-hero-screen="sheet"] #party-panel .gear-pdoll-grid { display: grid; }

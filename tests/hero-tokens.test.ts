@@ -35,7 +35,7 @@ describe("heroTokensHTML", () => {
   });
 
   it("names each token by hero", () => {
-    expect(tokens[0]).toMatch(/aria-label="Aldric, fighter level 29"/);
+    expect(tokens[0]).toMatch(/aria-label="Aldric, fighter level 29, /);
     expect(tokens[3]).toMatch(/aria-label="Party: loot and stars"/);
   });
 
@@ -45,6 +45,67 @@ describe("heroTokensHTML", () => {
 
   it("selects the party token with 'party'", () => {
     expect(heroTokensHTML(party as never, "party")).toMatch(/data-hero="party"[^>]*aria-pressed="true"|aria-pressed="true"[^>]*data-hero="party"/);
+  });
+});
+
+// Each token is a medallion: the hero's HP as a ring round the portrait, and
+// their nine gear slots as a segmented ring outside it.
+describe("hero token medallion", () => {
+  const sword = { name: "Sword", quality: "rare", slot_display: "Main Hand" };
+  const helm = { name: "Helm", quality: "legendary", slot_display: "Helmet", set_name: "Warlord" };
+  const geared = [{ ...party[0], equipment: { main_hand: sword, helmet: helm, ring1: null } }, party[1], party[2]];
+  const html = heroTokensHTML(geared as never, 0);
+  const tokenHtml = (i: number) => html.split(/(?=<button)/)[i];
+
+  it("carries each hero's HP as a fraction", () => {
+    expect(tokenHtml(0)).toMatch(/--hero-hp:\s*0\.9\b/);
+    expect(tokenHtml(1)).toMatch(/--hero-hp:\s*0\b/);
+    expect(tokenHtml(2)).toMatch(/--hero-hp:\s*0\.667/);
+  });
+
+  it("rings the portrait with nine gear segments, in slot order", () => {
+    const segs = [...tokenHtml(0).matchAll(/<path class="gear-seg (?:filled|empty)[^"]*" data-slot="([a-z0-9_]+)"/g)].map((m) => m[1]);
+    expect(segs).toEqual(["main_hand", "off_hand", "helmet", "chest", "gloves", "legs", "shoes", "ring1", "ring2"]);
+  });
+
+  it("colours a filled segment by quality and leaves an empty one empty", () => {
+    expect(tokenHtml(0)).toMatch(/class="gear-seg filled q-rare" data-slot="main_hand"/);
+    expect(tokenHtml(0)).toMatch(/class="gear-seg empty" data-slot="off_hand"/);
+    expect(tokenHtml(0)).toMatch(/class="gear-seg empty" data-slot="ring1"/);
+  });
+
+  it("edges a set piece in gold, under its colour", () => {
+    const t = tokenHtml(0);
+    expect(t).toMatch(/class="gear-seg-set" data-slot="helmet"/);
+    expect(t).not.toMatch(/class="gear-seg-set" data-slot="main_hand"/);
+    expect(t.indexOf('gear-seg-set" data-slot="helmet"')).toBeLessThan(t.indexOf('q-legendary" data-slot="helmet"'));
+  });
+
+  it("gives each segment its own arc", () => {
+    const ds = [...tokenHtml(0).matchAll(/class="gear-seg (?:filled|empty)[^"]*" data-slot="[^"]+" d="([^"]+)"/g)].map((m) => m[1]);
+    expect(new Set(ds).size).toBe(9);
+  });
+
+  it("says how much gear a hero wears", () => {
+    expect(tokenHtml(0)).toMatch(/aria-label="Aldric, fighter level 29, 90% health, 2 of 9 gear slots filled"/);
+  });
+
+  it("the party token has neither ring", () => {
+    const p = tokenHtml(3);
+    expect(p).not.toContain("gear-seg");
+    expect(p).not.toContain("--hero-hp");
+  });
+
+  it("main.ts updates HP every frame, and rebuilds the rings when gear changes", () => {
+    expect(mainTs).toMatch(/style\.setProperty\("--hero-hp", /);
+    expect(mainTs).toMatch(/const gearKey = [^\n]*c\.equipment/);
+    expect(mainTs).toMatch(/const key = JSON\.stringify\(\[heroView, avail, state\.party\.map\([^\n]*gearKey\(c\)/);
+  });
+
+  it("draws HP as a ring that drains, and segments in their item's colour", () => {
+    expect(css).toMatch(/\.hero-token-hp\s*\{[^}]*conic-gradient\([^;]*var\(--hero-hp/);
+    expect(css).toMatch(/\.gear-seg\.filled\s*\{[^}]*stroke:\s*currentColor/);
+    expect(css).toMatch(/\.gear-seg-set\s*\{[^}]*stroke:\s*var\(--gold-bright\)/);
   });
 });
 

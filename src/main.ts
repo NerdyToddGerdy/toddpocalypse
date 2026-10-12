@@ -369,8 +369,6 @@ function render(state: GameStateDict): void {
     }
   }
   const pct = Math.max(0, (enemy.hp / enemy.max_hp) * 100);
-  // The phone dock's Attack button wears the enemy's HP as its rim.
-  document.getElementById("dock-attack")?.style.setProperty("--enemy-hp", String(pct / 100));
   ($("enemy-hp-bar") as HTMLElement).style.width = pct + "%";
   $("enemy-hp-text").textContent = `${formatNumber(Math.ceil(enemy.hp))} / ${formatNumber(enemy.max_hp)}`;
   const stickyHpBar = document.getElementById("enemy-sticky-hp-bar") as HTMLElement | null;
@@ -3051,7 +3049,8 @@ function markSelectedHero(): void {
 function renderHeroArea(state: GameStateDict): void {
   const avail = heroScreensAvailable(state);
   heroView = resolveHeroView(heroView, state.party.length, avail);
-  const key = JSON.stringify([heroView, avail, state.party.map(c => [c.name, c.character_class, c.level, c.health > 0])]);
+  const gearKey = (c: CharDict) => ALL_SLOTS.map((s) => { const it = c.equipment?.[s]; return it ? `${it.quality}${it.set_name ? "*" : ""}` : ""; }).join();
+  const key = JSON.stringify([heroView, avail, state.party.map(c => [c.name, c.character_class, c.level, c.health > 0, gearKey(c)])]);
   if (key !== heroAreaKey) {
     heroAreaKey = key;
     $("hero-tokens").innerHTML = heroTokensHTML(state.party, heroView.hero);
@@ -3065,6 +3064,11 @@ function renderHeroArea(state: GameStateDict): void {
       switchLeftColSub(s === "stars" ? "stars" : "party");
     }
   }
+  // HP changes every frame, so it's set in place rather than rebuilding the tokens.
+  document.querySelectorAll<HTMLElement>("#hero-tokens .hero-token[data-hero] .hero-token-medal").forEach((medal) => {
+    const c = state.party[Number((medal.parentElement as HTMLElement).dataset.hero)];
+    if (c) medal.style.setProperty("--hero-hp", String(c.max_health > 0 ? Math.max(0, Math.min(1, c.health / c.max_health)) : 0));
+  });
   markSelectedHero();
 }
 

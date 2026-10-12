@@ -736,19 +736,55 @@ export function nextHeroIndex(from: number | "party", step: 1 | -1, heroCount: n
   return (from + step + heroCount) % heroCount;
 }
 
-/** The token row above the dock: a round portrait per hero, then the party token. */
+/** An arc on the token's gear ring, clockwise from `from`° to `to`° (0° is the top). */
+function ringArc(from: number, to: number, r = 45): string {
+  const pt = (deg: number) => {
+    const a = (deg - 90) * Math.PI / 180;
+    return `${(50 + r * Math.cos(a)).toFixed(2)} ${(50 + r * Math.sin(a)).toFixed(2)}`;
+  };
+  return `M${pt(from)} A${r} ${r} 0 0 1 ${pt(to)}`;
+}
+
+const GEAR_SEG_GAP = 7;
+
+/**
+ * A hero's nine slots as a segmented ring round their token, clockwise from
+ * the top: each segment in its item's colour, set pieces edged in gold under it.
+ */
+function gearRingSVG(equipment: Partial<Record<string, GearItemDict | null>> | undefined): string {
+  const step = 360 / ALL_SLOTS.length;
+  const segs = ALL_SLOTS.map((slot, i) => {
+    const item = equipment?.[slot];
+    const d = ringArc(i * step + GEAR_SEG_GAP / 2, (i + 1) * step - GEAR_SEG_GAP / 2);
+    if (!item) return `<path class="gear-seg empty" data-slot="${slot}" d="${d}"/>`;
+    const set = item.set_name ? `<path class="gear-seg-set" data-slot="${slot}" d="${d}"/>` : "";
+    return `${set}<path class="gear-seg filled ${qualityClass(item.quality)}" data-slot="${slot}" d="${d}"/>`;
+  }).join("");
+  return `<svg class="hero-token-gear" viewBox="0 0 100 100" aria-hidden="true">${segs}</svg>`;
+}
+
+/**
+ * The token row above the dock: a medallion per hero, then the party token.
+ * Each medallion rings the portrait with the hero's HP, and that with their gear.
+ */
 export function heroTokensHTML(party: CharDict[], selected: number | "party"): string {
   const heroes = party.map((c, i) => {
     const on = selected === i;
     const fallen = c.health <= 0 ? " fallen" : "";
-    return `<button class="hero-token${on ? " selected" : ""}${fallen}" data-hero="${i}" aria-pressed="${on}" aria-label="${esc(c.name)}, ${c.character_class} level ${c.level}">
-      <img src="${HERO_IMG[c.character_class] ?? HERO_IMG.fighter}" alt="">
+    const hp = c.max_health > 0 ? Math.max(0, Math.min(1, c.health / c.max_health)) : 0;
+    const worn = ALL_SLOTS.filter((s) => c.equipment?.[s]).length;
+    const label = `${esc(c.name)}, ${c.character_class} level ${c.level}, ${Math.round(hp * 100)}% health, ${worn} of ${ALL_SLOTS.length} gear slots filled`;
+    return `<button class="hero-token${on ? " selected" : ""}${fallen}" data-hero="${i}" aria-pressed="${on}" aria-label="${label}">
+      <span class="hero-token-medal" style="--hero-hp: ${+hp.toFixed(3)}">
+        ${gearRingSVG(c.equipment)}
+        <span class="hero-token-hp"><img src="${HERO_IMG[c.character_class] ?? HERO_IMG.fighter}" alt=""></span>
+      </span>
       <span class="hero-token-name">${esc(c.name)}</span>
     </button>`;
   }).join("");
   const on = selected === "party";
   return heroes + `<button class="hero-token party-token${on ? " selected" : ""}" data-hero="party" aria-pressed="${on}" aria-label="Party: loot and stars">
-      <span class="party-token-icon" aria-hidden="true">🎒</span>
+      <span class="hero-token-medal"><span class="party-token-icon" aria-hidden="true">🎒</span></span>
       <span class="hero-token-name">Party</span>
     </button>`;
 }
