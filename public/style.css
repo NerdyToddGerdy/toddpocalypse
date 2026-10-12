@@ -2831,7 +2831,9 @@ main {
     max-width: 280px;
     box-shadow: 0 4px 16px rgba(0,0,0,0.5);
     animation: toast-in 0.3s ease, toast-out 0.4s ease 2.6s forwards;
-    pointer-events: none;
+    /* Click or tap a toast to dismiss it; the container around it stays click-through. */
+    pointer-events: auto;
+    cursor: pointer;
 }
 .toast-title { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: var(--torch-mid); margin-bottom: 2px; }
 .toast-name { font-size: 0.85rem; font-weight: 700; color: var(--parchment); }

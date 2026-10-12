@@ -4,6 +4,10 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.59.0 — 2026-10-11
+
+- Click or tap an alert (feat unlocked, defeated, returned to town) to dismiss it, on every screen size
+
 ## v2.58.0 — 2026-10-11
 
 - Phones and tablets: each hero token now shows that hero's health as a green ring round their portrait, and their nine gear slots as a ring outside it, each segment in its item's colour, with a gold edge for set pieces

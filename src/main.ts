@@ -2933,6 +2933,13 @@ function showHomecomingToast(renownEarned: number): void {
   setTimeout(() => el.remove(), 4500);
 }
 
+/** Any alert toast dismisses on a click or tap. Wired once at startup. */
+function wireToastDismiss(): void {
+  $("achievement-toast-container").addEventListener("click", (e) => {
+    (e.target as HTMLElement).closest(".achievement-toast")?.remove();
+  });
+}
+
 function renderLog(state: GameStateDict): void {
   const newKey = state.log.join("|");
   if (newKey !== logKey) {
@@ -3829,6 +3836,7 @@ document.addEventListener("DOMContentLoaded", () => {
   placeAttackControls();
   placeRunControls();
   initHeroArea();
+  wireToastDismiss();
   initRuneSlotPanel();
   initConstellationPanel();
   initLeftColSubTabs();
