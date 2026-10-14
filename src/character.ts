@@ -118,6 +118,14 @@ export class Character {
     return old;
   }
 
+  /** Puts `item` in a slot in place of what's there, moving stats from the old item to the new. */
+  replaceItem(slot: Slot, item: GearItem): void {
+    const old = this.inventory.slots[slot];
+    if (old) this.removeStats(old.stats);
+    this.inventory.slots[slot] = item;
+    this.applyStats(item.stats);
+  }
+
   /** Takes off the item in a slot, removing its stats, and returns it (or null). */
   unequipItem(slot: Slot): GearItem | null {
     const item = this.inventory.remove(slot);

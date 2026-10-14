@@ -4,7 +4,7 @@ import { getConstellationBonuses, CONSTELLATION_NODE_DEFS, type ConstellationBon
 export { CONSTELLATION_NODE_DEFS };
 export type { ConstellationBonuses };
 import { Party } from "./party.js";
-import { GearItem, getItem, getSetItem, SET_DEFS, gearPower, QUAL, SLOTS, autoSellThreshold, qualityOdds, type GearItemDict, type Slot } from "./gear.js";
+import { GearItem, getItem, getSetItem, SET_DEFS, gearPower, QUAL, SLOTS, autoSellThreshold, qualityOdds, enchantLabel, rollEnchant, type GearItemDict, type Slot } from "./gear.js";
 import { generateEnemy, generateBoss, generateEliteEnemy, bossGoldReward, ENEMY_NOUNS, ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT, type Enemy, type EnemyDict } from "./dungeon.js";
 import { ARTIFACT_DEFS, ARTIFACT_DROP_POOL, LEGACY_UPGRADED_MAP, artifactUpgradeCost, artifactSellValue, artifactFuelValue, artifactStatLabel, type ArtifactEffectId, type ArtifactInstance } from "./artifacts.js";
 export { ARTIFACT_DEFS, ARTIFACT_DROP_POOL, artifactUpgradeCost, artifactSellValue, artifactFuelValue, artifactStatLabel };
@@ -156,6 +156,11 @@ export const WHETSTONE_MULT = 1.5;
 export const LUCKY_CHARM_BONUS = 0.15;
 /** Gold draught: boss gold multiplier while it lasts. */
 export const GOLD_DRAUGHT_MULT = 1.5;
+
+/** Enchanting (#15): an item's first enchant costs this many times a boss's gold at your deepest floor. */
+export const ENCHANT_PRICE_BOSS_GOLD = 2;
+/** Each further enchant on the same item costs this much more than the last. */
+export const ENCHANT_PRICE_GROWTH = 1.5;
 
 /** One Quartermaster item as the UI shows it. */
 export interface ConsumableView { id: ConsumableId; name: string; icon: string; effect: string; price: number; charges: number; unit: "kills" | "bosses" | null }
@@ -1444,6 +1449,32 @@ export class GameState {
     const left = (this.consumableCharges[id as ConsumableId] ?? 0) + add;
     this.consumableCharges[id as ConsumableId] = left;
     this.addLog(`${def.name}: ${def.effect.replace(/\.$/, "")} (${left} ${def.kills ? "kills" : "bosses"} left).`);
+    return this.respond();
+  }
+
+  /** What enchanting a hero's item costs: rises with each enchant that item has had (#15). */
+  enchantPrice(charIdx: number, slot: string): number {
+    const item = this.party.team[charIdx]?.inventory.slots[slot as Slot];
+    if (!item) return Infinity;
+    return Math.ceil(bossGoldReward(this.highestLevel, this.dungeonIndex) * ENCHANT_PRICE_BOSS_GOLD * ENCHANT_PRICE_GROWTH ** item.enchantCount);
+  }
+
+  /** Enchants a hero's equipped item, replacing any enchant it had. Needs the Guild Hall. */
+  enchantGear(charIdx: number, slot: string): string {
+    const char = this.party.team[charIdx];
+    const item = char?.inventory.slots[slot as Slot];
+    if (!char || !item || !(this.prestigeUpgrades["guild_hall_access"] > 0)) return this.respond();
+    const price = this.enchantPrice(charIdx, slot);
+    if (this.gold < price) {
+      this.addLog(`Not enough gold to enchant ${item.getName()}: it costs ${formatGold(price)}.`);
+      return this.respond();
+    }
+    this.gold -= price;
+    const enchanted = item.withEnchant(rollEnchant(item, this.rng));
+    char.replaceItem(slot as Slot, enchanted);
+    this.partyVersion++;
+    const was = item.enchant ? `, replacing ${enchantLabel(item.enchant)}` : "";
+    this.addLog(`${char.name}'s ${item.getName()} is enchanted: ${enchantLabel(enchanted.enchant!)}${was}.`);
     return this.respond();
   }
 

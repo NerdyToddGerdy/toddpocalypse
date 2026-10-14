@@ -39,6 +39,7 @@ import {
 } from "./engine.js";
 import {
   buildSetBonusHTML,
+  enchantOdds,
   type GearItemDict,
   gearPower,
   QUAL,
@@ -89,6 +90,7 @@ import {
   enrageBarGradient,
   enrageColor,
   formatLootStats,
+  enchantSectionHTML,
   formatStats,
   getMobileUpgradeValue,
   getSprite,
@@ -946,8 +948,17 @@ function openGearSlotModal(charIdx: number, slot: string, state: GameStateDict):
       </button>
       <button class="gear-sm-unequip-btn" data-action="gear-slot-unequip" data-char-idx="${charIdx}" data-slot="${slot}">Remove</button>
     </div>
+    ${enchantSection(charIdx, slot, state)}
   `;
   document.getElementById("gear-slot-modal")!.classList.add("open");
+}
+
+/** The dialog's enchant section, once the Guild Hall is open (#15). */
+function enchantSection(charIdx: number, slot: string, state: GameStateDict): string {
+  const live = game?.party.team[charIdx]?.inventory.slots[slot as Slot];
+  const item = (state.party[charIdx]?.equipment as Record<string, GearItemDict | null> | undefined)?.[slot];
+  if (!game || !live || !item || !((state.prestige_upgrades.guild_hall_access ?? 0) > 0)) return "";
+  return enchantSectionHTML(item, enchantOdds(live), game.enchantPrice(charIdx, slot), state.gold, charIdx, slot);
 }
 
 function closeGearSlotModal(): void {
@@ -4252,6 +4263,12 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (action === "gear-slot-unequip") {
       call("unequipGear", parseInt(btn.dataset.charIdx!, 10), btn.dataset.slot!);
       closeGearSlotModal();
+    }
+    else if (action === "gear-slot-enchant") {
+      const charIdx = parseInt(btn.dataset.charIdx!, 10);
+      const slot = btn.dataset.slot!;
+      call("enchantGear", charIdx, slot);
+      if (game) openGearSlotModal(charIdx, slot, game.getState());
     }
     else if (action === "gear-slot-lock") {
       call("toggleGearLock", parseInt(btn.dataset.charIdx!, 10), btn.dataset.slot!);

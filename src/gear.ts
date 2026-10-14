@@ -141,6 +141,18 @@ export interface GearItemDict {
   dungeon_level: number;
   /** Present only for named set pieces. */
   set_name?: string;
+  /** Present only once enchanted (#15): the enchant, already counted in `stats`. */
+  enchant?: Enchant;
+  /** The stats without the enchant; present only when enchanted. */
+  base_stats?: GearStats;
+  /** Times this item has been enchanted; each costs more than the last. */
+  enchant_count?: number;
+}
+
+/** One enchant (#15): a single stat bonus. An item holds at most one. */
+export interface Enchant {
+  stat: keyof GearStats;
+  value: number;
 }
 
 /** A single piece of loot with slot, quality, and depth-scaled stats. */
@@ -153,8 +165,14 @@ export class GearItem {
   readonly quality: Quality;
   /** Flavor adjective in the item name. */
   readonly adjective: string;
-  /** All stat bonuses this item grants when equipped. */
+  /** All stat bonuses this item grants when equipped, its enchant included. */
   readonly stats: GearStats;
+  /** The item's own stats, without its enchant. */
+  readonly baseStats: GearStats;
+  /** Its enchant, if it has one (#15). */
+  readonly enchant?: Enchant;
+  /** Times it has been enchanted, which sets the next enchant's price. */
+  readonly enchantCount: number;
   /** Gold cost to buy from a shop (currently unused in UI but tracked). */
   readonly cost: number;
   /** Gold received when selling. */
@@ -177,6 +195,7 @@ export class GearItem {
     statsOrLevel: GearStats | number = 1,
     dungeonLevel?: number,
     setName?: string,
+    enchanting: { enchant?: Enchant; count: number } = { count: 0 },
   ) {
     const isNum = typeof statsOrLevel === "number";
     const level = isNum ? (statsOrLevel as number) : (dungeonLevel ?? 1);
@@ -187,9 +206,14 @@ export class GearItem {
     this.adjective = adjective;
     this.dungeonLevel = level;
     this.setName = setName;
-    this.stats = isNum
+    this.baseStats = isNum
       ? { dps: Math.ceil(DAMAGE_BY_QUALITY[quality] * scale) }
       : (statsOrLevel as GearStats);
+    this.enchant = enchanting.enchant;
+    this.enchantCount = enchanting.count;
+    this.stats = this.enchant
+      ? { ...this.baseStats, [this.enchant.stat]: (this.baseStats[this.enchant.stat] ?? 0) + this.enchant.value }
+      : this.baseStats;
     this.cost = Math.ceil(COST_BY_QUALITY[quality] * scale);
     this.sellValue = Math.max(1, Math.floor(this.cost / 3));
   }
@@ -203,6 +227,12 @@ export class GearItem {
   getName(): string {
     if (this.setName) return `[${this.setName}] ${this.itemType}`;
     return `${this.quality} ${this.itemType} of ${this.adjective}`;
+  }
+
+  /** The same item with `enchant` in place of any it had, counted as one more enchant. */
+  withEnchant(enchant: Enchant): GearItem {
+    return new GearItem(this.slot, this.itemType, this.quality, this.adjective, this.baseStats, this.dungeonLevel, this.setName,
+      { enchant, count: this.enchantCount + 1 });
   }
 
   /** Serializes to a plain object safe for JSON. */
@@ -221,15 +251,58 @@ export class GearItem {
       sell_value: this.sellValue,
       dungeon_level: this.dungeonLevel,
       ...(this.setName !== undefined ? { set_name: this.setName } : {}),
+      ...(this.enchant ? { enchant: this.enchant, base_stats: this.baseStats } : {}),
+      ...(this.enchantCount > 0 ? { enchant_count: this.enchantCount } : {}),
     };
   }
 
   /** Reconstructs a GearItem from its serialized form, migrating old saves that have damage but no stats. */
   static fromDict(d: GearItemDict & { damage?: number; stats?: GearStats }): GearItem {
-    const stats: GearStats = d.stats ?? (d.damage !== undefined ? { dps: d.damage } : {});
+    const stats: GearStats = d.base_stats ?? d.stats ?? (d.damage !== undefined ? { dps: d.damage } : {});
     const quality = isQuality(d.quality) ? d.quality : "common";
-    return new GearItem(d.slot, d.item_type, quality, d.adjective, stats, d.dungeon_level ?? 1, d.set_name);
+    return new GearItem(d.slot, d.item_type, quality, d.adjective, stats, d.dungeon_level ?? 1, d.set_name,
+      { enchant: d.enchant, count: d.enchant_count ?? 0 });
   }
+}
+
+// ── Enchanting (#15) ──
+
+/** An enchant is worth this share of what its stat rolls on a drop of the item's quality. */
+export const ENCHANT_STRENGTH = 0.5;
+
+/** One row of the enchant table: a stat it can roll, its chance, and what it gives. */
+export interface EnchantOdds { stat: keyof GearStats; chance: number; value: number }
+
+/** What an enchant of `stat` gives on an item of this quality from this floor. */
+export function enchantValue(stat: keyof GearStats, quality: Quality, dungeonLevel: number): number {
+  const base = STAT_SCALE[stat][QUAL.indexOf(quality)] * ENCHANT_STRENGTH;
+  return NUMERIC_STATS.has(stat)
+    ? Math.ceil(base * gearLevelScale(dungeonLevel))
+    : Math.max(0.01, Math.round(base * 100) / 100);
+}
+
+/**
+ * The enchant table for an item: the stats its slot rolls on a drop, at the
+ * same weights. The roll reads this table, so the odds shown are the odds rolled.
+ */
+export function enchantOdds(item: GearItem): EnchantOdds[] {
+  const weights = SLOT_STAT_WEIGHTS[item.slot] as Record<keyof GearStats, number>;
+  const stats = Object.keys(weights) as (keyof GearStats)[];
+  const total = stats.reduce((a, k) => a + weights[k], 0);
+  return stats.map((stat) => ({ stat, chance: weights[stat] / total, value: enchantValue(stat, item.quality, item.dungeonLevel) }));
+}
+
+/** An enchant in plain words for the log, e.g. "+45 Damage" or "+4% Haste". */
+export function enchantLabel(e: Enchant): string {
+  const [label, numeric] = SET_STAT_FORMAT[e.stat] ?? [e.stat, true];
+  return numeric ? `+${e.value} ${label}` : `+${Math.round(e.value * 100)}% ${label}`;
+}
+
+/** Rolls an enchant for an item from its enchant table. */
+export function rollEnchant(item: GearItem, rng: RNG = defaultRng): Enchant {
+  const odds = enchantOdds(item);
+  const row = weightedPick(odds, odds.map((o) => o.chance), rng);
+  return { stat: row.stat, value: row.value };
 }
 
 /** ring2 is never an explicit drop; inventory spill logic handles the second ring slot. */

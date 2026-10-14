@@ -36,6 +36,7 @@ import {
   QUAL,
   QUALITY_CLASSES,
   qualityClass,
+  type EnchantOdds,
 } from "../gear.js";
 import { CLASS_ABILITIES, type Rune } from "../character.js";
 import { ENEMY_NOUNS } from "../dungeon.js";
@@ -322,6 +323,7 @@ export function buildTooltipHTML(item: GearItemDict, equippedSetCount = 0): stri
     <div class="tt-subtitle">${item.slot_display} · Floor ${item.dungeon_level}</div>
     <div class="tt-divider"></div>
     <div class="tt-stats">${statRows || '<div class="tt-stat-row"><span class="tt-stat-label">No stats</span></div>'}</div>
+    ${item.enchant ? `<div class="tt-stat-row tt-enchant"><span class="tt-stat-label">✦ Enchant, included above</span><span class="tt-stat-val">${formatStats({ [item.enchant.stat]: item.enchant.value })}</span></div>` : ""}
     ${setBlock}
     <div class="tt-divider"></div>
     <div class="tt-sell">Sell: ${formatGold(item.sell_value)}</div>
@@ -654,6 +656,26 @@ export function buildReturnToTownHTML(s: { renown: number; keep: SummaryLine[]; 
 export function deviceClaimError(e: unknown): string {
   const detail = e instanceof Error ? e.message : String(e);
   return `✗ Couldn't make this the active device (${detail}). Your progress is saved here; try again in a moment.`;
+}
+
+/**
+ * The enchant section of the gear slot dialog (#15): the item's enchant, the
+ * table it rolls on with each stat's chance and value, and the price.
+ */
+export function enchantSectionHTML(item: GearItemDict, odds: EnchantOdds[], price: number, gold: number, charIdx: number, slot: string): string {
+  const current = item.enchant
+    ? `<p class="enchant-current">Enchanted: <strong>${formatStats({ [item.enchant.stat]: item.enchant.value })}</strong></p>`
+    : `<p class="enchant-current">Not enchanted.</p>`;
+  const rows = [...odds].sort((a, b) => b.chance - a.chance).map((o) =>
+    `<li class="enchant-odds-row"><span>${formatStats({ [o.stat]: o.value })}</span><span class="enchant-odds-chance">${Math.round(o.chance * 100)}%</span></li>`).join("");
+  const verb = item.enchant ? "Re-roll" : "Enchant";
+  return `<section class="gear-sm-enchant">
+      <h4 class="gear-sm-enchant-head">Enchant</h4>
+      ${current}
+      <p class="enchant-note">Rolls one of these${item.enchant ? " and replaces the current enchant" : ""}. Each enchant on this item costs more than the last.</p>
+      <ul class="enchant-odds">${rows}</ul>
+      <button class="guild-buy-btn gear-sm-enchant-btn" data-action="gear-slot-enchant" data-char-idx="${charIdx}" data-slot="${slot}" ${gold < price ? "disabled" : ""}>${verb} · ${formatGold(price)}</button>
+    </section>`;
 }
 
 /** The Quartermaster section at the top of the Guild Hall tab (#15). */

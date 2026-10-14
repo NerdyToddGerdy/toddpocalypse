@@ -4,6 +4,13 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.67.0 — 2026-10-13
+
+- Enchanting, once the Guild Hall is open. Click any equipped item and choose Enchant to add one stat bonus to it. The dialog lists every stat it can roll, with each one's chance and value
+- An enchant rolls from the same stats that slot rolls on a drop, at the same odds, worth half a normal roll at the item's quality. Weapons mostly roll damage; chest pieces mostly roll HP
+- Each item holds one enchant. Re-roll it to replace it. The first enchant on an item costs twice what a boss pays on your deepest floor, and each one after costs 1.5 times the last
+- The enchant stays with the item: in the stash, through Return to Town, and in your save. Item tooltips show which part of the stats is the enchant
+
 ## v2.66.1 — 2026-10-13
 
 - Fixed: removing a piece of gear from a hero left its stats on them, and equipping it again added them a second time. Removing gear now takes its stats away. Heroes who already gained stats this way keep them
