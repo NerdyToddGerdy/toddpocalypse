@@ -51,7 +51,7 @@ The bible does not say where per-title divergences get recorded. This is that pl
 | §6 | Storage keys keep the `toddpocalypse-` prefix | 🔵 **Conformant** | — |
 | §6 | No `src/data/` | 🟡 Owed | #61 |
 | §6 | Changelog is generated `.md` from a typed `.ts` source | 🔵 Conformant | #62 |
-| §6 | No Playwright; failing-test-first rule unadopted | 🟡 Owed | #63 |
+| §6 | Vitest + Playwright; failing-test-first rule adopted | 🔵 Conformant | #63 |
 | — | Audio: one looping AI-generated track; the bible has no audio section | ⚪ Open | — |
 
 ---
@@ -245,15 +245,31 @@ it applies to every future shared component. Recorded here so it isn't rediscove
 
 ### §6 — storage keys keep the `toddpocalypse-` prefix
 
-Five keys still carry the pre-rename name: `toddpocalypse-save`, `-theme`, `-token`,
-`-token-expiry`, `-session`.
+Seven keys carry the pre-rename name: `toddpocalypse-save`, `-theme`, `-token`, `-token-expiry`,
+`-session`, `-cloud-slot` and `-slot-1`…`-5`. The last two came after the rename and take the old
+prefix anyway, so everything this game keeps in a browser shares one namespace.
 
 **This is correct and deliberate.** §6: "**Never rename a storage key without a read-old-write-new
 migration.**" *Realm of Depths* keeps its historical `notequest:` prefix through two renames for
 exactly this reason. These keys hold every player's save, session and auth state; the prefix is
 invisible to players, so renaming it is pure risk for zero gain.
 
-Renaming them would log everyone out and orphan every local save. **Leave them alone.**
+Renaming them would log everyone out and orphan every local save. **Leave them alone.** Each
+declaration carries a one-line comment pointing here, and `tests/storage-keys.test.ts` fails if a
+key appears without one (#63).
+
+### §6 — testing: Vitest, Playwright, and the failing-test-first rule
+
+Adopted 2026-10-13 (#63). §6 asks for Vitest, Playwright "for anything that only exists end-to-end
+(persisted state → real rendered UI)", and that "**a regression test must be shown to fail against
+the unfixed code before it is kept.**"
+
+- **Vitest** for everything below the page, in `tests/`.
+- **Playwright** in `e2e/`, against the built `dist/`. It started with the offline test (#64), the
+  path that most needs a real browser. CI runs it after the build. Cloud saves, device conflicts and
+  save migrations are the next candidates.
+- **The failing-test-first rule** is written into `CLAUDE.md`. The first test held to it was the
+  hanging-backend case in `e2e/offline.spec.ts`, run against the code from before the fix.
 
 ### §6 — the backend is allowed, and the game plays without it
 
@@ -489,8 +505,6 @@ matter.
 Each is tracked; this section is a pointer, not a duplicate of the issue.
 
 - **§6 `src/data/`** (#61) — tables live inside the modules that consume them.
-- **§6 testing** (#63) — Vitest is in place (1349 tests). No Playwright, and the "a regression test
-  must be shown to fail against the unfixed code before it is kept" rule isn't formally adopted.
 
 ---
 
@@ -526,6 +540,6 @@ grep -n '"eternal"\|"celestial"' src/gear.ts     # §1.5 audit — celestial onl
 test -d OLD_CODE && echo present                 # §1.5 — expect absent, and ignored if recreated
 grep -rc "fonts.googleapis" public/               # §3 typography — #54 done, expect 0
 ls public/fonts/*.woff2 | wc -l                  # §3 typography — expect 12, self-hosted
-grep -rn "toddpocalypse-" src/*.ts               # §6 storage keys — expect 5, leave them
+npx vitest run tests/storage-keys.test.ts        # §6 storage keys — expect 7, each commented; leave them
 grep -rin "notequest" --exclude-dir=node_modules . # §1 rule 3 — only bible URLs should match
 ```

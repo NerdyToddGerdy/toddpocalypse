@@ -195,8 +195,10 @@ const UPGRADE_LABELS: Record<string, { icon: string; label: string }> = {
 /** Maps set display name → SetDef for quick lookup. */
 const SET_BY_NAME = new Map(SET_DEFS.map(s => [s.name, s]));
 
-/** Maps emoji characters to their sprite-sheet class names in 16x16.png. */
+// Storage keys keep the pre-rename prefix: renaming one orphans every save.
+// Old prefix on purpose; see docs/franchise-divergences.md.
 const SAVE_KEY = "toddpocalypse-save";
+// Old prefix on purpose; see docs/franchise-divergences.md.
 const THEME_KEY = "toddpocalypse-theme";
 
 /**

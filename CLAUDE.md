@@ -85,6 +85,10 @@ Playwright (`e2e/*.spec.ts`) runs the built game in Chromium, for what only exis
 persisted state through to rendered UI. `e2e/offline.spec.ts` holds the §6 rule that the game plays
 with the backend gone (#64).
 
+**A regression test must be shown to fail against the unfixed code before it is kept** (franchise
+bible §6, adopted under #63). Write it first and watch it fail. If the fix already exists, stash it
+and run the test against the old code. A test that never failed hasn't shown it can catch anything.
+
 ### Deployment
 
 `.github/workflows/deploy.yml` runs on push to `main`: installs deps, runs tests, typechecks, builds, and uploads `dist/` as a Pages artifact. Pages must be configured in repo settings to deploy from GitHub Actions (one-time UI step).

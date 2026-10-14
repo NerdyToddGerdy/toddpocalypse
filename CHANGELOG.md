@@ -4,6 +4,10 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.65.1 — 2026-10-13
+
+- No change to play. Behind the scenes: each of the game's browser storage keys is now commented and tested so a future tidy-up can't rename one and lose your save
+
 ## v2.65.0 — 2026-10-13
 
 - If the save server stops answering, the game now gives up on it after 6 seconds and loads the save in this browser. Before, a signed-in player could be stuck on the loading screen

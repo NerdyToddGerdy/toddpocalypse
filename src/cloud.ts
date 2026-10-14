@@ -8,16 +8,16 @@ export const COGNITO_DOMAIN = "https://toddpocalypse-auth.auth.us-east-1.amazonc
 /** Cognito app client ID — public, not a secret. */
 export const COGNITO_CLIENT_ID = "66c8cjj6dtu1s9ud8qb47ls9ma";
 
-/** localStorage key for the stored access token. */
+/** localStorage key for the stored access token. Old prefix on purpose; see docs/franchise-divergences.md. */
 const TOKEN_KEY = "toddpocalypse-token";
 
-/** localStorage key for the token expiry timestamp (ms since epoch). */
+/** localStorage key for the token expiry timestamp (ms since epoch). Old prefix on purpose; see docs/franchise-divergences.md. */
 const TOKEN_EXPIRY_KEY = "toddpocalypse-token-expiry";
 
-/** localStorage key for the active session ID (stable per browser, unique per device). */
+/** localStorage key for the active session ID (stable per browser, unique per device). Old prefix on purpose; see docs/franchise-divergences.md. */
 const SESSION_KEY = "toddpocalypse-session";
 
-/** localStorage key for the cloud slot this browser plays (1–5). */
+/** localStorage key for the cloud slot this browser plays (1–5). Old prefix on purpose; see docs/franchise-divergences.md. */
 const SLOT_KEY = "toddpocalypse-cloud-slot";
 
 /** Cloud save slots per player. */
@@ -62,6 +62,7 @@ async function request(url: string, init: RequestInit = {}): Promise<Response> {
 /**
  * localStorage key for this browser's copy of a slot's game. Kept when you
  * leave or copy into a slot, so the cloud is never its only copy (#64).
+ * Old prefix on purpose; see docs/franchise-divergences.md.
  */
 function localCopyKey(slot: number): string {
     return `toddpocalypse-slot-${slot}`;

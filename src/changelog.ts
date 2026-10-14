@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.65.0";
+export const VERSION = "v2.65.1";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,13 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.65.1",
+    date: "2026-10-13",
+    changes: [
+      "No change to play. Behind the scenes: each of the game's browser storage keys is now commented and tested so a future tidy-up can't rename one and lose your save",
+    ],
+  },
   {
     version: "v2.65.0",
     date: "2026-10-13",
