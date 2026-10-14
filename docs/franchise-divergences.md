@@ -49,7 +49,7 @@ The bible does not say where per-title divergences get recorded. This is that pl
 | §6 | Has a backend (bible permits); plays with it gone, tested end to end | 🔵 Conformant | #64 |
 | §6 | Accounts + email, not anonymous UUID | 🟢 **Settled** | #64 |
 | §6 | Storage keys keep the `toddpocalypse-` prefix | 🔵 **Conformant** | — |
-| §6 | No `src/data/` | 🟡 Owed | #61 |
+| §6 | `src/data/` — tables as typed data; no dice, so no roll-keyed d6 tables | 🔵 Conformant | #61 |
 | §6 | Changelog is generated `.md` from a typed `.ts` source | 🔵 Conformant | #62 |
 | §6 | Vitest + Playwright; failing-test-first rule adopted | 🔵 Conformant | #63 |
 | — | Audio: one looping AI-generated track; the bible has no audio section | ⚪ Open | — |
@@ -257,6 +257,32 @@ invisible to players, so renaming it is pure risk for zero gain.
 Renaming them would log everyone out and orphan every local save. **Leave them alone.** Each
 declaration carries a one-line comment pointing here, and `tests/storage-keys.test.ts` fails if a
 key appears without one (#63).
+
+### §6 — `src/data/`: the tables are typed data
+
+Done in v2.66.0 (#61). §6: "game tables live as typed data in `src/data/`, keyed by roll value. New
+content is a data edit, not a new code path."
+
+Seven modules, each holding data only: `classes`, `gear`, `enemies`, `artifacts`, `constellations`,
+`town` (upgrades, prestige shop, Guild Hall, runes, Quartermaster) and `cosmetics`. The logic modules
+import from them and re-export the names they always exported, so no other file had to change.
+`tests/data.test.ts` fails if a data module gains a function or class, imports from outside
+`src/data/`, or if a moved table is declared back in a logic module.
+
+**"Keyed by roll value", in a game with no dice (§5.1).** The rolls here are weighted picks, and the
+tables are keyed by what was picked. The quality ladder was four parallel lookups (`QUAL`,
+`DAMAGE_BY_QUALITY`, `COST_BY_QUALITY`, `QUALITY_CLASSES`). It is now **one `QUALITY_TABLE`, a row per
+quality**, and the old lookups are built from it. `DROP_WEIGHTS` is indexed by how far below the
+floor's best quality a drop lands, and `STAT_SCALE` by quality.
+
+**What stayed with the logic, on purpose:**
+
+- **Achievements** (`ACHIEVEMENTS`, `engine.ts`). Each has a `getValue` that reads the live
+  `GameState`, which makes it behaviour. Splitting the text from the function would make adding an
+  achievement a two-file edit, which is the opposite of the point.
+- **Scalar tuning constants** (`DROP_CHANCE`, `ELITE_HP_MULT`, `LUCKY_STRIKE_CHANCE`…). Each is a
+  single named number that sits next to the rule that uses it, and several are quoted in the log
+  text (§4). They are knobs, not tables.
 
 ### §6 — testing: Vitest, Playwright, and the failing-test-first rule
 
@@ -504,7 +530,7 @@ matter.
 
 Each is tracked; this section is a pointer, not a duplicate of the issue.
 
-- **§6 `src/data/`** (#61) — tables live inside the modules that consume them.
+Nothing is owed right now.
 
 ---
 

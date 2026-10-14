@@ -11,6 +11,20 @@ export { ARTIFACT_DEFS, ARTIFACT_DROP_POOL, artifactUpgradeCost, artifactSellVal
 export type { ArtifactInstance };
 
 export { ELITE_HP_MULT, ELITE_ATTACK_MULT, ELITE_REWARD_MULT };
+import { COMPANION_NAMES, SKILL_DEFS } from "./data/classes.js";
+import {
+  CONSUMABLE_DEFS, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, GUILD_HALL_PREREQS, PRESTIGE_DUNGEON_REQ, PRESTIGE_SHOP_COSTS,
+  RUNE_DEFS, RUNE_SELL_VALUES, RUNE_TIER_UP, SCALING_PRESTIGE_UPGRADES, STASH_SIZES, STASH_TIER_COSTS, UPGRADE_BASES, UPGRADE_EFFECTS,
+  type ConsumableDef, type ConsumableId,
+} from "./data/town.js";
+import { AVATAR_DEFS, BORDER_DEFS, LEGACY_UNLOCKS, THEME_UNLOCKS } from "./data/cosmetics.js";
+export {
+  AVATAR_DEFS, BORDER_DEFS, COMPANION_NAMES, CONSUMABLE_DEFS, GUILD_HALL_COSTS, GUILD_HALL_DUNGEON_REQ, GUILD_HALL_PREREQS,
+  LEGACY_UNLOCKS, PRESTIGE_DUNGEON_REQ, PRESTIGE_SHOP_COSTS, RUNE_DEFS, RUNE_SELL_VALUES, SKILL_DEFS, STASH_SIZES,
+  STASH_TIER_COSTS, THEME_UNLOCKS, UPGRADE_BASES, UPGRADE_EFFECTS,
+};
+export type { ConsumableDef, ConsumableId };
+
 export const ELITE_SPAWN_CHANCE = 0.15;
 
 /** Formats a number with commas below 10,000 and shorthand (k/m/b) above. */
@@ -99,20 +113,6 @@ export interface LootOdds {
   quality: Record<string, number>;
 }
 
-/** Base gold cost for the first level of each upgrade type. */
-export const UPGRADE_BASES: Record<string, number> = {
-  dps: 50,
-  xp: 75,
-  click: 40,
-  hp: 60,
-  defense: 150,
-};
-
-/** Stat delta applied per upgrade level for XP-rate upgrades. */
-export const UPGRADE_EFFECTS: Record<string, number> = {
-  xp: 0.1,
-};
-
 /** DPS multiplier bonus added per DPS-upgrade level (+5% per level). */
 export const DPS_UPGRADE_EFFECT = 0.01;
 
@@ -157,28 +157,6 @@ export const LUCKY_CHARM_BONUS = 0.15;
 /** Gold draught: boss gold multiplier while it lasts. */
 export const GOLD_DRAUGHT_MULT = 1.5;
 
-export type ConsumableId = "whetstone" | "lucky_charm" | "gold_draught" | "healing_potion";
-/** A Quartermaster item. Lasts `kills` kills or `bosses` bosses, or acts at once. */
-export interface ConsumableDef {
-  name: string;
-  icon: string;
-  /** What it does, in plain words with the real numbers (§4). */
-  effect: string;
-  kills?: number;
-  bosses?: number;
-  /** Price, in multiples of what a boss pays at your deepest floor this run. */
-  priceBossGold: number;
-}
-/**
- * The Quartermaster's stock (#15). Prices track boss gold at your deepest floor,
- * so they stay a real cost from the first dungeon to the last.
- */
-export const CONSUMABLE_DEFS: Record<ConsumableId, ConsumableDef> = {
-  whetstone:      { name: "Whetstone",      icon: "🗡", effect: "Party damage ×1.5 for the next 10 kills.", kills: 10, priceBossGold: 1 },
-  lucky_charm:    { name: "Lucky charm",    icon: "🍀", effect: "+15% drop chance for the next 10 kills, still capped at 75%.", kills: 10, priceBossGold: 1 },
-  gold_draught:   { name: "Gold draught",   icon: "🍺", effect: "Boss gold ×1.5 for the next 3 bosses.", bosses: 3, priceBossGold: 2 },
-  healing_potion: { name: "Healing potion", icon: "🧪", effect: "Heals every living hero to full, now.", priceBossGold: 0.5 },
-};
 /** One Quartermaster item as the UI shows it. */
 export interface ConsumableView { id: ConsumableId; name: string; icon: string; effect: string; price: number; charges: number; unit: "kills" | "bosses" | null }
 
@@ -218,45 +196,6 @@ export function ventureUnlockLevel(dungeonIndex: number): number {
 /** Gold earned per idle companion DPS-point per real second after venturing. */
 export const IDLE_GOLD_RATE = 0.01;
 
-/** Prestige point cost for each prestige shop item (one-time purchases use a flat cost). */
-export const PRESTIGE_SHOP_COSTS: Record<string, number> = {
-  guild_hall_access: 5,
-  auto_seller: 1,
-  auto_equip: 2,
-  auto_upgrade: 2,
-  smart_seller: 4,
-  party_slot_2: 2,
-  party_slot_3: 3,
-  party_slot_4: 4,
-  party_slot_5: 5,
-  party_slot_6: 6,
-  starting_gold: 1,
-  xp_bonus: 1,
-  gold_bonus: 1,
-  dps_bonus: 1,
-  checkpoint: 1,
-  gold_mastery: 2,
-  gear_luck: 2,
-  combine_all_runes: 2,
-  stash: 0,
-};
-
-/** Minimum dungeonIndex required to purchase each prestige upgrade. */
-export const PRESTIGE_DUNGEON_REQ: Record<string, number> = {
-  gold_mastery: 1,
-  gear_luck: 1,
-  stash: 2,
-};
-
-/** Stackable upgrades whose cost increases by 1 pt per stack already owned. */
-const SCALING_PRESTIGE_UPGRADES = new Set(["starting_gold", "xp_bonus", "gold_bonus", "dps_bonus", "checkpoint", "gold_mastery", "gear_luck"]);
-
-/** Prestige point costs for each tier of the gear stash upgrade (levels 1–4). */
-export const STASH_TIER_COSTS = [0, 2, 5, 10];
-
-/** Number of stash slots unlocked at each stash tier (index = tier - 1). */
-export const STASH_SIZES = [3, 6, 10, 15];
-
 /** Returns the prestige point cost for the next purchase of a given upgrade type. */
 export function prestigeUpgradeCost(type: string, currentStacks: number): number {
   if (type === "stash") return STASH_TIER_COSTS[currentStacks] ?? Infinity;
@@ -266,72 +205,6 @@ export function prestigeUpgradeCost(type: string, currentStacks: number): number
   return PRESTIGE_SHOP_COSTS[type];
 }
 
-/** Gold cost for each stack of every Guild Hall upgrade. */
-export const GUILD_HALL_COSTS: Record<string, number[]> = {
-  companion_hall:      [10_000, 16_000, 24_000],
-  expanded_armory:     [2_000,  4_000,  6_000],
-  class_paladin:       [8_000],
-  class_ranger:        [8_000],
-  class_druid:         [12_000],
-  skill_battle_cry:    [5_000],
-  skill_shadow_strike: [5_000],
-  skill_arcane_surge:  [5_000],
-  skill_consecrate:    [10_000],
-  skill_volley:        [10_000],
-  skill_entangle:      [10_000],
-  auto_attack:            [6_000],
-  eternal_cycle:          [16_000],
-  rune_forge:             [10_000, 20_000, 40_000, 80_000],
-  constellation_access:   [20_000],
-};
-
-/** All rune definitions: 6 types × 4 tiers (Lesser → Greater → Flawless → Ancient, each 2× the previous). */
-export const RUNE_DEFS: Record<string, Rune> = {
-  striking_lesser:   { id: "striking_lesser",   name: "Lesser Striking Rune",   type: "striking",  tier: "lesser",   statKey: "dps",          value: 8 },
-  striking_greater:  { id: "striking_greater",  name: "Greater Striking Rune",  type: "striking",  tier: "greater",  statKey: "dps",          value: 16 },
-  striking_flawless: { id: "striking_flawless", name: "Flawless Striking Rune", type: "striking",  tier: "flawless", statKey: "dps",          value: 32 },
-  striking_ancient:  { id: "striking_ancient",  name: "Ancient Striking Rune",  type: "striking",  tier: "ancient",  statKey: "dps",          value: 64 },
-  warding_lesser:    { id: "warding_lesser",    name: "Lesser Warding Rune",    type: "warding",   tier: "lesser",   statKey: "maxHp",        value: 25 },
-  warding_greater:   { id: "warding_greater",   name: "Greater Warding Rune",   type: "warding",   tier: "greater",  statKey: "maxHp",        value: 50 },
-  warding_flawless:  { id: "warding_flawless",  name: "Flawless Warding Rune",  type: "warding",   tier: "flawless", statKey: "maxHp",        value: 100 },
-  warding_ancient:   { id: "warding_ancient",   name: "Ancient Warding Rune",   type: "warding",   tier: "ancient",  statKey: "maxHp",        value: 200 },
-  swiftness_lesser:  { id: "swiftness_lesser",  name: "Lesser Swiftness Rune",  type: "swiftness", tier: "lesser",   statKey: "haste",        value: 0.04 },
-  swiftness_greater: { id: "swiftness_greater", name: "Greater Swiftness Rune", type: "swiftness", tier: "greater",  statKey: "haste",        value: 0.08 },
-  swiftness_flawless:{ id: "swiftness_flawless",name: "Flawless Swiftness Rune",type: "swiftness", tier: "flawless", statKey: "haste",        value: 0.16 },
-  swiftness_ancient: { id: "swiftness_ancient", name: "Ancient Swiftness Rune", type: "swiftness", tier: "ancient",  statKey: "haste",        value: 0.32 },
-  greed_lesser:      { id: "greed_lesser",      name: "Lesser Greed Rune",      type: "greed",     tier: "lesser",   statKey: "goldBonus",    value: 0.04 },
-  greed_greater:     { id: "greed_greater",     name: "Greater Greed Rune",     type: "greed",     tier: "greater",  statKey: "goldBonus",    value: 0.08 },
-  greed_flawless:    { id: "greed_flawless",    name: "Flawless Greed Rune",    type: "greed",     tier: "flawless", statKey: "goldBonus",    value: 0.16 },
-  greed_ancient:     { id: "greed_ancient",     name: "Ancient Greed Rune",     type: "greed",     tier: "ancient",  statKey: "goldBonus",    value: 0.32 },
-  fortune_lesser:    { id: "fortune_lesser",    name: "Lesser Fortune Rune",    type: "fortune",   tier: "lesser",   statKey: "xpMultiplier", value: 0.04 },
-  fortune_greater:   { id: "fortune_greater",   name: "Greater Fortune Rune",   type: "fortune",   tier: "greater",  statKey: "xpMultiplier", value: 0.08 },
-  fortune_flawless:  { id: "fortune_flawless",  name: "Flawless Fortune Rune",  type: "fortune",   tier: "flawless", statKey: "xpMultiplier", value: 0.16 },
-  fortune_ancient:   { id: "fortune_ancient",   name: "Ancient Fortune Rune",   type: "fortune",   tier: "ancient",  statKey: "xpMultiplier", value: 0.32 },
-  wrath_lesser:      { id: "wrath_lesser",      name: "Lesser Wrath Rune",      type: "wrath",     tier: "lesser",   statKey: "critChance",   value: 0.03 },
-  wrath_greater:     { id: "wrath_greater",     name: "Greater Wrath Rune",     type: "wrath",     tier: "greater",  statKey: "critChance",   value: 0.06 },
-  wrath_flawless:    { id: "wrath_flawless",    name: "Flawless Wrath Rune",    type: "wrath",     tier: "flawless", statKey: "critChance",   value: 0.12 },
-  wrath_ancient:     { id: "wrath_ancient",     name: "Ancient Wrath Rune",     type: "wrath",     tier: "ancient",  statKey: "critChance",   value: 0.24 },
-};
-
-/** Minimum dungeonIndex required to purchase each Guild Hall upgrade. */
-export const GUILD_HALL_DUNGEON_REQ: Record<string, number> = {
-  class_paladin:        1,
-  class_ranger:         1,
-  skill_consecrate:     1,
-  skill_volley:         1,
-  class_druid:          2,
-  skill_entangle:       2,
-  constellation_access: 2,
-};
-
-/** Guild Hall upgrades that require another upgrade to be owned first. */
-export const GUILD_HALL_PREREQS: Record<string, string> = {
-  skill_consecrate: "class_paladin",
-  skill_volley:     "class_ranger",
-  skill_entangle:   "class_druid",
-};
-
-/** Cooldown (ms) and duration (kills) and class requirement for each active combat skill. */
 /** Floor at which dungeon corruption begins dealing passive damage to the party (dungeon 2+ only). */
 export const CORRUPTION_FLOOR = 20;
 /** Fraction of a member's maxHealth lost per second per floor of depth beyond CORRUPTION_FLOOR. */
@@ -390,33 +263,12 @@ export function stackedEntangle(count: number): number {
   return 1 - (1 - ENTANGLE_REDUCTION) / (1 + SKILL_STACK_POWER * skillExtraHeroes(count));
 }
 
-export const SKILL_DEFS: Record<string, { cooldownKills: number; durationKills: number; class: string }> = {
-  skill_battle_cry:    { cooldownKills: 20, durationKills: 8, class: "fighter" },
-  skill_shadow_strike: { cooldownKills: 20, durationKills: 5, class: "rogue" },
-  skill_arcane_surge:  { cooldownKills: 25, durationKills: 6, class: "mage" },
-  skill_consecrate:    { cooldownKills: 15, durationKills: 0, class: "paladin" },
-  skill_volley:        { cooldownKills: 15, durationKills: 6, class: "ranger" },
-  skill_entangle:      { cooldownKills: 20, durationKills: 8, class: "druid" },
-};
-
 /** Lifesteal effectiveness against boss and elite enemies. */
 export const BOSS_LIFESTEAL_MULT = 0.25;
-
-/** Non-binary class-themed names for companion party slots (slot 2–6 use index 0–4). */
-export const COMPANION_NAMES: Record<string, string[]> = {
-  fighter: ["Cade",   "Raze",   "Flint",  "Sable",   "Onyx"  ],
-  rogue:   ["Vesper", "Vale",   "Ash",    "Cipher",  "Dusk"  ],
-  mage:    ["Indigo", "Lyric",  "Zephyr", "Rune",    "Lark"  ],
-  paladin: ["Sol",    "Blair",  "Corin",  "Emery",   "Avery" ],
-  ranger:  ["River",  "Cedar",  "Finch",  "Briar",   "Brook" ],
-  druid:   ["Rowan",  "Hazel",  "Fern",   "Sage",    "Wren"  ],
-};
 
 function companionName(cls: string, slotIdx: number): string {
   return (COMPANION_NAMES[cls] ?? COMPANION_NAMES.fighter)[slotIdx] ?? "Companion";
 }
-
-const RUNE_TIER_UP: Record<string, string> = { lesser: "greater", greater: "flawless", flawless: "ancient" };
 
 /** Generates a random set piece at the given effective level (random set, random slot from that set). */
 function randomSetDrop(effectiveLevel: number, rng: RNG): GearItem {
@@ -464,66 +316,6 @@ export const DPS_BONUS_PER_LEVEL = 0.05;
 /** Gold multiplier bonus per additional party member beyond the first. */
 export const PARTY_GOLD_BONUS_PER_MEMBER = 0.20;
 
-/** Gold received when selling a rune, keyed by tier. */
-export const RUNE_SELL_VALUES: Record<string, number> = {
-  lesser:   10,
-  greater:  30,
-  flawless: 90,
-  ancient:  250,
-};
-
-/** Player avatar options — unlockable via achievements. */
-export const AVATAR_DEFS: { id: string; icon: string; name: string }[] = [
-  { id: "default",  icon: "⚔",  name: "Warrior"         },
-  { id: "dragon",   icon: "🐉",  name: "Dragon Slayer"   },
-  { id: "skull",    icon: "💀",  name: "The Dead"        },
-  { id: "gem",      icon: "💎",  name: "Treasure Hunter" },
-  { id: "crown",    icon: "👑",  name: "Champion"        },
-  { id: "rune",     icon: "🔮",  name: "Arcanist"        },
-  { id: "star",     icon: "⭐",  name: "Legend"          },
-  { id: "warlord",  icon: "🔱",  name: "Warlord"         },
-  { id: "merchant", icon: "💰",  name: "Merchant"        },
-  { id: "hunter",   icon: "🏹",  name: "Hunter"          },
-  { id: "wolf",     icon: "🐺",  name: "Wolf"            },
-  { id: "flame",    icon: "🔥",  name: "Pyromancer"      },
-  { id: "hawk",     icon: "🦅",  name: "Hawk Eye"        },
-  { id: "explorer", icon: "🗺️", name: "Explorer"        },
-  { id: "compass",  icon: "🧭",  name: "Archaeologist"   },
-  { id: "medal",    icon: "🎖️", name: "Decorated"       },
-  { id: "coin",     icon: "🪙",  name: "Coin Lord"       },
-  { id: "wizard",   icon: "🧙",  name: "Spellbinder"     },
-  { id: "crystal",  icon: "💠",  name: "Gemcutter"       },
-  { id: "scales",   icon: "⚖️", name: "Arbiter"         },
-];
-
-/** Player avatar border styles — unlockable via achievements. */
-export const BORDER_DEFS: { id: string; cssClass: string; name: string }[] = [
-  { id: "none",      cssClass: "border-none",      name: "None"      },
-  { id: "iron",      cssClass: "border-iron",      name: "Iron"      },
-  { id: "silver",    cssClass: "border-silver",    name: "Silver"    },
-  { id: "gold",      cssClass: "border-gold",      name: "Gold"      },
-  { id: "blood",     cssClass: "border-blood",     name: "Blood"     },
-  { id: "arcane",    cssClass: "border-arcane",    name: "Arcane"    },
-  { id: "ancient",   cssClass: "border-ancient",   name: "Ancient"   },
-  { id: "void",      cssClass: "border-void",      name: "Void"      },
-  { id: "crimson",   cssClass: "border-crimson",   name: "Crimson"   },
-  { id: "ember",     cssClass: "border-ember",     name: "Ember"     },
-  { id: "bronze",    cssClass: "border-bronze",    name: "Bronze"    },
-  { id: "shadow",    cssClass: "border-shadow",    name: "Shadow"    },
-  { id: "emerald",   cssClass: "border-emerald",   name: "Emerald"   },
-  { id: "frost",     cssClass: "border-frost",     name: "Frost"     },
-  { id: "twilight",  cssClass: "border-twilight",  name: "Twilight"  },
-  { id: "relic",     cssClass: "border-relic",     name: "Relic"     },
-  { id: "celestial", cssClass: "border-celestial", name: "Celestial" },
-  { id: "obsidian",  cssClass: "border-obsidian",  name: "Obsidian"  },
-  { id: "platinum",  cssClass: "border-platinum",  name: "Platinum"  },
-  { id: "sovereign", cssClass: "border-sovereign", name: "Sovereign" },
-  { id: "mystic",    cssClass: "border-mystic",    name: "Mystic"    },
-  { id: "storm",     cssClass: "border-storm",     name: "Storm"     },
-  { id: "runic",     cssClass: "border-runic",     name: "Runic"     },
-  { id: "spellfire", cssClass: "border-spellfire", name: "Spellfire" },
-];
-
 /** Snapshot of a retired hero, stored permanently in the Hall of Fame. */
 export interface RetiredHero {
   name: string;
@@ -535,26 +327,6 @@ export interface RetiredHero {
   score: number;
   retiredOn: string; // ISO date string
 }
-
-/** Legacy unlocks granted per retirement milestone: { retirements → { classes, title, avatars, borders } } */
-export const LEGACY_UNLOCKS: Record<number, { classes: string[]; title: string; avatar?: string; border?: string }> = {
-  1: { classes: ["paladin"], title: "Veteran",    avatar: "crown" },
-  2: { classes: ["ranger"],  title: "Twice-Born", border: "blood" },
-  3: { classes: ["druid"],   title: "The Eternal", avatar: "warlord" },
-};
-
-/** All visual themes with their prestige unlock requirements. */
-export const THEME_UNLOCKS: { theme: string; icon: string; label: string; prestiges: number }[] = [
-  { theme: "torchlight",  icon: "🕯", label: "Torchlight",   prestiges: 0 },
-  { theme: "ledger",      icon: "📜", label: "Ledger",       prestiges: 0 },
-  { theme: "grimdark",    icon: "⚔",  label: "Grimdark",    prestiges: 0 },
-  { theme: "arcane",      icon: "🔮", label: "Arcane",       prestiges: 0 },
-  { theme: "inferno",     icon: "🔥", label: "Inferno",      prestiges: 3 },
-  { theme: "void-rift",   icon: "🌀", label: "Void Rift",    prestiges: 5 },
-  { theme: "bloodmoon",   icon: "🩸", label: "Bloodmoon",    prestiges: 8 },
-  { theme: "frost-crypt", icon: "❄",  label: "Frost Crypt",  prestiges: 12 },
-  { theme: "necropolis",  icon: "💀", label: "Necropolis",   prestiges: 17 },
-];
 
 export type AchievementCategory = "combat" | "explorer" | "collector" | "wealth" | "prestige" | "guild" | "runes";
 export type AchievementTierLabel = "bronze" | "silver" | "gold";

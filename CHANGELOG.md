@@ -4,6 +4,10 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.66.0 — 2026-10-13
+
+- No change to play. Behind the scenes: the game's tables (classes, gear qualities, enemies, artifacts, the constellation map, town upgrades, runes and cosmetics) now live together as plain data, so adding content is an edit to a table rather than to the game's rules
+
 ## v2.65.1 — 2026-10-13
 
 - No change to play. Behind the scenes: each of the game's browser storage keys is now commented and tested so a future tidy-up can't rename one and lose your save

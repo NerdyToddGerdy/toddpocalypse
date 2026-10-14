@@ -63,6 +63,8 @@ party.ts       Party — list of Characters
 character.ts   Character — class stats, level-up, equip
 inventory.ts   Inventory — slot map, equip/displace
 gear.ts        GearItem + getItem() — slots, qualities, drop weights
+data/          the game's tables as typed data (§6, #61) — classes, gear, enemies, artifacts,
+               constellations, town, cosmetics. Data only; new content is an edit here
 ```
 
 ### Public assets (`public/`)
