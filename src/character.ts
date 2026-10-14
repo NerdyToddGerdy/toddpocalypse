@@ -118,6 +118,13 @@ export class Character {
     return old;
   }
 
+  /** Takes off the item in a slot, removing its stats, and returns it (or null). */
+  unequipItem(slot: Slot): GearItem | null {
+    const item = this.inventory.remove(slot);
+    if (item) this.removeStats(item.stats);
+    return item;
+  }
+
   /** Sockets a rune into the given slot, applying its stat. Returns the old rune (or null). */
   applyRune(slot: Slot, rune: Rune): Rune | null {
     const old = this.runes[slot] ?? null;

@@ -4,6 +4,10 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.66.1 — 2026-10-13
+
+- Fixed: removing a piece of gear from a hero left its stats on them, and equipping it again added them a second time. Removing gear now takes its stats away. Heroes who already gained stats this way keep them
+
 ## v2.66.0 — 2026-10-13
 
 - No change to play. Behind the scenes: the game's tables (classes, gear qualities, enemies, artifacts, the constellation map, town upgrades, runes and cosmetics) now live together as plain data, so adding content is an edit to a table rather than to the game's rules

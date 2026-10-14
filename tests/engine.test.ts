@@ -825,6 +825,31 @@ describe("unequipGear", () => {
     const gs = withEquipped();
     expect(JSON.parse(gs.unequipGear(0, "chest"))).toHaveProperty("loot_pool");
   });
+
+  // Removing gear used to leave its stats on the hero, and equipping it again
+  // added them a second time: repeat that and stats grew without limit.
+  it("takes the item's stats off the hero", () => {
+    const gs = make();
+    const c = gs.party.team[0];
+    const bare = { dps: c.dps, maxHealth: c.maxHealth, critChance: c.critChance };
+    const sword = new GearItem("main_hand", "sword", "rare", "fury", { dps: 120, maxHp: 40, critChance: 0.05 }, 30);
+    c.equipItem(sword);
+    gs.unequipGear(0, "main_hand");
+    expect({ dps: c.dps, maxHealth: c.maxHealth, critChance: c.critChance }).toEqual(bare);
+  });
+
+  it("equipping and removing again and again leaves the hero as they were", () => {
+    const gs = make();
+    const c = gs.party.team[0];
+    const bareDps = c.dps;
+    const sword = new GearItem("main_hand", "sword", "rare", "fury", { dps: 120 }, 30);
+    for (let i = 0; i < 5; i++) {
+      c.equipItem(sword);
+      gs.unequipGear(0, "main_hand");
+      gs.lootPool.length = 0;
+    }
+    expect(c.dps).toBe(bareDps);
+  });
 });
 
 describe("upgrades", () => {

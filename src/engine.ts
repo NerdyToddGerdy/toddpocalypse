@@ -1075,7 +1075,7 @@ export class GameState {
     const canStash = this.gearStash.length < this.stashMax;
     const canLoot = this.lootPool.length < this.lootMax;
     if (!canStash && !canLoot) return this.respond();
-    const item = char.inventory.remove(slot as Slot);
+    const item = char.unequipItem(slot as Slot);
     if (!item) return this.respond();
     char.recomputeSetBonuses();
     if (canStash) {
