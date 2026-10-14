@@ -4,6 +4,12 @@
 
 All notable changes to **GerdQuest: Idle Depths**.
 
+## v2.65.0 — 2026-10-13
+
+- If the save server stops answering, the game now gives up on it after 6 seconds and loads the save in this browser. Before, a signed-in player could be stuck on the loading screen
+- Each cloud slot you leave, or copy a game into, keeps a copy in this browser. If the cloud can't load a slot, Play uses that copy. Deleting a slot removes it
+- New end-to-end tests play the real game in a browser with the server refusing, failing, hanging, or signed out, and check you can still fight
+
 ## v2.64.0 — 2026-10-12
 
 - Background music. It starts quietly after your first tap or key press and loops without a gap. A placeholder drone plays until the real track is added

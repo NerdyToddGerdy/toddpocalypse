@@ -46,8 +46,8 @@ The bible does not say where per-title divergences get recorded. This is that pl
 | §7 | Party of one to six | 🟢 **Settled** | #58 |
 | §7 | Setting and lore | ⚪ Open (deferred) | #58 |
 | §6 | Vanilla DOM + esbuild, not React + Vite | 🟢 **Settled** | #63 |
-| §6 | Has a backend (bible permits) | 🔵 Conformant | #64 |
-| §6 | Accounts + email, not anonymous UUID | ⚪ Open | #64 |
+| §6 | Has a backend (bible permits); plays with it gone, tested end to end | 🔵 Conformant | #64 |
+| §6 | Accounts + email, not anonymous UUID | 🟢 **Settled** | #64 |
 | §6 | Storage keys keep the `toddpocalypse-` prefix | 🔵 **Conformant** | — |
 | §6 | No `src/data/` | 🟡 Owed | #61 |
 | §6 | Changelog is generated `.md` from a typed `.ts` source | 🔵 Conformant | #62 |
@@ -202,6 +202,30 @@ NoteQuest** (§1 rule 3). Two values depart from §3 for legibility on paper, an
 > look is franchise-constant, additional themes are a per-title call. Until that lands this is an
 > undocumented divergence, not a settled exception. Requires a change in the flagship repo.
 
+### §6 — accounts (Cognito + Google sign-in), not an anonymous UUID
+
+§6: "#119 chose an anonymous UUID over accounts. **Prefer that**: no passwords, no email, no personal
+data to protect, and nothing to migrate if the service is retired." Decided **2026-10-13 by the
+owner: keep Cognito** (#64).
+
+**Why:** the backend exists for one feature, playing the same save on two devices. An anonymous UUID
+lives in one browser. Getting it onto a second device means carrying a secret across by hand, which
+is #46's save code: a different feature, not a simpler route to this one. Sign-in does that with a
+button.
+
+**How it meets the reasons §6 gives for preferring anonymous IDs:**
+
+- **No passwords:** none. Google handles sign-in; this game never sees or stores a password.
+- **No email, no personal data:** this is the real cost, and it is accepted. Cognito keeps the email
+  as the account identifier, which is why `PRIVACY.md` exists. Nothing else personal is kept.
+- **Nothing to migrate if the service is retired:** true since v2.65.0. The browser's save is
+  authoritative, and every slot you leave or copy into keeps a copy in this browser (below). Turning
+  the backend off loses players nothing they'd be upset to lose.
+- **Sign-in is never required to play.** It is offered, never asked for.
+
+**Not ruled out:** #46's save code, alongside sign-in rather than replacing it, for hosts where
+Google sign-in can't return (itch.io, #45).
+
 ### §6 — vanilla DOM + esbuild, not React + Vite
 
 §6 specifies React + TypeScript + Vite. This is TypeScript + esbuild with direct DOM rendering and
@@ -231,14 +255,34 @@ invisible to players, so renaming it is pure risk for zero gain.
 
 Renaming them would log everyone out and orphan every local save. **Leave them alone.**
 
-### §6 — the backend is allowed
+### §6 — the backend is allowed, and the game plays without it
 
 Cognito + Lambda + DynamoDB. §6's Backends section explicitly permits this: "static by default …
 **This is a starting point, not a franchise constraint**."
 
 The rule that *does* apply — "the game must remain fully playable with the network down, or the
-backend gone entirely" — appears satisfied: `localStorage` is authoritative and `cloudLoad` returns a
-typed result rather than throwing. **Not yet actually tested**, which is #64.
+backend gone entirely" — **is tested, since v2.65.0 (#64)**. `e2e/offline.spec.ts` runs the built
+game in a real browser four ways: every outside request refused, every API call answering 500, an API
+that never answers, and an expired sign-in. Each must reach a hero who can fight, and the first must
+survive a reload. CI runs it on every push.
+
+What the test found, and what changed:
+
+- **A host that never answers held the game at its loading screen.** Startup waits on the cloud load
+  for a signed-in player, and `fetch` had no timeout. Every cloud request now gives up after
+  `REQUEST_TIMEOUT_MS` (6s, `src/cloud.ts`) and reports it as a network failure, which falls back
+  to the browser's save. The e2e test fails against the old code.
+- **A slot you left existed only in the cloud.** Switching slots saved the old game to the cloud,
+  then replaced the browser's save with the new slot's. Now leaving a slot, or copying a game into
+  one, keeps a copy in this browser (`toddpocalypse-slot-1`…`-5`), and Play falls back to that copy
+  if the cloud can't load the slot. Deleting a slot drops its copy only once the cloud confirms.
+
+**Cloud-only data left, by design:** slot *names* and the server's slot summaries. Losing them
+costs a label, not progress.
+
+**Known limit:** switching slots needs the cloud. It saves the current game there first, so the
+cloud copy of each slot stays the newest one. Doing it offline would mean merging two copies later,
+which is a sync engine, not a fallback. Offline, you keep playing the slot you're in.
 
 ### §6 — versioning: tags backfilled, `CHANGELOG.md` generated not hand-written
 
@@ -454,11 +498,6 @@ Each is tracked; this section is a pointer, not a duplicate of the issue.
 
 - **§7 setting** (#58) — **deferred by the owner, 2026-10-09.** The world stays generic for now.
   §8.1 still notes this title is the cheapest place to start shared franchise lore, if that happens.
-- **§6 identity** (#64) — §6 says *prefer* an anonymous UUID: "no passwords, no email, no personal
-  data to protect." We use Cognito with Google sign-in requesting `email+openid+profile`, and
-  maintain a `PRIVACY.md` because of it. A considered trade for cross-device sync — but the
-  argument isn't on the record, and #46's save-code system is the anonymous alternative already on
-  the backlog.
 - **Audio** — the bible says nothing about sound. Since v2.64.0 the game plays one looping
   background track (`public/audio/theme.mp3`, `src/audio.ts`): on and quiet by default, muted from
   the header, silent while the tab is hidden unless the player opts in. The owner chose to generate

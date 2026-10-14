@@ -43,3 +43,28 @@ describe("device claim failures are shown", () => {
     expect(deviceClaimError("boom")).toContain("boom");
   });
 });
+
+// #64: a slot's game must not live only in the cloud once you leave it.
+describe("slots keep a local copy", () => {
+  const slotsFn = mainTs.slice(mainTs.indexOf("function initSaveSlots"), mainTs.indexOf("/** Reads and parses the save from localStorage"));
+
+  it("leaving a slot copies its game to this browser before the cloud save", () => {
+    const fn = mainTs.slice(mainTs.indexOf("async function saveBeforeSwitching"), mainTs.indexOf("/** Leaves the current slot"));
+    expect(fn).toMatch(/keepLocalCopy\(getActiveSlot\(\), data\)[\s\S]*cloudSave\(/);
+  });
+
+  it("a slot the cloud can't load plays from its local copy", () => {
+    const play = slotsFn.slice(slotsFn.indexOf('case "slot-play"'), slotsFn.indexOf('case "slot-new"'));
+    expect(play).toContain("localCopy(slot)");
+  });
+
+  it("copying into a slot keeps that copy locally too", () => {
+    const copy = slotsFn.slice(slotsFn.indexOf('case "slot-copy"'), slotsFn.indexOf('case "slot-rename"'));
+    expect(copy).toContain("keepLocalCopy(slot");
+  });
+
+  it("deleting a slot drops its local copy only once the cloud agrees", () => {
+    const del = slotsFn.slice(slotsFn.indexOf('case "slot-delete-yes"'));
+    expect(del).toMatch(/if \(ok\) dropLocalCopy\(slot\)/);
+  });
+});

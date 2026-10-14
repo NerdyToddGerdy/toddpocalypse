@@ -1,6 +1,8 @@
 node_modules/
 dist/
 coverage/
+test-results/
+playwright-report/
 
 # Third-party game source — must never be committed. See #49.
 # clickpocalypse.js was removed from history 2026-08-04; basic.js was deleted 2026-08-05

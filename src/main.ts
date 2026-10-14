@@ -59,6 +59,9 @@ import {
   cloudLoad,
   cloudRenameSlot,
   cloudSave,
+  dropLocalCopy,
+  keepLocalCopy,
+  localCopy,
   getActiveSlot,
   setActiveSlot,
   getLoginUrl,
@@ -3522,6 +3525,7 @@ async function saveBeforeSwitching(token: string): Promise<boolean> {
   if (!game) return true;
   const data = game.saveJson();
   localStorage.setItem(SAVE_KEY, data);
+  keepLocalCopy(getActiveSlot(), data);
   const result = await cloudSave(token, data);
   if (result === "ok") return true;
   showCloudStatus(result === "conflict"
@@ -3636,12 +3640,14 @@ function initSaveSlots(): void {
         btn.disabled = true;
         if (!await saveBeforeSwitching(token)) { btn.disabled = false; return; }
         const result = await cloudLoad(token, slot);
-        if (result.status !== "ok") {
+        // The cloud wins when it answers; this browser's copy keeps the slot playable when it doesn't.
+        const data = result.status === "ok" ? result.data : localCopy(slot);
+        if (!data) {
           showCloudStatus("✗ Couldn't load that slot. Check your connection.", true);
           btn.disabled = false;
           return;
         }
-        enterSlot(slot, result.data);
+        enterSlot(slot, data);
         break;
       }
       case "slot-new":
@@ -3652,7 +3658,9 @@ function initSaveSlots(): void {
       case "slot-copy": {
         if (!game) return;
         btn.disabled = true;
-        const result = await cloudCopyToSlot(token, slot, game.saveJson());
+        const data = game.saveJson();
+        keepLocalCopy(slot, data);
+        const result = await cloudCopyToSlot(token, slot, data);
         showCloudStatus(result === "ok" ? `✓ Copied this game into slot ${slot}.` : "✗ Couldn't copy this game. Check your connection.", result !== "ok");
         await renderSaveSlots();
         break;
@@ -3670,7 +3678,8 @@ function initSaveSlots(): void {
       case "slot-delete-yes": {
         btn.disabled = true;
         const ok = await cloudDeleteSlot(token, slot) === "ok";
-        if (!ok) showCloudStatus("✗ Couldn't delete that slot. Check your connection.", true);
+        if (ok) dropLocalCopy(slot);
+        else showCloudStatus("✗ Couldn't delete that slot. Check your connection.", true);
         await renderSaveSlots();
         break;
       }

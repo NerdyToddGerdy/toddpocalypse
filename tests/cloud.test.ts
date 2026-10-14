@@ -423,3 +423,80 @@ describe("save slots", async () => {
     expect(await cloudDeleteSlot("tok", 2)).toBe("error");
   });
 });
+
+// #64: §6 — "if this endpoint 500s forever, can someone still play?" A request
+// that never answers must give up, or the game waits on it at startup forever.
+describe("requests give up when the server never answers", async () => {
+  const { cloudListSlots, cloudRenameSlot, REQUEST_TIMEOUT_MS } = await import("../src/cloud.js");
+
+  /** A fetch that only settles when its signal aborts, like a blackholed host. */
+  const hangingFetch = vi.fn((_url: string, init?: RequestInit) => new Promise((_, reject) => {
+    init?.signal?.addEventListener("abort", () => reject(init.signal!.reason));
+  }));
+
+  beforeEach(() => {
+    store["toddpocalypse-session"] = "my-session";
+    vi.useFakeTimers();
+    vi.stubGlobal("fetch", hangingFetch);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.stubGlobal("localStorage", localStorageMock);
+    vi.stubGlobal("crypto", { randomUUID: () => "new-uuid-1234" });
+  });
+
+  it("waits a few seconds, not forever", () => {
+    expect(REQUEST_TIMEOUT_MS).toBeGreaterThanOrEqual(3_000);
+    expect(REQUEST_TIMEOUT_MS).toBeLessThanOrEqual(10_000);
+  });
+
+  it("a load that never answers reports network", async () => {
+    const result = cloudLoad("tok");
+    await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS);
+    expect(await result).toEqual({ status: "network" });
+  });
+
+  it("saves, lists and slot edits give up too", async () => {
+    const results = Promise.all([cloudSave("tok", "d"), cloudListSlots("tok"), cloudRenameSlot("tok", 2, "x")]);
+    await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS);
+    expect(await results).toEqual(["error", { status: "network" }, "error"]);
+  });
+});
+
+// #64: §6 — "never make the backend the only copy of anything a player would be
+// upset to lose." A slot you leave keeps a copy in this browser.
+describe("local copies of cloud slots", async () => {
+  const { keepLocalCopy, localCopy, dropLocalCopy } = await import("../src/cloud.js");
+
+  beforeEach(() => { for (let s = 1; s <= 5; s++) delete store[`toddpocalypse-slot-${s}`]; });
+
+  it("keeps one copy per slot", () => {
+    keepLocalCopy(2, "two");
+    keepLocalCopy(3, "three");
+    expect(localCopy(2)).toBe("two");
+    expect(localCopy(3)).toBe("three");
+    expect(localCopy(4)).toBeNull();
+  });
+
+  it("a newer copy replaces the old one", () => {
+    keepLocalCopy(2, "old");
+    keepLocalCopy(2, "new");
+    expect(localCopy(2)).toBe("new");
+  });
+
+  it("dropping a slot's copy leaves the others", () => {
+    keepLocalCopy(2, "two");
+    keepLocalCopy(3, "three");
+    dropLocalCopy(2);
+    expect(localCopy(2)).toBeNull();
+    expect(localCopy(3)).toBe("three");
+  });
+
+  it("a full browser doesn't stop the game", () => {
+    vi.stubGlobal("localStorage", { ...localStorageMock, setItem: () => { throw new Error("QuotaExceededError"); } });
+    expect(() => keepLocalCopy(2, "x")).not.toThrow();
+    vi.stubGlobal("localStorage", localStorageMock);
+  });
+});

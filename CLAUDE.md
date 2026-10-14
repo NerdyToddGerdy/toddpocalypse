@@ -43,6 +43,7 @@ npm run watch       # esbuild watch mode for local dev
 npm run changelog   # regenerate CHANGELOG.md from src/changelog.ts — run after every version bump
 npm test            # run vitest once
 npm run test:watch  # vitest watch
+npm run test:e2e    # build, then Playwright against dist/ (one-time: npx playwright install chromium)
 npm run typecheck   # tsc --noEmit
 ```
 
@@ -79,6 +80,10 @@ local extensions. Use those names (`--bg-1`, `--parchment`, `--torch-mid`…), n
 ### Tests (`tests/`)
 
 Vitest (`*.test.ts`). Each module has a paired test file. Run with `npm test`.
+
+Playwright (`e2e/*.spec.ts`) runs the built game in Chromium, for what only exists end to end:
+persisted state through to rendered UI. `e2e/offline.spec.ts` holds the §6 rule that the game plays
+with the backend gone (#64).
 
 ### Deployment
 

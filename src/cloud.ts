@@ -42,6 +42,50 @@ export function setActiveSlot(slot: number): void {
     localStorage.setItem(SLOT_KEY, String(slot));
 }
 
+/**
+ * How long any request waits before giving up. A host that never answers would
+ * otherwise hold the game at startup, which waits on the cloud load (#64).
+ */
+export const REQUEST_TIMEOUT_MS = 6_000;
+
+/** fetch, abandoned after REQUEST_TIMEOUT_MS; a timeout rejects like a network failure. */
+async function request(url: string, init: RequestInit = {}): Promise<Response> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+        return await fetch(url, { ...init, signal: controller.signal });
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+/**
+ * localStorage key for this browser's copy of a slot's game. Kept when you
+ * leave or copy into a slot, so the cloud is never its only copy (#64).
+ */
+function localCopyKey(slot: number): string {
+    return `toddpocalypse-slot-${slot}`;
+}
+
+/** Keeps this browser's copy of a slot's game. A full browser skips it rather than stopping the game. */
+export function keepLocalCopy(slot: number, data: string): void {
+    try {
+        localStorage.setItem(localCopyKey(slot), data);
+    } catch {
+        // The cloud still has it; a missing local copy only matters offline.
+    }
+}
+
+/** This browser's copy of a slot's game, or null. */
+export function localCopy(slot: number): string | null {
+    return localStorage.getItem(localCopyKey(slot));
+}
+
+/** Forgets this browser's copy of a slot's game. */
+export function dropLocalCopy(slot: number): void {
+    localStorage.removeItem(localCopyKey(slot));
+}
+
 function saveUrl(slot: number, force = false): string {
     return `${API_URL}/save?slot=${slot}${force ? "&force=true" : ""}`;
 }
@@ -113,7 +157,7 @@ export function resetSessionId(): string {
 async function putSave(token: string, data: string, force: boolean, slot = getActiveSlot()): Promise<"ok" | "conflict" | "error"> {
     try {
         const url = saveUrl(slot, force);
-        const res = await fetch(url, {
+        const res = await request(url, {
             method: "PUT",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -173,7 +217,7 @@ export type CloudLoadResult =
 /** Fetches a slot's save data (the active slot unless told otherwise). */
 export async function cloudLoad(token: string, slot = getActiveSlot()): Promise<CloudLoadResult> {
     try {
-        const res = await fetch(saveUrl(slot), {
+        const res = await request(saveUrl(slot), {
             headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) return { status: "http", code: res.status };
@@ -198,7 +242,7 @@ export type SlotListResult =
 /** Lists all five slots: names and what's in them, never the saves themselves. */
 export async function cloudListSlots(token: string): Promise<SlotListResult> {
     try {
-        const res = await fetch(`${API_URL}/saves`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await request(`${API_URL}/saves`, { headers: { Authorization: `Bearer ${token}` } });
         if (!res.ok) return { status: "http", code: res.status };
         return { status: "ok", slots: await res.json() as SlotInfo[] };
     } catch {
@@ -208,7 +252,7 @@ export async function cloudListSlots(token: string): Promise<SlotListResult> {
 
 async function slotRequest(token: string, slot: number, method: "PATCH" | "DELETE", body?: string): Promise<"ok" | "error"> {
     try {
-        const res = await fetch(saveUrl(slot), {
+        const res = await request(saveUrl(slot), {
             method,
             headers: { Authorization: `Bearer ${token}`, ...(body ? { "Content-Type": "application/json" } : {}) },
             ...(body ? { body } : {}),

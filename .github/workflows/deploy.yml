@@ -29,6 +29,9 @@ jobs:
       - run: npm test
       - run: npm run typecheck
       - run: npm run build
+      # §6 Backends (#64): the built game must still play with the backend gone.
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test
 
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5

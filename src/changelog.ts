@@ -1,5 +1,5 @@
 /** Current game version string, displayed in the footer version button. */
-export const VERSION = "v2.64.0";
+export const VERSION = "v2.65.0";
 
 /** A single version's release notes. */
 export interface ChangelogEntry {
@@ -13,6 +13,15 @@ export interface ChangelogEntry {
 
 /** Full changelog ordered newest-first, rendered in the changelog modal. */
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "v2.65.0",
+    date: "2026-10-13",
+    changes: [
+      "If the save server stops answering, the game now gives up on it after 6 seconds and loads the save in this browser. Before, a signed-in player could be stuck on the loading screen",
+      "Each cloud slot you leave, or copy a game into, keeps a copy in this browser. If the cloud can't load a slot, Play uses that copy. Deleting a slot removes it",
+      "New end-to-end tests play the real game in a browser with the server refusing, failing, hanging, or signed out, and check you can still fight",
+    ],
+  },
   {
     version: "v2.64.0",
     date: "2026-10-12",
